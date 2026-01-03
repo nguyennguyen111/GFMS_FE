@@ -1,0 +1,73 @@
+.dh-title { margin: 0; font-size: 22px; font-weight: 1000; letter-spacing: 0.02em; }
+.dh-sub { color: rgba(238,242,255,0.70); margin-top: 6px; }
+
+.dh-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+}
+
+.dh-card {
+  grid-column: span 4;
+  border-radius: 18px;
+  padding: 14px;
+
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.dh-card::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(250px 140px at 15% 20%, rgba(255,138,0,0.18), transparent 60%);
+  pointer-events: none;
+}
+
+.dh-card__label { opacity: 0.82; font-size: 13px; position: relative; z-index: 1; }
+.dh-card__value { font-size: 24px; font-weight: 1000; margin-top: 8px; position: relative; z-index: 1; }
+.dh-card__note { margin-top: 10px; font-size: 12px; opacity: 0.65; position: relative; z-index: 1; }
+
+.dh-panel {
+  margin-top: 14px;
+  border-radius: 18px;
+  padding: 14px;
+
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.30);
+}
+.dh-panel__title { font-weight: 1000; margin-bottom: 10px; }
+
+.dh-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+}
+.dh-mini {
+  grid-column: span 6;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  position: relative;
+  overflow: hidden;
+}
+.dh-mini::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(240px 120px at 20% 20%, rgba(255,176,0,0.14), transparent 60%);
+  pointer-events: none;
+}
+.dh-mini__t { font-weight: 900; position: relative; z-index: 1; }
+.dh-mini__d { margin-top: 6px; color: rgba(238,242,255,0.70); font-size: 13px; position: relative; z-index: 1; }
+
+@media (max-width: 900px) {
+  .dh-card { grid-column: span 12; }
+  .dh-mini { grid-column: span 12; }
+}

@@ -1,0 +1,289 @@
+/* ===== Theme variables ===== */
+:root {
+  --bg-0: #0b0f16;
+  --bg-1: #121a26;
+  --panel: rgba(15, 22, 33, 0.72);
+  --panel-2: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.10);
+  --border-2: rgba(255,255,255,0.14);
+  --text: #eef2ff;
+  --muted: rgba(238,242,255,0.70);
+
+  --orange: #ff8a00;
+  --orange-2: #ffb000;
+  --orange-soft: rgba(255, 138, 0, 0.18);
+  --shadow: 0 18px 60px rgba(0,0,0,0.45);
+  --radius: 18px;
+}
+
+.ad-layout {
+  min-height: 100vh;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(255,138,0,0.10), transparent 60%),
+              radial-gradient(900px 500px at 85% 25%, rgba(255,176,0,0.10), transparent 55%),
+              linear-gradient(120deg, #0a0f16 0%, #0c1420 55%, #0a0f16 100%);
+}
+
+.ad-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 450px at 85% 35%, rgba(255,138,0,0.14), transparent 60%),
+    radial-gradient(800px 400px at 20% 75%, rgba(255,176,0,0.10), transparent 65%);
+  filter: blur(2px);
+  opacity: 0.9;
+}
+
+/* ===== Sidebar ===== */
+.ad-sidebar {
+  width: 290px;
+  background: linear-gradient(180deg, rgba(10,14,20,0.92), rgba(10,14,20,0.72));
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width 180ms ease;
+  backdrop-filter: blur(10px);
+}
+.ad-sidebar.is-collapsed { width: 92px; }
+
+.ad-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ad-brand__logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ad-brand__mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #111;
+  background: linear-gradient(90deg, var(--orange), var(--orange-2));
+  box-shadow: 0 12px 30px rgba(255, 138, 0, 0.18);
+}
+.ad-brand__name {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  opacity: 0.95;
+}
+.ad-brand__sub {
+  font-size: 11px;
+  opacity: 0.68;
+  margin-top: 2px;
+}
+
+.ad-icon-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease;
+}
+.ad-icon-btn:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+
+/* ===== Nav ===== */
+.ad-nav {
+  padding: 12px;
+  overflow: auto;
+  flex: 1;
+}
+
+.ad-nav__section {
+  margin: 14px 0 8px;
+  opacity: 0.65;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+
+.ad-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+.ad-nav__item:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-1px);
+}
+
+.ad-nav__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.22);
+}
+
+.ad-nav__item.is-active {
+  background: linear-gradient(90deg, rgba(255,138,0,0.16), rgba(255,176,0,0.08));
+  border-color: rgba(255,138,0,0.28);
+  box-shadow: 0 14px 40px rgba(255,138,0,0.10);
+}
+.ad-nav__item.is-active .ad-nav__dot {
+  background: linear-gradient(90deg, var(--orange), var(--orange-2));
+}
+
+.ad-sidebar.is-collapsed .ad-nav__label,
+.ad-sidebar.is-collapsed .ad-nav__section span,
+.ad-sidebar.is-collapsed .ad-mini,
+.ad-sidebar.is-collapsed .ad-brand__text { display: none; }
+
+/* ===== Sidebar footer ===== */
+.ad-sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ad-mini__title { font-weight: 900; }
+.ad-mini__sub { opacity: 0.72; font-size: 12px; }
+
+/* ===== Buttons ===== */
+.ad-btn {
+  border: 1px solid var(--border-2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.ad-btn:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+.ad-btn--ghost { background: transparent; }
+.ad-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== Main / Topbar ===== */
+.ad-main { flex: 1; display: flex; flex-direction: column; position: relative; }
+
+.ad-topbar {
+  margin: 14px 16px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ad-topbar__title { font-size: 16px; font-weight: 900; }
+.ad-topbar__hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.ad-pill {
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,138,0,0.30);
+  background: linear-gradient(90deg, rgba(255,138,0,0.18), rgba(255,176,0,0.10));
+  color: var(--text);
+}
+
+/* ===== Content ===== */
+.ad-content {
+  padding: 16px;
+  margin: 14px 16px 16px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+/* scrollbars */
+.ad-nav::-webkit-scrollbar,
+.ad-content::-webkit-scrollbar { height: 10px; width: 10px; }
+.ad-nav::-webkit-scrollbar-thumb,
+.ad-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+/* ===== PREMIUM TOUCHES ===== */
+
+/* 1) background grain + deeper glow */
+.ad-layout::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(1000px 520px at 70% 10%, rgba(255,138,0,0.10), transparent 60%),
+    radial-gradient(900px 480px at 25% 85%, rgba(255,176,0,0.08), transparent 65%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.012) 0px,
+      rgba(255,255,255,0.012) 1px,
+      transparent 2px,
+      transparent 6px
+    );
+  opacity:0.9;
+}
+
+/* 2) cards hover */
+.ad-topbar,
+.ad-content{
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.ad-topbar:hover,
+.ad-content:hover{
+  border-color: rgba(255,138,0,0.22);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.55);
+  transform: translateY(-1px);
+}
+
+/* 3) nav active indicator (orange bar) */
+.ad-nav__item{
+  position: relative;
+}
+.ad-nav__item.is-active::before{
+  content:"";
+  position:absolute;
+  left:8px;
+  top:10px;
+  bottom:10px;
+  width:4px;
+  border-radius:999px;
+  background: linear-gradient(180deg, var(--orange), var(--orange-2));
+  box-shadow: 0 10px 30px rgba(255,138,0,0.22);
+}
+.ad-sidebar.is-collapsed .ad-nav__item.is-active::before{
+  left: 6px;
+}
+
+/* 4) slightly stronger card borders overall */
+.ad-topbar, .ad-content, .ad-sidebar{
+  border-color: rgba(255,255,255,0.12);
+}
+.ad-layout select {
+  color-scheme: dark;
+}
+.ad-layout select option {
+  background: #0e1522;
+  color: #eef2ff;
+}

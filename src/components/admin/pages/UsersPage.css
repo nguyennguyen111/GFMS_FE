@@ -1,0 +1,269 @@
+.up-wrap { display: flex; flex-direction: column; gap: 12px; }
+.up-title { margin: 0; font-size: 20px; font-weight: 1000; }
+.up-sub { color: rgba(238,242,255,0.70); margin-top: 6px; }
+
+.up-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.up-actions { display: flex; align-items: center; gap: 10px; }
+
+.up-search input {
+  width: 340px;
+  max-width: 74vw;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #eef2ff;
+  padding: 10px 12px;
+  outline: none;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.18);
+}
+.up-search input:focus {
+  border-color: rgba(255,138,0,0.40);
+  box-shadow: 0 18px 60px rgba(255,138,0,0.10);
+}
+.up-search input::placeholder { color: rgba(238,242,255,0.55); }
+
+/* Buttons */
+.up-btn {
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #eef2ff;
+  background: rgba(255,255,255,0.06);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.up-btn:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+.up-btn--ghost { background: transparent; }
+.up-btn--danger {
+  border-color: rgba(255,138,0,0.32);
+  background: rgba(255,138,0,0.10);
+}
+.up-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Alert */
+.up-alert {
+  background: rgba(255, 138, 0, 0.10);
+  border: 1px solid rgba(255, 138, 0, 0.22);
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+/* Table card */
+.up-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.32);
+}
+
+.up-tableWrap { overflow: auto; }
+.up-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.up-table th, .up-table td {
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.up-table thead th {
+  font-size: 12px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: default;
+  user-select: none;
+  background: rgba(255,255,255,0.02);
+}
+.up-table th.is-sort { cursor: pointer; }
+
+.up-table tbody tr:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.up-td-center { text-align: center !important; padding: 18px 12px; opacity: 0.8; }
+
+.col-actions { width: 190px; }
+.col-actions button { margin-right: 8px; }
+
+/* group badge */
+.up-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+}
+
+/* status */
+.up-status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.up-status.is-active {
+  background: rgba(255,138,0,0.12);
+  border-color: rgba(255,138,0,0.28);
+}
+.up-status.is-inactive { background: rgba(255,255,255,0.06); }
+.up-status.is-suspended {
+  background: rgba(255,176,0,0.10);
+  border-color: rgba(255,176,0,0.22);
+}
+
+/* Footer paging */
+.up-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.up-meta { opacity: 0.85; }
+
+.up-pagi { display: flex; align-items: center; gap: 10px; }
+.up-pages { display: flex; gap: 6px; }
+
+.up-page {
+  min-width: 40px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #eef2ff;
+  cursor: pointer;
+}
+.up-page.is-active {
+  background: linear-gradient(90deg, rgba(255,138,0,0.18), rgba(255,176,0,0.10));
+  border-color: rgba(255,138,0,0.30);
+}
+
+/* Modal */
+.up-modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.60);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.up-modal {
+  width: 540px;
+  max-width: 96vw;
+  background: rgba(12, 18, 28, 0.92);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+}
+.up-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+.up-modal__title { font-weight: 1000; }
+.up-x {
+  background: transparent;
+  border: none;
+  color: #eef2ff;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.up-form { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.up-row { display: flex; flex-direction: column; gap: 6px; }
+.up-row label { font-size: 12px; opacity: 0.88; }
+
+.up-row input, .up-row select {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #eef2ff;
+  padding: 10px 12px;
+  outline: none;
+}
+.up-row input:focus, .up-row select:focus {
+  border-color: rgba(255,138,0,0.40);
+  box-shadow: 0 18px 60px rgba(255,138,0,0.10);
+}
+
+.up-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.up-form__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+
+@media (max-width: 700px) {
+  .up-grid2 { grid-template-columns: 1fr; }
+  .up-search input { width: 260px; }
+}
+/* ===== Fix native select dropdown (white popup) ===== */
+.up-row select {
+  color-scheme: dark;                 /* ✅ giúp dropdown native theo dark mode */
+  appearance: none;                   /* ✅ tự style */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(238,242,255,0.7) 50%),
+    linear-gradient(135deg, rgba(238,242,255,0.7) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px;               /* chừa chỗ icon mũi tên */
+}
+
+/* ✅ Style option list to avoid white background */
+.up-row select option {
+  background-color: #0e1522;         /* dark */
+  color: #eef2ff;
+}
+
+/* ✅ When user highlights option */
+.up-row select option:checked,
+.up-row select option:hover {
+  background-color: rgba(255,138,0,0.22);
+  color: #eef2ff;
+}
+
+/* ✅ Some browsers need this for the dropdown list background */
+.up-row select:focus {
+  border-color: rgba(255,138,0,0.45);
+  box-shadow: 0 18px 60px rgba(255,138,0,0.10);
+}
+.up-filter select{
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(20,26,36,0.75);
+  color: #eef2ff;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.up-filter select:focus{
+  border-color: rgba(255,138,0,0.45);
+  box-shadow: 0 18px 60px rgba(255,138,0,0.10);
+}
+.up-filter select option{
+  background: #0e1522;
+  color: #eef2ff;
+}
