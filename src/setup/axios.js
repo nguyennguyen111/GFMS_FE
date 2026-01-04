@@ -8,6 +8,7 @@ const instance = axios.create({
         'Content-Type': 'application/json',
     },
 });
+instance.defaults.withCredentials = true;
 
 // Thêm logging để debug
 instance.interceptors.request.use(
