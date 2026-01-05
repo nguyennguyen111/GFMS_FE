@@ -6,32 +6,49 @@ import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
+// ✅ NEW PAGES (bạn tạo file ở ./pages/)
+import EquipmentPage from "./pages/EquipmentPage";
+import SuppliersPage from "./pages/SuppliersPage";
+import InventoryPage from "./pages/InventoryPage";
+import ReceiptImportPage from "./pages/ReceiptImportPage";
+import ExportPage from "./pages/ExportPage";
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
   // ===== MENU ADMIN (FULL) =====
-  const menu = useMemo(() => ([
-    { label: "Tổng quan", to: "/admin/dashboard", key: "dashboard" },
+  const menu = useMemo(
+    () => [
+      { label: "Tổng quan", to: "/admin/dashboard", key: "dashboard" },
 
-    { section: "Quản trị hệ thống" },
-    { label: "Người dùng", to: "/admin/users", key: "users" },
-    { label: "Gói dịch vụ", to: "/admin/packages", key: "packages" }, // ✅ THÊM
-    { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
-    { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
+      { section: "Quản trị hệ thống" },
+      { label: "Người dùng", to: "/admin/users", key: "users" },
+      { label: "Gói dịch vụ", to: "/admin/packages", key: "packages" },
+      { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
+      { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
-    { section: "Thiết bị & Kỹ thuật" },
-    { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
-    { label: "Bảo trì / Sửa chữa", to: "/admin/maintenance", key: "maintenance" },
+      // ✅ THÊM NHÓM THEO UC EQ/SUP/INV
+      { section: "Thiết bị & Kho" },
+      { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
+      { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
+      { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
+      { label: "Nhập kho", to: "/admin/import", key: "import" },
+      { label: "Xuất kho", to: "/admin/export", key: "export" },
 
-    { section: "Chia sẻ PT" },
-    { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
-    { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
+      { section: "Thiết bị & Kỹ thuật" },
+      { label: "Bảo trì / Sửa chữa", to: "/admin/maintenance", key: "maintenance" },
 
-    { section: "Báo cáo & Nhật ký" },
-    { label: "Báo cáo", to: "/admin/reports", key: "reports" },
-    { label: "Audit Logs", to: "/admin/audit-logs", key: "audit" }
-  ]), []);
+      { section: "Chia sẻ PT" },
+      { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
+      { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
+
+      { section: "Báo cáo & Nhật ký" },
+      { label: "Báo cáo", to: "/admin/reports", key: "reports" },
+      { label: "Audit Logs", to: "/admin/audit-logs", key: "audit" },
+    ],
+    []
+  );
 
   const handleLogout = () => {
     navigate("/login");
@@ -52,10 +69,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <button
-            className="ad-icon-btn"
-            onClick={() => setCollapsed(v => !v)}
-          >
+          <button className="ad-icon-btn" onClick={() => setCollapsed((v) => !v)}>
             {collapsed ? "»" : "«"}
           </button>
         </div>
@@ -74,9 +88,7 @@ export default function AdminDashboard() {
               <NavLink
                 key={item.key}
                 to={item.to}
-                className={({ isActive }) =>
-                  `ad-nav__item ${isActive ? "is-active" : ""}`
-                }
+                className={({ isActive }) => `ad-nav__item ${isActive ? "is-active" : ""}`}
               >
                 <span className="ad-nav__dot" />
                 <span className="ad-nav__label">{item.label}</span>
@@ -88,9 +100,7 @@ export default function AdminDashboard() {
         <div className="ad-sidebar__footer">
           <div className="ad-mini">
             <div className="ad-mini__title">Admin</div>
-            <div className="ad-mini__sub">
-              Gym Franchise Management System
-            </div>
+            <div className="ad-mini__sub">Gym Franchise Management System</div>
           </div>
           <button className="ad-btn ad-btn--ghost" onClick={handleLogout}>
             Đăng xuất
@@ -103,9 +113,7 @@ export default function AdminDashboard() {
         <header className="ad-topbar">
           <div>
             <div className="ad-topbar__title">Admin Console</div>
-            <div className="ad-topbar__hint">
-              GFMS • ReactJS • NodeJS • MySQL
-            </div>
+            <div className="ad-topbar__hint">GFMS • ReactJS • NodeJS • MySQL</div>
           </div>
 
           <div className="ad-pill">Giai đoạn 1</div>
@@ -121,54 +129,33 @@ export default function AdminDashboard() {
 
             {/* ===== QUẢN TRỊ HỆ THỐNG ===== */}
             <Route path="/users" element={<UsersPage />} />
-            <Route
-              path="/packages"
-              element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />}
-            />
-            <Route
-              path="/gyms"
-              element={<PlaceholderPage title="Quản lý phòng gym" />}
-            />
-            <Route
-              path="/franchises"
-              element={<PlaceholderPage title="Yêu cầu nhượng quyền" />}
-            />
+            <Route path="/packages" element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />} />
+            <Route path="/gyms" element={<PlaceholderPage title="Quản lý phòng gym" />} />
+            <Route path="/franchises" element={<PlaceholderPage title="Yêu cầu nhượng quyền" />} />
+
+            {/* ✅ ===== THIẾT BỊ & KHO (UC bạn yêu cầu) ===== */}
+            <Route path="/equipment" element={<EquipmentPage />} />
+            <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/stocks" element={<InventoryPage />} />
+            <Route path="/import" element={<ReceiptImportPage />} />
+            <Route path="/export" element={<ExportPage />} />
 
             {/* ===== THIẾT BỊ & KỸ THUẬT ===== */}
-            <Route
-              path="/equipment"
-              element={<PlaceholderPage title="Thiết bị" />}
-            />
-            <Route
-              path="/maintenance"
-              element={<PlaceholderPage title="Bảo trì / Sửa chữa" />}
-            />
+            <Route path="/maintenance" element={<PlaceholderPage title="Bảo trì / Sửa chữa" />} />
 
             {/* ===== CHIA SẺ PT ===== */}
-            <Route
-              path="/policies/sharing"
-              element={<PlaceholderPage title="Chính sách chia sẻ PT" />}
-            />
+            <Route path="/policies/sharing" element={<PlaceholderPage title="Chính sách chia sẻ PT" />} />
             <Route
               path="/shared-trainers/overrides"
               element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />}
             />
 
             {/* ===== BÁO CÁO ===== */}
-            <Route
-              path="/reports"
-              element={<PlaceholderPage title="Báo cáo" />}
-            />
-            <Route
-              path="/audit-logs"
-              element={<PlaceholderPage title="Audit Logs" />}
-            />
+            <Route path="/reports" element={<PlaceholderPage title="Báo cáo" />} />
+            <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" />} />
 
             {/* fallback */}
-            <Route
-              path="*"
-              element={<PlaceholderPage title="Không tìm thấy trang" />}
-            />
+            <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />
           </Routes>
         </div>
       </main>
