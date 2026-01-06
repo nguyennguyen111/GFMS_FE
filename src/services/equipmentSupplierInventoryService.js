@@ -1,49 +1,57 @@
-// frontend/src/services/equipmentSupplierInventoryService.js
-import axios from "../setup/axios";
+import api from "../setup/axios";
 
-// ========== EQUIPMENT ==========
-export const getEquipments = (params) =>
-  axios.get("/api/admin/equipments", { params });
+// prefix API (không cần sửa axios.js)
+const API_PREFIX = "/api";
 
-export const createEquipment = (data) =>
-  axios.post("/api/admin/equipments", data);
-
-export const updateEquipment = (id, data) =>
-  axios.put(`/api/admin/equipments/${id}`, data);
-
-// soft delete theo nghiệp vụ: status = discontinued
-export const discontinueEquipment = (id) =>
-  axios.patch(`/api/admin/equipments/${id}/discontinue`);
-
-// categories for dropdown
+// ===== EQUIPMENT =====
 export const getEquipmentCategories = (params) =>
-  axios.get("/api/admin/equipment-categories", { params });
+  api.get(`${API_PREFIX}/admin/equipment-categories`, { params });
 
-// ========== SUPPLIER ==========
+export const getEquipments = (params) =>
+  api.get(`${API_PREFIX}/admin/equipments`, { params });
+
+export const createEquipment = (payload) =>
+  api.post(`${API_PREFIX}/admin/equipments`, payload);
+
+export const updateEquipment = (id, payload) =>
+  api.put(`${API_PREFIX}/admin/equipments/${id}`, payload);
+
+// 🔧 BE là PATCH /admin/equipments/:id/discontinue (không phải DELETE)
+export const discontinueEquipment = (id) =>
+  api.patch(`${API_PREFIX}/admin/equipments/${id}/discontinue`);
+
+// ===== SUPPLIER =====
 export const getSuppliers = (params) =>
-  axios.get("/api/admin/suppliers", { params });
+  api.get(`${API_PREFIX}/admin/suppliers`, { params });
 
-export const createSupplier = (data) =>
-  axios.post("/api/admin/suppliers", data);
+export const createSupplier = (payload) =>
+  api.post(`${API_PREFIX}/admin/suppliers`, payload);
 
-export const updateSupplier = (id, data) =>
-  axios.put(`/api/admin/suppliers/${id}`, data);
+export const updateSupplier = (id, payload) =>
+  api.put(`${API_PREFIX}/admin/suppliers/${id}`, payload);
 
-export const toggleSupplierActive = (id, isActive) =>
-  axios.patch(`/api/admin/suppliers/${id}/active`, { isActive });
+// backend đang dùng PATCH /admin/suppliers/:id/active
+export const setSupplierActive = (id, isActive) =>
+  api.patch(`${API_PREFIX}/admin/suppliers/${id}/active`, { isActive });
 
-// ========== INVENTORY / STOCK ==========
+// ✅ alias để khỏi lỗi import cũ
+export const toggleSupplierActive = (id, isActive) => setSupplierActive(id, isActive);
+
+// ===== STOCK =====
 export const getStocks = (params) =>
-  axios.get("/api/admin/stocks", { params });
+  api.get(`${API_PREFIX}/admin/stocks`, { params });
 
-// Nhập kho
-export const createReceipt = (data) =>
-  axios.post("/api/admin/receipts", data);
-
-// Xuất kho
-export const createExport = (data) =>
-  axios.post("/api/admin/exports", data);
-
-// Nhật ký kho
+// ===== 6) INVENTORY LOGS =====
 export const getInventoryLogs = (params) =>
-  axios.get("/api/admin/inventory-logs", { params });
+  api.get(`${API_PREFIX}/admin/inventory-logs`, { params });
+
+// ===== 4) IMPORT (RECEIPT) =====
+export const createReceiptImport = (payload) =>
+  api.post(`${API_PREFIX}/admin/receipts`, payload);
+
+// ✅ alias nếu nơi khác đang import createReceipt
+export const createReceipt = (payload) => createReceiptImport(payload);
+
+// ===== 5) EXPORT =====
+export const createExport = (payload) =>
+  api.post(`${API_PREFIX}/admin/exports`, payload);
