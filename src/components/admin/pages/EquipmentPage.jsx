@@ -9,7 +9,6 @@ import {
   getEquipmentCategories,
 } from "../../../services/equipmentSupplierInventoryService";
 
-
 const emptyForm = {
   name: "",
   code: "",
@@ -43,16 +42,13 @@ export default function EquipmentPage() {
   const [form, setForm] = useState(emptyForm);
 
   const totalPages = useMemo(() => {
-    // Nếu BE trả totalPages/totalItems thì dùng cái đó.
-    // Tạm thời FE tự tính theo items length nếu BE trả full list.
     return 1;
-  }, [items]);
+  }, [items]); // warning hook không ảnh hưởng chạy
 
   const fetchAll = async () => {
     setLoading(true);
     setErr("");
     try {
-      // categories dropdown
       const catRes = await getEquipmentCategories({ isActive: true });
       setCategories(catRes?.data?.data ?? catRes?.data ?? []);
 
@@ -64,7 +60,6 @@ export default function EquipmentPage() {
         limit,
       });
 
-      // hỗ trợ 2 dạng: {data:[..]} hoặc {data:{data:[..], total..}}
       const data = res?.data?.data ?? res?.data ?? [];
       setItems(Array.isArray(data) ? data : data.items ?? []);
     } catch (e) {
@@ -109,29 +104,36 @@ export default function EquipmentPage() {
     setShowModal(true);
   };
 
-  const closeModal = () => setShowModal(false);
+  const closeModal = () => {
+    setShowModal(false);
+    setErr("");
+  };
 
   const save = async () => {
     setErr("");
     try {
       const payload = {
-        ...form,
+        name: form.name?.trim(),
+        code: form.code?.trim() || null,
+        description: form.description?.trim() || null,
+        brand: form.brand?.trim() || null,
+        model: form.model?.trim() || null,
+        unit: form.unit || "piece",
+        status: form.status || "active",
         categoryId: form.categoryId ? Number(form.categoryId) : null,
         minStockLevel: Number(form.minStockLevel || 0),
         maxStockLevel: form.maxStockLevel === "" ? null : Number(form.maxStockLevel),
       };
 
-      if (!payload.name?.trim()) {
+      if (!payload.name) {
         setErr("Tên thiết bị là bắt buộc");
         return;
       }
 
-      if (mode === "create") {
-        await createEquipment(payload);
-      } else {
-        await updateEquipment(editingId, payload);
-      }
-      setShowModal(false);
+      if (mode === "create") await createEquipment(payload);
+      else await updateEquipment(editingId, payload);
+
+      closeModal();
       fetchAll();
     } catch (e) {
       setErr(e?.response?.data?.message || e.message || "Save failed");
@@ -139,12 +141,12 @@ export default function EquipmentPage() {
   };
 
   const softDelete = async (row) => {
-    if (!window.confirm(`Xoá mềm thiết bị "${row.name}"? (status → discontinued)`)) return;
+    if (!window.confirm("Ẩn (xóa mềm) thiết bị này?")) return;
     try {
       await discontinueEquipment(row.id);
       fetchAll();
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Delete failed");
+      alert(e?.response?.data?.message || e.message || "Discontinue failed");
     }
   };
 
@@ -152,9 +154,12 @@ export default function EquipmentPage() {
     <div className="eq-page">
       <div className="eq-header">
         <h2>Thiết bị</h2>
-        <button className="btn primary" onClick={openCreate}>
-          + Thêm thiết bị
-        </button>
+
+        <div className="eq-actions">
+          <button className="btn primary" onClick={openCreate}>
+            + Thêm thiết bị
+          </button>
+        </div>
       </div>
 
       <div className="eq-filters">
@@ -173,6 +178,7 @@ export default function EquipmentPage() {
         >
           <option value="all">Tất cả trạng thái</option>
           <option value="active">active</option>
+          <option value="inactive">inactive</option>
           <option value="discontinued">discontinued</option>
         </select>
 
@@ -197,18 +203,18 @@ export default function EquipmentPage() {
       {err ? <div className="alert">{err}</div> : null}
       {loading ? <div className="muted">Đang tải...</div> : null}
 
-      <div className="eq-table-wrap">
-        <table className="eq-table">
+      <div className="table-wrap">
+        <table className="table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Mã</th>
-              <th>Tên</th>
-              <th>Danh mục</th>
-              <th>Đơn vị</th>
-              <th>Tối thiểu</th>
-              <th>Trạng thái</th>
-              <th style={{ width: 220 }}>Hành động</th>
+              <th>MÃ</th>
+              <th>TÊN</th>
+              <th>DANH MỤC</th>
+              <th>ĐƠN VỊ</th>
+              <th>TỐI THIỂU</th>
+              <th>TRẠNG THÁI</th>
+              <th>HÀNH ĐỘNG</th>
             </tr>
           </thead>
           <tbody>
@@ -250,12 +256,14 @@ export default function EquipmentPage() {
         </table>
       </div>
 
-      {/* Simple pagination placeholder (nếu BE trả totalPages thì bạn nối vào) */}
       <div className="pager">
         <button className="btn small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
           ← Trước
         </button>
-        <span className="muted">Trang {page}{totalPages > 1 ? ` / ${totalPages}` : ""}</span>
+        <span className="muted">
+          Trang {page}
+          {totalPages > 1 ? ` / ${totalPages}` : ""}
+        </span>
         <button className="btn small" onClick={() => setPage((p) => p + 1)}>
           Sau →
         </button>
@@ -334,26 +342,6 @@ export default function EquipmentPage() {
                   />
                 </label>
 
-                <label>
-                  Min stock level
-                  <input
-                    type="number"
-                    className="input"
-                    value={form.minStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
-                  />
-                </label>
-
-                <label>
-                  Max stock level
-                  <input
-                    type="number"
-                    className="input"
-                    value={form.maxStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
-                  />
-                </label>
-
                 <label className="full">
                   Mô tả
                   <textarea
@@ -362,6 +350,41 @@ export default function EquipmentPage() {
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
                   />
+                </label>
+
+                <label>
+                  Min stock
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    value={form.minStockLevel}
+                    onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
+                  />
+                </label>
+
+                <label>
+                  Max stock
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    value={form.maxStockLevel}
+                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
+                  />
+                </label>
+
+                <label>
+                  Trạng thái
+                  <select
+                    className="select"
+                    value={form.status}
+                    onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
+                  >
+                    <option value="active">active</option>
+                    <option value="inactive">inactive</option>
+                    <option value="discontinued">discontinued</option>
+                  </select>
                 </label>
               </div>
 

@@ -1,45 +1,23 @@
-// frontend/src/services/equipmentSupplierInventoryService.js
-import axios from "../setup/axios"; // đúng theo file axios instance của bạn :contentReference[oaicite:1]{index=1}
+import axios from "../setup/axios";
 
-// ========== EQUIPMENT ==========
-export const getEquipments = (params) =>
-  axios.get("/api/admin/equipments", { params });
-
-export const createEquipment = (data) =>
-  axios.post("/api/admin/equipments", data);
-
-export const updateEquipment = (id, data) =>
-  axios.put(`/api/admin/equipments/${id}`, data);
-
-// soft delete theo nghiệp vụ: status = discontinued
-export const discontinueEquipment = (id) =>
-  axios.patch(`/api/admin/equipments/${id}/discontinue`);
-
-// categories for dropdown
+// ===== EQUIPMENT =====
+export const getEquipments = (params) => axios.get("/api/admin/equipments", { params });
+export const createEquipment = (data) => axios.post("/api/admin/equipments", data);
+export const updateEquipment = (id, data) => axios.put(`/api/admin/equipments/${id}`, data);
+export const discontinueEquipment = (id) => axios.patch(`/api/admin/equipments/${id}/discontinue`);
 export const getEquipmentCategories = (params) =>
   axios.get("/api/admin/equipment-categories", { params });
 
-// ========== SUPPLIER ==========
-export const getSuppliers = (params) =>
-  axios.get("/api/admin/suppliers", { params });
-
-export const createSupplier = (data) =>
-  axios.post("/api/admin/suppliers", data);
-
-export const updateSupplier = (id, data) =>
-  axios.put(`/api/admin/suppliers/${id}`, data);
-
+// ===== SUPPLIERS =====
+export const getSuppliers = (params) => axios.get("/api/admin/suppliers", { params });
+export const createSupplier = (data) => axios.post("/api/admin/suppliers", data);
+export const updateSupplier = (id, data) => axios.put(`/api/admin/suppliers/${id}`, data);
 export const toggleSupplierActive = (id, isActive) =>
   axios.patch(`/api/admin/suppliers/${id}/active`, { isActive });
 
-// ========== INVENTORY / STOCK ==========
-export const getStocks = (params) =>
-  axios.get("/api/admin/stocks", { params }); // EquipmentStock view
+// ===== STOCK =====
+export const getStocks = (params) => axios.get("/api/admin/stocks", { params });
 
-// Nhập kho (Receipt + ReceiptItem + Inventory import + update EquipmentStock)
-export const createReceipt = (data) =>
-  axios.post("/api/admin/receipts", data);
-
-// Xuất kho (Inventory export + update EquipmentStock)
-export const createExport = (data) =>
-  axios.post("/api/admin/exports", data);
+// ===== IMPORT / EXPORT =====
+export const createReceipt = (data) => axios.post("/api/admin/receipts", data);
+export const createExport = (data) => axios.post("/api/admin/exports", data);

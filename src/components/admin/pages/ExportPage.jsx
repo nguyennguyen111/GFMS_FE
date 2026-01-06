@@ -2,15 +2,14 @@ import React, { useEffect, useState } from "react";
 import "./ExportPage.css";
 
 import {
-  createExport,
   getEquipments,
+  createExport,
 } from "../../../services/equipmentSupplierInventoryService";
-
 
 export default function ExportPage() {
   const [equipments, setEquipments] = useState([]);
   const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [gymId, setGymId] = useState(1);
 
   const [form, setForm] = useState({
     equipmentId: "",
@@ -22,48 +21,58 @@ export default function ExportPage() {
   useEffect(() => {
     (async () => {
       try {
-        const e = await getEquipments({ status: "active", limit: 200 });
-        setEquipments(e?.data?.data ?? e?.data ?? []);
-      } catch (e) {}
+        const res = await getEquipments({ limit: 200 });
+        const data = res?.data?.data ?? res?.data ?? [];
+        setEquipments(Array.isArray(data) ? data : data.items ?? []);
+      } catch (e) {
+        setErr(e?.response?.data?.message || e.message || "Load failed");
+      }
     })();
   }, []);
 
   const submit = async () => {
     setErr("");
-    if (!form.equipmentId) return setErr("Chọn thiết bị");
-    if (Number(form.quantity || 0) <= 0) return setErr("Số lượng phải > 0");
-
-    setSaving(true);
     try {
-      await createExport({
+      if (!gymId) throw new Error("gymId is required");
+      if (!form.equipmentId) throw new Error("Chọn thiết bị");
+      if (Number(form.quantity) <= 0) throw new Error("quantity must be > 0");
+
+      const payload = {
+        gymId: Number(gymId),
         equipmentId: Number(form.equipmentId),
         quantity: Number(form.quantity),
-        reason: form.reason,
-        notes: form.notes || null,
-      });
-      alert("Xuất kho thành công");
-      setForm({ equipmentId: "", quantity: 1, reason: "other", notes: "" });
+        reason: form.reason || "other",
+        notes: form.notes || undefined,
+      };
+
+      await createExport(payload);
+      alert("Xuất kho thành công!");
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Xuất kho thất bại");
-    } finally {
-      setSaving(false);
+      setErr(e?.response?.data?.message || e.message || "Export failed");
     }
   };
 
   return (
-    <div className="exp-page">
-      <h2>Xuất kho (đợt 1)</h2>
+    <div className="ex-page">
+      <h2>Xuất kho</h2>
       {err ? <div className="alert">{err}</div> : null}
 
-      <div className="card">
+      <div className="ex-grid">
+        <label>
+          Gym ID *
+          <input value={gymId} onChange={(e) => setGymId(e.target.value)} />
+        </label>
+
         <label>
           Thiết bị *
-          <select className="select" value={form.equipmentId}
-            onChange={(e) => setForm((s) => ({ ...s, equipmentId: e.target.value }))}>
-            <option value="">-- chọn --</option>
-            {equipments.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name} {e.code ? `(${e.code})` : ""}
+          <select
+            value={form.equipmentId}
+            onChange={(e) => setForm((s) => ({ ...s, equipmentId: e.target.value }))}
+          >
+            <option value="">Chọn thiết bị</option>
+            {equipments.map((eq) => (
+              <option key={eq.id} value={eq.id}>
+                {eq.name}
               </option>
             ))}
           </select>
@@ -71,35 +80,34 @@ export default function ExportPage() {
 
         <label>
           Số lượng *
-          <input className="input" type="number" min={1} value={form.quantity}
-            onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}/>
+          <input
+            type="number"
+            min={1}
+            value={form.quantity}
+            onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
+          />
         </label>
 
         <label>
           Lý do
-          <select className="select" value={form.reason}
-            onChange={(e) => setForm((s) => ({ ...s, reason: e.target.value }))}>
-            <option value="other">other</option>
-            <option value="damaged">damaged</option>
-            <option value="lost">lost</option>
-            <option value="maintenance">maintenance</option>
-            <option value="transfer_out">transfer_out</option>
-            <option value="adjustment">adjustment</option>
-          </select>
+          <input
+            value={form.reason}
+            onChange={(e) => setForm((s) => ({ ...s, reason: e.target.value }))}
+          />
         </label>
 
-        <label>
+        <label className="full">
           Ghi chú
-          <textarea className="textarea" rows={3} value={form.notes}
-            onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}/>
+          <input
+            value={form.notes}
+            onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+          />
         </label>
-
-        <div className="actions">
-          <button className="btn primary" onClick={submit} disabled={saving}>
-            {saving ? "Đang lưu..." : "Xuất kho"}
-          </button>
-        </div>
       </div>
+
+      <button className="btn primary" onClick={submit} style={{ marginTop: 12 }}>
+        Xuất kho
+      </button>
     </div>
   );
 }
