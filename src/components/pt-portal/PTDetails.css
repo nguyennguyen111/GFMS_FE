@@ -1,0 +1,91 @@
+/* ====== FULL PAGE BACKGROUND (fix white space) ====== */
+.container {
+  min-height: 100vh;
+  width: 100%;
+  padding: 28px 0 48px;
+  box-sizing: border-box;
+  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+}
+
+/* ====== CARD WRAP ====== */
+.container .trainerCard {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* Nếu JSX chưa có trainerCard wrapper, vẫn ok:
+   bạn có thể để nguyên, và CSS dưới sẽ style luôn phần text.
+*/
+
+.trainer-title,
+.container h1 {
+  width: min(1100px, 92vw);
+  margin: 0 auto 14px;
+  color: var(--orange);
+  font-size: 2.1rem;
+}
+
+/* SCOPED TEXT (không ảnh hưởng toàn app) */
+.container p {
+  width: min(1100px, 92vw);
+  margin: 0 auto 10px;
+  color: var(--lightgray);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.container p strong {
+  color: var(--orange);
+  font-weight: 900;
+}
+
+/* ====== ACTION BUTTONS (dùng cho nút Back trong JSX sau) ====== */
+.container .td-actions {
+  width: min(1100px, 92vw);
+  margin: 0 auto 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.container .td-btn {
+  background: var(--orange);
+  color: #111;
+  font-weight: 900;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 200ms;
+}
+
+.container .td-btn:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.container .td-btnGhost {
+  background: transparent;
+  color: var(--lightgray);
+  border: 2px solid rgba(244, 137, 21, 0.35);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  transition: 200ms;
+}
+
+.container .td-btnGhost:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}

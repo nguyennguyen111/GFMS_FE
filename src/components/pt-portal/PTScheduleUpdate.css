@@ -1,0 +1,219 @@
+/* =========================
+   TrainerScheduleUpdate.css (FULL)
+   ========================= */
+
+.ptSUPage{
+  min-height: 100vh;
+  width: 100%;
+  padding: 28px 0 48px;
+  box-sizing: border-box;
+  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+  color: var(--lightgray);
+}
+
+.ptSUPage__inner{
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+}
+
+.ptSUTop{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* Back (reuse) */
+.ptBack{
+  width: fit-content;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--lightgray);
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 200ms;
+  white-space: nowrap;
+}
+.ptBack:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(244, 137, 21, 0.35);
+}
+
+.ptSU__header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ptSU__header h1{
+  margin: 0;
+  color: var(--orange);
+  font-size: 2.1rem;
+}
+
+.ptSU__sub{
+  margin: 0.35rem 0 0;
+  color: var(--gray);
+  font-weight: 700;
+}
+
+.ptSU__actions{
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ptSU__btn{
+  background: var(--orange);
+  color: #111;
+  font-weight: 950;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 200ms;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ptSU__btn:hover{
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.ptSU__btn:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ptSU__btn--ghost{
+  background: transparent;
+  color: var(--lightgray);
+  border: 2px solid rgba(244, 137, 21, 0.35);
+}
+
+.ptSU__error{
+  background: rgba(250, 80, 66, 0.12);
+  border: 1px solid rgba(250, 80, 66, 0.35);
+  padding: 0.8rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  color: var(--lightgray);
+  font-weight: 800;
+}
+
+.ptSU__grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 860px){
+  .ptSU__grid{ grid-template-columns: 1fr; }
+  .ptSU__header{ flex-direction: column; align-items: flex-start; }
+  .ptSU__actions{ justify-content: flex-start; width: 100%; }
+  .ptSU__btn{ width: 100%; }
+}
+
+.ptSU__dayCard{
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+}
+
+.ptSU__dayHeader{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 10px;
+}
+
+.ptSU__dayHeader h3{
+  margin: 0;
+  color: var(--lightgray);
+  font-weight: 950;
+}
+
+.ptSU__miniBtn{
+  background: rgba(244, 137, 21, 0.15);
+  border: 1px solid rgba(244, 137, 21, 0.35);
+  color: var(--lightgray);
+  font-weight: 950;
+  border-radius: 12px;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  transition: 200ms;
+  white-space: nowrap;
+}
+
+.ptSU__miniBtn:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.ptSU__empty{
+  color: var(--gray);
+  font-weight: 800;
+  padding: 0.5rem 0;
+}
+
+.ptSU__slot{
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.ptSU__slotRow{
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ptSU__slotRow label{
+  color: var(--gray);
+  font-weight: 900;
+}
+
+.ptSU__slotRow input{
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--lightgray);
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  outline: none;
+}
+
+.ptSU__remove{
+  width: 100%;
+  background: rgba(250, 80, 66, 0.12);
+  border: 1px solid rgba(250, 80, 66, 0.35);
+  color: var(--lightgray);
+  font-weight: 950;
+  border-radius: 12px;
+  padding: 0.6rem 0.7rem;
+  cursor: pointer;
+  transition: 200ms;
+}
+
+.ptSU__remove:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
