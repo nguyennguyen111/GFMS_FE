@@ -1,0 +1,147 @@
+/* =========================
+   TrainerSkills.css (FULL)
+   ========================= */
+
+.ptSkillsPage{
+  min-height: 100vh;
+  width: 100%;
+  padding: 28px 0 48px;
+  box-sizing: border-box;
+  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+  color: var(--lightgray);
+}
+
+.ptSkillsPage__inner{
+  width: min(900px, 92vw);
+  margin: 0 auto;
+}
+
+.ptSkillsTop{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* Back */
+.ptBack{
+  width: fit-content;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--lightgray);
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 200ms;
+  white-space: nowrap;
+}
+.ptBack:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(244, 137, 21, 0.35);
+}
+
+.ptSkills__header{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.ptSkills__header h1{
+  margin: 0;
+  color: var(--orange);
+  font-size: 2.1rem;
+  letter-spacing: 0.2px;
+}
+
+.ptSkills__sub{
+  margin: 0.35rem 0 0;
+  color: var(--gray);
+  font-weight: 700;
+}
+
+.ptSkills__card{
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.ptSkills__field{
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.ptSkills__field label{
+  color: var(--gray);
+  font-weight: 900;
+}
+
+.ptSkills__field textarea{
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--lightgray);
+  border-radius: 12px;
+  padding: 0.75rem;
+  resize: vertical;
+  outline: none;
+}
+
+.ptSkills__btn{
+  background: var(--orange);
+  color: #111;
+  font-weight: 950;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 200ms;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ptSkills__btn:hover{
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.ptSkills__btn--ghost{
+  background: transparent;
+  border: 2px solid rgba(244, 137, 21, 0.35);
+  color: var(--lightgray);
+}
+
+.ptSkills__btn:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ptSkills__error{
+  background: rgba(250, 80, 66, 0.12);
+  border: 1px solid rgba(250, 80, 66, 0.35);
+  padding: 0.8rem;
+  border-radius: 12px;
+  margin: 12px 0;
+  font-weight: 800;
+}
+
+@media (max-width: 860px){
+  .ptSkills__header{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ptSkills__btn{
+    width: 100%;
+  }
+}
