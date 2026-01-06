@@ -1,164 +1,247 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./ReceiptImportPage.css";
 
 import {
   createReceipt,
   getEquipments,
+  getSuppliers,
 } from "../../../services/equipmentSupplierInventoryService";
 
 export default function ReceiptImportPage() {
+  const [suppliers, setSuppliers] = useState([]);
   const [equipments, setEquipments] = useState([]);
+
   const [err, setErr] = useState("");
-  const [gymId, setGymId] = useState(1);
+  const [saving, setSaving] = useState(false);
 
   const [header, setHeader] = useState({
-    receiptNumber: "",
+    supplierId: "",
     receiptDate: "",
     notes: "",
+    purchaseOrderId: "",
   });
 
-  const [items, setItems] = useState([
-    { equipmentId: "", receivedQuantity: 1, unitPrice: 0, condition: "good", notes: "" },
+  const [rows, setRows] = useState([
+    { equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" },
   ]);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await getEquipments({ limit: 200 });
-        const data = res?.data?.data ?? res?.data ?? [];
-        setEquipments(Array.isArray(data) ? data : data.items ?? []);
+        const s = await getSuppliers({ isActive: true, limit: 200 });
+        setSuppliers(s?.data?.data ?? s?.data ?? []);
+
+        const e = await getEquipments({ status: "active", limit: 200 });
+        setEquipments(e?.data?.data ?? e?.data ?? []);
       } catch (e) {
-        setErr(e?.response?.data?.message || e.message || "Load failed");
+        setErr(e?.response?.data?.message || e.message || "Không load được dữ liệu");
       }
     })();
   }, []);
 
-  const addRow = () => {
-    setItems((prev) => [
-      ...prev,
-      { equipmentId: "", receivedQuantity: 1, unitPrice: 0, condition: "good", notes: "" },
-    ]);
-  };
+  const equipmentMap = useMemo(() => {
+    const m = new Map();
+    for (const it of equipments) m.set(String(it.id), it);
+    return m;
+  }, [equipments]);
 
-  const updateItem = (idx, key, value) => {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [key]: value } : it)));
+  const addRow = () =>
+    setRows((r) => [...r, { equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" }]);
+
+  const removeRow = (idx) =>
+    setRows((r) => r.filter((_, i) => i !== idx));
+
+  const updateRow = (idx, patch) => {
+    setRows((r) => r.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   };
 
   const submit = async () => {
     setErr("");
+
+    if (!header.supplierId) return setErr("Chọn nhà cung cấp");
+    if (rows.some((r) => !r.equipmentId)) return setErr("Chọn thiết bị cho tất cả dòng");
+    if (rows.some((r) => Number(r.receivedQuantity || 0) <= 0)) return setErr("Số lượng phải > 0");
+
+    const payload = {
+      supplierId: Number(header.supplierId), // BE có thể ignore (đợt 1)
+      receiptDate: header.receiptDate || new Date().toISOString(),
+      purchaseOrderId: header.purchaseOrderId ? Number(header.purchaseOrderId) : null,
+      notes: header.notes || null,
+      items: rows.map((r) => ({
+        equipmentId: Number(r.equipmentId),
+        receivedQuantity: Number(r.receivedQuantity),
+        unitPrice: r.unitPrice === "" ? null : Number(r.unitPrice),
+        notes: r.notes || null,
+      })),
+    };
+
+    setSaving(true);
     try {
-      if (!gymId) throw new Error("gymId is required");
-      if (!items.length) throw new Error("items is required");
-      if (items.some((it) => !it.equipmentId)) throw new Error("Chọn thiết bị cho tất cả dòng");
-
-      const receiptDateISO =
-        header.receiptDate && header.receiptDate.trim()
-          ? new Date(header.receiptDate).toISOString()
-          : new Date().toISOString();
-
-      const payload = {
-        gymId: Number(gymId),
-        receiptNumber: header.receiptNumber || undefined,
-        receiptDate: receiptDateISO,
-        notes: header.notes || undefined,
-        status: "received",
-        items: items.map((it) => ({
-          equipmentId: Number(it.equipmentId),
-          receivedQuantity: Number(it.receivedQuantity),
-          unitPrice: Number(it.unitPrice || 0),
-          condition: it.condition || "good",
-          notes: it.notes || undefined,
-        })),
-      };
-
       await createReceipt(payload);
-      alert("Nhập kho thành công!");
+      alert("Nhập kho thành công");
+
+      setHeader({ supplierId: "", receiptDate: "", notes: "", purchaseOrderId: "" });
+      setRows([{ equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" }]);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Import failed");
+      setErr(e?.response?.data?.message || e.message || "Nhập kho thất bại");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="rc-page">
-      <h2>Nhập kho</h2>
-
-      {err ? <div className="alert">{err}</div> : null}
-
-      <div className="rc-grid">
-        <label>
-          Gym ID *
-          <input value={gymId} onChange={(e) => setGymId(e.target.value)} />
-        </label>
-
-        <label>
-          Số phiếu
-          <input
-            value={header.receiptNumber}
-            onChange={(e) => setHeader((s) => ({ ...s, receiptNumber: e.target.value }))}
-          />
-        </label>
-
-        <label>
-          Ngày nhập
-          <input
-            type="datetime-local"
-            value={header.receiptDate}
-            onChange={(e) => setHeader((s) => ({ ...s, receiptDate: e.target.value }))}
-          />
-        </label>
-
-        <label className="full">
-          Ghi chú
-          <input
-            value={header.notes}
-            onChange={(e) => setHeader((s) => ({ ...s, notes: e.target.value }))}
-          />
-        </label>
+    <div className="imp-page">
+      <div className="imp-head">
+        <h2 className="imp-title">Nhập kho</h2>
+        <div className="imp-sub">Tạo phiếu nhập (Receipt) + cập nhật tồn kho + ghi nhật ký</div>
       </div>
 
-      <hr />
+      {err ? <div className="imp-alert">{err}</div> : null}
 
-      {items.map((it, idx) => (
-        <div key={idx} className="rc-row">
-          <select value={it.equipmentId} onChange={(e) => updateItem(idx, "equipmentId", e.target.value)}>
-            <option value="">Chọn thiết bị</option>
-            {equipments.map((eq) => (
-              <option key={eq.id} value={eq.id}>
-                {eq.name}
-              </option>
-            ))}
-          </select>
+      <div className="imp-card">
+        <div className="imp-grid">
+          <div>
+            <div className="imp-label">Nhà cung cấp</div>
+            <select
+              className="imp-select"
+              value={header.supplierId}
+              onChange={(e) => setHeader((s) => ({ ...s, supplierId: e.target.value }))}
+            >
+              <option value="">-- Chọn --</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.code ? `(${s.code})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <input
-            type="number"
-            min={1}
-            value={it.receivedQuantity}
-            onChange={(e) => updateItem(idx, "receivedQuantity", e.target.value)}
-            placeholder="Số lượng"
-          />
+          <div>
+            <div className="imp-label">Ngày nhập</div>
+            <input
+              className="imp-input"
+              type="date"
+              value={header.receiptDate}
+              onChange={(e) => setHeader((s) => ({ ...s, receiptDate: e.target.value }))}
+            />
+          </div>
 
-          <input
-            type="number"
-            min={0}
-            value={it.unitPrice}
-            onChange={(e) => updateItem(idx, "unitPrice", e.target.value)}
-            placeholder="Đơn giá"
-          />
+          <div>
+            <div className="imp-label">PurchaseOrderId (optional)</div>
+            <input
+              className="imp-input"
+              placeholder="VD: 12"
+              value={header.purchaseOrderId}
+              onChange={(e) => setHeader((s) => ({ ...s, purchaseOrderId: e.target.value }))}
+            />
+          </div>
 
-          <select value={it.condition} onChange={(e) => updateItem(idx, "condition", e.target.value)}>
-            <option value="good">good</option>
-            <option value="damaged">damaged</option>
-            <option value="defective">defective</option>
-            <option value="missing_parts">missing_parts</option>
-          </select>
-
-          <input value={it.notes} onChange={(e) => updateItem(idx, "notes", e.target.value)} placeholder="Ghi chú" />
+          <div className="imp-grid__full">
+            <div className="imp-label">Ghi chú</div>
+            <textarea
+              className="imp-textarea"
+              rows={2}
+              value={header.notes}
+              onChange={(e) => setHeader((s) => ({ ...s, notes: e.target.value }))}
+              placeholder="VD: nhập bổ sung tháng 1..."
+            />
+          </div>
         </div>
-      ))}
+      </div>
 
-      <div style={{ marginTop: 12 }}>
-        <button className="btn" onClick={addRow}>+ Thêm dòng</button>
-        <button className="btn primary" onClick={submit} style={{ marginLeft: 10 }}>Nhập kho</button>
+      <div className="imp-card">
+        <div className="imp-row imp-row--between">
+          <div className="imp-label">Danh sách thiết bị nhập</div>
+          <button className="imp-btn imp-btn--ghost" onClick={addRow} type="button">
+            + Thêm dòng
+          </button>
+        </div>
+
+        <div className="imp-tableWrap">
+          <table className="imp-table">
+            <thead>
+              <tr>
+                <th>Thiết bị</th>
+                <th style={{ width: 120 }}>SL</th>
+                <th style={{ width: 160 }}>Đơn giá</th>
+                <th>Ghi chú</th>
+                <th style={{ width: 80 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => {
+                const eq = equipmentMap.get(String(r.equipmentId));
+                return (
+                  <tr key={idx}>
+                    <td>
+                      <select
+                        className="imp-select"
+                        value={r.equipmentId}
+                        onChange={(e) => updateRow(idx, { equipmentId: e.target.value })}
+                      >
+                        <option value="">-- Chọn --</option>
+                        {equipments.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.name} {e.code ? `(${e.code})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {eq?.unit ? <div className="imp-hint">Đơn vị: {eq.unit}</div> : null}
+                    </td>
+
+                    <td>
+                      <input
+                        className="imp-input"
+                        type="number"
+                        min={1}
+                        value={r.receivedQuantity}
+                        onChange={(e) => updateRow(idx, { receivedQuantity: e.target.value })}
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        className="imp-input"
+                        type="number"
+                        min={0}
+                        value={r.unitPrice}
+                        onChange={(e) => updateRow(idx, { unitPrice: e.target.value })}
+                        placeholder="(optional)"
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        className="imp-input"
+                        value={r.notes}
+                        onChange={(e) => updateRow(idx, { notes: e.target.value })}
+                        placeholder="(optional)"
+                      />
+                    </td>
+
+                    <td>
+                      {rows.length > 1 ? (
+                        <button
+                          className="imp-btn imp-btn--danger"
+                          type="button"
+                          onClick={() => removeRow(idx)}
+                        >
+                          Xoá
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="imp-actions">
+          <button className="imp-btn" onClick={submit} disabled={saving}>
+            {saving ? "Đang lưu..." : "Tạo phiếu nhập"}
+          </button>
+        </div>
       </div>
     </div>
   );

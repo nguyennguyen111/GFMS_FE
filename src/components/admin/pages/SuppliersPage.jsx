@@ -8,7 +8,6 @@ import {
   toggleSupplierActive,
 } from "../../../services/equipmentSupplierInventoryService";
 
-  
 const empty = {
   name: "",
   code: "",
@@ -18,6 +17,13 @@ const empty = {
   taxCode: "",
   notes: "",
   isActive: true,
+};
+
+// ✅ tránh lỗi id undefined/NaN (BE sẽ báo Invalid supplier id)
+const getRowId = (row) => {
+  const raw = row?.id ?? row?.supplierId ?? row?.supplier_id;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
 };
 
 export default function SuppliersPage() {
@@ -62,8 +68,14 @@ export default function SuppliersPage() {
   };
 
   const openEdit = (row) => {
+    const id = getRowId(row);
+    if (!id) {
+      alert("Không thể sửa: Supplier id không hợp lệ (undefined/NaN).");
+      console.log("Row causing invalid id:", row);
+      return;
+    }
     setMode("edit");
-    setEditingId(row.id);
+    setEditingId(id);
     setForm({
       name: row.name ?? "",
       code: row.code ?? "",
@@ -84,8 +96,15 @@ export default function SuppliersPage() {
         setErr("Tên nhà cung cấp là bắt buộc");
         return;
       }
-      if (mode === "create") await createSupplier(form);
-      else await updateSupplier(editingId, form);
+      if (mode === "create") {
+        await createSupplier(form);
+      } else {
+        if (!Number.isFinite(Number(editingId))) {
+          setErr("ID nhà cung cấp không hợp lệ (undefined/NaN).");
+          return;
+        }
+        await updateSupplier(editingId, form);
+      }
       setShow(false);
       fetchAll();
     } catch (e) {
@@ -94,8 +113,14 @@ export default function SuppliersPage() {
   };
 
   const toggleActive = async (row) => {
+    const id = getRowId(row);
+    if (!id) {
+      alert("Supplier id không hợp lệ (undefined/NaN). Kiểm tra dữ liệu trả về từ API (cột id).");
+      console.log("Row causing invalid id:", row);
+      return;
+    }
     try {
-      await toggleSupplierActive(row.id, !row.isActive);
+      await toggleSupplierActive(id, !row.isActive);
       fetchAll();
     } catch (e) {
       alert(e?.response?.data?.message || e.message || "Update failed");
@@ -114,10 +139,9 @@ export default function SuppliersPage() {
       <div className="sup-filters">
         <input
           className="input"
-          placeholder="Tìm theo tên / mã / phone..."
+          placeholder="Tìm theo tên / mã / phone / email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && fetchAll()}
         />
         <select
           className="select"
@@ -126,17 +150,17 @@ export default function SuppliersPage() {
         >
           <option value="all">Tất cả</option>
           <option value="true">Đang hoạt động</option>
-          <option value="false">Ngưng hoạt động</option>
+          <option value="false">Ngừng hoạt động</option>
         </select>
-        <button className="btn" onClick={fetchAll}>
-          Lọc / Tìm
+
+        <button className="btn" onClick={fetchAll} disabled={loading}>
+          {loading ? "Đang tải..." : "Tải lại"}
         </button>
       </div>
 
       {err ? <div className="alert">{err}</div> : null}
-      {loading ? <div className="muted">Đang tải...</div> : null}
 
-      <div className="table-wrap">
+      <div className="sup-table">
         <table className="table">
           <thead>
             <tr>
@@ -151,23 +175,29 @@ export default function SuppliersPage() {
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td className="empty" colSpan={7}>Không có dữ liệu</td></tr>
+              <tr>
+                <td className="empty" colSpan={7}>
+                  Không có dữ liệu
+                </td>
+              </tr>
             ) : (
               items.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.id}</td>
+                <tr key={getRowId(row) ?? row.id ?? Math.random()}>
+                  <td>{getRowId(row) ?? "-"}</td>
                   <td>{row.code || "-"}</td>
                   <td>{row.name}</td>
                   <td>{row.phone || "-"}</td>
                   <td>{row.email || "-"}</td>
                   <td>
                     <span className={`badge ${row.isActive ? "active" : "inactive"}`}>
-                      {row.isActive ? "active" : "inactive"}
+                      {row.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="actions">
-                    <button className="btn small" onClick={() => openEdit(row)}>Sửa</button>
-                    <button className="btn small" onClick={() => toggleActive(row)}>
+                    <button className="btn" onClick={() => openEdit(row)}>
+                      Sửa
+                    </button>
+                    <button className="btn" onClick={() => toggleActive(row)}>
                       {row.isActive ? "Disable" : "Enable"}
                     </button>
                   </td>
@@ -182,52 +212,73 @@ export default function SuppliersPage() {
         <div className="modal-backdrop" onMouseDown={() => setShow(false)}>
           <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{mode === "create" ? "Thêm nhà cung cấp" : "Sửa nhà cung cấp"}</h3>
-              <button className="btn small" onClick={() => setShow(false)}>✕</button>
+              <h3>{mode === "create" ? "Thêm nhà cung cấp" : "Cập nhật nhà cung cấp"}</h3>
             </div>
 
             <div className="modal-body">
               <div className="grid">
                 <label>
                   Tên *
-                  <input className="input" value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.name}
+                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                  />
                 </label>
 
                 <label>
                   Mã
-                  <input className="input" value={form.code}
-                    onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.code}
+                    onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
+                  />
                 </label>
 
                 <label>
                   Phone
-                  <input className="input" value={form.phone}
-                    onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.phone}
+                    onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
+                  />
                 </label>
 
                 <label>
                   Email
-                  <input className="input" value={form.email}
-                    onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.email}
+                    onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                  />
                 </label>
 
-                <label className="full">
+                <label className="col-2">
                   Địa chỉ
-                  <input className="input" value={form.address}
-                    onChange={(e) => setForm((s) => ({ ...s, address: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.address}
+                    onChange={(e) => setForm((s) => ({ ...s, address: e.target.value }))}
+                  />
                 </label>
 
                 <label>
                   Mã số thuế
-                  <input className="input" value={form.taxCode}
-                    onChange={(e) => setForm((s) => ({ ...s, taxCode: e.target.value }))}/>
+                  <input
+                    className="input"
+                    value={form.taxCode}
+                    onChange={(e) => setForm((s) => ({ ...s, taxCode: e.target.value }))}
+                  />
                 </label>
 
-                <label className="full">
+                <label className="col-2">
                   Ghi chú
-                  <textarea className="textarea" rows={3} value={form.notes}
-                    onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}/>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={form.notes}
+                    onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+                  />
                 </label>
 
                 <label className="checkbox">
@@ -244,8 +295,12 @@ export default function SuppliersPage() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn" onClick={() => setShow(false)}>Huỷ</button>
-              <button className="btn primary" onClick={save}>Lưu</button>
+              <button className="btn" onClick={() => setShow(false)}>
+                Huỷ
+              </button>
+              <button className="btn primary" onClick={save}>
+                Lưu
+              </button>
             </div>
           </div>
         </div>

@@ -5,8 +5,8 @@ import "./AdminDashboard.css";
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import InventoryLogsPage from "./pages/InventoryLogsPage";
 
-// ✅ NEW PAGES (bạn tạo file ở ./pages/)
 import EquipmentPage from "./pages/EquipmentPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -17,7 +17,6 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
-  // ===== MENU ADMIN (FULL) =====
   const menu = useMemo(
     () => [
       { label: "Tổng quan", to: "/admin/dashboard", key: "dashboard" },
@@ -28,11 +27,14 @@ export default function AdminDashboard() {
       { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
       { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
-      // ✅ THÊM NHÓM THEO UC EQ/SUP/INV
       { section: "Thiết bị & Kho" },
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
+
+      // ✅ ADD MENU: Nhật ký kho
+      { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
+
       { label: "Nhập kho", to: "/admin/import", key: "import" },
       { label: "Xuất kho", to: "/admin/export", key: "export" },
 
@@ -50,15 +52,12 @@ export default function AdminDashboard() {
     []
   );
 
-  const handleLogout = () => {
-    navigate("/login");
-  };
+  const handleLogout = () => navigate("/login");
 
   return (
     <div className="ad-layout">
       <div className="ad-bg" />
 
-      {/* ========== SIDEBAR ========== */}
       <aside className={`ad-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="ad-brand">
           <div className="ad-brand__logo">
@@ -108,53 +107,41 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ========== MAIN CONTENT ========== */}
       <main className="ad-main">
         <header className="ad-topbar">
           <div>
             <div className="ad-topbar__title">Admin Console</div>
             <div className="ad-topbar__hint">GFMS • ReactJS • NodeJS • MySQL</div>
           </div>
-
           <div className="ad-pill">Giai đoạn 1</div>
         </header>
 
         <div className="ad-content">
           <Routes>
-            {/* redirect */}
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
-            {/* dashboard */}
             <Route path="/dashboard" element={<DashboardHome />} />
 
-            {/* ===== QUẢN TRỊ HỆ THỐNG ===== */}
             <Route path="/users" element={<UsersPage />} />
             <Route path="/packages" element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />} />
             <Route path="/gyms" element={<PlaceholderPage title="Quản lý phòng gym" />} />
             <Route path="/franchises" element={<PlaceholderPage title="Yêu cầu nhượng quyền" />} />
 
-            {/* ✅ ===== THIẾT BỊ & KHO (UC bạn yêu cầu) ===== */}
             <Route path="/equipment" element={<EquipmentPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/stocks" element={<InventoryPage />} />
+            <Route path="/inventory-logs" element={<InventoryLogsPage />} />
             <Route path="/import" element={<ReceiptImportPage />} />
             <Route path="/export" element={<ExportPage />} />
 
-            {/* ===== THIẾT BỊ & KỸ THUẬT ===== */}
             <Route path="/maintenance" element={<PlaceholderPage title="Bảo trì / Sửa chữa" />} />
 
-            {/* ===== CHIA SẺ PT ===== */}
             <Route path="/policies/sharing" element={<PlaceholderPage title="Chính sách chia sẻ PT" />} />
-            <Route
-              path="/shared-trainers/overrides"
-              element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />}
-            />
+            <Route path="/shared-trainers/overrides" element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />} />
 
-            {/* ===== BÁO CÁO ===== */}
             <Route path="/reports" element={<PlaceholderPage title="Báo cáo" />} />
             <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" />} />
 
-            {/* fallback */}
             <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />
           </Routes>
         </div>
