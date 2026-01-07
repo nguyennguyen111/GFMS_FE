@@ -5,28 +5,21 @@ import {
   createReceipt,
   getEquipments,
   getSuppliers,
+  getGyms,
 } from "../../../services/equipmentSupplierInventoryService";
 
 export default function ReceiptImportPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  const [gyms, setGyms] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [equipments, setEquipments] = useState([]);
 
   // form header
+  const [gymId, setGymId] = useState("");
   const [supplierId, setSupplierId] = useState("");
-  const [gymId, setGymId] = useState("1");
-
-  // ✅ giữ dạng YYYY-MM-DD để BE parse theo giờ VN, không convert ISO UTC ở FE
-  const [receiptDate, setReceiptDate] = useState(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  });
-
+  const [receiptDate, setReceiptDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [purchaseOrderId, setPurchaseOrderId] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -38,13 +31,19 @@ export default function ReceiptImportPage() {
   const loadInit = async () => {
     try {
       setErr("");
-      const [supRes, eqRes] = await Promise.all([
+      const [gymRes, supRes, eqRes] = await Promise.all([
+        getGyms(),
         getSuppliers({ page: 1, limit: 200 }),
         getEquipments({ page: 1, limit: 200 }),
       ]);
 
+      setGyms(gymRes?.data || []);
       setSuppliers(supRes?.data || []);
       setEquipments(eqRes?.data || []);
+
+      // default gym: first
+      const firstGymId = String((gymRes?.data || [])?.[0]?.id || "");
+      setGymId(firstGymId);
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || "Load init failed");
     }
@@ -72,6 +71,8 @@ export default function ReceiptImportPage() {
       setLoading(true);
       setErr("");
 
+      if (!gymId) throw new Error("Bạn phải chọn Gym");
+
       const cleanItems = items
         .map((it) => ({
           equipmentId: Number(it.equipmentId),
@@ -83,24 +84,17 @@ export default function ReceiptImportPage() {
 
       if (!cleanItems.length) throw new Error("Danh sách thiết bị nhập không hợp lệ");
 
-      // ✅ payload khớp DB/service:
-      // - receiptDate gửi "YYYY-MM-DD" để backend parse theo VN (không lệch giờ)
-      // - supplierId không có cột trong receipt (giữ để FE hiển thị, backend bỏ qua)
       const payload = {
         code: `REC-${Date.now()}`,
-        gymId: Number(gymId) || 1,
-        supplierId: supplierId ? Number(supplierId) : null,
+        gymId: Number(gymId),
+        supplierId: supplierId ? Number(supplierId) : null, // ✅ chuẩn nghiệp vụ
         purchaseOrderId: purchaseOrderId ? Number(purchaseOrderId) : null,
-
-        // ✅ FIX TIMEZONE: KHÔNG new Date(receiptDate).toISOString()
-        receiptDate: receiptDate || undefined,
-
+        receiptDate: receiptDate ? new Date(receiptDate).toISOString() : new Date().toISOString(),
         notes: notes || null,
         items: cleanItems,
       };
 
       await createReceipt(payload);
-
       alert("Tạo phiếu nhập thành công!");
       setNotes("");
       setPurchaseOrderId("");
@@ -126,6 +120,18 @@ export default function ReceiptImportPage() {
       <div className="rip-card">
         <div className="rip-grid">
           <div className="rip-field">
+            <label>Gym / Chi nhánh</label>
+            <select value={gymId} onChange={(e) => setGymId(e.target.value)}>
+              <option value="">-- Chọn gym --</option>
+              {gyms.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name} {g.address ? `- ${g.address}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rip-field">
             <label>Nhà cung cấp</label>
             <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
               <option value="">-- Chọn --</option>
@@ -143,17 +149,8 @@ export default function ReceiptImportPage() {
           </div>
 
           <div className="rip-field">
-            <label>GymId</label>
-            <input value={gymId} onChange={(e) => setGymId(e.target.value)} placeholder="1" />
-          </div>
-
-          <div className="rip-field">
             <label>PurchaseOrderId (optional)</label>
-            <input
-              value={purchaseOrderId}
-              onChange={(e) => setPurchaseOrderId(e.target.value)}
-              placeholder="VD: 123"
-            />
+            <input value={purchaseOrderId} onChange={(e) => setPurchaseOrderId(e.target.value)} placeholder="VD: 123" />
           </div>
 
           <div className="rip-field rip-field--full">
@@ -197,12 +194,7 @@ export default function ReceiptImportPage() {
                 </div>
 
                 <div>
-                  <input
-                    type="number"
-                    min="1"
-                    value={it.quantity}
-                    onChange={(e) => updateRow(idx, { quantity: e.target.value })}
-                  />
+                  <input type="number" min="1" value={it.quantity} onChange={(e) => updateRow(idx, { quantity: e.target.value })} />
                 </div>
 
                 <div>
@@ -216,11 +208,7 @@ export default function ReceiptImportPage() {
                 </div>
 
                 <div>
-                  <input
-                    value={it.notes}
-                    onChange={(e) => updateRow(idx, { notes: e.target.value })}
-                    placeholder="(optional)"
-                  />
+                  <input value={it.notes} onChange={(e) => updateRow(idx, { notes: e.target.value })} placeholder="(optional)" />
                 </div>
 
                 <div className="rip-actions">

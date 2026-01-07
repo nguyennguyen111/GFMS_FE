@@ -59,7 +59,7 @@ export default function InventoryLogsPage() {
         <div className="il-filters">
           <input
             className="il-input"
-            placeholder="Tìm theo thiết bị / mã / gym / transactionType / code / notes..."
+            placeholder="Tìm theo thiết bị / gym / action / ref / notes / user..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -87,6 +87,7 @@ export default function InventoryLogsPage() {
             <div>Qty</div>
             <div>Before</div>
             <div>After</div>
+            <div>Người thao tác</div>
             <div>Notes</div>
             <div>Ref</div>
           </div>
@@ -99,11 +100,17 @@ export default function InventoryLogsPage() {
                 <div>{r.id}</div>
                 <div>{(r.recordedAt || r.createdAt || "").slice(0, 19).replace("T", " ")}</div>
                 <div>{r.gymName || `Gym ${r.gymId}`}</div>
-                <div>{r.equipmentName || `EQ ${r.equipmentId}`} <span className="il-dim">({r.equipmentCode || "—"})</span></div>
-                <div><span className="il-pill">{r.transactionType}</span></div>
+                <div>
+                  {r.equipmentName || `EQ ${r.equipmentId}`}{" "}
+                  <span className="il-dim">({r.equipmentCode || "—"})</span>
+                </div>
+                <div>
+                  <span className="il-pill">{r.transactionType}</span>
+                </div>
                 <div>{r.quantity}</div>
                 <div>{r.stockBefore}</div>
                 <div>{r.stockAfter}</div>
+                <div className="il-dim">{r.recordedByName || r.recordedByEmail || (r.recordedBy ? `User ${r.recordedBy}` : "—")}</div>
                 <div className="il-notes">{r.notes || "—"}</div>
                 <div className="il-dim">{r.transactionCode || "—"}</div>
               </div>
@@ -112,9 +119,15 @@ export default function InventoryLogsPage() {
         </div>
 
         <div className="il-paging">
-          <button className="il-btn" disabled={!canPrev || loading} onClick={() => load(meta.page - 1)}>← Trước</button>
-          <div className="il-page">Trang {meta.page} / {meta.totalPages}</div>
-          <button className="il-btn" disabled={!canNext || loading} onClick={() => load(meta.page + 1)}>Sau →</button>
+          <button className="il-btn" disabled={!canPrev || loading} onClick={() => load(meta.page - 1)}>
+            ← Trước
+          </button>
+          <div className="il-page">
+            Trang {meta.page} / {meta.totalPages}
+          </div>
+          <button className="il-btn" disabled={!canNext || loading} onClick={() => load(meta.page + 1)}>
+            Sau →
+          </button>
         </div>
       </div>
     </div>

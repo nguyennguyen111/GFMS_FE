@@ -1,25 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./ExportPage.css";
 
-import { createExport, getStocks } from "../../../services/equipmentSupplierInventoryService";
+import { createExport, getStocks, getGyms } from "../../../services/equipmentSupplierInventoryService";
 
 export default function ExportPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  const [gyms, setGyms] = useState([]);
+  const [gymId, setGymId] = useState("");
+
   const [stocks, setStocks] = useState([]);
   const [q, setQ] = useState("");
 
-  const [gymId, setGymId] = useState("1");
   const [stockId, setStockId] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [reason, setReason] = useState("other");
+  const [reason, setReason] = useState("adjustment");
   const [notes, setNotes] = useState("");
 
-  const loadStocks = async () => {
+  const loadGyms = async () => {
+    const res = await getGyms();
+    setGyms(res?.data || []);
+    const first = String((res?.data || [])?.[0]?.id || "");
+    setGymId(first);
+  };
+
+  const loadStocks = async (nextGymId) => {
     try {
       setErr("");
-      const res = await getStocks({ page: 1, limit: 200, q });
+      const res = await getStocks({ page: 1, limit: 200, q, gymId: nextGymId || gymId || undefined });
       setStocks(res?.data || []);
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || "Load stocks failed");
@@ -27,9 +36,16 @@ export default function ExportPage() {
   };
 
   useEffect(() => {
-    loadStocks();
+    (async () => {
+      await loadGyms();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (gymId) loadStocks(gymId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gymId]);
 
   const options = useMemo(() => stocks || [], [stocks]);
   const selected = useMemo(() => options.find((s) => String(s.id) === String(stockId)), [options, stockId]);
@@ -39,13 +55,13 @@ export default function ExportPage() {
       setLoading(true);
       setErr("");
 
+      if (!gymId) throw new Error("Bạn phải chọn Gym");
       if (!stockId) throw new Error("Chọn 1 dòng tồn kho trước");
-      const s = selected;
-      if (!s) throw new Error("Stock not found");
+      if (!selected) throw new Error("Stock not found");
 
       const payload = {
-        gymId: Number(gymId) || Number(s.gymId) || 1,
-        equipmentId: Number(s.equipmentId),
+        gymId: Number(gymId),
+        equipmentId: Number(selected.equipmentId),
         quantity: Number(quantity),
         reason,
         notes: notes || null,
@@ -55,7 +71,7 @@ export default function ExportPage() {
       alert("Xuất kho thành công!");
       setQuantity(1);
       setNotes("");
-      await loadStocks();
+      await loadStocks(gymId);
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || "Export failed");
     } finally {
@@ -76,13 +92,19 @@ export default function ExportPage() {
 
       <div className="ex-card">
         <div className="ex-row">
-          <input
-            className="ex-input"
-            placeholder="Tìm theo thiết bị / mã / gym..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <button className="ex-btn ex-btn--ghost" onClick={loadStocks}>Tải lại</button>
+          <select className="ex-select" value={gymId} onChange={(e) => setGymId(e.target.value)}>
+            <option value="">-- Chọn gym --</option>
+            {gyms.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+
+          <input className="ex-input" placeholder="Tìm theo thiết bị / mã..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <button className="ex-btn ex-btn--ghost" onClick={() => loadStocks(gymId)}>
+            Tải lại
+          </button>
         </div>
 
         <div className="ex-grid">
@@ -92,15 +114,10 @@ export default function ExportPage() {
               <option value="">-- Chọn --</option>
               {options.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.gymName || `Gym ${s.gymId}`} • {s.equipmentName || `EQ ${s.equipmentId}`} ({s.equipmentCode || "—"}) • Avail: {s.availableQuantity}
+                  {s.equipmentName || `EQ ${s.equipmentId}`} ({s.equipmentCode || "—"}) • Avail: {s.availableQuantity}
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="ex-field">
-            <label>GymId</label>
-            <input value={gymId} onChange={(e) => setGymId(e.target.value)} placeholder="1" />
           </div>
 
           <div className="ex-field">
@@ -112,16 +129,15 @@ export default function ExportPage() {
           <div className="ex-field">
             <label>Lý do</label>
             <select value={reason} onChange={(e) => setReason(e.target.value)}>
-              <option value="other">other</option>
               <option value="adjustment">adjustment</option>
+              <option value="other">other</option>
               <option value="transfer_out">transfer_out</option>
-              <option value="transfer">transfer</option>
             </select>
           </div>
 
           <div className="ex-field ex-field--full">
             <label>Ghi chú</label>
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="VD: xuất cấp cho chi nhánh..." />
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="VD: hỏng, mất, thanh lý..." />
           </div>
         </div>
 
