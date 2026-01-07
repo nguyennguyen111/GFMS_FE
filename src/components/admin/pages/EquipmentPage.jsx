@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import "./EquipmentPage.css";
 
 import {
-  getEquipments,
   createEquipment,
-  updateEquipment,
   discontinueEquipment,
   getEquipmentCategories,
+  getEquipments,
+  updateEquipment,
 } from "../../../services/equipmentSupplierInventoryService";
 
 const emptyForm = {
@@ -18,72 +18,78 @@ const emptyForm = {
   model: "",
   unit: "piece",
   minStockLevel: 0,
-  maxStockLevel: "",
+  maxStockLevel: 0,
   status: "active",
 };
 
 export default function EquipmentPage() {
-  const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-  const [page, setPage] = useState(1);
-  const limit = 10;
+  // filters
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all"); // all | active | discontinued
+  const [categoryId, setCategoryId] = useState("all");
 
-  const [showModal, setShowModal] = useState(false);
+  // modal
+  const [show, setShow] = useState(false);
   const [mode, setMode] = useState("create"); // create | edit
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
-  const totalPages = useMemo(() => {
-    return 1;
-  }, [items]); // warning hook không ảnh hưởng chạy
-
-  const fetchAll = async () => {
+  const fetchInit = async () => {
     setLoading(true);
     setErr("");
     try {
-      const catRes = await getEquipmentCategories({ isActive: true });
+      const [catRes] = await Promise.all([getEquipmentCategories()]);
       setCategories(catRes?.data?.data ?? catRes?.data ?? []);
+      await fetchList();
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || "Load init failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const fetchList = async () => {
+    setLoading(true);
+    setErr("");
+    try {
       const res = await getEquipments({
-        q: search || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
-        page,
-        limit,
+        page: 1,
+        limit: 200,
+        q: q || undefined,
+        status: status !== "all" ? status : undefined,
+        categoryId: categoryId !== "all" ? Number(categoryId) : undefined,
       });
 
-      const data = res?.data?.data ?? res?.data ?? [];
-      setItems(Array.isArray(data) ? data : data.items ?? []);
+      // service có thể trả {data, meta} hoặc axios {data:{...}}
+      const data = res?.data?.data ?? res?.data ?? res?.data?.rows ?? res?.rows ?? [];
+      const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
+      setItems(normalized);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load failed");
+      setErr(e?.response?.data?.message || e?.message || "Load failed");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAll();
+    fetchInit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, []);
 
-  const onSearch = () => {
-    setPage(1);
-    fetchAll();
-  };
+  const onSearch = () => fetchList();
 
   const openCreate = () => {
     setMode("create");
     setEditingId(null);
-    setForm(emptyForm);
-    setShowModal(true);
+    setForm({ ...emptyForm, status: "active" });
+    setErr("");
+    setShow(true);
   };
 
   const openEdit = (row) => {
@@ -93,19 +99,20 @@ export default function EquipmentPage() {
       name: row.name ?? "",
       code: row.code ?? "",
       description: row.description ?? "",
-      categoryId: row.categoryId ?? "",
+      categoryId: row.categoryId ? String(row.categoryId) : "",
       brand: row.brand ?? "",
       model: row.model ?? "",
       unit: row.unit ?? "piece",
-      minStockLevel: row.minStockLevel ?? 0,
-      maxStockLevel: row.maxStockLevel ?? "",
+      minStockLevel: Number(row.minStockLevel ?? 0),
+      maxStockLevel: Number(row.maxStockLevel ?? 0),
       status: row.status ?? "active",
     });
-    setShowModal(true);
+    setErr("");
+    setShow(true);
   };
 
   const closeModal = () => {
-    setShowModal(false);
+    setShow(false);
     setErr("");
   };
 
@@ -116,13 +123,13 @@ export default function EquipmentPage() {
         name: form.name?.trim(),
         code: form.code?.trim() || null,
         description: form.description?.trim() || null,
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
         brand: form.brand?.trim() || null,
         model: form.model?.trim() || null,
-        unit: form.unit || "piece",
-        status: form.status || "active",
-        categoryId: form.categoryId ? Number(form.categoryId) : null,
-        minStockLevel: Number(form.minStockLevel || 0),
-        maxStockLevel: form.maxStockLevel === "" ? null : Number(form.maxStockLevel),
+        unit: form.unit?.trim() || "piece",
+        minStockLevel: Number(form.minStockLevel ?? 0) || 0,
+        maxStockLevel: Number(form.maxStockLevel ?? 0) || 0,
+        status: form.status === "discontinued" ? "discontinued" : "active",
       };
 
       if (!payload.name) {
@@ -134,268 +141,286 @@ export default function EquipmentPage() {
       else await updateEquipment(editingId, payload);
 
       closeModal();
-      fetchAll();
+      fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Save failed");
+      setErr(e?.response?.data?.message || e?.message || "Save failed");
     }
   };
 
-  const softDelete = async (row) => {
-    if (!window.confirm("Ẩn (xóa mềm) thiết bị này?")) return;
+  const onDiscontinue = async (row) => {
+    const ok = window.confirm(`Ẩn/Ngưng sử dụng thiết bị "${row.name}"?`);
+    if (!ok) return;
     try {
       await discontinueEquipment(row.id);
-      fetchAll();
+      fetchList();
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Discontinue failed");
+      alert(e?.response?.data?.message || e?.message || "Discontinue failed");
     }
   };
+
+  const visibleItems = useMemo(() => items || [], [items]);
+
+  const catMap = useMemo(() => {
+    const map = new Map();
+    (categories || []).forEach((c) => map.set(Number(c.id), c));
+    return map;
+  }, [categories]);
 
   return (
     <div className="eq-page">
-      <div className="eq-header">
-        <h2>Thiết bị</h2>
-
-        <div className="eq-actions">
-          <button className="btn primary" onClick={openCreate}>
-            + Thêm thiết bị
-          </button>
+      <div className="eq-head">
+        <div>
+          <h2 className="eq-title">Thiết bị</h2>
+          <div className="eq-sub">
+            Danh mục thiết bị dùng cho nhập kho / tồn kho / xuất kho (theo chi nhánh gym)
+          </div>
         </div>
+
+        <button className="eq-btn eq-btn--primary" onClick={openCreate}>
+          + Thêm thiết bị
+        </button>
       </div>
 
       <div className="eq-filters">
         <input
-          className="input"
-          placeholder="Tìm theo tên / mã / brand..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSearch()}
+          className="eq-input"
+          placeholder="Tìm theo tên / mã / brand / model..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
         />
 
-        <select
-          className="select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
-          <option value="discontinued">discontinued</option>
-        </select>
-
-        <select
-          className="select"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
+        <select className="eq-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="all">Tất cả danh mục</option>
-          {categories.map((c) => (
+          {(categories || []).map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.name} {c.code ? `(${c.code})` : ""}
             </option>
           ))}
         </select>
 
-        <button className="btn" onClick={onSearch}>
-          Lọc / Tìm
+        <select className="eq-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Active</option>
+          <option value="discontinued">Discontinued</option>
+        </select>
+
+        <button className="eq-btn" onClick={onSearch} disabled={loading}>
+          {loading ? "Đang tải..." : "Tải lại"}
         </button>
       </div>
 
-      {err ? <div className="alert">{err}</div> : null}
-      {loading ? <div className="muted">Đang tải...</div> : null}
+      {err ? <div className="eq-alert">{err}</div> : null}
 
-      <div className="table-wrap">
-        <table className="table">
+      <div className="eq-table">
+        <table className="eq-table__tbl">
           <thead>
             <tr>
               <th>ID</th>
-              <th>MÃ</th>
-              <th>TÊN</th>
-              <th>DANH MỤC</th>
-              <th>ĐƠN VỊ</th>
-              <th>TỐI THIỂU</th>
-              <th>TRẠNG THÁI</th>
-              <th>HÀNH ĐỘNG</th>
+              <th>Mã</th>
+              <th>Tên</th>
+              <th>Danh mục</th>
+              <th>Đơn vị</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>Trạng thái</th>
+              <th style={{ width: 260 }}>Hành động</th>
             </tr>
           </thead>
+
           <tbody>
-            {items.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <tr>
-                <td colSpan={8} className="empty">
+                <td className="eq-empty" colSpan={9}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
-              items.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.id}</td>
-                  <td>{row.code || "-"}</td>
-                  <td>{row.name}</td>
-                  <td>{row.category?.name || row.categoryName || row.categoryId || "-"}</td>
-                  <td>{row.unit || "-"}</td>
-                  <td>{row.minStockLevel ?? 0}</td>
-                  <td>
-                    <span className={`badge ${row.status}`}>{row.status}</span>
-                  </td>
-                  <td className="actions">
-                    <button className="btn small" onClick={() => openEdit(row)}>
-                      Sửa
-                    </button>
-                    <button
-                      className="btn small danger"
-                      onClick={() => softDelete(row)}
-                      disabled={row.status === "discontinued"}
-                      title={row.status === "discontinued" ? "Đã discontinued" : "Xoá mềm"}
-                    >
-                      Ẩn thiết bị
-                    </button>
-                  </td>
-                </tr>
-              ))
+              visibleItems.map((row) => {
+                const cat = row.categoryName || catMap.get(Number(row.categoryId))?.name || "-";
+                const isActive = row.status === "active";
+                return (
+                  <tr key={row.id}>
+                    <td>{row.id}</td>
+                    <td>{row.code || "-"}</td>
+                    <td className="eq-strong">
+                      {row.name}
+                      {row.brand || row.model ? (
+                        <div className="eq-muted">
+                          {[row.brand, row.model].filter(Boolean).join(" • ")}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>{cat}</td>
+                    <td>{row.unit || "-"}</td>
+                    <td>{row.minStockLevel ?? 0}</td>
+                    <td>{row.maxStockLevel ?? 0}</td>
+                    <td>
+                      <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
+                        {isActive ? "Active" : "Discontinued"}
+                      </span>
+                    </td>
+                    <td className="eq-actions">
+                      <button className="eq-btn eq-btn--ghost" onClick={() => openEdit(row)}>
+                        Sửa
+                      </button>
+                      <button className="eq-btn eq-btn--danger" onClick={() => onDiscontinue(row)} disabled={!isActive}>
+                        Ẩn thiết bị
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="pager">
-        <button className="btn small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-          ← Trước
-        </button>
-        <span className="muted">
-          Trang {page}
-          {totalPages > 1 ? ` / ${totalPages}` : ""}
-        </span>
-        <button className="btn small" onClick={() => setPage((p) => p + 1)}>
-          Sau →
-        </button>
-      </div>
+      {show ? (
+        <div className="eq-modal__backdrop" onMouseDown={closeModal}>
+          <div className="eq-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="eq-modal__header">
+              <div>
+                <div className="eq-modal__title">
+                  {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
+                </div>
+                <div className="eq-modal__subtitle">
+                  Dùng để quản lý tồn kho theo gym + ghi nhật ký nhập/xuất
+                </div>
+              </div>
 
-      {showModal ? (
-        <div className="modal-backdrop" onMouseDown={closeModal}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{mode === "create" ? "Thêm thiết bị" : "Sửa thiết bị"}</h3>
-              <button className="btn small" onClick={closeModal}>
+              <button className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
                 ✕
               </button>
             </div>
 
-            <div className="modal-body">
-              <div className="grid">
-                <label>
-                  Tên *
+            <div className="eq-modal__body">
+              <div className="eq-formgrid">
+                <label className="eq-field">
+                  <span className="eq-label">
+                    Tên <b>*</b>
+                  </span>
                   <input
-                    className="input"
+                    className="eq-input"
                     value={form.name}
                     onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                    placeholder="VD: Commercial Treadmill Pro"
                   />
                 </label>
 
-                <label>
-                  Mã
+                <label className="eq-field">
+                  <span className="eq-label">Mã</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     value={form.code}
                     onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
+                    placeholder="VD: EQ-TREADMILL-001"
                   />
                 </label>
 
-                <label>
-                  Danh mục
+                <label className="eq-field">
+                  <span className="eq-label">Danh mục</span>
                   <select
-                    className="select"
+                    className="eq-select"
                     value={form.categoryId}
                     onChange={(e) => setForm((s) => ({ ...s, categoryId: e.target.value }))}
                   >
-                    <option value="">-- chọn --</option>
-                    {categories.map((c) => (
+                    <option value="">-- Chọn --</option>
+                    {(categories || []).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {c.name} {c.code ? `(${c.code})` : ""}
                       </option>
                     ))}
                   </select>
                 </label>
 
-                <label>
-                  Đơn vị
+                <label className="eq-field">
+                  <span className="eq-label">Đơn vị</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     value={form.unit}
                     onChange={(e) => setForm((s) => ({ ...s, unit: e.target.value }))}
+                    placeholder="VD: piece / set"
                   />
                 </label>
 
-                <label>
-                  Brand
+                <label className="eq-field">
+                  <span className="eq-label">Brand</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     value={form.brand}
                     onChange={(e) => setForm((s) => ({ ...s, brand: e.target.value }))}
+                    placeholder="VD: Life Fitness"
                   />
                 </label>
 
-                <label>
-                  Model
+                <label className="eq-field">
+                  <span className="eq-label">Model</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     value={form.model}
                     onChange={(e) => setForm((s) => ({ ...s, model: e.target.value }))}
+                    placeholder="VD: T5"
                   />
                 </label>
 
-                <label className="full">
-                  Mô tả
+                <label className="eq-field eq-col2">
+                  <span className="eq-label">Mô tả</span>
                   <textarea
-                    className="textarea"
+                    className="eq-textarea"
                     rows={3}
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                    placeholder="VD: High-end commercial treadmill..."
                   />
                 </label>
 
-                <label>
-                  Min stock
+                <label className="eq-field">
+                  <span className="eq-label">Min stock</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     type="number"
-                    min={0}
+                    min="0"
                     value={form.minStockLevel}
                     onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
                   />
                 </label>
 
-                <label>
-                  Max stock
+                <label className="eq-field">
+                  <span className="eq-label">Max stock</span>
                   <input
-                    className="input"
+                    className="eq-input"
                     type="number"
-                    min={0}
+                    min="0"
                     value={form.maxStockLevel}
                     onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
                   />
                 </label>
 
-                <label>
-                  Trạng thái
+                <label className="eq-field eq-col2">
+                  <span className="eq-label">Trạng thái</span>
                   <select
-                    className="select"
+                    className="eq-select"
                     value={form.status}
                     onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
                   >
                     <option value="active">active</option>
-                    <option value="inactive">inactive</option>
                     <option value="discontinued">discontinued</option>
                   </select>
+                  <div className="eq-hint">
+                    * Discontinued: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
+                  </div>
                 </label>
               </div>
 
-              {err ? <div className="alert">{err}</div> : null}
+              {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
             </div>
 
-            <div className="modal-footer">
-              <button className="btn" onClick={closeModal}>
+            <div className="eq-modal__footer">
+              <button className="eq-btn eq-btn--ghost" onClick={closeModal}>
                 Huỷ
               </button>
-              <button className="btn primary" onClick={save}>
+              <button className="eq-btn eq-btn--primary" onClick={save}>
                 Lưu
               </button>
             </div>

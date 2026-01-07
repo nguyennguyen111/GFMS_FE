@@ -1,55 +1,55 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./SuppliersPage.css";
 
 import {
-  getSuppliers,
   createSupplier,
+  getSuppliers,
+  setSupplierActive, // ✅ dùng cái này để gửi isActive
   updateSupplier,
-  toggleSupplierActive,
 } from "../../../services/equipmentSupplierInventoryService";
 
-const empty = {
+const emptyForm = {
   name: "",
   code: "",
-  email: "",
   phone: "",
+  email: "",
   address: "",
   taxCode: "",
   notes: "",
   isActive: true,
 };
 
-// ✅ tránh lỗi id undefined/NaN (BE sẽ báo Invalid supplier id)
-const getRowId = (row) => {
-  const raw = row?.id ?? row?.supplierId ?? row?.supplier_id;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : null;
-};
-
 export default function SuppliersPage() {
-  const [items, setItems] = useState([]);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  const [items, setItems] = useState([]);
+
+  // filters
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all"); // all | active | inactive
+
+  // modal
   const [show, setShow] = useState(false);
-  const [mode, setMode] = useState("create");
+  const [mode, setMode] = useState("create"); // create | edit
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(emptyForm);
 
   const fetchAll = async () => {
     setLoading(true);
     setErr("");
     try {
       const res = await getSuppliers({
-        q: search || undefined,
-        isActive: activeFilter !== "all" ? activeFilter === "true" : undefined,
+        page: 1,
+        limit: 200,
+        q: q || undefined,
+        status: status !== "all" ? status : undefined,
       });
+
       const data = res?.data?.data ?? res?.data ?? [];
       setItems(Array.isArray(data) ? data : data.items ?? []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load failed");
+      setErr(e?.response?.data?.message || e?.message || "Load failed");
     } finally {
       setLoading(false);
     }
@@ -60,108 +60,164 @@ export default function SuppliersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const onSearch = () => fetchAll();
+
   const openCreate = () => {
     setMode("create");
     setEditingId(null);
-    setForm(empty);
+    setForm(emptyForm);
+    setErr("");
     setShow(true);
   };
 
   const openEdit = (row) => {
-    const id = getRowId(row);
-    if (!id) {
-      alert("Không thể sửa: Supplier id không hợp lệ (undefined/NaN).");
-      console.log("Row causing invalid id:", row);
-      return;
-    }
     setMode("edit");
-    setEditingId(id);
+    setEditingId(row.id);
     setForm({
       name: row.name ?? "",
       code: row.code ?? "",
-      email: row.email ?? "",
       phone: row.phone ?? "",
+      email: row.email ?? "",
       address: row.address ?? "",
       taxCode: row.taxCode ?? "",
       notes: row.notes ?? "",
-      isActive: row.isActive ?? true,
+      isActive: !!row.isActive,
     });
+    setErr("");
     setShow(true);
+  };
+
+  const closeModal = () => {
+    setShow(false);
+    setErr("");
   };
 
   const save = async () => {
     setErr("");
     try {
-      if (!form.name?.trim()) {
+      const payload = {
+        name: form.name?.trim(),
+        code: form.code?.trim() || null,
+        phone: form.phone?.trim() || null,
+        email: form.email?.trim() || null,
+        address: form.address?.trim() || null,
+        taxCode: form.taxCode?.trim() || null,
+        notes: form.notes?.trim() || null,
+        // ✅ gửi isActive để backend map sang status active/inactive
+        isActive: !!form.isActive,
+      };
+
+      if (!payload.name) {
         setErr("Tên nhà cung cấp là bắt buộc");
         return;
       }
-      if (mode === "create") {
-        await createSupplier(form);
-      } else {
-        if (!Number.isFinite(Number(editingId))) {
-          setErr("ID nhà cung cấp không hợp lệ (undefined/NaN).");
-          return;
-        }
-        await updateSupplier(editingId, form);
-      }
-      setShow(false);
+
+      if (mode === "create") await createSupplier(payload);
+      else await updateSupplier(editingId, payload);
+
+      closeModal();
       fetchAll();
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Save failed");
+      setErr(e?.response?.data?.message || e?.message || "Save failed");
     }
   };
 
+  /**
+   * ✅ FIX HOÀN CHỈNH TOGGLE:
+   * - Luôn toggle qua lại (Enable <-> Disable)
+   * - Optimistic update để UI đổi ngay (tránh “chỉ enable” do state không refresh)
+   * - Nếu API fail -> rollback lại
+   * - Cuối cùng fetchAll() để đồng bộ server
+   */
   const toggleActive = async (row) => {
-    const id = getRowId(row);
-    if (!id) {
-      alert("Supplier id không hợp lệ (undefined/NaN). Kiểm tra dữ liệu trả về từ API (cột id).");
-      console.log("Row causing invalid id:", row);
-      return;
-    }
+    const next = !row.isActive;
+
+    // ✅ Optimistic update: đổi UI ngay lập tức
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === row.id
+          ? { ...it, isActive: next, status: next ? "active" : "inactive" }
+          : it
+      )
+    );
+
     try {
-      await toggleSupplierActive(id, !row.isActive);
-      fetchAll();
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Update failed");
+      // ưu tiên dạng object (chuẩn backend của bạn)
+      await setSupplierActive(row.id, { isActive: next });
+    } catch (e1) {
+      try {
+        // fallback: nếu service FE chỉ nhận boolean
+        await setSupplierActive(row.id, next);
+      } catch (e2) {
+        // ❌ rollback nếu thất bại
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === row.id
+              ? { ...it, isActive: !next, status: !next ? "active" : "inactive" }
+              : it
+          )
+        );
+
+        alert(
+          e2?.response?.data?.message ||
+            e2?.message ||
+            e1?.response?.data?.message ||
+            e1?.message ||
+            "Update status failed"
+        );
+        return;
+      }
     }
+
+    // ✅ Đồng bộ lại từ server (đảm bảo đúng 100%)
+    fetchAll();
   };
+
+  const visibleItems = useMemo(() => items || [], [items]);
 
   return (
     <div className="sup-page">
-      <div className="sup-header">
-        <h2>Nhà cung cấp</h2>
-        <button className="btn primary" onClick={openCreate}>
+      <div className="sup-head">
+        <div>
+          <h2 className="sup-title">Nhà cung cấp</h2>
+          <div className="sup-sub">
+            Quản lý vendor cung cấp trang thiết bị / vật tư cho hệ thống gym
+          </div>
+        </div>
+
+        <button className="sup-btn sup-btn--primary" onClick={openCreate}>
           + Thêm nhà cung cấp
         </button>
       </div>
 
       <div className="sup-filters">
         <input
-          className="input"
+          className="sup-input"
           placeholder="Tìm theo tên / mã / phone / email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
         />
+
         <select
-          className="select"
-          value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value)}
+          className="sup-select"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
         >
           <option value="all">Tất cả</option>
-          <option value="true">Đang hoạt động</option>
-          <option value="false">Ngừng hoạt động</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
         </select>
 
-        <button className="btn" onClick={fetchAll} disabled={loading}>
+        <button className="sup-btn" onClick={onSearch} disabled={loading}>
           {loading ? "Đang tải..." : "Tải lại"}
         </button>
       </div>
 
-      {err ? <div className="alert">{err}</div> : null}
+      {err ? <div className="sup-alert">{err}</div> : null}
 
       <div className="sup-table">
-        <table className="table">
+        <table className="sup-table__tbl">
           <thead>
             <tr>
               <th>ID</th>
@@ -174,30 +230,47 @@ export default function SuppliersPage() {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <tr>
-                <td className="empty" colSpan={7}>
+                <td className="sup-empty" colSpan={7}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
-              items.map((row) => (
-                <tr key={getRowId(row) ?? row.id ?? Math.random()}>
-                  <td>{getRowId(row) ?? "-"}</td>
+              visibleItems.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.id}</td>
                   <td>{row.code || "-"}</td>
-                  <td>{row.name}</td>
+                  <td className="sup-strong">{row.name}</td>
                   <td>{row.phone || "-"}</td>
                   <td>{row.email || "-"}</td>
                   <td>
-                    <span className={`badge ${row.isActive ? "active" : "inactive"}`}>
+                    <span
+                      className={`sup-badge ${
+                        row.isActive ? "active" : "inactive"
+                      }`}
+                    >
                       {row.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="actions">
-                    <button className="btn" onClick={() => openEdit(row)}>
+                  <td className="sup-actions">
+                    <button
+                      className="sup-btn sup-btn--ghost"
+                      onClick={() => openEdit(row)}
+                    >
                       Sửa
                     </button>
-                    <button className="btn" onClick={() => toggleActive(row)}>
+
+                    {/* ✅ Nút luôn bấm được để “tái kích hoạt” */}
+                    <button
+                      className="sup-btn"
+                      onClick={() => toggleActive(row)}
+                      title={
+                        row.isActive
+                          ? "Ngưng hoạt động nhà cung cấp"
+                          : "Kích hoạt lại nhà cung cấp"
+                      }
+                    >
                       {row.isActive ? "Disable" : "Enable"}
                     </button>
                   </td>
@@ -209,96 +282,150 @@ export default function SuppliersPage() {
       </div>
 
       {show ? (
-        <div className="modal-backdrop" onMouseDown={() => setShow(false)}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{mode === "create" ? "Thêm nhà cung cấp" : "Cập nhật nhà cung cấp"}</h3>
+        <div className="sup-modal__backdrop" onMouseDown={closeModal}>
+          <div
+            className="sup-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="sup-modal__header">
+              <div>
+                <div className="sup-modal__title">
+                  {mode === "create"
+                    ? "Thêm nhà cung cấp"
+                    : "Cập nhật nhà cung cấp"}
+                </div>
+                <div className="sup-modal__subtitle">
+                  Thông tin vendor dùng cho nghiệp vụ nhập kho / đối soát chứng từ
+                </div>
+              </div>
+
+              <button
+                className="sup-iconbtn"
+                onClick={closeModal}
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="modal-body">
-              <div className="grid">
-                <label>
-                  Tên *
+            <div className="sup-modal__body">
+              <div className="sup-formgrid">
+                <label className="sup-field">
+                  <span className="sup-label">
+                    Tên <b>*</b>
+                  </span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, name: e.target.value }))
+                    }
+                    placeholder="VD: Gym Essentials Vietnam"
                   />
                 </label>
 
-                <label>
-                  Mã
+                <label className="sup-field">
+                  <span className="sup-label">Mã</span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.code}
-                    onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, code: e.target.value }))
+                    }
+                    placeholder="VD: GEV-004"
                   />
                 </label>
 
-                <label>
-                  Phone
+                <label className="sup-field">
+                  <span className="sup-label">Phone</span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.phone}
-                    onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, phone: e.target.value }))
+                    }
+                    placeholder="VD: 0901234004"
                   />
                 </label>
 
-                <label>
-                  Email
+                <label className="sup-field">
+                  <span className="sup-label">Email</span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.email}
-                    onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, email: e.target.value }))
+                    }
+                    placeholder="VD: info@vendor.com"
                   />
                 </label>
 
-                <label className="col-2">
-                  Địa chỉ
+                <label className="sup-field sup-field--full">
+                  <span className="sup-label">Địa chỉ</span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.address}
-                    onChange={(e) => setForm((s) => ({ ...s, address: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, address: e.target.value }))
+                    }
+                    placeholder="VD: 321 Cách Mạng Tháng 8, Q3, HCM"
                   />
                 </label>
 
-                <label>
-                  Mã số thuế
+                <label className="sup-field">
+                  <span className="sup-label">Mã số thuế</span>
                   <input
-                    className="input"
+                    className="sup-input"
                     value={form.taxCode}
-                    onChange={(e) => setForm((s) => ({ ...s, taxCode: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, taxCode: e.target.value }))
+                    }
+                    placeholder="VD: 0312345678"
                   />
                 </label>
 
-                <label className="col-2">
-                  Ghi chú
+                <label className="sup-field sup-field--full">
+                  <span className="sup-label">Ghi chú</span>
                   <textarea
-                    className="input"
+                    className="sup-textarea"
                     rows={3}
                     value={form.notes}
-                    onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, notes: e.target.value }))
+                    }
+                    placeholder="VD: Supplier for gym accessories..."
                   />
                 </label>
 
-                <label className="checkbox">
+                <label className="sup-checkrow">
                   <input
                     type="checkbox"
                     checked={!!form.isActive}
-                    onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, isActive: e.target.checked }))
+                    }
                   />
-                  Đang hoạt động
+                  <div>
+                    <div className="sup-checkrow__title">Đang hoạt động</div>
+                    <div className="sup-checkrow__hint">
+                      Tắt để ngưng giao dịch / ẩn khỏi luồng nhập kho
+                    </div>
+                  </div>
                 </label>
               </div>
 
-              {err ? <div className="alert">{err}</div> : null}
+              {err ? (
+                <div className="sup-alert sup-alert--inmodal">{err}</div>
+              ) : null}
             </div>
 
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setShow(false)}>
+            <div className="sup-modal__footer">
+              <button className="sup-btn sup-btn--ghost" onClick={closeModal}>
                 Huỷ
               </button>
-              <button className="btn primary" onClick={save}>
+              <button className="sup-btn sup-btn--primary" onClick={save}>
                 Lưu
               </button>
             </div>

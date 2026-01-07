@@ -15,8 +15,22 @@ export const getSuppliers = (params) => axios.get(`${API_BASE}/suppliers`, { par
 export const createSupplier = (payload) => axios.post(`${API_BASE}/suppliers`, payload).then(r => r.data);
 export const updateSupplier = (id, payload) => axios.put(`${API_BASE}/suppliers/${id}`, payload).then(r => r.data);
 
-export const setSupplierActive = (id, isActive) =>
-  axios.patch(`${API_BASE}/suppliers/${id}/active`, { isActive }).then(r => r.data);
+export const setSupplierActive = (id, input) => {
+  let body;
+
+  if (typeof input === "object" && input !== null) {
+    // FE truyền { isActive: true/false }
+    body = { isActive: !!input.isActive };
+  } else {
+    // FE truyền true / false
+    body = { isActive: !!input };
+  }
+
+  return axios
+    .patch(`${API_BASE}/suppliers/${id}/active`, body)
+    .then((r) => r.data);
+};
+
 
 // ✅ alias để khỏi lỗi import cũ
 export const toggleSupplierActive = (id, isActive) => setSupplierActive(id, isActive);
