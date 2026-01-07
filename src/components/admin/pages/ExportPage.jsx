@@ -1,157 +1,133 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./ExportPage.css";
 
-import {
-  createExport,
-  getEquipments,
-  getStocks,
-} from "../../../services/equipmentSupplierInventoryService";
+import { createExport, getStocks } from "../../../services/equipmentSupplierInventoryService";
 
 export default function ExportPage() {
-  const [equipments, setEquipments] = useState([]);
-  const [stocks, setStocks] = useState([]);
-
+  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({
-    equipmentId: "",
-    quantity: 1,
-    reason: "other",
-    notes: "",
-    gymId: "", // optional (đợt 1 có thể bỏ, BE sẽ default)
-  });
+  const [stocks, setStocks] = useState([]);
+  const [q, setQ] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const e = await getEquipments({ status: "active", limit: 200 });
-        setEquipments(e?.data?.data ?? e?.data ?? []);
+  const [gymId, setGymId] = useState("1");
+  const [stockId, setStockId] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [reason, setReason] = useState("other");
+  const [notes, setNotes] = useState("");
 
-        const s = await getStocks({ limit: 500 });
-        setStocks(s?.data?.data ?? s?.data ?? []);
-      } catch (e) {
-        setErr(e?.response?.data?.message || e.message || "Không load được dữ liệu");
-      }
-    })();
-  }, []);
-
-  const stockByEq = useMemo(() => {
-    const m = new Map();
-    for (const st of stocks) {
-      const key = String(st.equipmentId);
-      // nếu có nhiều gym, bạn có thể nâng cấp sau: key = `${gymId}-${equipmentId}`
-      m.set(key, st);
-    }
-    return m;
-  }, [stocks]);
-
-  const submit = async () => {
-    setErr("");
-
-    if (!form.equipmentId) return setErr("Chọn thiết bị");
-    if (Number(form.quantity || 0) <= 0) return setErr("Số lượng phải > 0");
-
-    const payload = {
-      equipmentId: Number(form.equipmentId),
-      quantity: Number(form.quantity),
-      reason: form.reason || "other",
-      notes: form.notes || null,
-      gymId: form.gymId ? Number(form.gymId) : undefined, // optional
-    };
-
-    setSaving(true);
+  const loadStocks = async () => {
     try {
-      await createExport(payload);
-      alert("Xuất kho thành công");
-
-      const s = await getStocks({ limit: 500 });
-      setStocks(s?.data?.data ?? s?.data ?? []);
-
-      setForm((x) => ({ ...x, quantity: 1, notes: "" }));
+      setErr("");
+      const res = await getStocks({ page: 1, limit: 200, q });
+      setStocks(res?.data || []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Xuất kho thất bại");
-    } finally {
-      setSaving(false);
+      setErr(e?.response?.data?.message || e?.message || "Load stocks failed");
     }
   };
 
-  const currentStock = stockByEq.get(String(form.equipmentId));
-  const available =
-    currentStock?.availableQuantity ??
-    currentStock?.available ??
-    0;
+  useEffect(() => {
+    loadStocks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const options = useMemo(() => stocks || [], [stocks]);
+  const selected = useMemo(() => options.find((s) => String(s.id) === String(stockId)), [options, stockId]);
+
+  const onSubmit = async () => {
+    try {
+      setLoading(true);
+      setErr("");
+
+      if (!stockId) throw new Error("Chọn 1 dòng tồn kho trước");
+      const s = selected;
+      if (!s) throw new Error("Stock not found");
+
+      const payload = {
+        gymId: Number(gymId) || Number(s.gymId) || 1,
+        equipmentId: Number(s.equipmentId),
+        quantity: Number(quantity),
+        reason,
+        notes: notes || null,
+      };
+
+      await createExport(payload);
+      alert("Xuất kho thành công!");
+      setQuantity(1);
+      setNotes("");
+      await loadStocks();
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || "Export failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="exp-page">
-      <div className="exp-head">
-        <h2 className="exp-title">Xuất kho</h2>
-        <div className="exp-sub">Giảm tồn kho (EquipmentStock) + ghi nhật ký (Inventory export)</div>
+    <div className="ex-wrap">
+      <div className="ex-head">
+        <div>
+          <h2 className="ex-title">Xuất kho</h2>
+          <div className="ex-sub">Giảm tồn kho (EquipmentStock) + ghi nhật ký (Inventory)</div>
+        </div>
       </div>
 
-      {err ? <div className="alert">{err}</div> : null}
+      {err ? <div className="ex-alert">{err}</div> : null}
 
-      <div className="card">
-        <div className="grid">
-          <div>
-            <div className="label">Thiết bị</div>
-            <select
-              className="select"
-              value={form.equipmentId}
-              onChange={(e) => setForm((s) => ({ ...s, equipmentId: e.target.value }))}
-            >
+      <div className="ex-card">
+        <div className="ex-row">
+          <input
+            className="ex-input"
+            placeholder="Tìm theo thiết bị / mã / gym..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <button className="ex-btn ex-btn--ghost" onClick={loadStocks}>Tải lại</button>
+        </div>
+
+        <div className="ex-grid">
+          <div className="ex-field">
+            <label>Dòng tồn kho</label>
+            <select value={stockId} onChange={(e) => setStockId(e.target.value)}>
               <option value="">-- Chọn --</option>
-              {equipments.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name} {e.code ? `(${e.code})` : ""}
+              {options.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.gymName || `Gym ${s.gymId}`} • {s.equipmentName || `EQ ${s.equipmentId}`} ({s.equipmentCode || "—"}) • Avail: {s.availableQuantity}
                 </option>
               ))}
             </select>
-            <div className="hint">Available: {available}</div>
           </div>
 
-          <div>
-            <div className="label">Số lượng xuất</div>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              value={form.quantity}
-              onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
-            />
+          <div className="ex-field">
+            <label>GymId</label>
+            <input value={gymId} onChange={(e) => setGymId(e.target.value)} placeholder="1" />
           </div>
 
-          <div>
-            <div className="label">Lý do</div>
-            <select
-              className="select"
-              value={form.reason}
-              onChange={(e) => setForm((s) => ({ ...s, reason: e.target.value }))}
-            >
+          <div className="ex-field">
+            <label>Số lượng xuất</label>
+            <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+            <div className="ex-hint">Available: {selected ? selected.availableQuantity : "—"}</div>
+          </div>
+
+          <div className="ex-field">
+            <label>Lý do</label>
+            <select value={reason} onChange={(e) => setReason(e.target.value)}>
               <option value="other">other</option>
-              <option value="transfer_out">transfer_out</option>
-              <option value="maintenance">maintenance</option>
-              <option value="damaged">damaged</option>
-              <option value="lost">lost</option>
               <option value="adjustment">adjustment</option>
+              <option value="transfer_out">transfer_out</option>
+              <option value="transfer">transfer</option>
             </select>
           </div>
 
-          <div className="gridFull">
-            <div className="label">Ghi chú</div>
-            <textarea
-              className="textarea"
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
-              placeholder="VD: xuất cho chi nhánh / cho bảo trì..."
-            />
+          <div className="ex-field ex-field--full">
+            <label>Ghi chú</label>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="VD: xuất cấp cho chi nhánh..." />
           </div>
         </div>
 
-        <div className="actions">
-          <button className="btn" disabled={saving} onClick={submit}>
-            {saving ? "Đang lưu..." : "Xuất kho"}
+        <div className="ex-footer">
+          <button className="ex-btn ex-btn--primary" onClick={onSubmit} disabled={loading}>
+            {loading ? "Đang xử lý..." : "Xuất kho"}
           </button>
         </div>
       </div>

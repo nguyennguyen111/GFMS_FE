@@ -8,243 +8,234 @@ import {
 } from "../../../services/equipmentSupplierInventoryService";
 
 export default function ReceiptImportPage() {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
   const [suppliers, setSuppliers] = useState([]);
   const [equipments, setEquipments] = useState([]);
 
-  const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
+  // form header
+  const [supplierId, setSupplierId] = useState("");
+  const [gymId, setGymId] = useState("1");
 
-  const [header, setHeader] = useState({
-    supplierId: "",
-    receiptDate: new Date().toISOString().slice(0, 16),
-    purchaseOrderId: "",
-    notes: "",
+  // ✅ giữ dạng YYYY-MM-DD để BE parse theo giờ VN, không convert ISO UTC ở FE
+  const [receiptDate, setReceiptDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   });
 
-  const [items, setItems] = useState([
-    { equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" },
-  ]);
+  const [purchaseOrderId, setPurchaseOrderId] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const totalQty = useMemo(
-    () => items.reduce((s, it) => s + Number(it.receivedQuantity || 0), 0),
-    [items]
-  );
+  // items
+  const [items, setItems] = useState([{ equipmentId: "", quantity: 1, unitPrice: "", notes: "" }]);
+
+  const equipmentOptions = useMemo(() => equipments || [], [equipments]);
+
+  const loadInit = async () => {
+    try {
+      setErr("");
+      const [supRes, eqRes] = await Promise.all([
+        getSuppliers({ page: 1, limit: 200 }),
+        getEquipments({ page: 1, limit: 200 }),
+      ]);
+
+      setSuppliers(supRes?.data || []);
+      setEquipments(eqRes?.data || []);
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || "Load init failed");
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const [s, e] = await Promise.all([
-          getSuppliers({ limit: 200 }),
-          getEquipments({ status: "active", limit: 200 }),
-        ]);
-        setSuppliers(s?.data?.data ?? s?.data ?? []);
-        setEquipments(e?.data?.data ?? e?.data ?? []);
-      } catch (e) {}
-    })();
+    loadInit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addRow = () => {
-    setItems((prev) => [...prev, { equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" }]);
+    setItems((prev) => [...prev, { equipmentId: "", quantity: 1, unitPrice: "", notes: "" }]);
+  };
+
+  const updateRow = (idx, patch) => {
+    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
 
   const removeRow = (idx) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const updateRow = (idx, patch) => {
-    setItems((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-  };
-
-  const submit = async () => {
-    setErr("");
-
-    if (!header.supplierId) return setErr("Chọn nhà cung cấp");
-    const cleanItems = items
-      .map((it) => ({
-        equipmentId: Number(it.equipmentId),
-        receivedQuantity: Number(it.receivedQuantity || 0),
-        unitPrice: it.unitPrice === "" ? null : Number(it.unitPrice),
-        notes: it.notes || null,
-      }))
-      .filter((it) => it.equipmentId && it.receivedQuantity > 0);
-
-    if (!cleanItems.length) return setErr("Thêm ít nhất 1 dòng thiết bị hợp lệ");
-
-    setSaving(true);
+  const onSubmit = async () => {
     try {
-      await createReceipt({
-        supplierId: Number(header.supplierId),
-        receiptDate: header.receiptDate,
-        purchaseOrderId: header.purchaseOrderId ? Number(header.purchaseOrderId) : null,
-        notes: header.notes || null,
-        items: cleanItems,
-      });
+      setLoading(true);
+      setErr("");
 
-      alert("Tạo phiếu nhập thành công");
-      setHeader({
-        supplierId: "",
-        receiptDate: new Date().toISOString().slice(0, 16),
-        purchaseOrderId: "",
-        notes: "",
-      });
-      setItems([{ equipmentId: "", receivedQuantity: 1, unitPrice: "", notes: "" }]);
+      const cleanItems = items
+        .map((it) => ({
+          equipmentId: Number(it.equipmentId),
+          quantity: Number(it.quantity),
+          unitPrice: it.unitPrice === "" ? null : Number(it.unitPrice),
+          notes: it.notes || null,
+        }))
+        .filter((it) => it.equipmentId && it.quantity > 0);
+
+      if (!cleanItems.length) throw new Error("Danh sách thiết bị nhập không hợp lệ");
+
+      // ✅ payload khớp DB/service:
+      // - receiptDate gửi "YYYY-MM-DD" để backend parse theo VN (không lệch giờ)
+      // - supplierId không có cột trong receipt (giữ để FE hiển thị, backend bỏ qua)
+      const payload = {
+        code: `REC-${Date.now()}`,
+        gymId: Number(gymId) || 1,
+        supplierId: supplierId ? Number(supplierId) : null,
+        purchaseOrderId: purchaseOrderId ? Number(purchaseOrderId) : null,
+
+        // ✅ FIX TIMEZONE: KHÔNG new Date(receiptDate).toISOString()
+        receiptDate: receiptDate || undefined,
+
+        notes: notes || null,
+        items: cleanItems,
+      };
+
+      await createReceipt(payload);
+
+      alert("Tạo phiếu nhập thành công!");
+      setNotes("");
+      setPurchaseOrderId("");
+      setItems([{ equipmentId: "", quantity: 1, unitPrice: "", notes: "" }]);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Nhập kho thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Create receipt failed");
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="imp-page">
-      <div>
-        <h2>Nhập kho</h2>
-        <div style={{ color: "rgba(238,242,255,0.7)", fontSize: 13 }}>
-          Tạo phiếu nhập (Receipt) + cập nhật tồn kho + ghi nhật ký kho
+    <div className="rip-wrap">
+      <div className="rip-head">
+        <div>
+          <h2 className="rip-title">Nhập kho</h2>
+          <div className="rip-sub">Tạo phiếu nhập (Receipt) + cập nhật tồn kho + ghi nhật ký kho</div>
         </div>
       </div>
 
-      {err ? <div className="imp-alert">{err}</div> : null}
+      {err ? <div className="rip-alert">{err}</div> : null}
 
-      <div className="imp-card">
-        <div className="imp-grid">
-          <label>
-            Nhà cung cấp <span className="imp-required" />
-            <select
-              className="imp-select"
-              value={header.supplierId}
-              onChange={(e) => setHeader((s) => ({ ...s, supplierId: e.target.value }))}
-            >
-              <option value="">-- chọn --</option>
+      <div className="rip-card">
+        <div className="rip-grid">
+          <div className="rip-field">
+            <label>Nhà cung cấp</label>
+            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
+              <option value="">-- Chọn --</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} {s.code ? `(${s.code})` : ""}
+                  {s.name} {s.phone ? `(${s.phone})` : ""}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <label>
-            Ngày nhập
-            <input
-              className="imp-input"
-              type="datetime-local"
-              value={header.receiptDate}
-              onChange={(e) => setHeader((s) => ({ ...s, receiptDate: e.target.value }))}
-            />
-          </label>
+          <div className="rip-field">
+            <label>Ngày nhập</label>
+            <input type="date" value={receiptDate} onChange={(e) => setReceiptDate(e.target.value)} />
+          </div>
 
-          <label className="full">
-            PurchaseOrderId (optional)
+          <div className="rip-field">
+            <label>GymId</label>
+            <input value={gymId} onChange={(e) => setGymId(e.target.value)} placeholder="1" />
+          </div>
+
+          <div className="rip-field">
+            <label>PurchaseOrderId (optional)</label>
             <input
-              className="imp-input"
-              value={header.purchaseOrderId}
+              value={purchaseOrderId}
+              onChange={(e) => setPurchaseOrderId(e.target.value)}
               placeholder="VD: 123"
-              onChange={(e) => setHeader((s) => ({ ...s, purchaseOrderId: e.target.value }))}
             />
-          </label>
+          </div>
 
-          <label className="full">
-            Ghi chú
-            <textarea
-              className="imp-textarea"
-              rows={3}
-              value={header.notes}
-              placeholder="VD: nhập bổ sung tháng 1..."
-              onChange={(e) => setHeader((s) => ({ ...s, notes: e.target.value }))}
-            />
-          </label>
+          <div className="rip-field rip-field--full">
+            <label>Ghi chú</label>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="VD: nhập bổ sung..." />
+          </div>
         </div>
+      </div>
 
-        <div className="imp-rowHead" style={{ marginTop: 14 }}>
-          <h3>Danh sách thiết bị nhập</h3>
-          <button className="imp-btn imp-btn--small" onClick={addRow}>
+      <div className="rip-card">
+        <div className="rip-card__head">
+          <div className="rip-card__title">Danh sách thiết bị nhập</div>
+          <button className="rip-btn rip-btn--ghost" onClick={addRow}>
             + Thêm dòng
           </button>
         </div>
 
-        <div className="imp-tableWrap">
-          <table className="imp-table">
-            <thead>
-              <tr>
-                <th>Thiết bị</th>
-                <th>SL</th>
-                <th>Đơn giá</th>
-                <th>Ghi chú</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((r, idx) => (
-                <tr key={idx}>
-                  <td style={{ minWidth: 360 }}>
-                    <select
-                      className="imp-select"
-                      value={r.equipmentId}
-                      onChange={(e) => updateRow(idx, { equipmentId: e.target.value })}
-                    >
-                      <option value="">-- chọn --</option>
-                      {equipments.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.name} {e.code ? `(${e.code})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
+        <div className="rip-table">
+          <div className="rip-row rip-row--head">
+            <div>Thiết bị</div>
+            <div>SL</div>
+            <div>Đơn giá</div>
+            <div>Ghi chú</div>
+            <div></div>
+          </div>
 
-                  <td style={{ width: 110 }}>
-                    <input
-                      className="imp-input"
-                      type="number"
-                      min={1}
-                      value={r.receivedQuantity}
-                      onChange={(e) => updateRow(idx, { receivedQuantity: e.target.value })}
-                    />
-                  </td>
+          {items.map((it, idx) => {
+            const eq = equipmentOptions.find((e) => String(e.id) === String(it.equipmentId));
+            return (
+              <div className="rip-row" key={idx}>
+                <div>
+                  <select value={it.equipmentId} onChange={(e) => updateRow(idx, { equipmentId: e.target.value })}>
+                    <option value="">-- Chọn thiết bị --</option>
+                    {equipmentOptions.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.name} ({e.code})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="rip-hint">Đơn vị: {eq?.unit || "—"}</div>
+                </div>
 
-                  <td style={{ width: 150 }}>
-                    <input
-                      className="imp-input"
-                      type="number"
-                      min={0}
-                      value={r.unitPrice}
-                      placeholder="(optional)"
-                      onChange={(e) => updateRow(idx, { unitPrice: e.target.value })}
-                    />
-                  </td>
+                <div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={it.quantity}
+                    onChange={(e) => updateRow(idx, { quantity: e.target.value })}
+                  />
+                </div>
 
-                  <td>
-                    <input
-                      className="imp-input"
-                      value={r.notes}
-                      placeholder="(optional)"
-                      onChange={(e) => updateRow(idx, { notes: e.target.value })}
-                    />
-                  </td>
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={it.unitPrice}
+                    onChange={(e) => updateRow(idx, { unitPrice: e.target.value })}
+                    placeholder="(optional)"
+                  />
+                </div>
 
-                  <td style={{ width: 120 }}>
-                    <div className="imp-tableActions">
-                      <button
-                        className="imp-btn imp-btn--danger imp-btn--small"
-                        onClick={() => removeRow(idx)}
-                        disabled={items.length <= 1}
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                <div>
+                  <input
+                    value={it.notes}
+                    onChange={(e) => updateRow(idx, { notes: e.target.value })}
+                    placeholder="(optional)"
+                  />
+                </div>
+
+                <div className="rip-actions">
+                  <button className="rip-btn rip-btn--danger" onClick={() => removeRow(idx)} disabled={items.length <= 1}>
+                    Xoá
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="imp-actions">
-          <div style={{ color: "rgba(238,242,255,0.75)", marginRight: "auto" }}>
-            Tổng SL: <b>{totalQty}</b>
-          </div>
-          <button className="imp-btn imp-btn--primary" onClick={submit} disabled={saving}>
-            {saving ? "Đang lưu..." : "Tạo phiếu nhập"}
+        <div className="rip-footer">
+          <button className="rip-btn rip-btn--primary" onClick={onSubmit} disabled={loading}>
+            {loading ? "Đang tạo..." : "Tạo phiếu nhập"}
           </button>
         </div>
       </div>

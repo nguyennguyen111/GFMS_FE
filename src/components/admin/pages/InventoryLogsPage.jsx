@@ -1,141 +1,121 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./InventoryLogsPage.css";
 
 import { getInventoryLogs } from "../../../services/equipmentSupplierInventoryService";
 
 export default function InventoryLogsPage() {
-  const [q, setQ] = useState("");
-  const [action, setAction] = useState("all");
-  const [data, setData] = useState([]);
-  const [meta, setMeta] = useState(null);
-
-  const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
-  const fetcher = async (page = 1) => {
-    setErr("");
-    setLoading(true);
+  const [q, setQ] = useState("");
+  const [transactionType, setTransactionType] = useState("all");
+
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, limit: 50, totalItems: 0, totalPages: 1 });
+
+  const load = async (page = 1) => {
     try {
+      setLoading(true);
+      setErr("");
+
       const res = await getInventoryLogs({
-        q: q || undefined,
-        action: action !== "all" ? action : undefined,
         page,
-        limit: 20,
+        limit: meta.limit,
+        q,
+        transactionType: transactionType === "all" ? undefined : transactionType,
       });
 
-      const payload = res?.data;
-      setData(payload?.data ?? payload ?? []);
-      setMeta(payload?.meta ?? null);
+      setRows(res?.data || []);
+      setMeta(res?.meta || { page: 1, limit: 50, totalItems: 0, totalPages: 1 });
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load nhật ký kho thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Load logs failed");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetcher(1);
+    load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSearch = () => fetcher(1);
+  const canPrev = meta.page > 1;
+  const canNext = meta.page < meta.totalPages;
+
+  const showRows = useMemo(() => rows || [], [rows]);
 
   return (
-    <div className="ilog-page">
-      <div className="ilog-head">
-        <h2 className="ilog-title">Nhật ký kho</h2>
-        <div className="ilog-sub">Lịch sử nhập/xuất/điều chỉnh tồn kho (Inventory)</div>
+    <div className="il-wrap">
+      <div className="il-head">
+        <div>
+          <h2 className="il-title">Nhật ký kho</h2>
+          <div className="il-sub">Lịch sử nhập/xuất/điều chỉnh tồn kho (inventory)</div>
+        </div>
       </div>
 
-      <div className="ilog-card">
-        <div className="ilog-filters">
+      {err ? <div className="il-alert">{err}</div> : null}
+
+      <div className="il-card">
+        <div className="il-filters">
           <input
-            className="ilog-input"
-            placeholder="Tìm theo thiết bị / mã / gym / reason..."
+            className="il-input"
+            placeholder="Tìm theo thiết bị / mã / gym / transactionType / code / notes..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
 
-          <select className="ilog-select" value={action} onChange={(e) => setAction(e.target.value)}>
+          <select className="il-select" value={transactionType} onChange={(e) => setTransactionType(e.target.value)}>
             <option value="all">Tất cả action</option>
-            <option value="import">import</option>
-            <option value="export">export</option>
+            <option value="purchase">purchase</option>
             <option value="adjustment">adjustment</option>
-            <option value="transfer">transfer</option>
+            <option value="transfer_out">transfer_out</option>
+            <option value="transfer_in">transfer_in</option>
           </select>
 
-          <button className="ilog-btn" onClick={onSearch} disabled={loading}>
-            {loading ? "Đang tải..." : "Tìm"}
+          <button className="il-btn il-btn--primary" onClick={() => load(1)} disabled={loading}>
+            {loading ? "..." : "Tìm"}
           </button>
         </div>
 
-        {err ? <div className="ilog-alert">{err}</div> : null}
+        <div className="il-table">
+          <div className="il-row il-row--head">
+            <div>ID</div>
+            <div>Thời gian</div>
+            <div>Gym</div>
+            <div>Thiết bị</div>
+            <div>Action</div>
+            <div>Qty</div>
+            <div>Before</div>
+            <div>After</div>
+            <div>Notes</div>
+            <div>Ref</div>
+          </div>
 
-        <div className="ilog-tableWrap">
-          <table className="ilog-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Thời gian</th>
-                <th>Gym</th>
-                <th>Thiết bị</th>
-                <th>Action</th>
-                <th>Qty</th>
-                <th>Before</th>
-                <th>After</th>
-                <th>Reason</th>
-                <th>Ref</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</td>
-                  <td>{r.gymName || r.gymId}</td>
-                  <td>{r.equipmentName ? `${r.equipmentName} (${r.equipmentCode || ""})` : r.equipmentId}</td>
-                  <td>{r.action}</td>
-                  <td>{r.quantity}</td>
-                  <td>{r.stockBefore ?? ""}</td>
-                  <td>{r.stockAfter ?? ""}</td>
-                  <td>{r.reason || ""}</td>
-                  <td>
-                    {r.referenceType || ""} {r.referenceId ? `#${r.referenceId}` : ""}
-                  </td>
-                </tr>
-              ))}
-              {!data.length ? (
-                <tr>
-                  <td colSpan={10} className="ilog-empty">
-                    Không có dữ liệu
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          {showRows.length === 0 ? (
+            <div className="il-empty">Không có dữ liệu</div>
+          ) : (
+            showRows.map((r) => (
+              <div className="il-row" key={r.id}>
+                <div>{r.id}</div>
+                <div>{(r.recordedAt || r.createdAt || "").slice(0, 19).replace("T", " ")}</div>
+                <div>{r.gymName || `Gym ${r.gymId}`}</div>
+                <div>{r.equipmentName || `EQ ${r.equipmentId}`} <span className="il-dim">({r.equipmentCode || "—"})</span></div>
+                <div><span className="il-pill">{r.transactionType}</span></div>
+                <div>{r.quantity}</div>
+                <div>{r.stockBefore}</div>
+                <div>{r.stockAfter}</div>
+                <div className="il-notes">{r.notes || "—"}</div>
+                <div className="il-dim">{r.transactionCode || "—"}</div>
+              </div>
+            ))
+          )}
         </div>
 
-        {meta ? (
-          <div className="ilog-pagi">
-            <button
-              className="ilog-btn ilog-btn--ghost"
-              disabled={meta.page <= 1 || loading}
-              onClick={() => fetcher(meta.page - 1)}
-            >
-              ← Trước
-            </button>
-            <div className="ilog-meta">
-              Trang {meta.page} / {meta.totalPages} • Total {meta.totalItems}
-            </div>
-            <button
-              className="ilog-btn ilog-btn--ghost"
-              disabled={meta.page >= meta.totalPages || loading}
-              onClick={() => fetcher(meta.page + 1)}
-            >
-              Sau →
-            </button>
-          </div>
-        ) : null}
+        <div className="il-paging">
+          <button className="il-btn" disabled={!canPrev || loading} onClick={() => load(meta.page - 1)}>← Trước</button>
+          <div className="il-page">Trang {meta.page} / {meta.totalPages}</div>
+          <button className="il-btn" disabled={!canNext || loading} onClick={() => load(meta.page + 1)}>Sau →</button>
+        </div>
       </div>
     </div>
   );
