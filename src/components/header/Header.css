@@ -1,34 +1,320 @@
+/* ====== Header (GFMS) - Modern Glass ====== */
 .header {
-    display: flex;
-    justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0.75rem 1.25rem;
+  background: rgba(12, 12, 12, 0.72);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+/* Left brand */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  cursor: pointer;
+  user-select: none;
 }
 
 .logo {
-    width: 10rem;
-    height: 3rem;
+  width: 2.9rem;
+  height: 2.9rem;
+  object-fit: contain;
 }
 
+.brand-title {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.95);
+}
+
+.brand-sub {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 0.15rem;
+}
+
+/* Top nav */
 .header-menu {
-    list-style: none;
-    display: flex;
-    gap: 2rem;
-    color: white;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;              /* giảm gap, dùng padding trên item để nhìn pro */
+  color: white;
+  margin: 0;
+  padding: 0;
 }
 
-.header-menu > li:hover {
-    color: var(--orange);
-    cursor: pointer;
+/* Nav link as pill */
+.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+
+  color: rgba(255,255,255,0.90);
+  text-decoration: none;
+
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
+.nav:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.98);
+}
+
+.nav.active {
+  background: rgba(255, 165, 0, 0.12);
+  border-color: rgba(255, 165, 0, 0.25);
+  color: var(--orange);
+  font-weight: 800;
+}
+
+/* For <li class="linklike">Dashboard */
+.linklike {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  color: rgba(255,255,255,0.90);
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.linklike:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+  color: var(--orange);
+  cursor: pointer;
+}
+
+/* Right action cluster */
+.menu-actions {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin-left: 0.35rem;
+}
+
+/* Hamburger */
+.hamburger {
+  background: rgba(255,255,255,0.06);
+  padding: 0.55rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.hamburger:hover {
+  background: rgba(255,255,255,0.09);
+  transform: translateY(-1px);
+}
+.hamburger img {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+  color: rgba(255,255,255,0.85);
+}
+
+/* ====== Icon button (notification) ====== */
+.icon-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  color: rgba(255,255,255,0.92);
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.icon-btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.16);
+  color: var(--orange);
+  transform: translateY(-1px);
+}
+
+/* ====== Account dropdown ====== */
+.account {
+  position: relative;
+}
+
+.account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 0.40rem 0.65rem;
+
+  cursor: pointer;
+  color: rgba(255,255,255,0.92);
+
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.account-btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.16);
+  transform: translateY(-1px);
+}
+
+.account-btn:focus {
+  outline: none;
+}
+
+.account-avatar {
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
+.account-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.account-caret {
+  opacity: 0.75;
+}
+
+/* Dropdown panel */
+.account-menu {
+  position: absolute;
+  top: 3rem;
+  right: 0;
+
+  width: 320px;
+  max-height: 70vh;     /* nếu nhiều item sẽ scroll */
+  overflow: auto;
+
+  background: rgba(16,16,16,0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+
+  box-shadow: 0 22px 60px rgba(0,0,0,0.45);
+  z-index: 9999;
+  padding: 0.35rem;
+}
+
+/* group title */
+.account-group {
+  padding: 0.65rem 0.8rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+
+/* divider */
+.account-sep {
+  height: 1px;
+  background: rgba(255,255,255,0.10);
+  margin: 0.25rem 0.35rem;
+}
+
+/* menu item button */
+.account-item {
+  width: 100%;
+  text-align: left;
+
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  padding: 0.62rem 0.8rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease, color 0.12s ease;
+}
+
+.account-item:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.98);
+  transform: translateY(-1px);
+}
+
+.account-item.danger:hover {
+  color: #ff6b6b;
+}
+
+/* ====== Mobile ====== */
 @media screen and (max-width: 768px) {
-    .header > :nth-child(2) {
-        position: fixed;
-        right: 2rem;
-        z-index: 99;
-    }
-    .header-menu {
-        flex-direction: column;
-        background-color: var(--appColor);
-        padding: 2rem;
-    }
+  .header {
+    padding: 0.7rem 0.9rem;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  .header-menu {
+    position: fixed;
+    right: 0.75rem;
+    top: 4.2rem;
+    width: min(94vw, 380px);
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+
+    background: rgba(16, 16, 16, 0.96);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 0.75rem;
+
+    box-shadow: 0 22px 60px rgba(0,0,0,0.45);
+  }
+
+  .menu-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    margin-left: 0;
+    margin-top: 0.35rem;
+  }
+
+  .account-menu {
+    position: static;
+    width: 100%;
+    margin-top: 0.55rem;
+  }
+
+  .account-name {
+    max-width: none;
+  }
+
+  .close-row {
+    margin-top: 0.25rem;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
