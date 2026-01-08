@@ -1,0 +1,70 @@
+.gfms-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 2rem;
+  padding: 3.5rem 2rem;
+  overflow: hidden;
+}
+
+.gfms-hero__bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 109, 28, 0.18), transparent 45%),
+              radial-gradient(circle at 85% 30%, rgba(0, 153, 255, 0.12), transparent 40%),
+              linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+.gfms-hero__content { position: relative; z-index: 1; }
+.gfms-hero__badge {
+  display: inline-flex;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  font-size: 0.9rem;
+}
+
+.gfms-hero__title { margin-top: 1rem; font-size: 2.6rem; line-height: 1.1; }
+.gfms-hero__desc { margin-top: 1rem; color: var(--gray); max-width: 52ch; }
+
+.gfms-hero__stats {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+.stat {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  min-width: 180px;
+}
+.stat__value { display: block; font-weight: 700; }
+.stat__label { display: block; margin-top: 0.3rem; color: var(--gray); font-size: 0.9rem; }
+
+.gfms-hero__actions { display: flex; gap: 0.8rem; margin-top: 1.4rem; flex-wrap: wrap; }
+.btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.25); }
+.btn-ghost { background: transparent; border: none; color: rgba(255,255,255,0.85); text-decoration: underline; }
+
+.gfms-hero__panel { position: relative; z-index: 1; display: flex; justify-content: flex-end; }
+.panel-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+.panel-title { font-weight: 800; font-size: 1.1rem; }
+.panel-desc { margin-top: 0.4rem; color: var(--gray); font-size: 0.95rem; }
+.panel-buttons { display: flex; gap: 0.6rem; margin-top: 1rem; flex-wrap: wrap; }
+.btn-small { padding: 0.55rem 0.9rem; font-size: 0.95rem; }
+.panel-footnote { margin-top: 0.9rem; color: var(--gray); font-size: 0.85rem; }
+
+@media (max-width: 900px) {
+  .gfms-hero { grid-template-columns: 1fr; }
+}
