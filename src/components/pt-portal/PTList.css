@@ -1,0 +1,32 @@
+/* Định dạng cho danh sách huấn luyện viên */
+.trainer-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.trainer-item {
+  background-color: var(--darkGrey);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: background-color 0.3s;
+}
+
+.trainer-item:hover {
+  background-color: var(--orange);  /* Khi hover sẽ chuyển sang màu cam */
+}
+
+.trainer-info {
+  color: white;
+  font-size: 1.2rem;
+}
+
+.trainer-info h3 {
+  color: var(--orange);  /* Màu cam cho tên huấn luyện viên */
+  font-size: 1.5rem;
+}
+
+.trainer-info p {
+  color: var(--lightgray);  /* Màu xám sáng cho chuyên môn */
+}

@@ -27,6 +27,20 @@ import MemberNotificationsPage from "./components/member/pages/MemberNotificatio
 import MemberMessagesPage from "./components/member/pages/MemberMessagesPage";
 import MemberProgressPage from "./components/member/pages/MemberProgressPage";
 import MemberReviewsPage from "./components/member/pages/MemberReviewsPage";
+// ✅ Import AdminDashboard
+import AdminDashboard from './components/admin/AdminDashboard';
+//  ✅ Import Trainer Components
+import PTList from './components/pt-portal/PTList';
+import PTForm from './components/pt-portal/PTForm';
+import PTDetails from './components/pt-portal/PTDetails';
+import PTScheduleUpdate from './components/pt-portal/PTScheduleUpdate';
+import PTSchedule from './components/pt-portal/PTSchedule';
+import PTDashboard from './components/pt-portal/PTDashboard';
+import PTCreateProfile from './components/pt-portal/PTCreateProfile';
+import PTProfile from './components/pt-portal/PTProfile';
+import PTSkills from './components/pt-portal/PTSkills';
+import PTClients from './components/pt-portal/PTClients';
+import PTFeedback from './components/pt-portal/PTFeedback';
 
 function App() {
   return (
@@ -70,6 +84,21 @@ function App() {
 
           {/* fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
+          {/* ✅ Trainer routes */}
+          <Route path="/pt/dashboard" element={<PTDashboard />} />
+          <Route path="/pt/profile/create" element={<PTCreateProfile />} />
+          <Route path="/pt/profile" element={<PTProfile />} />
+          <Route path="/pt/:id/skills" element={<PTSkills />} />
+          <Route path="/pt/clients" element={<PTClients />} />
+          <Route path="/pt/feedback" element={<PTFeedback />} />
+
+          {/* ✅ PT components (from pt-portal) */}
+          <Route path="/pt/trainers" element={<PTList />} />
+          <Route path="/pt/create" element={<PTForm />} />
+          <Route path="/pt/edit/:id" element={<PTForm />} />
+          <Route path="/pt/:id/details" element={<PTDetails />} />
+          <Route path="/pt/:id/schedule" element={<PTSchedule />} />
+          <Route path="/pt/:id/schedule-update" element={<PTScheduleUpdate />} />
         </Routes>
       </div>
     </Router>
