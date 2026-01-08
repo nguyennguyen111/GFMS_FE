@@ -5,6 +5,7 @@ import "./AdminDashboard.css";
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import GymsPage from "./pages/GymsPage";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
             />
             <Route
               path="/gyms"
-              element={<PlaceholderPage title="Quản lý phòng gym" />}
+              element={<GymsPage title="Quản lý phòng gym" />}
             />
             <Route
               path="/franchises"
