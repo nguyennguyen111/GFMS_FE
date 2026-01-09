@@ -275,3 +275,83 @@
   .eq-filters .eq-input{ max-width: none; }
   .eq-filters .eq-select{ max-width: none; }
 }
+.eq-img-cell {
+  width: 90px;
+}
+
+.eq-thumb {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.eq-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.eq-modal--wide {
+  max-width: 920px;
+}
+
+.eq-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.eq-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.eq-card-img {
+  position: relative;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.eq-card-img.primary {
+  border-color: rgba(255, 138, 0, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 138, 0, 0.25);
+}
+
+.eq-card-img img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.eq-img-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.eq-badge2 {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 138, 0, 0.22);
+  border: 1px solid rgba(255, 138, 0, 0.35);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.eq-muted {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}

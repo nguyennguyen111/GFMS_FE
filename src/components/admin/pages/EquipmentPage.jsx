@@ -7,6 +7,11 @@ import {
   getEquipmentCategories,
   getEquipments,
   updateEquipment,
+  // images
+  getEquipmentImages,
+  uploadEquipmentImages,
+  setPrimaryEquipmentImage,
+  deleteEquipmentImage,
 } from "../../../services/equipmentSupplierInventoryService";
 
 const emptyForm = {
@@ -34,11 +39,21 @@ export default function EquipmentPage() {
   const [status, setStatus] = useState("all"); // all | active | discontinued
   const [categoryId, setCategoryId] = useState("all");
 
-  // modal
+  // modal create/edit
   const [show, setShow] = useState(false);
   const [mode, setMode] = useState("create"); // create | edit
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  // modal images
+  const [imgOpen, setImgOpen] = useState(false);
+  const [imgEquipment, setImgEquipment] = useState(null);
+  const [gallery, setGallery] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  // ✅ nếu FE chạy 3000 và BE chạy 8080 thì url ảnh sẽ đúng
+  const API_HOST = "http://localhost:8080";
+  const absUrl = (u) => (u ? (u.startsWith("http") ? u : `${API_HOST}${u}`) : "");
 
   const fetchInit = async () => {
     setLoading(true);
@@ -66,7 +81,6 @@ export default function EquipmentPage() {
         categoryId: categoryId !== "all" ? Number(categoryId) : undefined,
       });
 
-      // service có thể trả {data, meta} hoặc axios {data:{...}}
       const data = res?.data?.data ?? res?.data ?? res?.data?.rows ?? res?.rows ?? [];
       const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
       setItems(normalized);
@@ -148,14 +162,33 @@ export default function EquipmentPage() {
   };
 
   const onDiscontinue = async (row) => {
-    const ok = window.confirm(`Ẩn/Ngưng sử dụng thiết bị "${row.name}"?`);
-    if (!ok) return;
+    const okConfirm = window.confirm(`Ẩn/Ngưng sử dụng thiết bị "${row.name}"?`);
+    if (!okConfirm) return;
     try {
       await discontinueEquipment(row.id);
       fetchList();
     } catch (e) {
       alert(e?.response?.data?.message || e?.message || "Discontinue failed");
     }
+  };
+
+  const openImages = async (row) => {
+    setImgEquipment(row);
+    setImgOpen(true);
+    try {
+      const res = await getEquipmentImages(row.id);
+      setGallery(res?.data?.data ?? res?.data ?? []);
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Load images failed");
+      setGallery([]);
+    }
+  };
+
+  const closeImages = () => {
+    setImgOpen(false);
+    setImgEquipment(null);
+    setGallery([]);
+    setUploading(false);
   };
 
   const visibleItems = useMemo(() => items || [], [items]);
@@ -190,7 +223,11 @@ export default function EquipmentPage() {
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
         />
 
-        <select className="eq-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <select
+          className="eq-select"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
           <option value="all">Tất cả danh mục</option>
           {(categories || []).map((c) => (
             <option key={c.id} value={c.id}>
@@ -217,6 +254,7 @@ export default function EquipmentPage() {
           <thead>
             <tr>
               <th>ID</th>
+              <th>Ảnh</th>
               <th>Mã</th>
               <th>Tên</th>
               <th>Danh mục</th>
@@ -224,14 +262,14 @@ export default function EquipmentPage() {
               <th>Min</th>
               <th>Max</th>
               <th>Trạng thái</th>
-              <th style={{ width: 260 }}>Hành động</th>
+              <th style={{ width: 320 }}>Hành động</th>
             </tr>
           </thead>
 
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td className="eq-empty" colSpan={9}>
+                <td className="eq-empty" colSpan={10}>
                   Không có dữ liệu
                 </td>
               </tr>
@@ -242,6 +280,19 @@ export default function EquipmentPage() {
                 return (
                   <tr key={row.id}>
                     <td>{row.id}</td>
+
+                    <td className="eq-img-cell">
+                      {row.primaryImageUrl ? (
+                        <img
+                          className="eq-thumb"
+                          src={absUrl(row.primaryImageUrl)}
+                          alt={row.name}
+                        />
+                      ) : (
+                        <div className="eq-thumb placeholder">No Image</div>
+                      )}
+                    </td>
+
                     <td>{row.code || "-"}</td>
                     <td className="eq-strong">
                       {row.name}
@@ -264,7 +315,16 @@ export default function EquipmentPage() {
                       <button className="eq-btn eq-btn--ghost" onClick={() => openEdit(row)}>
                         Sửa
                       </button>
-                      <button className="eq-btn eq-btn--danger" onClick={() => onDiscontinue(row)} disabled={!isActive}>
+
+                      <button className="eq-btn eq-btn--ghost" onClick={() => openImages(row)}>
+                        Ảnh
+                      </button>
+
+                      <button
+                        className="eq-btn eq-btn--danger"
+                        onClick={() => onDiscontinue(row)}
+                        disabled={!isActive}
+                      >
                         Ẩn thiết bị
                       </button>
                     </td>
@@ -276,9 +336,15 @@ export default function EquipmentPage() {
         </table>
       </div>
 
+      {/* ===== Modal Create/Edit ===== */}
       {show ? (
         <div className="eq-modal__backdrop" onMouseDown={closeModal}>
-          <div className="eq-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+          <div
+            className="eq-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
             <div className="eq-modal__header">
               <div>
                 <div className="eq-modal__title">
@@ -422,6 +488,120 @@ export default function EquipmentPage() {
               </button>
               <button className="eq-btn eq-btn--primary" onClick={save}>
                 Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ===== Modal Images ===== */}
+      {imgOpen && imgEquipment ? (
+        <div className="eq-modal__backdrop" onMouseDown={closeImages}>
+          <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="eq-modal__header">
+              <div>
+                <div className="eq-modal__title">Ảnh thiết bị</div>
+                <div className="eq-modal__subtitle">{imgEquipment.name}</div>
+              </div>
+
+              <button className="eq-iconbtn" onClick={closeImages} aria-label="Đóng">
+                ✕
+              </button>
+            </div>
+
+            <div className="eq-modal__body">
+              <div className="eq-upload-row">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  disabled={uploading}
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) return;
+
+                    setUploading(true);
+                    try {
+                      await uploadEquipmentImages(imgEquipment.id, files);
+                      const res = await getEquipmentImages(imgEquipment.id);
+                      setGallery(res?.data?.data ?? res?.data ?? []);
+                      await fetchList(); // để refresh ảnh đại diện ngoài bảng
+                    } catch (err2) {
+                      alert(err2?.response?.data?.message || err2?.message || "Upload failed");
+                    } finally {
+                      setUploading(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                {uploading ? <span className="eq-muted">Đang upload...</span> : null}
+              </div>
+
+              <div className="eq-gallery">
+                {gallery.length === 0 ? (
+                  <div className="eq-muted">Chưa có ảnh. Hãy upload ảnh cho thiết bị.</div>
+                ) : (
+                  gallery.map((img) => (
+                    <div key={img.id} className={`eq-card-img ${img.isPrimary ? "primary" : ""}`}>
+                      <img src={absUrl(img.url)} alt={img.altText || "equipment"} />
+
+                      {img.isPrimary ? <div className="eq-badge2">Primary</div> : null}
+
+                      <div className="eq-img-actions">
+                        {!img.isPrimary ? (
+                          <button
+                            className="eq-btn eq-btn--ghost"
+                            onClick={async () => {
+                              try {
+                                await setPrimaryEquipmentImage(imgEquipment.id, img.id);
+                                const res = await getEquipmentImages(imgEquipment.id);
+                                setGallery(res?.data?.data ?? res?.data ?? []);
+                                await fetchList();
+                              } catch (err3) {
+                                alert(
+                                  err3?.response?.data?.message ||
+                                    err3?.message ||
+                                    "Set primary failed"
+                                );
+                              }
+                            }}
+                          >
+                            Đặt đại diện
+                          </button>
+                        ) : null}
+
+                        <button
+                          className="eq-btn eq-btn--danger"
+                          onClick={async () => {
+                            const okConfirm = window.confirm("Xoá ảnh này?");
+                            if (!okConfirm) return;
+
+                            try {
+                              await deleteEquipmentImage(imgEquipment.id, img.id);
+                              const res = await getEquipmentImages(imgEquipment.id);
+                              setGallery(res?.data?.data ?? res?.data ?? []);
+                              await fetchList();
+                            } catch (err4) {
+                              alert(
+                                err4?.response?.data?.message ||
+                                  err4?.message ||
+                                  "Delete image failed"
+                              );
+                            }
+                          }}
+                        >
+                          Xoá
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="eq-modal__footer">
+              <button className="eq-btn eq-btn--ghost" onClick={closeImages}>
+                Đóng
               </button>
             </div>
           </div>
