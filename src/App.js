@@ -70,8 +70,8 @@ function App() {
             }
           />
 
-          {/* ✅ Redirect /admin -> /admin/dashboard */}
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          {/* ✅ Redirect /admin -> /admin/dashboard
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} /> */}
         </Routes>
       </div>
     </Router>

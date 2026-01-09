@@ -81,7 +81,7 @@ const LoginPage = () => {
         const groupId = response?.data?.DT?.user?.groupId;
         const homePath = getHomePathByGroupId(groupId);
 
-        navigate(homePath);
+       navigate(homePath, { replace: true });
       } else {
         const serverError = response.data.EM;
         let userFriendlyMessage = serverError;

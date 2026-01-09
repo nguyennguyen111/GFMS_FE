@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
+import axios from "../../setup/axios";
 
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
@@ -31,10 +32,7 @@ export default function AdminDashboard() {
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
-
-      // ✅ ADD MENU: Nhật ký kho
       { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
-
       { label: "Nhập kho", to: "/admin/import", key: "import" },
       { label: "Xuất kho", to: "/admin/export", key: "export" },
 
@@ -52,17 +50,23 @@ export default function AdminDashboard() {
     []
   );
 
-  const handleLogout = () => {
-  // 1) Xoá toàn bộ trạng thái đăng nhập FE
-  localStorage.removeItem("user");
+  const handleLogout = async () => {
+    try {
+      // ✅ gọi backend để clear cookie jwt
+      await axios.post("/auth/logout");
+    } catch (e) {
+      // ignore
+    } finally {
+      // ✅ clear trạng thái FE (nếu bạn lưu)
+      localStorage.removeItem("user");
 
-  // 2) (Tuỳ chọn) nếu BE có cookie jwt thì clear luôn
-  // document.cookie = "jwt=; Max-Age=0; path=/";
+      // ✅ replace để không back về admin
+      navigate("/login", { replace: true });
 
-  // 3) Điều hướng về login
-  navigate("/", { replace: true });
-};
-
+      // ✅ cắt BFCache mạnh (khuyến nghị)
+      window.location.replace("/login");
+    }
+  };
 
   return (
     <div className="ad-layout">
