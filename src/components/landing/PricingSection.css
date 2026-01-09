@@ -1,0 +1,49 @@
+.pricing {
+  padding: 3rem 2rem;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.price-card {
+  padding: 1.3rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.p-name {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.p-price {
+  margin-top: 0.4rem;
+  font-weight: 900;
+  font-size: 1.6rem;
+}
+
+.p-desc {
+  margin-top: 0.4rem;
+  color: var(--gray);
+}
+
+.p-features {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.p-feature {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+@media (max-width: 1000px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}

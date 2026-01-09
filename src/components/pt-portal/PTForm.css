@@ -1,0 +1,46 @@
+/* Định dạng cho form huấn luyện viên */
+.trainer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background-color: var(--appColor);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.input-field {
+  padding: 10px;
+  border: 1px solid var(--orange);
+  background-color: #333;
+  color: white;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.input-field:focus {
+  border-color: var(--orange);
+  outline: none;
+}
+
+.btn {
+  background-color: var(--orange);
+  padding: 12px 24px;
+  color: white;
+  border: none;
+  font-weight: bold;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #e65c00;  /* Màu cam đậm khi hover */
+}
+
+header h1 {
+  color: var(--orange);
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 20px;
+}

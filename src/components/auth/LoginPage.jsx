@@ -6,10 +6,11 @@ import { loginUser } from '../../services/authService';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const validateEmail = (email) => {
@@ -17,9 +18,7 @@ const LoginPage = () => {
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
+  const validatePassword = (password) => password.length >= 6;
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
@@ -124,9 +123,7 @@ const LoginPage = () => {
     navigate('/forgot-password');
   };
 
-  const handleRegister = () => {
-    navigate('/register');
-  };
+  const handleRegister = () => navigate('/register');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -153,9 +150,7 @@ const LoginPage = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
     <div className="login-page">
@@ -206,7 +201,7 @@ const LoginPage = () => {
           <div className="login-card">
             <div className="login-header">
               <h2>Chào mừng trở lại</h2>
-              <p>Đăng nhập để tiếp tục quản lý phòng gym</p>
+              <p>Đăng nhập để tiếp tục sử dụng hệ thống</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
@@ -221,7 +216,7 @@ const LoginPage = () => {
                     value={email}
                     onChange={handleEmailChange}
                     onBlur={handleEmailBlur}
-                    placeholder="Nhập email của bạn (ví dụ: admin@gym.com)"
+                    placeholder="Nhập email của bạn"
                     className={errors.email ? 'error' : ''}
                   />
                 </div>
@@ -239,7 +234,7 @@ const LoginPage = () => {
                     value={password}
                     onChange={handlePasswordChange}
                     onBlur={handlePasswordBlur}
-                    placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
+                    placeholder="Nhập mật khẩu"
                     className={errors.password ? 'error' : ''}
                   />
                   <button

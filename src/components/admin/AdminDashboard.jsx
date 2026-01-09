@@ -6,13 +6,15 @@ import axios from "../../setup/axios";
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
-import InventoryLogsPage from "./pages/InventoryLogsPage";
 
+import InventoryLogsPage from "./pages/InventoryLogsPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
 import ReceiptImportPage from "./pages/ReceiptImportPage";
 import ExportPage from "./pages/ExportPage";
+
+import GymsPage from "./pages/GymsPage";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -137,8 +139,9 @@ export default function AdminDashboard() {
             <Route path="/dashboard" element={<DashboardHome />} />
 
             <Route path="/users" element={<UsersPage />} />
+
             <Route path="/packages" element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />} />
-            <Route path="/gyms" element={<PlaceholderPage title="Quản lý phòng gym" />} />
+            <Route path="/gyms" element={<GymsPage title="Quản lý phòng gym" />} />
             <Route path="/franchises" element={<PlaceholderPage title="Yêu cầu nhượng quyền" />} />
 
             <Route path="/equipment" element={<EquipmentPage />} />
@@ -150,8 +153,14 @@ export default function AdminDashboard() {
 
             <Route path="/maintenance" element={<PlaceholderPage title="Bảo trì / Sửa chữa" />} />
 
-            <Route path="/policies/sharing" element={<PlaceholderPage title="Chính sách chia sẻ PT" />} />
-            <Route path="/shared-trainers/overrides" element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />} />
+            <Route
+              path="/policies/sharing"
+              element={<PlaceholderPage title="Chính sách chia sẻ PT" />}
+            />
+            <Route
+              path="/shared-trainers/overrides"
+              element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />}
+            />
 
             <Route path="/reports" element={<PlaceholderPage title="Báo cáo" />} />
             <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" />} />
