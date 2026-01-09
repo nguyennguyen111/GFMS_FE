@@ -14,8 +14,25 @@ import Testimonials from './components/testimonials/Testimonials';
 import RegisterPage from './components/auth/RegisterPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 
-// ✅ Import AdminDashboard
 import AdminDashboard from './components/admin/AdminDashboard';
+
+// ✅ Guard tối giản cho admin
+const AdminGuard = ({ children }) => {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return <Navigate to="/login" replace />;
+
+    const data = JSON.parse(raw);
+    const groupId = data?.user?.groupId;
+
+    // groupId=1 là Admin theo DB của bạn
+    if (groupId !== 1) return <Navigate to="/" replace />;
+
+    return children;
+  } catch (e) {
+    return <Navigate to="/login" replace />;
+  }
+};
 
 function App() {
   return (
@@ -43,8 +60,15 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-          {/* ✅ Admin routes (Nested) */}
-          <Route path="/admin/*" element={<AdminDashboard />} />
+          {/* ✅ Admin routes (Protected) */}
+          <Route
+            path="/admin/*"
+            element={
+              <AdminGuard>
+                <AdminDashboard />
+              </AdminGuard>
+            }
+          />
 
           {/* ✅ Redirect /admin -> /admin/dashboard */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

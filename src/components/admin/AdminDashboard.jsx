@@ -52,7 +52,17 @@ export default function AdminDashboard() {
     []
   );
 
-  const handleLogout = () => navigate("/login");
+  const handleLogout = () => {
+  // 1) Xoá toàn bộ trạng thái đăng nhập FE
+  localStorage.removeItem("user");
+
+  // 2) (Tuỳ chọn) nếu BE có cookie jwt thì clear luôn
+  // document.cookie = "jwt=; Max-Age=0; path=/";
+
+  // 3) Điều hướng về login
+  navigate("/", { replace: true });
+};
+
 
   return (
     <div className="ad-layout">

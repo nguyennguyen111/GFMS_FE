@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
-// import axios from 'axios';
 import { loginUser } from '../../services/authService';
 
 const LoginPage = () => {
-  // Sử dụng state riêng cho từng field
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -26,151 +24,132 @@ const LoginPage = () => {
   const handleEmailChange = (e) => {
     const value = e.target.value;
     console.log(`Changing email to:`, value);
-    
     setEmail(value);
-    
-    // Clear error when user starts typing
-    if (errors.email) {
-      setErrors(prev => ({ ...prev, email: '' }));
-    }
+    if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     console.log(`Changing password to:`, value);
-    
     setPassword(value);
-    
-    // Clear error when user starts typing
-    if (errors.password) {
-      setErrors(prev => ({ ...prev, password: '' }));
-    }
+    if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
   };
 
-  // HÀM VALIDATE FORM RIÊNG
   const validateForm = () => {
     const newErrors = {};
-    
-    // Validate email
-    if (!email.trim()) {
-      newErrors.email = 'Email là bắt buộc';
-    } else if (!validateEmail(email)) {
-      newErrors.email = 'Email không hợp lệ. Vui lòng nhập email đúng định dạng';
-    }
-    
-    // Validate password
-    if (!password) {
-      newErrors.password = 'Mật khẩu là bắt buộc';
-    } else if (!validatePassword(password)) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-    
+    if (!email.trim()) newErrors.email = 'Email là bắt buộc';
+    else if (!validateEmail(email)) newErrors.email = 'Email không hợp lệ. Vui lòng nhập email đúng định dạng';
+
+    if (!password) newErrors.password = 'Mật khẩu là bắt buộc';
+    else if (!validatePassword(password)) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+
     return newErrors;
   };
 
-  // HÀM HANDLE LOGIN RIÊNG (dùng onClick)
+  const getHomePathByGroupId = (groupId) => {
+    // Mapping chuẩn theo DB groupId của bạn:
+    // 1=Admin, 2=Owner, 3=Trainer, 4=Member, 5=Guest
+    const map = {
+      1: '/admin',     // admin area
+      2: '/',          // tạm thời chưa có owner page => về home
+      3: '/',          // tạm thời chưa có trainer page => về home
+      4: '/',          // tạm thời chưa có member page => về home
+      5: '/',          // guest => home
+    };
+    return map[groupId] || '/';
+  };
+
   const handleLogin = async () => {
-  // Validate form trước
-  const validationErrors = validateForm();
-  
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors);
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    let response = await loginUser(email, password);
-    
-    console.log('Login response:', response.data);
-    
-    if (response.data.EC === 0) {
-      // Success
-      alert(`✅ ${response.data.EM}`);
-      localStorage.setItem('user', JSON.stringify(response.data.DT));
-      navigate('/admin');
-    } else {
-      // Error từ server
-      const serverError = response.data.EM;
-      let userFriendlyMessage = serverError;
-      
-      // Chuyển đổi thông báo lỗi từ server sang tiếng Việt
-      const errorMap = {
-        'User not found': 'Email không tồn tại trong hệ thống',
-        'Wrong password': 'Mật khẩu không đúng',
-        'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
-        'The email is already exist': 'Email đã tồn tại',
-        'The phone number is already exist': 'Số điện thoại đã tồn tại',
-        'The username is already exist': 'Tên người dùng đã tồn tại',
-        'Create new user success': 'Đăng ký thành công',
-        'Login success': 'Đăng nhập thành công'
-      };
-      
-      if (errorMap[serverError]) {
-        userFriendlyMessage = errorMap[serverError];
-      }
-      
-      alert(`❌ ${userFriendlyMessage}`);
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
-  } catch (error) {
-    console.error('Login error:', error);
-    
-    let errorMessage = "Có lỗi xảy ra khi đăng nhập";
-    
-    if (error.response) {
-      // Lỗi từ server response
-      if (error.response.data && error.response.data.EM) {
-        errorMessage = error.response.data.EM;
+
+    setIsLoading(true);
+
+    try {
+      let response = await loginUser(email, password);
+      console.log('Login response:', response.data);
+
+      if (response.data.EC === 0) {
+        alert(`✅ ${response.data.EM}`);
+
+        // ✅ Lưu full DT (đang chứa access_Token + user)
+        localStorage.setItem('user', JSON.stringify(response.data.DT));
+
+        const groupId = response?.data?.DT?.user?.groupId;
+        const homePath = getHomePathByGroupId(groupId);
+
+        navigate(homePath);
       } else {
-        errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
+        const serverError = response.data.EM;
+        let userFriendlyMessage = serverError;
+
+        const errorMap = {
+          'User not found': 'Email không tồn tại trong hệ thống',
+          'Wrong password': 'Mật khẩu không đúng',
+          'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
+          'The email is already exist': 'Email đã tồn tại',
+          'The phone number is already exist': 'Số điện thoại đã tồn tại',
+          'The username is already exist': 'Tên người dùng đã tồn tại',
+          'Create new user success': 'Đăng ký thành công',
+          'Login success': 'Đăng nhập thành công'
+        };
+
+        if (errorMap[serverError]) userFriendlyMessage = errorMap[serverError];
+        alert(`❌ ${userFriendlyMessage}`);
       }
-    } else if (error.request) {
-      errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
+    } catch (error) {
+      console.error('Login error:', error);
+
+      let errorMessage = "Có lỗi xảy ra khi đăng nhập";
+      if (error.response) {
+        if (error.response.data && error.response.data.EM) {
+          errorMessage = error.response.data.EM;
+        } else {
+          errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
+      }
+
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
-    
-    alert(`❌ ${errorMessage}`);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
   const handleForgotPassword = () => {
-  navigate('/forgot-password');
+    navigate('/forgot-password');
   };
 
   const handleRegister = () => {
     navigate('/register');
   };
 
-  // HÀM HANDLE SUBMIT CHO FORM (để ngăn reload page)
   const handleSubmit = (e) => {
-    e.preventDefault(); // Ngăn reload trang
-    handleLogin(); // Gọi hàm login
+    e.preventDefault();
+    handleLogin();
   };
 
   const handleEmailBlur = (e) => {
     const value = e.target.value;
-    
-    if (value.trim()) {
-      if (!validateEmail(value)) {
-        setErrors(prev => ({ 
-          ...prev, 
-          email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng' 
-        }));
-      }
+    if (value.trim() && !validateEmail(value)) {
+      setErrors(prev => ({
+        ...prev,
+        email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng'
+      }));
     }
   };
 
   const handlePasswordBlur = (e) => {
     const value = e.target.value;
-    
-    if (value) {
-      if (!validatePassword(value)) {
-        setErrors(prev => ({ 
-          ...prev, 
-          password: 'Mật khẩu phải có ít nhất 6 ký tự' 
-        }));
-      }
+    if (value && !validatePassword(value)) {
+      setErrors(prev => ({
+        ...prev,
+        password: 'Mật khẩu phải có ít nhất 6 ký tự'
+      }));
     }
   };
 
@@ -180,18 +159,16 @@ const LoginPage = () => {
 
   return (
     <div className="login-page">
-      {/* Background Gym Image */}
       <div className="gym-background"></div>
-      
       <div className="login-overlay"></div>
-      
+
       <div className="login-container">
         <div className="login-left">
           <div className="brand-section">
             <h1 className="logo">GFMS</h1>
             <p className="slogan">GYM Franchise Management System</p>
             <h2 className="tagline">Smart Management<br/><span className="highlight">Professional Fitness</span></h2>
-            
+
             <div className="features">
               <div className="feature">
                 <span className="feature-icon">✓</span>
@@ -277,15 +254,9 @@ const LoginPage = () => {
                 {errors.password && <span className="error-message">{errors.password}</span>}
               </div>
 
-              {errors.api && (
-                <div className="error-message api-error" style={{ textAlign: 'center', marginBottom: '15px' }}>
-                  {errors.api}
-                </div>
-              )}
-
               <div className="form-options">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="forgot-password-btn"
                   onClick={handleForgotPassword}
                 >
@@ -293,9 +264,8 @@ const LoginPage = () => {
                 </button>
               </div>
 
-              {/* DÙNG onClick TRỰC TIẾP */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="login-button"
                 disabled={isLoading}
               >
@@ -312,8 +282,8 @@ const LoginPage = () => {
               <div className="register-section">
                 <p>
                   Chưa có tài khoản?{' '}
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="register-btn"
                     onClick={handleRegister}
                   >
@@ -331,6 +301,7 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
