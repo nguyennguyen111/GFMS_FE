@@ -22,12 +22,14 @@ const LoginPage = () => {
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
+    console.log(`Changing email to:`, value);
     setEmail(value);
     if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;
+    console.log(`Changing password to:`, value);
     setPassword(value);
     if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
   };
@@ -43,22 +45,17 @@ const LoginPage = () => {
     return newErrors;
   };
 
-  // ✅ map groupId -> role string
-  const groupIdToRole = (gid) => {
-    if (gid === 1) return "admin";
-    if (gid === 2) return "owner";
-    if (gid === 3) return "trainer"; // ✅ bạn chọn /trainer
-    if (gid === 4) return "member";
-    return "member";
-  };
-
-  // ✅ map role -> redirect path
-  const roleToPath = (role) => {
-    if (role === "admin") return "/admin";
-    if (role === "owner") return "/owner";
-    if (role === "trainer") return "/trainer";
-    if (role === "member") return "/member/home";
-    return "/";
+  const getHomePathByGroupId = (groupId) => {
+    // Mapping chuẩn theo DB groupId của bạn:
+    // 1=Admin, 2=Owner, 3=Trainer, 4=Member, 5=Guest
+    const map = {
+      1: '/admin',     // admin area
+      2: '/',          // tạm thời chưa có owner page => về home
+      3: '/',          // tạm thời chưa có trainer page => về home
+      4: '/',          // tạm thời chưa có member page => về home
+      5: '/',          // guest => home
+    };
+    return map[groupId] || '/';
   };
 
   const handleLogin = async () => {
@@ -71,44 +68,50 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await loginUser(email, password);
+      let response = await loginUser(email, password);
       console.log('Login response:', response.data);
 
-      if (response.data?.EC === 0) {
-        const { user, accessToken } = response.data.DT || {};
+      if (response.data.EC === 0) {
+        alert(`✅ ${response.data.EM}`);
 
-        if (!user || !accessToken) {
-          alert("❌ Thiếu user/accessToken từ server.");
-          return;
-        }
+        // ✅ Lưu full DT (đang chứa access_Token + user)
+        localStorage.setItem('user', JSON.stringify(response.data.DT));
 
-        const role = groupIdToRole(user.groupId);
+        const groupId = response?.data?.DT?.user?.groupId;
+        const homePath = getHomePathByGroupId(groupId);
 
-        // ✅ LƯU ĐÚNG KEY để Header dùng được
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("role", role);
-        localStorage.setItem("username", user.username || user.email || "Tài khoản");
-
-        alert(`✅ ${response.data.EM || "Đăng nhập thành công"}`);
-
-        navigate(roleToPath(role), { replace: true });
+       navigate(homePath, { replace: true });
       } else {
-        const serverError = response.data?.EM || "Đăng nhập thất bại";
+        const serverError = response.data.EM;
+        let userFriendlyMessage = serverError;
+
         const errorMap = {
           'User not found': 'Email không tồn tại trong hệ thống',
           'Wrong password': 'Mật khẩu không đúng',
           'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
+          'The email is already exist': 'Email đã tồn tại',
+          'The phone number is already exist': 'Số điện thoại đã tồn tại',
+          'The username is already exist': 'Tên người dùng đã tồn tại',
+          'Create new user success': 'Đăng ký thành công',
           'Login success': 'Đăng nhập thành công'
         };
-        alert(`❌ ${errorMap[serverError] || serverError}`);
+
+        if (errorMap[serverError]) userFriendlyMessage = errorMap[serverError];
+        alert(`❌ ${userFriendlyMessage}`);
       }
     } catch (error) {
       console.error('Login error:', error);
 
       let errorMessage = "Có lỗi xảy ra khi đăng nhập";
-      if (error.response?.data?.EM) errorMessage = error.response.data.EM;
-      else if (error.request) errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
+      if (error.response) {
+        if (error.response.data && error.response.data.EM) {
+          errorMessage = error.response.data.EM;
+        } else {
+          errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
+      }
 
       alert(`❌ ${errorMessage}`);
     } finally {
@@ -116,7 +119,10 @@ const LoginPage = () => {
     }
   };
 
-  const handleForgotPassword = () => navigate('/forgot-password');
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
+  };
+
   const handleRegister = () => navigate('/register');
 
   const handleSubmit = (e) => {
@@ -127,14 +133,20 @@ const LoginPage = () => {
   const handleEmailBlur = (e) => {
     const value = e.target.value;
     if (value.trim() && !validateEmail(value)) {
-      setErrors(prev => ({ ...prev, email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng' }));
+      setErrors(prev => ({
+        ...prev,
+        email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng'
+      }));
     }
   };
 
   const handlePasswordBlur = (e) => {
     const value = e.target.value;
     if (value && !validatePassword(value)) {
-      setErrors(prev => ({ ...prev, password: 'Mật khẩu phải có ít nhất 6 ký tự' }));
+      setErrors(prev => ({
+        ...prev,
+        password: 'Mật khẩu phải có ít nhất 6 ký tự'
+      }));
     }
   };
 
@@ -150,10 +162,7 @@ const LoginPage = () => {
           <div className="brand-section">
             <h1 className="logo">GFMS</h1>
             <p className="slogan">GYM Franchise Management System</p>
-            <h2 className="tagline">
-              Smart Management<br />
-              <span className="highlight">Professional Fitness</span>
-            </h2>
+            <h2 className="tagline">Smart Management<br/><span className="highlight">Professional Fitness</span></h2>
 
             <div className="features">
               <div className="feature">
@@ -241,12 +250,20 @@ const LoginPage = () => {
               </div>
 
               <div className="form-options">
-                <button type="button" className="forgot-password-btn" onClick={handleForgotPassword}>
+                <button
+                  type="button"
+                  className="forgot-password-btn"
+                  onClick={handleForgotPassword}
+                >
                   Quên mật khẩu?
                 </button>
               </div>
 
-              <button type="submit" className="login-button" disabled={isLoading}>
+              <button
+                type="submit"
+                className="login-button"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <span className="spinner"></span>
@@ -260,7 +277,11 @@ const LoginPage = () => {
               <div className="register-section">
                 <p>
                   Chưa có tài khoản?{' '}
-                  <button type="button" className="register-btn" onClick={handleRegister}>
+                  <button
+                    type="button"
+                    className="register-btn"
+                    onClick={handleRegister}
+                  >
                     Đăng ký ngay
                   </button>
                 </p>
@@ -275,6 +296,7 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
