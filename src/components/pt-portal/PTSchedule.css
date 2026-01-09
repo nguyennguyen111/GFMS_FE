@@ -1,0 +1,351 @@
+/* =========================
+   TrainerSchedule.css
+   FINAL – week view + back arrow
+   ========================= */
+
+.ptSchedule {
+  min-height: 100vh;
+  width: 100%;
+  padding: 28px 0 48px;
+  box-sizing: border-box;
+  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+  color: var(--lightgray);
+}
+
+/* Header */
+.ptSchedule__header {
+  width: min(1100px, 92vw);
+  margin: 0 auto 14px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 14px;
+}
+
+.ptSchedule__headText h1 {
+  margin: 0;
+  color: var(--orange);
+  font-size: 2.1rem;
+  letter-spacing: 0.2px;
+}
+
+.ptSchedule__subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--gray);
+  font-weight: 700;
+}
+
+/* Back arrow */
+.ptBack {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--lightgray);
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 200ms;
+  white-space: nowrap;
+}
+.ptBack:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(244, 137, 21, 0.35);
+}
+
+/* Actions */
+.ptSchedule__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.ptBtn {
+  background: var(--orange);
+  color: #111;
+  font-weight: 900;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 200ms;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.ptBtn:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+.ptBtn--ghost {
+  background: transparent;
+  color: var(--lightgray);
+  border: 2px solid rgba(244, 137, 21, 0.35);
+}
+.ptBtn--ghost:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* Tabs (no lệch khung) */
+.ptSchedule__tabs {
+  width: min(1100px, 92vw);
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.ptTab {
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--lightgray);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  transition: 200ms;
+  white-space: nowrap;
+}
+.ptTab:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.ptTab.active {
+  background: rgba(244, 137, 21, 0.15);
+  border-color: rgba(244, 137, 21, 0.35);
+}
+
+/* Card */
+.ptSchedule__card {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.ptSchedule__cardTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 12px;
+  font-weight: 900;
+  color: var(--lightgray);
+}
+
+.ptSchedule__muted,
+.ptMuted {
+  color: var(--gray);
+  font-weight: 700;
+}
+
+/* Table */
+.ptTable {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ptTable thead th {
+  text-align: left;
+  color: var(--gray);
+  font-weight: 900;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.18);
+}
+.ptTable tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--lightgray);
+  vertical-align: top;
+}
+.ptTable tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+.ptTable__empty {
+  padding: 18px 10px;
+  color: var(--gray);
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Pills */
+.ptPillWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ptPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  color: var(--lightgray);
+  background: rgba(244, 137, 21, 0.14);
+  border: 1px solid rgba(244, 137, 21, 0.28);
+}
+
+/* ======================
+   WEEK VIEW (Google-like)
+   ====================== */
+
+.ptWeekBar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 14px;
+}
+
+.ptWeek {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 10px;
+}
+
+/* time column */
+.ptWeek__timeCol {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.16);
+}
+.ptWeek__timeHead {
+  height: 58px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+.ptWeek__timeBody {
+  position: relative;
+}
+.ptWeek__timeRow {
+  height: 56px; /* 1 hour row */
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+}
+.ptWeek__timeLabel {
+  color: var(--gray);
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+
+/* days grid */
+.ptWeek__days {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.ptWeek__daysHead {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  height: 58px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+.ptWeek__dayHead {
+  padding: 10px 10px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ptWeek__dayHead:last-child {
+  border-right: none;
+}
+.ptWeek__dayName {
+  font-weight: 900;
+  color: var(--lightgray);
+}
+.ptWeek__dayDate {
+  margin-top: 2px;
+  color: var(--gray);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.ptWeek__daysBody {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  height: calc(56px * 16); /* 06:00 -> 22:00 = 16 hours */
+}
+
+.ptWeek__dayCol {
+  position: relative;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ptWeek__dayCol:last-child {
+  border-right: none;
+}
+
+/* grid line every 30 mins (nhiều line) */
+.ptWeek__gridLine {
+  height: 28px; /* 30 mins = half of 56px hour */
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+}
+
+/* availability blocks */
+.ptWeek__block {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 12px;
+  background: rgba(244, 137, 21, 0.16);
+  border: 1px solid rgba(244, 137, 21, 0.35);
+  padding: 10px 10px;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.ptWeek__blockTitle {
+  font-weight: 950;
+  color: var(--lightgray);
+  font-size: 0.95rem;
+}
+.ptWeek__blockTime {
+  margin-top: 4px;
+  color: var(--gray);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .ptSchedule__header {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+  .ptSchedule__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 860px) {
+  .ptSchedule__tabs {
+    flex-wrap: wrap;
+  }
+  .ptWeek {
+    grid-template-columns: 1fr; /* hide time column in small? */
+  }
+  .ptWeek__timeCol {
+    display: none;
+  }
+  .ptWeek__daysBody {
+    height: calc(56px * 12); /* giảm chiều cao trên mobile */
+  }
+}

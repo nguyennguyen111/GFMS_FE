@@ -1,0 +1,528 @@
+:root {
+  --bg0: #06080b;
+  --bg1: #0b0f14;
+  --card: #0e1520;
+  --card2: #0b111a;
+  --line: rgba(255, 255, 255, 0.08);
+  --text: #eaeef5;
+  --muted: rgba(255, 255, 255, 0.65);
+  --orange: #f48915;
+  --orange2: #ff6b00;
+}
+
+/* Whole layout */
+.ptd-layout2 {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  background: radial-gradient(circle at 30% 0%, rgba(244, 137, 21, 0.14), transparent 40%),
+              radial-gradient(circle at 70% 0%, rgba(255, 255, 255, 0.06), transparent 45%),
+              linear-gradient(180deg, #070a0f 0%, #06080b 40%, #06080b 100%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Sidebar */
+.ptd-sidebar2 {
+  background: linear-gradient(180deg, rgba(10, 14, 19, 0.92), rgba(6, 8, 11, 0.92));
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ptd-brand2 {
+  padding: 10px 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.ptd-logo2 {
+  font-weight: 900;
+  letter-spacing: .6px;
+}
+.ptd-logoMark {
+  color: var(--text);
+  font-size: 20px;
+}
+.ptd-sub2 {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: .8;
+}
+
+.ptd-nav2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px;
+}
+
+.ptd-navItem2 {
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: 160ms;
+  position: relative;
+}
+
+.ptd-navItem2:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); /* Thêm bóng khi hover */
+  filter: brightness(1.2); /* Làm sáng lên khi hover */
+  border: 1px solid var(--orange); /* Đổi viền thành màu cam khi hover */
+}
+
+.ptd-navItem2:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--orange);
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out;
+}
+
+.ptd-navItem2:hover:after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.ptd-logout2 {
+  margin-top: auto;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 160ms;
+}
+
+.ptd-logout2:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Main */
+.ptd-main2 {
+  padding: 18px 22px 28px;
+}
+
+/* Topbar like sample */
+.ptd-topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ptd-appName {
+  font-weight: 900;
+  letter-spacing: .2px;
+  font-size: 20px;
+}
+.ptd-brandOrange {
+  color: var(--orange);
+}
+
+.ptd-topRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ptd-pillBtn {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ptd-pillBtn:hover {
+  filter: brightness(1.1); /* Làm sáng lên khi hover */
+  transform: scale(1.05); /* Tăng kích thước nút nhẹ */
+}
+
+.ptd-userChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+.ptd-userDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(244, 137, 21, 0.9);
+  box-shadow: 0 0 0 4px rgba(244, 137, 21, 0.15);
+}
+.ptd-userChipName {
+  font-weight: 800;
+}
+
+/* KPI Row */
+.ptd-kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.ptd-kpiCard {
+  background: rgba(12, 18, 28, 0.75);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+}
+
+.ptd-kpiCard:hover {
+  background: rgba(12, 18, 28, 0.85); /* Tăng độ sáng của background */
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.45); /* Thêm hiệu ứng bóng khi hover */
+  transform: translateY(-5px); /* Đẩy thẻ lên khi hover */
+  filter: brightness(1.1); /* Làm sáng lên khi hover */
+  border: 1px solid var(--orange); /* Viền màu cam khi hover */
+}
+
+.ptd-kpiHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ptd-kpiTitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 700;
+}
+
+.ptd-kpiIcon {
+  opacity: .85;
+  font-size: 16px;
+}
+
+.ptd-kpiValue {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--orange);
+  margin-top: 4px;
+  line-height: 1.1;
+}
+
+.ptd-kpiSub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Content grid */
+.ptd-contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+}
+
+.ptd-leftCol,
+.ptd-rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card */
+.ptd-card2 {
+  background: rgba(12, 18, 28, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+  transition: all 0.3s ease;
+}
+
+.ptd-card2:hover {
+  background: rgba(12, 18, 28, 0.75); /* Tăng độ sáng của background */
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); /* Thêm hiệu ứng bóng khi hover */
+  transform: translateY(-5px); /* Đẩy thẻ lên khi hover */
+  filter: brightness(1.1); /* Làm sáng lên khi hover */
+  border: 1px solid var(--orange); /* Viền màu cam khi hover */
+}
+
+.ptd-card2Head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ptd-card2Title {
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.ptd-link {
+  color: rgba(244, 137, 21, 0.95);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 13px;
+}
+.ptd-link:hover {
+  text-decoration: underline;
+}
+
+.ptd-muted2 {
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Mini week */
+.ptd-miniWeek {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ptd-miniDay {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  padding: 12px 10px;
+  min-height: 70px;
+}
+
+.ptd-miniDayName {
+  font-weight: 900;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.ptd-miniDaySub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Recent sessions table (simple) */
+.ptd-table {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ptd-tableRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr;
+  gap: 10px;
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ptd-tableHead {
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.ptd-tableEmpty {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 700;
+}
+
+/* Chart box */
+.ptd-chartBox {
+  height: 240px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.14);
+  transition: all 0.3s ease;
+}
+
+.ptd-chartBox:hover {
+  background: rgba(0, 0, 0, 0.18); /* Tăng độ sáng nền khi hover */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Thêm hiệu ứng bóng khi hover */
+  transform: translateY(-3px); /* Đẩy thẻ lên khi hover */
+  filter: brightness(1.1); /* Làm sáng lên khi hover */
+  border: 1px solid var(--orange); /* Viền màu cam khi hover */
+}
+
+/* Students widget */
+.ptd-studentItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  transition: all 0.3s ease;
+}
+
+.ptd-studentItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px); /* Đẩy thẻ sinh viên lên khi hover */
+  filter: brightness(1.1); /* Làm sáng lên khi hover */
+  border: 1px solid var(--orange); /* Viền màu cam khi hover */
+}
+
+.ptd-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ptd-studentMeta {
+  flex: 1;
+  min-width: 0;
+}
+.ptd-studentName {
+  font-weight: 900;
+}
+.ptd-studentEmail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ptd-miniBtn {
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 137, 21, 0.35);
+  background: rgba(244, 137, 21, 0.10);
+}
+
+.ptd-miniBtn:hover {
+  filter: brightness(1.06);
+}
+
+/* Rating */
+.ptd-ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+.ptd-ratingValue {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--orange);
+  line-height: 1;
+}
+.ptd-star {
+  font-size: 24px;
+  color: #ffd34d;
+  transform: translateY(2px);
+}
+
+/* Plan */
+.ptd-planText {
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.55;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.ptd-upgradeBtn {
+  width: fit-content;
+  border: none;
+  cursor: pointer;
+  font-weight: 900;
+  color: #0b0e12;
+  background: var(--orange2);
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.ptd-upgradeBtn:hover {
+  filter: brightness(1.06);
+}
+
+/* user footer card */
+.ptd-userFooter {
+  opacity: .95;
+}
+.ptd-userFooterName {
+  font-weight: 900;
+}
+.ptd-userFooterEmail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Not logged in */
+.ptd-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg0);
+  color: var(--text);
+}
+.ptd-card {
+  width: min(520px, 92vw);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+.ptd-btn {
+  margin-top: 12px;
+  border: none;
+  background: var(--orange2);
+  color: #0b0e12;
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .ptd-kpiGrid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+  .ptd-contentGrid {
+    grid-template-columns: 1fr;
+  }
+  .ptd-miniWeek {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .ptd-layout2 {
+    grid-template-columns: 1fr;
+  }
+  .ptd-sidebar2 {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .ptd-miniWeek {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
