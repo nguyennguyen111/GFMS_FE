@@ -12,7 +12,7 @@ import ForgotPasswordPage from "./components/auth/ForgotPasswordPage";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import OwnerDashboard from "./components/owner/OwnerDashboard";
 
-// ✅ NEW layout + pages
+// ✅ Member layout + pages
 import MemberWebLayout from "./layouts/MemberWebLayout";
 import MemberHomePage from "./components/member/pages/MemberHomePage";
 import MemberPackagesPage from "./components/member/pages/MemberPackagesPage";
@@ -21,26 +21,43 @@ import MemberBookingsPage from "./components/member/pages/MemberBookingsPage";
 import MemberCheckinPage from "./components/member/pages/MemberCheckinPage";
 import MemberMyPackagesPage from "./components/member/pages/MemberMyPackagesPage";
 
-// dropdown pages (nếu bạn đã tạo theo mình)
+// dropdown pages
 import MemberProfilePage from "./components/member/pages/MemberProfilePage";
 import MemberNotificationsPage from "./components/member/pages/MemberNotificationsPage";
 import MemberMessagesPage from "./components/member/pages/MemberMessagesPage";
 import MemberProgressPage from "./components/member/pages/MemberProgressPage";
 import MemberReviewsPage from "./components/member/pages/MemberReviewsPage";
-// ✅ Import AdminDashboard
-import AdminDashboard from './components/admin/AdminDashboard';
-//  ✅ Import Trainer Components
-import PTList from './components/pt-portal/PTList';
-import PTForm from './components/pt-portal/PTForm';
-import PTDetails from './components/pt-portal/PTDetails';
-import PTScheduleUpdate from './components/pt-portal/PTScheduleUpdate';
-import PTSchedule from './components/pt-portal/PTSchedule';
-import PTDashboard from './components/pt-portal/PTDashboard';
-import PTCreateProfile from './components/pt-portal/PTCreateProfile';
-import PTProfile from './components/pt-portal/PTProfile';
-import PTSkills from './components/pt-portal/PTSkills';
-import PTClients from './components/pt-portal/PTClients';
-import PTFeedback from './components/pt-portal/PTFeedback';
+
+// ✅ Trainer Components
+import PTList from "./components/pt-portal/PTList";
+import PTForm from "./components/pt-portal/PTForm";
+import PTDetails from "./components/pt-portal/PTDetails";
+import PTScheduleUpdate from "./components/pt-portal/PTScheduleUpdate";
+import PTSchedule from "./components/pt-portal/PTSchedule";
+import PTDashboard from "./components/pt-portal/PTDashboard";
+import PTCreateProfile from "./components/pt-portal/PTCreateProfile";
+import PTProfile from "./components/pt-portal/PTProfile";
+import PTSkills from "./components/pt-portal/PTSkills";
+import PTClients from "./components/pt-portal/PTClients";
+import PTFeedback from "./components/pt-portal/PTFeedback";
+
+// ✅ Guard tối giản cho admin
+const AdminGuard = ({ children }) => {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return <Navigate to="/login" replace />;
+
+    const data = JSON.parse(raw);
+    const groupId = data?.user?.groupId;
+
+    // groupId=1 là Admin theo DB của bạn
+    if (groupId !== 1) return <Navigate to="/" replace />;
+
+    return children;
+  } catch (e) {
+    return <Navigate to="/login" replace />;
+  }
+};
 
 function App() {
   return (
@@ -54,8 +71,15 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-          {/* Admin */}
-          <Route path="/admin/*" element={<AdminDashboard />} />
+          {/* ✅ Admin routes (Protected) */}
+          <Route
+            path="/admin/*"
+            element={
+              <AdminGuard>
+                <AdminDashboard />
+              </AdminGuard>
+            }
+          />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
           {/* Owner */}
@@ -64,11 +88,12 @@ function App() {
 
           {/* ✅ Member website layout */}
           <Route path="/member" element={<MemberWebLayout />}>
-            <Route index element={<Navigate to="/member/home" replace />} />
+            <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<MemberHomePage />} />
 
             <Route path="packages" element={<MemberPackagesPage />} />
-            <Route path="/member/my-packages" element={<MemberMyPackagesPage />} />
+            <Route path="my-packages" element={<MemberMyPackagesPage />} />
+
             <Route path="bookings" element={<MemberBookingsPage />} />
             <Route path="bookings/new" element={<MemberBookingCreatePage />} />
             <Route path="checkin/:id" element={<MemberCheckinPage />} />
@@ -82,8 +107,6 @@ function App() {
             <Route path="reviews" element={<MemberReviewsPage />} />
           </Route>
 
-          {/* fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
           {/* ✅ Trainer routes */}
           <Route path="/pt/dashboard" element={<PTDashboard />} />
           <Route path="/pt/profile/create" element={<PTCreateProfile />} />
@@ -92,13 +115,16 @@ function App() {
           <Route path="/pt/clients" element={<PTClients />} />
           <Route path="/pt/feedback" element={<PTFeedback />} />
 
-          {/* ✅ PT components (from pt-portal) */}
+          {/* ✅ PT portal routes */}
           <Route path="/pt/trainers" element={<PTList />} />
           <Route path="/pt/create" element={<PTForm />} />
           <Route path="/pt/edit/:id" element={<PTForm />} />
           <Route path="/pt/:id/details" element={<PTDetails />} />
           <Route path="/pt/:id/schedule" element={<PTSchedule />} />
           <Route path="/pt/:id/schedule-update" element={<PTScheduleUpdate />} />
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>
