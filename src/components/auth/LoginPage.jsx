@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './LoginPage.css';
-import { loginUser } from '../../services/authService';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./LoginPage.css";
+import { loginUser } from "../../services/authService";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -22,40 +22,41 @@ const LoginPage = () => {
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
-    console.log(`Changing email to:`, value);
     setEmail(value);
-    if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;
-    console.log(`Changing password to:`, value);
     setPassword(value);
-    if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+    if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!email.trim()) newErrors.email = 'Email là bắt buộc';
-    else if (!validateEmail(email)) newErrors.email = 'Email không hợp lệ. Vui lòng nhập email đúng định dạng';
 
-    if (!password) newErrors.password = 'Mật khẩu là bắt buộc';
-    else if (!validatePassword(password)) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+    if (!email.trim()) newErrors.email = "Email là bắt buộc";
+    else if (!validateEmail(email))
+      newErrors.email = "Email không hợp lệ. Vui lòng nhập email đúng định dạng";
+
+    if (!password) newErrors.password = "Mật khẩu là bắt buộc";
+    else if (!validatePassword(password))
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
 
     return newErrors;
   };
 
+  // ✅ Map chuẩn theo groupId
+  // 1=Admin, 2=Owner, 3=Trainer, 4=Member, 5=Guest
   const getHomePathByGroupId = (groupId) => {
-    // Mapping chuẩn theo DB groupId của bạn:
-    // 1=Admin, 2=Owner, 3=Trainer, 4=Member, 5=Guest
     const map = {
-      1: '/admin',     // admin area
-      2: '/',          // tạm thời chưa có owner page => về home
-      3: '/',          // tạm thời chưa có trainer page => về home
-      4: '/',          // tạm thời chưa có member page => về home
-      5: '/',          // guest => home
+      1: "/admin",
+      2: "/owner",
+      3: "/trainer",
+      4: "/member",
+      5: "/",
     };
-    return map[groupId] || '/';
+    return map[groupId] || "/";
   };
 
   const handleLogin = async () => {
@@ -68,47 +69,56 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      let response = await loginUser(email, password);
-      console.log('Login response:', response.data);
+      const response = await loginUser(email, password);
+      const data = response?.data;
 
-      if (response.data.EC === 0) {
-        alert(`✅ ${response.data.EM}`);
+      console.log("✅ Login response:", data);
 
-        // ✅ Lưu full DT (đang chứa access_Token + user)
-        localStorage.setItem('user', JSON.stringify(response.data.DT));
+      if (data?.EC === 0) {
+        alert(`✅ ${data?.EM || "Login success"}`);
 
-        const groupId = response?.data?.DT?.user?.groupId;
+        const dt = data?.DT || {};
+        const user = dt?.user || {};
+        const accessToken = dt?.accessToken || "";
+
+        // ✅ groupId đôi khi là group_id (do config DB/Sequelize)
+        const groupIdRaw = user?.groupId ?? user?.group_id;
+        const groupId = Number(groupIdRaw);
+
+        console.log("✅ USER:", user);
+        console.log("✅ accessToken:", accessToken);
+        console.log("✅ groupId:", groupId);
+
+        // ✅ Lưu riêng token cho dễ gắn Authorization
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("roles", JSON.stringify(dt?.roles || []));
+
+        // ✅ Redirect theo role
         const homePath = getHomePathByGroupId(groupId);
+        navigate(homePath, { replace: true });
 
-       navigate(homePath, { replace: true });
-      } else {
-        const serverError = response.data.EM;
-        let userFriendlyMessage = serverError;
-
-        const errorMap = {
-          'User not found': 'Email không tồn tại trong hệ thống',
-          'Wrong password': 'Mật khẩu không đúng',
-          'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
-          'The email is already exist': 'Email đã tồn tại',
-          'The phone number is already exist': 'Số điện thoại đã tồn tại',
-          'The username is already exist': 'Tên người dùng đã tồn tại',
-          'Create new user success': 'Đăng ký thành công',
-          'Login success': 'Đăng nhập thành công'
-        };
-
-        if (errorMap[serverError]) userFriendlyMessage = errorMap[serverError];
-        alert(`❌ ${userFriendlyMessage}`);
+        return;
       }
+
+      // ❌ Login fail
+      const serverError = data?.EM || "Có lỗi xảy ra";
+      const errorMap = {
+        "User not found": "Email không tồn tại trong hệ thống",
+        "Wrong password": "Mật khẩu không đúng",
+        "Missing required fields": "Vui lòng điền đầy đủ thông tin",
+      };
+
+      alert(`❌ ${errorMap[serverError] || serverError}`);
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("❌ Login error:", error);
 
       let errorMessage = "Có lỗi xảy ra khi đăng nhập";
+
       if (error.response) {
-        if (error.response.data && error.response.data.EM) {
-          errorMessage = error.response.data.EM;
-        } else {
-          errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
-        }
+        errorMessage =
+          error.response?.data?.EM ||
+          `Lỗi ${error.response.status}: ${error.response.statusText}`;
       } else if (error.request) {
         errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
       }
@@ -119,11 +129,8 @@ const LoginPage = () => {
     }
   };
 
-  const handleForgotPassword = () => {
-    navigate('/forgot-password');
-  };
-
-  const handleRegister = () => navigate('/register');
+  const handleForgotPassword = () => navigate("/forgot-password");
+  const handleRegister = () => navigate("/register");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -133,9 +140,9 @@ const LoginPage = () => {
   const handleEmailBlur = (e) => {
     const value = e.target.value;
     if (value.trim() && !validateEmail(value)) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng'
+        email: "Email không hợp lệ. Vui lòng nhập email đúng định dạng",
       }));
     }
   };
@@ -143,9 +150,9 @@ const LoginPage = () => {
   const handlePasswordBlur = (e) => {
     const value = e.target.value;
     if (value && !validatePassword(value)) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        password: 'Mật khẩu phải có ít nhất 6 ký tự'
+        password: "Mật khẩu phải có ít nhất 6 ký tự",
       }));
     }
   };
@@ -162,7 +169,11 @@ const LoginPage = () => {
           <div className="brand-section">
             <h1 className="logo">GFMS</h1>
             <p className="slogan">GYM Franchise Management System</p>
-            <h2 className="tagline">Smart Management<br/><span className="highlight">Professional Fitness</span></h2>
+            <h2 className="tagline">
+              Smart Management
+              <br />
+              <span className="highlight">Professional Fitness</span>
+            </h2>
 
             <div className="features">
               <div className="feature">
@@ -217,10 +228,12 @@ const LoginPage = () => {
                     onChange={handleEmailChange}
                     onBlur={handleEmailBlur}
                     placeholder="Nhập email của bạn"
-                    className={errors.email ? 'error' : ''}
+                    className={errors.email ? "error" : ""}
                   />
                 </div>
-                {errors.email && <span className="error-message">{errors.email}</span>}
+                {errors.email && (
+                  <span className="error-message">{errors.email}</span>
+                )}
               </div>
 
               <div className="form-group">
@@ -235,7 +248,7 @@ const LoginPage = () => {
                     onChange={handlePasswordChange}
                     onBlur={handlePasswordBlur}
                     placeholder="Nhập mật khẩu"
-                    className={errors.password ? 'error' : ''}
+                    className={errors.password ? "error" : ""}
                   />
                   <button
                     type="button"
@@ -243,10 +256,12 @@ const LoginPage = () => {
                     onClick={togglePasswordVisibility}
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   >
-                    {showPassword ? '👁️ Ẩn' : '👁️‍🗨️ Hiện'}
+                    {showPassword ? "👁️ Ẩn" : "👁️‍🗨️ Hiện"}
                   </button>
                 </div>
-                {errors.password && <span className="error-message">{errors.password}</span>}
+                {errors.password && (
+                  <span className="error-message">{errors.password}</span>
+                )}
               </div>
 
               <div className="form-options">
@@ -259,24 +274,20 @@ const LoginPage = () => {
                 </button>
               </div>
 
-              <button
-                type="submit"
-                className="login-button"
-                disabled={isLoading}
-              >
+              <button type="submit" className="login-button" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <span className="spinner"></span>
                     Đang đăng nhập...
                   </>
                 ) : (
-                  'Đăng nhập'
+                  "Đăng nhập"
                 )}
               </button>
 
               <div className="register-section">
                 <p>
-                  Chưa có tài khoản?{' '}
+                  Chưa có tài khoản?{" "}
                   <button
                     type="button"
                     className="register-btn"
@@ -289,14 +300,16 @@ const LoginPage = () => {
             </form>
 
             <div className="copyright">
-              <p>&copy; {new Date().getFullYear()} GFMS. Bản quyền thuộc về GYM Franchise Management System.</p>
-              <p style={{ fontSize: '0.8rem', marginTop: '5px' }}>
+              <p>
+                &copy; {new Date().getFullYear()} GFMS. Bản quyền thuộc về GYM
+                Franchise Management System.
+              </p>
+              <p style={{ fontSize: "0.8rem", marginTop: "5px" }}>
                 Demo account: admin@gym.com / mật khẩu: 123456
               </p>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
