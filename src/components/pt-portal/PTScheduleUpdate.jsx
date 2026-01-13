@@ -1,101 +1,190 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getPTSchedule, updatePTSchedule } from '../../services/ptService';
-import './PTScheduleUpdate.css';
+// src/components/pt-portal/PTScheduleUpdate.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getMyPTProfile, getPTSchedule, updatePTSchedule } from "../../services/ptService";
+import "./PTScheduleUpdate.css";
 
-const DAYS = [
-  { key: 'monday', label: 'Thứ 2' },
-  { key: 'tuesday', label: 'Thứ 3' },
-  { key: 'wednesday', label: 'Thứ 4' },
-  { key: 'thursday', label: 'Thứ 5' },
-  { key: 'friday', label: 'Thứ 6' },
-  { key: 'saturday', label: 'Thứ 7' },
-  { key: 'sunday', label: 'Chủ nhật' },
+const EMPTY = {
+  monday: [],
+  tuesday: [],
+  wednesday: [],
+  thursday: [],
+  friday: [],
+  saturday: [],
+  sunday: [],
+};
+
+const days = [
+  { key: "monday", label: "Thứ 2" },
+  { key: "tuesday", label: "Thứ 3" },
+  { key: "wednesday", label: "Thứ 4" },
+  { key: "thursday", label: "Thứ 5" },
+  { key: "friday", label: "Thứ 6" },
+  { key: "saturday", label: "Thứ 7" },
+  { key: "sunday", label: "Chủ nhật" },
 ];
 
-const emptySlot = () => ({ start: '09:00', end: '18:00' });
+// ===== sanitize schedule before sending to BE =====
+const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+// Extract "HH:MM" even if UI/browser returns "08:00 SA" / "09:00 CH"
+const toHHMM = (v) => {
+  const s = String(v ?? "");
+  const m = s.match(/\b\d{2}:\d{2}\b/);
+  return m ? m[0] : "";
+};
+
+const buildCleanSchedule = (raw) => {
+  const out = {};
+  for (const k of DAY_KEYS) {
+    const slots = Array.isArray(raw?.[k]) ? raw[k] : [];
+    out[k] = slots
+      .map((x) => ({
+        start: toHHMM(x?.start),
+        end: toHHMM(x?.end),
+      }))
+      .filter((x) => x.start && x.end);
+  }
+  return out;
+};
 
 const PTScheduleUpdate = () => {
   const { id } = useParams();
-  const ptId = id;
   const navigate = useNavigate();
 
-  const [schedule, setSchedule] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [ptId, setPtId] = useState(null);
+  const [resolveError, setResolveError] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [schedule, setSchedule] = useState(EMPTY);
+  const [msg, setMsg] = useState("");
+
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user")) || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // 1) Resolve đúng PT đang đăng nhập
   useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
     const run = async () => {
       try {
-        const sch = await getPTSchedule(ptId);
-        const normalized = {};
-        DAYS.forEach(({ key }) => (normalized[key] = Array.isArray(sch?.[key]) ? sch[key] : []));
-        setSchedule(normalized);
+        setResolveError("");
+        const me = await getMyPTProfile(); // GET /api/pt/me
+        const myId = String(me?.id);
+
+        setPtId(myId);
+
+        if (id && id !== "undefined" && String(id) !== myId) {
+          navigate(`/pt/${myId}/schedule-update`, { replace: true });
+        }
       } catch (e) {
-        console.error(e);
-        setError('Không tải được lịch rảnh. Kiểm tra backend.');
+        const err =
+          e?.response?.data?.message ||
+          e?.EM ||
+          e?.message ||
+          "Không lấy được PT profile (/api/pt/me)";
+        setResolveError(err);
       }
     };
+
+    run();
+  }, [id, navigate, user]);
+
+  // 2) Load schedule theo ptId resolved
+  useEffect(() => {
+    if (!ptId) return;
+
+    const run = async () => {
+      try {
+        setLoading(true);
+        const sch = await getPTSchedule(ptId);
+        setSchedule({ ...EMPTY, ...(sch || {}) });
+      } catch (e) {
+        console.error(e);
+        setSchedule(EMPTY);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     run();
   }, [ptId]);
 
+  // Helpers
   const addSlot = (dayKey) => {
     setSchedule((prev) => ({
       ...prev,
-      [dayKey]: [...prev[dayKey], emptySlot()],
+      [dayKey]: [...(prev[dayKey] || []), { start: "08:00", end: "09:00" }],
     }));
   };
 
   const removeSlot = (dayKey, idx) => {
     setSchedule((prev) => ({
       ...prev,
-      [dayKey]: prev[dayKey].filter((_, i) => i !== idx),
+      [dayKey]: (prev[dayKey] || []).filter((_, i) => i !== idx),
     }));
   };
 
-  const changeSlot = (dayKey, idx, field, value) => {
+  const updateSlot = (dayKey, idx, field, value) => {
     setSchedule((prev) => ({
       ...prev,
-      [dayKey]: prev[dayKey].map((s, i) => (i === idx ? { ...s, [field]: value } : s)),
+      [dayKey]: (prev[dayKey] || []).map((s, i) => (i === idx ? { ...s, [field]: value } : s)),
     }));
-  };
-
-  const validate = () => {
-    for (const { key, label } of DAYS) {
-      const slots = schedule?.[key] || [];
-      for (const s of slots) {
-        if (!s.start || !s.end) return `${label}: Start/End không được rỗng`;
-        if (s.start >= s.end) return `${label}: Giờ bắt đầu phải nhỏ hơn giờ kết thúc`;
-      }
-    }
-    return '';
   };
 
   const handleSave = async () => {
-    setError('');
-    const msg = validate();
-    if (msg) {
-      setError(msg);
-      return;
-    }
+    if (!ptId) return;
+
     try {
       setSaving(true);
-      await updatePTSchedule(ptId, schedule);
+      setMsg("");
+
+      const clean = buildCleanSchedule(schedule);
+
+      // ✅ CÁCH A: ptService sẽ tự wrap { availableHours: ... }
+      await updatePTSchedule(ptId, clean);
+
+      setMsg("✅ Lưu lịch rảnh thành công!");
       navigate(`/pt/${ptId}/schedule`);
     } catch (e) {
       console.error(e);
-      setError('Lưu thất bại. Xem Network payload (body) có đúng format backend không.');
+      const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
+      setMsg(`❌ ${err}`);
     } finally {
       setSaving(false);
     }
   };
 
-  if (!schedule) {
+  if (resolveError) {
     return (
       <div className="ptSUPage">
         <div className="ptSUPage__inner">
-          <div className="ptSU__card">Đang tải...</div>
+          <div className="ptSU__error">
+            <div style={{ fontWeight: 950, marginBottom: 6 }}>Không xác định được PT của bạn</div>
+            <div style={{ whiteSpace: "pre-wrap" }}>{resolveError}</div>
+          </div>
+
+          <button className="ptSU__btn" onClick={() => navigate("/login")}>
+            Về đăng nhập
+          </button>
         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="ptSUPage">
+        <div className="ptSUPage__inner">Đang tải...</div>
       </div>
     );
   }
@@ -104,63 +193,74 @@ const PTScheduleUpdate = () => {
     <div className="ptSUPage">
       <div className="ptSUPage__inner">
         <div className="ptSUTop">
-          <button className="ptBack" onClick={() => navigate('/pt/dashboard')}>
-            ← Dashboard PT
-          </button>
 
           <div className="ptSU__header">
             <div>
               <h1>Cập nhật lịch rảnh</h1>
-              <p className="ptSU__sub">PT #{ptId}</p>
+              <div className="ptSU__sub">PT #{ptId}</div>
             </div>
+
             <div className="ptSU__actions">
-              <Link className="ptSU__btn ptSU__btn--ghost" to={`/pt/${ptId}/schedule`}>
+              <button
+                className="ptSU__btn ptSU__btn--ghost"
+                onClick={() => navigate(`/pt/${ptId}/schedule`)}
+              >
                 Quay lại lịch
-              </Link>
+              </button>
               <button className="ptSU__btn" onClick={handleSave} disabled={saving}>
-                {saving ? 'Đang lưu...' : 'Lưu'}
+                {saving ? "Đang lưu..." : "Lưu"}
               </button>
             </div>
           </div>
+
+          {msg ? (
+            <div
+              className="ptSU__error"
+              style={{
+                borderColor: "rgba(244,137,21,0.35)",
+                background: "rgba(244,137,21,0.10)",
+              }}
+            >
+              {msg}
+            </div>
+          ) : null}
         </div>
 
-        {error ? <div className="ptSU__error">{error}</div> : null}
-
         <div className="ptSU__grid">
-          {DAYS.map(({ key, label }) => (
-            <div key={key} className="ptSU__dayCard">
+          {days.map((d) => (
+            <div key={d.key} className="ptSU__dayCard">
               <div className="ptSU__dayHeader">
-                <h3>{label}</h3>
-                <button className="ptSU__miniBtn" onClick={() => addSlot(key)}>
+                <h3>{d.label}</h3>
+                <button className="ptSU__miniBtn" onClick={() => addSlot(d.key)}>
                   + Thêm
                 </button>
               </div>
 
-              {schedule[key].length === 0 ? (
+              {(schedule[d.key] || []).length === 0 ? (
                 <div className="ptSU__empty">Không có khung giờ</div>
               ) : (
-                schedule[key].map((slot, idx) => (
-                  <div className="ptSU__slot" key={idx}>
+                (schedule[d.key] || []).map((s, idx) => (
+                  <div key={idx} className="ptSU__slot">
                     <div className="ptSU__slotRow">
-                      <label>Start</label>
+                      <label>Bắt đầu</label>
                       <input
                         type="time"
-                        value={slot.start}
-                        onChange={(e) => changeSlot(key, idx, 'start', e.target.value)}
+                        value={toHHMM(s.start)}
+                        onChange={(e) => updateSlot(d.key, idx, "start", e.target.value)}
                       />
                     </div>
 
-                    <div className="ptSU__slotRow">
-                      <label>End</label>
+                    <div className="ptSU__slotRow" style={{ marginBottom: 12 }}>
+                      <label>Kết thúc</label>
                       <input
                         type="time"
-                        value={slot.end}
-                        onChange={(e) => changeSlot(key, idx, 'end', e.target.value)}
+                        value={toHHMM(s.end)}
+                        onChange={(e) => updateSlot(d.key, idx, "end", e.target.value)}
                       />
                     </div>
 
-                    <button className="ptSU__remove" onClick={() => removeSlot(key, idx)}>
-                      Xóa
+                    <button className="ptSU__remove" onClick={() => removeSlot(d.key, idx)}>
+                      Xóa khung giờ
                     </button>
                   </div>
                 ))
