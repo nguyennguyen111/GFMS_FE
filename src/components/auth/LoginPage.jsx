@@ -51,7 +51,7 @@ const LoginPage = () => {
     const map = {
       1: '/admin',     // admin area
       2: '/',          // tạm thời chưa có owner page => về home
-      3: '/',          // tạm thời chưa có trainer page => về home
+      3: '/pt/dashboard',          // tạm thời chưa có trainer page => về home
       4: '/',          // tạm thời chưa có member page => về home
       5: '/',          // guest => home
     };
