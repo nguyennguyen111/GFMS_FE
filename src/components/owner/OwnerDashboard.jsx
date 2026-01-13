@@ -4,6 +4,7 @@ import "./OwnerDashboard.css";
 
 import OwnerOverviewPage from "./pages/OwnerOverviewPage";
 import OwnerPackagesPage from "./pages/OwnerPackagesPage";
+import OwnerPoliciesPage from "./pages/OwnerPoliciesPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
 
 export default function OwnerDashboard() {
@@ -189,7 +190,7 @@ export default function OwnerDashboard() {
             <Route path="/notifications" element={<PlaceholderPage title="Thông báo (notification)" />} />
 
             {/* System */}
-            <Route path="/policies" element={<PlaceholderPage title="Chính sách (policy)" />} />
+            <Route path="/policies" element={<OwnerPoliciesPage title="Chính sách (policy)" />} />
             <Route path="/franchise-requests" element={<PlaceholderPage title="Yêu cầu nhượng quyền (franchiserequest)" />} />
             <Route path="/settings" element={<PlaceholderPage title="Cài đặt" />} />
 
