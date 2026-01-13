@@ -44,6 +44,38 @@ export default function InventoryLogsPage() {
 
   const showRows = useMemo(() => rows || [], [rows]);
 
+  const formatDateTime = (v) => {
+    if (!v) return "—";
+
+    // Date object: format as local datetime string (YYYY-MM-DD HH:mm:ss)
+    if (v instanceof Date) {
+      const d = v;
+      if (isNaN(d.getTime())) return String(v);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    if (typeof v === "string") {
+      // If string is date-only YYYY-MM-DD, return as-is (avoid timezone shifts)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+
+      // If ISO-like string with 'T' and time part, extract the YYYY-MM-DDTHH:MM:SS prefix and display without timezone conversion
+      const isoMatch = v.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+      if (isoMatch) return isoMatch[1].replace("T", " ");
+
+      // Fallback: try parse and format local datetime
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+
+      return String(v);
+    }
+
+    return String(v);
+  };
+
   return (
     <div className="il-wrap">
       <div className="il-head">
@@ -98,7 +130,7 @@ export default function InventoryLogsPage() {
             showRows.map((r) => (
               <div className="il-row" key={r.id}>
                 <div>{r.id}</div>
-                <div>{(r.recordedAt || r.createdAt || "").slice(0, 19).replace("T", " ")}</div>
+                <div>{formatDateTime(r.recordeat || r.updatedAt)}</div>
                 <div>{r.gymName || `Gym ${r.gymId}`}</div>
                 <div>
                   {r.equipmentName || `EQ ${r.equipmentId}`}{" "}
