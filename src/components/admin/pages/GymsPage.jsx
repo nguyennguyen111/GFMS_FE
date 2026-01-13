@@ -3,6 +3,7 @@ import "./UsersPage.css";
 import "./GymsPage.css";
 import {
   getGyms,
+  getUsers,
   getGymDetail,
   createGym,
   updateGym,
@@ -148,6 +149,7 @@ export default function GymsPage() {
     images: [...EMPTY_IMAGES]
   });
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [owners, setOwners] = useState([]);
 
   const [detail, setDetail] = useState(null);
   const [detailErr, setDetailErr] = useState("");
@@ -176,8 +178,20 @@ export default function GymsPage() {
     }
   };
 
+  const fetchOwners = async () => {
+    try {
+      const res = await getUsers({ limit: 1000, status: "active" });
+      const payload = res?.data?.DT || res?.data?.data || [];
+      const ownerList = Array.isArray(payload) ? payload.filter((u) => u.groupName === "Gym Owners") : [];
+      setOwners(ownerList);
+    } catch (e) {
+      console.error("Không tải được danh sách Owners", e);
+    }
+  };
+
   useEffect(() => {
     fetchGyms();
+    fetchOwners();
   }, []);
 
   const openCreate = () => {
@@ -648,12 +662,18 @@ export default function GymsPage() {
             </div>
             <div className="up-grid2">
               <div className="up-row">
-                <label>Owner ID (tuỳ chọn)</label>
-                <input
+                <label>Owner (tuỳ chọn)</label>
+                <select
                   value={form.ownerId}
                   onChange={(e) => setForm({ ...form, ownerId: e.target.value })}
-                  placeholder="Nhập ID owner"
-                />
+                >
+                  <option value="">-- Không chọn --</option>
+                  {owners.map((o) => (
+                    <option key={o.id} value={String(o.id)}>
+                      {o.username} /({o.email || o.phone || "no email"})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="up-row">
                 <label>Trạng thái</label>
