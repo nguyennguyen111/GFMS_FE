@@ -28,7 +28,8 @@ import MemberMessagesPage from "./components/member/pages/MemberMessagesPage";
 import MemberProgressPage from "./components/member/pages/MemberProgressPage";
 import MemberReviewsPage from "./components/member/pages/MemberReviewsPage";
 
-// ✅ Trainer Components
+// ✅ PT layout + pages
+import PTLayout from "./layouts/PTLayout";
 import PTList from "./components/pt-portal/PTList";
 import PTForm from "./components/pt-portal/PTForm";
 import PTDetails from "./components/pt-portal/PTDetails";
@@ -90,10 +91,8 @@ function App() {
           <Route path="/member" element={<MemberWebLayout />}>
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<MemberHomePage />} />
-
             <Route path="packages" element={<MemberPackagesPage />} />
             <Route path="my-packages" element={<MemberMyPackagesPage />} />
-
             <Route path="bookings" element={<MemberBookingsPage />} />
             <Route path="bookings/new" element={<MemberBookingCreatePage />} />
             <Route path="checkin/:id" element={<MemberCheckinPage />} />
@@ -107,21 +106,33 @@ function App() {
             <Route path="reviews" element={<MemberReviewsPage />} />
           </Route>
 
-          {/* ✅ Trainer routes */}
-          <Route path="/pt/dashboard" element={<PTDashboard />} />
-          <Route path="/pt/profile/create" element={<PTCreateProfile />} />
-          <Route path="/pt/profile" element={<PTProfile />} />
-          <Route path="/pt/:id/skills" element={<PTSkills />} />
-          <Route path="/pt/clients" element={<PTClients />} />
-          <Route path="/pt/feedback" element={<PTFeedback />} />
+          {/* ✅ PT routes (được bọc layout để sidebar không mất) */}
+          <Route path="/pt" element={<PTLayout />}>
+            {/* Nếu gõ /pt thì đẩy về dashboard */}
+            <Route index element={<Navigate to="dashboard" replace />} />
 
-          {/* ✅ PT portal routes */}
-          <Route path="/pt/trainers" element={<PTList />} />
-          <Route path="/pt/create" element={<PTForm />} />
-          <Route path="/pt/edit/:id" element={<PTForm />} />
-          <Route path="/pt/:id/details" element={<PTDetails />} />
-          <Route path="/pt/:id/schedule" element={<PTSchedule />} />
-          <Route path="/pt/:id/schedule-update" element={<PTScheduleUpdate />} />
+            <Route path="dashboard" element={<PTDashboard />} />
+
+            {/* các trang PT không có :id */}
+            <Route path="profile" element={<PTProfile />} />
+            <Route path="profile/create" element={<PTCreateProfile />} />
+            <Route path="clients" element={<PTClients />} />
+            <Route path="feedback" element={<PTFeedback />} />
+
+            {/* portal routes */}
+            <Route path="trainers" element={<PTList />} />
+            <Route path="create" element={<PTForm />} />
+            <Route path="edit/:id" element={<PTForm />} />
+
+            {/* các trang cần :id */}
+            <Route path=":id/details" element={<PTDetails />} />
+            <Route path=":id/skills" element={<PTSkills />} />
+            <Route path=":id/schedule" element={<PTSchedule />} />
+            <Route path=":id/schedule-update" element={<PTScheduleUpdate />} />
+
+            {/* fallback trong /pt */}
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Route>
 
           {/* fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

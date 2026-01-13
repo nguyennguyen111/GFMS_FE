@@ -1,15 +1,14 @@
-// src/components/pt-portal/PTDashboard.jsx
 import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
 import { Line } from "react-chartjs-2";
 import "../../services/chartSetup"; // IMPORTANT: register chart.js
 import { makeLineChartData, makeLineOptions } from "../../services/chartService";
+import { getTrainerId } from "./ptStorage";
 import "./PTDashboard.css";
 
 const PTDashboard = () => {
-  const { id: ptId } = useParams();  
   const navigate = useNavigate();
+  const ptId = getTrainerId(); // ✅ lấy ptId từ storage (không phụ thuộc params)
 
   const user = useMemo(() => {
     try {
@@ -48,9 +47,7 @@ const PTDashboard = () => {
     reviews: 1,
   };
 
-  const students = [
-    { name: "", email: "" },
-  ];
+  const students = [{ name: "", email: "" }];
 
   const weekMini = [
     { day: "Mon", note: "No sessions" },
@@ -73,208 +70,181 @@ const PTDashboard = () => {
   const displayName = user?.username || user?.fullName || "PT";
   const email = user?.email || "—";
 
+  // ✅ route schedule đúng (nếu chưa có ptId thì đẩy về /pt/profile để nhập)
+  const scheduleLink = ptId ? `/pt/${ptId}/schedule` : "/pt/profile";
+
   return (
-    <div className="ptd-layout2">
-      {/* Sidebar */}
-      <aside className="ptd-sidebar2">
-        <div className="ptd-brand2">
-          <div className="ptd-logo2">
-            <span className="ptd-logoMark">GFMS</span>
+    // ✅ BỎ sidebar trong dashboard. Chỉ giữ main content
+    <div className="ptd-main2">
+      {/* Top bar */}
+      <header className="ptd-topbar">
+        <div className="ptd-topLeft">
+          <div className="ptd-appName">
+            <span className="ptd-brandOrange">GFMS</span> Coach
           </div>
-          <div className="ptd-sub2">PT Portal</div>
         </div>
 
-        <nav className="ptd-nav2">
-          <Link className="ptd-navItem2" to="/pt/overview">
-            🏠 Overview
-          </Link>
-          <Link className="ptd-navItem2" to="/pt/clients">
-            👥 Students
-          </Link>
-          <Link className="ptd-navItem2" to="/pt/packages">
-            📦 Packages
-          </Link>
-          <Link className="ptd-navItem2" to="/pt/profile">
-            👤 Profile
-          </Link>
-          <Link className="ptd-navItem2" to={`/pt/${ptId}/schedule`}>🗓️ Schedule</Link>
-          <Link className="ptd-navItem2" to="/pt/feedback">
-            💬 Feedback
-          </Link>
-        </nav>
-
-        <button className="ptd-logout2" onClick={handleLogout}>
-          ⎋ Logout
-        </button>
-      </aside>
-
-      {/* Main */}
-      <main className="ptd-main2">
-        {/* Top bar */}
-        <header className="ptd-topbar">
-          <div className="ptd-topLeft">
-            <div className="ptd-appName">
-              <span className="ptd-brandOrange">GFMS</span> Coach
-            </div>
+        <div className="ptd-topRight">
+          <button className="ptd-pillBtn">Help</button>
+          <div className="ptd-userChip">
+            <span className="ptd-userDot" />
+            <span className="ptd-userChipName">{displayName}</span>
           </div>
 
-          <div className="ptd-topRight">
-            <button className="ptd-pillBtn">Help</button>
-            <div className="ptd-userChip">
-              <span className="ptd-userDot" />
-              <span className="ptd-userChipName">{displayName}</span>
-            </div>
+          {/* ✅ Logout vẫn giữ */}
+          <button className="ptd-pillBtn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* KPI Row */}
+      <section className="ptd-kpiGrid">
+        <div className="ptd-kpiCard">
+          <div className="ptd-kpiHead">
+            <div className="ptd-kpiTitle">Students</div>
+            <div className="ptd-kpiIcon">👥</div>
           </div>
-        </header>
+          <div className="ptd-kpiValue">{stats.students}</div>
+          <div className="ptd-kpiSub">{stats.packages} packages sold</div>
+        </div>
 
-        {/* KPI Row */}
-        <section className="ptd-kpiGrid">
-          <div className="ptd-kpiCard">
-            <div className="ptd-kpiHead">
-              <div className="ptd-kpiTitle">Students</div>
-              <div className="ptd-kpiIcon">👥</div>
-            </div>
-            <div className="ptd-kpiValue">{stats.students}</div>
-            <div className="ptd-kpiSub">{stats.packages} packages sold</div>
+        <div className="ptd-kpiCard">
+          <div className="ptd-kpiHead">
+            <div className="ptd-kpiTitle">My packages</div>
+            <div className="ptd-kpiIcon">📦</div>
           </div>
+          <div className="ptd-kpiValue">{stats.packages}</div>
+          <div className="ptd-kpiSub">Active templates</div>
+        </div>
 
-          <div className="ptd-kpiCard">
-            <div className="ptd-kpiHead">
-              <div className="ptd-kpiTitle">My packages</div>
-              <div className="ptd-kpiIcon">📦</div>
-            </div>
-            <div className="ptd-kpiValue">{stats.packages}</div>
-            <div className="ptd-kpiSub">Active templates</div>
+        <div className="ptd-kpiCard">
+          <div className="ptd-kpiHead">
+            <div className="ptd-kpiTitle">Total revenue</div>
+            <div className="ptd-kpiIcon">🪙</div>
           </div>
+          <div className="ptd-kpiValue">{stats.totalRevenue.toLocaleString("vi-VN")}đ</div>
+          <div className="ptd-kpiSub">From sold packages</div>
+        </div>
 
-          <div className="ptd-kpiCard">
-            <div className="ptd-kpiHead">
-              <div className="ptd-kpiTitle">Total revenue</div>
-              <div className="ptd-kpiIcon">🪙</div>
-            </div>
-            <div className="ptd-kpiValue">{stats.totalRevenue.toLocaleString("vi-VN")}đ</div>
-            <div className="ptd-kpiSub">From sold packages</div>
+        <div className="ptd-kpiCard">
+          <div className="ptd-kpiHead">
+            <div className="ptd-kpiTitle">Wallet balance</div>
+            <div className="ptd-kpiIcon">💳</div>
           </div>
+          <div className="ptd-kpiValue">{stats.wallet.toLocaleString("vi-VN")}đ</div>
+          <div className="ptd-kpiSub">Ready to payout</div>
+        </div>
+      </section>
 
-          <div className="ptd-kpiCard">
-            <div className="ptd-kpiHead">
-              <div className="ptd-kpiTitle">Wallet balance</div>
-              <div className="ptd-kpiIcon">💳</div>
-            </div>
-            <div className="ptd-kpiValue">{stats.wallet.toLocaleString("vi-VN")}đ</div>
-            <div className="ptd-kpiSub">Ready to payout</div>
-          </div>
-        </section>
-
-        {/* Content Grid */}
-        <section className="ptd-contentGrid">
-          {/* Left column */}
-          <div className="ptd-leftCol">
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Weekly Calendar</div>
-                <Link className="ptd-link" to="/pt/schedule">
-                  Open calendar
-                </Link>
-              </div>
-
-              <div className="ptd-miniWeek">
-                {weekMini.map((d) => (
-                  <div key={d.day} className="ptd-miniDay">
-                    <div className="ptd-miniDayName">{d.day}</div>
-                    <div className="ptd-miniDaySub">{d.note}</div>
-                  </div>
-                ))}
-              </div>
+      {/* Content Grid */}
+      <section className="ptd-contentGrid">
+        {/* Left column */}
+        <div className="ptd-leftCol">
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Weekly Calendar</div>
+              <Link className="ptd-link" to={scheduleLink}>
+                Open calendar
+              </Link>
             </div>
 
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Recent Sessions</div>
-                <Link className="ptd-link" to="/pt/sessions">
-                  View all
-                </Link>
-              </div>
-
-              <div className="ptd-table">
-                <div className="ptd-tableRow ptd-tableHead">
-                  <div>Student</div>
-                  <div>Time</div>
-                  <div>Status</div>
-                </div>
-                <div className="ptd-tableRow ptd-tableEmpty">
-                  <div>No sessions yet.</div>
-                  <div />
-                  <div />
-                </div>
-              </div>
-            </div>
-
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Revenue chart</div>
-                <div className="ptd-muted2">This month</div>
-              </div>
-
-              <div className="ptd-chartBox">
-                <Line data={revenueData} options={revenueOptions} />
-              </div>
-            </div>
-          </div>
-
-          {/* Right column */}
-          <div className="ptd-rightCol">
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Students</div>
-                <Link className="ptd-link" to="/pt/clients">
-                  Manage
-                </Link>
-              </div>
-
-              {students.map((s) => (
-                <div key={s.email} className="ptd-studentItem">
-                  <div className="ptd-avatar" />
-                  <div className="ptd-studentMeta">
-                    <div className="ptd-studentName">{s.name}</div>
-                    <div className="ptd-studentEmail">{s.email}</div>
-                  </div>
-                  <Link className="ptd-miniBtn" to="/pt/clients">
-                    View
-                  </Link>
+            <div className="ptd-miniWeek">
+              {weekMini.map((d) => (
+                <div key={d.day} className="ptd-miniDay">
+                  <div className="ptd-miniDayName">{d.day}</div>
+                  <div className="ptd-miniDaySub">{d.note}</div>
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Rating</div>
-              </div>
-              <div className="ptd-ratingRow">
-                <div className="ptd-ratingValue">{stats.rating}</div>
-                <div className="ptd-star">★</div>
-              </div>
-              <div className="ptd-muted2">{stats.reviews} reviews</div>
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Recent Sessions</div>
+              <Link className="ptd-link" to="/pt/sessions">
+                View all
+              </Link>
             </div>
 
-            <div className="ptd-card2">
-              <div className="ptd-card2Head">
-                <div className="ptd-card2Title">Free plan limit</div>
+            <div className="ptd-table">
+              <div className="ptd-tableRow ptd-tableHead">
+                <div>Student</div>
+                <div>Time</div>
+                <div>Status</div>
               </div>
-              <div className="ptd-planText">
-                Bạn đang ở gói <b>Free</b> — quản lý tối đa <b>2</b> học viên. Nâng cấp để
-                không giới hạn.
+              <div className="ptd-tableRow ptd-tableEmpty">
+                <div>No sessions yet.</div>
+                <div />
+                <div />
               </div>
-              <button className="ptd-upgradeBtn">Upgrade to PT Pro</button>
-            </div>
-
-            <div className="ptd-card2 ptd-userFooter">
-              <div className="ptd-userFooterName">{displayName}</div>
-              <div className="ptd-userFooterEmail">{email}</div>
             </div>
           </div>
-        </section>
-      </main>
+
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Revenue chart</div>
+              <div className="ptd-muted2">This month</div>
+            </div>
+
+            <div className="ptd-chartBox">
+              <Line data={revenueData} options={revenueOptions} />
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="ptd-rightCol">
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Students</div>
+              <Link className="ptd-link" to="/pt/clients">
+                Manage
+              </Link>
+            </div>
+
+            {students.map((s) => (
+              <div key={s.email || "empty"} className="ptd-studentItem">
+                <div className="ptd-avatar" />
+                <div className="ptd-studentMeta">
+                  <div className="ptd-studentName">{s.name}</div>
+                  <div className="ptd-studentEmail">{s.email}</div>
+                </div>
+                <Link className="ptd-miniBtn" to="/pt/clients">
+                  View
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Rating</div>
+            </div>
+            <div className="ptd-ratingRow">
+              <div className="ptd-ratingValue">{stats.rating}</div>
+              <div className="ptd-star">★</div>
+            </div>
+            <div className="ptd-muted2">{stats.reviews} reviews</div>
+          </div>
+
+          <div className="ptd-card2">
+            <div className="ptd-card2Head">
+              <div className="ptd-card2Title">Free plan limit</div>
+            </div>
+            <div className="ptd-planText">
+              Bạn đang ở gói <b>Free</b> — quản lý tối đa <b>2</b> học viên. Nâng cấp để không
+              giới hạn.
+            </div>
+            <button className="ptd-upgradeBtn">Upgrade to PT Pro</button>
+          </div>
+
+          <div className="ptd-card2 ptd-userFooter">
+            <div className="ptd-userFooterName">{displayName}</div>
+            <div className="ptd-userFooterEmail">{email}</div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

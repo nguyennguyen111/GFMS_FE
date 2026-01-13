@@ -1,6 +1,6 @@
 /* =========================
-   TrainerSchedule.css
-   FINAL – week view + back arrow
+   PTSchedule.css
+   FINAL – week view + month/year picker
    ========================= */
 
 .ptSchedule {
@@ -104,6 +104,69 @@
   border-radius: 14px;
 }
 
+/* ===== Month/Year Picker (dropdown - giữ khung đẹp) ===== */
+.ptMonthPick {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+}
+
+.ptMonthLabel {
+  color: var(--gray);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.ptMonthSelect,
+.ptYearSelect {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 137, 21, 0.35);
+  background: rgba(0, 0, 0, 0.22);
+  color: #f2f2f2;
+  outline: none;
+  font-weight: 900;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.ptMonthSelect:hover,
+.ptYearSelect:hover {
+  filter: brightness(1.05);
+}
+
+.ptMonthSelect:focus,
+.ptYearSelect:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(244, 137, 21, 0.18);
+}
+
+.ptMonthSelect option,
+.ptYearSelect option {
+  background-color: #141414;
+  color: #f2f2f2;
+  font-weight: 800;
+}
+
+.ptMonthSelect option:checked,
+.ptYearSelect option:checked {
+  background-color: #f48915;
+  color: #111;
+}
+
+.ptMonthSelect option:hover,
+.ptYearSelect option:hover {
+  background-color: rgba(244, 137, 21, 0.25);
+  color: #fff;
+}
+
+/* Tab button */
 .ptTab {
   padding: 10px 14px;
   border-radius: 12px;
@@ -294,7 +357,7 @@
   border-right: none;
 }
 
-/* grid line every 30 mins (nhiều line) */
+/* grid line every 30 mins */
 .ptWeek__gridLine {
   height: 28px; /* 30 mins = half of 56px hour */
   border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
@@ -308,20 +371,21 @@
   border-radius: 12px;
   background: rgba(244, 137, 21, 0.16);
   border: 1px solid rgba(244, 137, 21, 0.35);
-  padding: 10px 10px;
+  padding: 8px 10px; /* ✅ gọn hơn */
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
+
+/* ❌ không dùng title nữa nhưng giữ class nếu sau muốn dùng lại */
 .ptWeek__blockTitle {
-  font-weight: 950;
-  color: var(--lightgray);
-  font-size: 0.95rem;
+  display: none;
 }
+
 .ptWeek__blockTime {
-  margin-top: 4px;
-  color: var(--gray);
-  font-weight: 800;
-  font-size: 0.85rem;
+  margin-top: 0; /* ✅ bỏ khoảng cách title */
+  color: var(--lightgray); /* ✅ rõ hơn */
+  font-weight: 950;
+  font-size: 0.9rem;
 }
 
 /* Responsive */
@@ -339,13 +403,18 @@
   .ptSchedule__tabs {
     flex-wrap: wrap;
   }
+  .ptMonthPick {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
   .ptWeek {
-    grid-template-columns: 1fr; /* hide time column in small? */
+    grid-template-columns: 1fr;
   }
   .ptWeek__timeCol {
     display: none;
   }
   .ptWeek__daysBody {
-    height: calc(56px * 12); /* giảm chiều cao trên mobile */
+    height: calc(56px * 12);
   }
 }
