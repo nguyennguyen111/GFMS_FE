@@ -1,6 +1,7 @@
+// src/components/pt-portal/PTSchedule.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getPTSchedule, getPTDetails } from "../../services/ptService";
+import { getPTSchedule, getPTDetails, getMyPTProfile } from "../../services/ptService";
 import "./PTSchedule.css";
 
 const VI_DAY = {
@@ -28,7 +29,7 @@ const formatDate = (d) => {
 const startOfWeekMonday = (date) => {
   const d = new Date(date);
   const day = d.getDay(); // 0 Sun..6 Sat
-  const diffToMonday = (day === 0 ? -6 : 1 - day);
+  const diffToMonday = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diffToMonday);
   d.setHours(0, 0, 0, 0);
   return d;
@@ -41,12 +42,46 @@ const parseTimeToMinutes = (hhmm) => {
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
+const monthLabel = (m) => `Tháng ${m}`; // KHÔNG dùng "tháng giêng" nữa
+
+// ===== NEW: split slot dài thành nhiều block 1 giờ =====
+const MIN_PER_HOUR = 60;
+
+const minutesToHHMM = (min) => {
+  const h = String(Math.floor(min / 60)).padStart(2, "0");
+  const m = String(min % 60).padStart(2, "0");
+  return `${h}:${m}`;
+};
+
+const splitToHourlyBlocks = (startMin, endMin) => {
+  if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || endMin <= startMin) return [];
+
+  const blocks = [];
+  let cur = startMin;
+
+  while (cur < endMin) {
+    const nextHourBoundary = Math.ceil(cur / MIN_PER_HOUR) * MIN_PER_HOUR;
+    const end = Math.min(endMin, nextHourBoundary === cur ? cur + MIN_PER_HOUR : nextHourBoundary);
+
+    blocks.push({
+      startMin: cur,
+      endMin: end,
+      start: minutesToHHMM(cur),
+      end: minutesToHHMM(end),
+    });
+
+    cur = end;
+  }
+  return blocks;
+};
+
 const PTSchedule = () => {
   const { id } = useParams();
-  const ptId = id;
   const navigate = useNavigate();
 
-  // today | next7 | week
+  const [ptId, setPtId] = useState(id && id !== "undefined" ? String(id) : null);
+  const [resolveError, setResolveError] = useState("");
+
   const [activeTab, setActiveTab] = useState("week");
 
   const [schedule, setSchedule] = useState(null);
@@ -56,19 +91,45 @@ const PTSchedule = () => {
   // week navigation
   const [weekOffset, setWeekOffset] = useState(0);
 
+  // Month/Year picker (chỉ dùng để nhảy nhanh)
+  const now = useMemo(() => new Date(), []);
+  const [pickMonth, setPickMonth] = useState(now.getMonth() + 1); // 1..12
+  const [pickYear, setPickYear] = useState(now.getFullYear());
+
   // calendar config
-  const START_HOUR = 6;   // 06:00
-  const END_HOUR = 22;    // 22:00
+  const START_HOUR = 6;
+  const END_HOUR = 22;
   const SLOT_MINUTES = 30;
 
+  // ===== Resolve trainer id when missing/undefined =====
   useEffect(() => {
+    if (id && id !== "undefined") {
+      setPtId(String(id));
+      return;
+    }
+
+    const run = async () => {
+      try {
+        setResolveError("");
+        const me = await getMyPTProfile();
+        setPtId(String(me.id));
+      } catch (e) {
+        const msg = e?.EM || e?.message || "Không lấy được PT profile (/api/pt/me)";
+        setResolveError(msg);
+      }
+    };
+
+    run();
+  }, [id]);
+
+  // ===== Fetch schedule + details after ptId is resolved =====
+  useEffect(() => {
+    if (!ptId) return;
+
     const run = async () => {
       try {
         setLoading(true);
-        const [sch, info] = await Promise.all([
-          getPTSchedule(ptId),
-          getPTDetails(ptId),
-        ]);
+        const [sch, info] = await Promise.all([getPTSchedule(ptId), getPTDetails(ptId)]);
         setSchedule(sch);
         setPT(info);
       } catch (e) {
@@ -77,32 +138,24 @@ const PTSchedule = () => {
         setLoading(false);
       }
     };
+
     run();
   }, [ptId]);
 
-  const todaySlots = useMemo(() => {
-    if (!schedule) return [];
-    const key = dayKeyFromDate(new Date());
-    return schedule?.[key] || [];
-  }, [schedule]);
+  // ===== Month jump => update weekOffset only =====
+  const jumpToMonth = (month1to12, year) => {
+    const firstDay = new Date(year, month1to12 - 1, 1);
+    const monday = startOfWeekMonday(firstDay);
 
-  const next7Days = useMemo(() => {
-    if (!schedule) return [];
-    const out = [];
-    const start = new Date();
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      const key = dayKeyFromDate(d);
-      out.push({
-        date: d,
-        dayKey: key,
-        dayLabel: VI_DAY[key],
-        slots: schedule?.[key] || [],
-      });
-    }
-    return out;
-  }, [schedule]);
+    // base = monday của tuần hiện tại
+    const baseMonday = startOfWeekMonday(new Date());
+
+    const diffMs = monday.getTime() - baseMonday.getTime();
+    const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+
+    setWeekOffset(diffWeeks);
+    setActiveTab("week");
+  };
 
   // ===== Week view data (Mon..Sun) =====
   const weekDays = useMemo(() => {
@@ -128,29 +181,67 @@ const PTSchedule = () => {
 
   const weekRangeLabel = useMemo(() => {
     if (weekDays.length === 0) return "";
-    const start = weekDays[0].date;
-    const end = weekDays[6].date;
-    return `${formatDate(start)} - ${formatDate(end)}`;
+    return `${formatDate(weekDays[0].date)} - ${formatDate(weekDays[6].date)}`;
   }, [weekDays]);
+
+  const todaySlots = useMemo(() => {
+    if (!schedule) return [];
+    const key = dayKeyFromDate(new Date());
+    return schedule?.[key] || [];
+  }, [schedule]);
+
+  const next7Days = useMemo(() => {
+    if (!schedule) return [];
+    const out = [];
+    const start = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = dayKeyFromDate(d);
+      out.push({
+        date: d,
+        dayKey: key,
+        dayLabel: VI_DAY[key],
+        slots: schedule?.[key] || [],
+      });
+    }
+    return out;
+  }, [schedule]);
 
   const hours = useMemo(() => {
     const out = [];
     for (let h = START_HOUR; h <= END_HOUR; h++) out.push(h);
     return out;
-  }, []);
+  }, [START_HOUR, END_HOUR]);
 
   const minutesRangeStart = START_HOUR * 60;
   const minutesRangeEnd = END_HOUR * 60;
   const totalMinutes = minutesRangeEnd - minutesRangeStart;
 
-  // calc block style for a slot within calendar day column
-  const calcBlockStyle = (slot) => {
-    const s = clamp(parseTimeToMinutes(slot.start), minutesRangeStart, minutesRangeEnd);
-    const e = clamp(parseTimeToMinutes(slot.end), minutesRangeStart, minutesRangeEnd);
+  const calcBlockStyleByMinutes = (startMin, endMin) => {
+    const s = clamp(startMin, minutesRangeStart, minutesRangeEnd);
+    const e = clamp(endMin, minutesRangeStart, minutesRangeEnd);
     const topPct = ((s - minutesRangeStart) / totalMinutes) * 100;
     const heightPct = Math.max(0.5, ((e - s) / totalMinutes) * 100);
     return { top: `${topPct}%`, height: `${heightPct}%` };
   };
+
+  if (resolveError) {
+    return (
+      <div className="ptSchedule">
+        <div className="ptSchedule__header">
+          <h1>Lịch làm việc PT</h1>
+        </div>
+        <div className="ptSchedule__card">
+          <p>Không xác định được PT của bạn.</p>
+          <pre style={{ whiteSpace: "pre-wrap" }}>{resolveError}</pre>
+          <button className="ptBtn" onClick={() => navigate("/login")}>
+            Về đăng nhập
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -163,20 +254,11 @@ const PTSchedule = () => {
     );
   }
 
-  const displayName =
-    pt?.User?.username ? `PT: ${pt.User.username}` : `PT #${ptId}`;
+  const displayName = pt?.User?.username ? `PT: ${pt.User.username}` : `PT #${ptId}`;
 
   return (
     <div className="ptSchedule">
       <div className="ptSchedule__header">
-        <button
-          className="ptBack"
-          onClick={() => navigate("/pt/dashboard")}
-          title="Quay lại Dashboard PT"
-        >
-          ← Dashboard PT
-        </button>
-
         <div className="ptSchedule__headText">
           <h1>Lịch làm việc</h1>
           <p className="ptSchedule__subtitle">{displayName}</p>
@@ -192,25 +274,60 @@ const PTSchedule = () => {
         </div>
       </div>
 
+      {/* Tabs + Month picker */}
       <div className="ptSchedule__tabs">
-        <button
-          className={`ptTab ${activeTab === "week" ? "active" : ""}`}
-          onClick={() => setActiveTab("week")}
-        >
+        <button className={`ptTab ${activeTab === "week" ? "active" : ""}`} onClick={() => setActiveTab("week")}>
           Tuần (Calendar)
         </button>
-        <button
-          className={`ptTab ${activeTab === "today" ? "active" : ""}`}
-          onClick={() => setActiveTab("today")}
-        >
+        <button className={`ptTab ${activeTab === "today" ? "active" : ""}`} onClick={() => setActiveTab("today")}>
           Hôm nay
         </button>
-        <button
-          className={`ptTab ${activeTab === "next7" ? "active" : ""}`}
-          onClick={() => setActiveTab("next7")}
-        >
+        <button className={`ptTab ${activeTab === "next7" ? "active" : ""}`} onClick={() => setActiveTab("next7")}>
           7 ngày tới
         </button>
+
+        {/* Month picker chỉ dùng để nhảy tuần */}
+        <div className="ptMonthPick">
+          <span className="ptMonthLabel">Tháng:</span>
+
+          <select
+            className="ptMonthSelect"
+            value={pickMonth}
+            onChange={(e) => {
+              const m = Number(e.target.value);
+              setPickMonth(m);
+              jumpToMonth(m, pickYear);
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => {
+              const m = i + 1;
+              return (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                </option>
+              );
+            })}
+          </select>
+
+          <select
+            className="ptYearSelect"
+            value={pickYear}
+            onChange={(e) => {
+              const y = Number(e.target.value);
+              setPickYear(y);
+              jumpToMonth(pickMonth, y);
+            }}
+          >
+            {Array.from({ length: 7 }).map((_, i) => {
+              const y = now.getFullYear() - 3 + i;
+              return (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              );
+            })}
+          </select>
+        </div>
       </div>
 
       <div className="ptSchedule__card">
@@ -258,18 +375,33 @@ const PTSchedule = () => {
                 <div className="ptWeek__daysBody">
                   {weekDays.map((d, idx) => (
                     <div className="ptWeek__dayCol" key={idx}>
-                      {Array.from({ length: (END_HOUR - START_HOUR) * (60 / SLOT_MINUTES) + 1 }).map(
-                        (_, i) => <div className="ptWeek__gridLine" key={i} />
-                      )}
-
-                      {(d.slots || []).map((s, i) => (
-                        <div className="ptWeek__block" key={i} style={calcBlockStyle(s)}>
-                          <div className="ptWeek__blockTitle">Rảnh</div>
-                          <div className="ptWeek__blockTime">
-                            {s.start} - {s.end}
-                          </div>
-                        </div>
+                      {Array.from({ length: (END_HOUR - START_HOUR) * (60 / SLOT_MINUTES) + 1 }).map((_, i) => (
+                        <div className="ptWeek__gridLine" key={i} />
                       ))}
+
+                      {/* ✅ FIX: remove "Rảnh" + split long slots into hourly blocks */}
+                      {(d.slots || []).flatMap((s, i) => {
+                        const rawStart = parseTimeToMinutes(s.start);
+                        const rawEnd = parseTimeToMinutes(s.end);
+
+                        const startMin = clamp(rawStart, minutesRangeStart, minutesRangeEnd);
+                        const endMin = clamp(rawEnd, minutesRangeStart, minutesRangeEnd);
+
+                        const blocks = splitToHourlyBlocks(startMin, endMin);
+
+                        return blocks.map((b, bi) => (
+                          <div
+                            className="ptWeek__block"
+                            key={`${i}-${bi}`}
+                            style={calcBlockStyleByMinutes(b.startMin, b.endMin)}
+                          >
+                            {/* ❌ bỏ title */}
+                            <div className="ptWeek__blockTime">
+                              {b.start} - {b.end}
+                            </div>
+                          </div>
+                        ));
+                      })}
                     </div>
                   ))}
                 </div>
@@ -294,14 +426,18 @@ const PTSchedule = () => {
               <tbody>
                 {todaySlots.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="ptTable__empty">Không có khung giờ rảnh hôm nay.</td>
+                    <td colSpan="3" className="ptTable__empty">
+                      Không có khung giờ rảnh hôm nay.
+                    </td>
                   </tr>
                 ) : (
                   todaySlots.map((s, idx) => (
                     <tr key={idx}>
                       <td>{formatDate(new Date())}</td>
                       <td>
-                        <span className="ptPill">{s.start} - {s.end}</span>
+                        <span className="ptPill">
+                          {s.start} - {s.end}
+                        </span>
                       </td>
                       <td className="ptSchedule__muted">—</td>
                     </tr>
