@@ -92,7 +92,15 @@ export default function MemberPackagesPage() {
 
     setBuyingId(selectedPkg.id);
     try {
-      await memberPurchasePackage(selectedPkg.id, { paymentMethod: payMethod });
+      const res = await memberPurchasePackage(selectedPkg.id, { paymentMethod: payMethod });
+      const data = res?.data?.data || {};
+
+      // Nếu là payOS: redirect sang trang thanh toán
+      if (payMethod === "payos" && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
       alert("🎉 Mua gói thành công! Bạn có thể đặt lịch ngay.");
       closePay();
       await loadAll();
@@ -229,35 +237,43 @@ export default function MemberPackagesPage() {
             </div>
 
             <div className="pay-body">
-              <div className="pay-box">
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>Chọn phương thức</div>
+                <div className="pay-box">
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>Chọn phương thức</div>
 
-                <div className="pay-methods">
-                  <button
-                    type="button"
-                    className={`pay-method ${payMethod === "cash" ? "is-active" : ""}`}
-                    onClick={() => setPayMethod("cash")}
-                  >
-                    💵 Tiền mặt
-                  </button>
+                  <div className="pay-methods">
+                    <button
+                      type="button"
+                      className={`pay-method ${payMethod === "cash" ? "is-active" : ""}`}
+                      onClick={() => setPayMethod("cash")}
+                    >
+                      💵 Tiền mặt (tại quầy)
+                    </button>
 
-                  <button
-                    type="button"
-                    className={`pay-method ${payMethod === "momo" ? "is-active" : ""}`}
-                    onClick={() => setPayMethod("momo")}
-                  >
-                    🟣 MoMo (MVP)
-                  </button>
+                    <button
+                      type="button"
+                      className={`pay-method ${payMethod === "payos" ? "is-active" : ""}`}
+                      onClick={() => setPayMethod("payos")}
+                    >
+                      💳 PayOS (Khuyến nghị)
+                    </button>
 
-                  <button
-                    type="button"
-                    className={`pay-method ${payMethod === "vnpay" ? "is-active" : ""}`}
-                    onClick={() => setPayMethod("vnpay")}
-                  >
-                    🏦 VNPay (MVP)
-                  </button>
+                    <button
+                      type="button"
+                      className={`pay-method ${payMethod === "momo" ? "is-active" : ""}`}
+                      onClick={() => setPayMethod("momo")}
+                    >
+                      🟣 MoMo (MVP)
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`pay-method ${payMethod === "vnpay" ? "is-active" : ""}`}
+                      onClick={() => setPayMethod("vnpay")}
+                    >
+                      🏦 VNPay (MVP)
+                    </button>
+                  </div>
                 </div>
-              </div>
             </div>
 
             <div className="pay-foot">
