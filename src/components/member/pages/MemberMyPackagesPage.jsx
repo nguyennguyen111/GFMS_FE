@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
 
 const fmtMoney = (v) => {
@@ -11,10 +11,12 @@ const fmtDate = (d) => (d ? String(d).slice(0, 10) : "—");
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [showPayosSuccess, setShowPayosSuccess] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -33,11 +35,33 @@ export default function MemberMyPackagesPage() {
     load();
   }, []);
 
+  // ✅ Check query param for PayOS success
+  useEffect(() => {
+    const payosParam = searchParams.get("payos");
+    if (payosParam === "success") {
+      setShowPayosSuccess(true);
+      // Remove query param after showing
+      setSearchParams({}, { replace: true });
+      // Auto hide after 5 seconds
+      setTimeout(() => setShowPayosSuccess(false), 5000);
+    }
+  }, [searchParams, setSearchParams]);
+
   const active = useMemo(() => {
     return data.find((x) => x.status === "active" && (x.sessionsRemaining ?? 0) > 0) || null;
   }, [data]);
 
-  const history = useMemo(() => data.filter((x) => x.id !== active?.id), [data, active]);
+  // ✅ Pending packages (chờ thanh toán PayOS)
+  const pending = useMemo(() => {
+    return data.filter(
+      (x) =>
+        x.Transaction?.paymentStatus === "pending" &&
+        (x.Transaction?.paymentMethod === "payos" || x.id?.toString().startsWith("pending-")) &&
+        (!x.status || x.status !== "active")
+    );
+  }, [data]);
+
+  const history = useMemo(() => data.filter((x) => x.id !== active?.id && !pending.find((p) => p.id === x.id)), [data, active, pending]);
 
   return (
     <div className="op-wrap">
@@ -59,12 +83,72 @@ export default function MemberMyPackagesPage() {
 
       {err && <div className="op-error">{err}</div>}
 
+      {/* ✅ PayOS Success Banner */}
+      {showPayosSuccess && (
+        <div className="op-success-banner">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>✅</span>
+            <div>
+              <div style={{ fontWeight: 900 }}>Thanh toán PayOS thành công!</div>
+              <div style={{ opacity: 0.85, fontSize: 12, marginTop: 2 }}>
+                Gói của bạn đang được kích hoạt. Vui lòng đợi vài giây hoặc tải lại trang.
+              </div>
+            </div>
+          </div>
+          <button className="op-banner-close" onClick={() => setShowPayosSuccess(false)}>
+            ✕
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="op-card padded">
           <div className="op-empty">Đang tải dữ liệu...</div>
         </div>
       ) : (
         <>
+          {/* ✅ Pending Payments Section */}
+          {pending.length > 0 && (
+            <div className="op-card padded" style={{ marginBottom: 14 }}>
+              <div className="mp-head">
+                <div>
+                  <div className="mp-title">⏳ Gói chờ thanh toán</div>
+                  <div className="op-sub">Các gói đang chờ xác nhận thanh toán PayOS.</div>
+                </div>
+              </div>
+
+              {pending.map((p) => (
+                <div key={p.id} className="mp-card" style={{ marginTop: 12 }}>
+                  <div className="mp-card__top">
+                    <div>
+                      <div className="mp-name">{p.Package?.name || "Gói tập"}</div>
+                      <div className="mp-meta">
+                        <span className="op-badge" style={{ background: "rgba(255,176,0,.10)", borderColor: "rgba(255,176,0,.22)" }}>
+                          Chờ thanh toán
+                        </span>
+                        <span style={{ opacity: 0.75, marginLeft: 10 }}>
+                          Mã giao dịch: <b>{p.Transaction?.transactionCode || "—"}</b>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mp-price">{fmtMoney(p.Transaction?.amount ?? p.Package?.price)}</div>
+                  </div>
+                  <div className="mp-tx">
+                    <div style={{ opacity: 0.75 }}>
+                      Phương thức: <b>{p.Transaction?.paymentMethod || "—"}</b> •{" "}
+                      <span className="op-badge" style={{ background: "rgba(255,176,0,.10)", borderColor: "rgba(255,176,0,.22)" }}>
+                        {p.Transaction?.paymentStatus || "pending"}
+                      </span>
+                    </div>
+                    <div style={{ opacity: 0.75, marginTop: 6 }}>
+                      Vui lòng hoàn tất thanh toán trên PayOS. Gói sẽ tự động kích hoạt sau khi thanh toán thành công.
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="op-card padded" style={{ marginBottom: 14 }}>
             <div className="mp-head">
               <div>
@@ -129,9 +213,13 @@ export default function MemberMyPackagesPage() {
                   <div style={{ opacity: 0.75 }}>
                     Giao dịch: <b>{active.Transaction?.transactionCode || "—"}</b>
                   </div>
-                  <div style={{ opacity: 0.75 }}>
-                    Thanh toán: <b>{active.Transaction?.paymentMethod || "—"}</b> •{" "}
-                    <b>{active.Transaction?.paymentStatus || "—"}</b>
+                  <div style={{ opacity: 0.75, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span>
+                      Thanh toán: <b>{active.Transaction?.paymentMethod || "—"}</b>
+                    </span>
+                    <span className={`op-badge ${active.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`}>
+                      {active.Transaction?.paymentStatus === "paid" ? "✅ Đã thanh toán" : active.Transaction?.paymentStatus || "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -183,6 +271,14 @@ export default function MemberMyPackagesPage() {
                         <div className="op-desc">
                           {fmtMoney(x.Transaction?.amount)} • {fmtDate(x.Transaction?.transactionDate)}
                         </div>
+                        <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ opacity: 0.7, fontSize: 11 }}>
+                            {x.Transaction?.paymentMethod || "—"}
+                          </span>
+                          <span className={`op-badge ${x.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`} style={{ fontSize: 10, padding: "4px 8px" }}>
+                            {x.Transaction?.paymentStatus === "paid" ? "✅ Paid" : x.Transaction?.paymentStatus || "—"}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -192,6 +288,40 @@ export default function MemberMyPackagesPage() {
           </div>
 
           <style>{`
+            .op-success-banner{
+              background: rgba(80,255,180,.12);
+              border: 1px solid rgba(80,255,180,.28);
+              border-radius: 14px;
+              padding: 12px 14px;
+              margin-bottom: 12px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 12px;
+              animation: slideIn 0.3s ease;
+            }
+            @keyframes slideIn {
+              from { opacity: 0; transform: translateY(-10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .op-banner-close{
+              background: transparent;
+              border: none;
+              color: rgba(255,255,255,0.8);
+              font-size: 18px;
+              cursor: pointer;
+              padding: 0;
+              width: 24px;
+              height: 24px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 6px;
+              transition: background 0.15s ease;
+            }
+            .op-banner-close:hover{
+              background: rgba(255,255,255,0.1);
+            }
             .mp-head{
               display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
               margin-bottom: 10px;
