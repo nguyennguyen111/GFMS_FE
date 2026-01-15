@@ -45,36 +45,47 @@ export default function InventoryLogsPage() {
   const showRows = useMemo(() => rows || [], [rows]);
 
   const formatDateTime = (v) => {
-    if (!v) return "—";
+  if (!v) return "—";
 
-    // Date object: format as local datetime string (YYYY-MM-DD HH:mm:ss)
-    if (v instanceof Date) {
-      const d = v;
-      if (isNaN(d.getTime())) return String(v);
-      const pad = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const pad = (n) => String(n).padStart(2, "0");
+
+  const format = (d) =>
+    `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+  // Date object
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return String(v);
+    return format(v);
+  }
+
+  if (typeof v === "string") {
+    // Date-only: YYYY-MM-DD → DD-MM-YYYY
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      const [y, m, d] = v.split("-");
+      return `${d}-${m}-${y}`;
     }
 
-    if (typeof v === "string") {
-      // If string is date-only YYYY-MM-DD, return as-is (avoid timezone shifts)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    // ISO string: YYYY-MM-DDTHH:mm:ss → DD-MM-YYYY HH:mm:ss
+    const isoMatch = v.match(
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}:\d{2})/
+    );
+    if (isoMatch) {
+      const [, y, m, d, time] = isoMatch;
+      return `${d}-${m}-${y} ${time}`;
+    }
 
-      // If ISO-like string with 'T' and time part, extract the YYYY-MM-DDTHH:MM:SS prefix and display without timezone conversion
-      const isoMatch = v.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
-      if (isoMatch) return isoMatch[1].replace("T", " ");
-
-      // Fallback: try parse and format local datetime
-      const d = new Date(v);
-      if (!isNaN(d.getTime())) {
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-      }
-
-      return String(v);
+    // Fallback parse
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      return format(d);
     }
 
     return String(v);
-  };
+  }
+
+  return String(v);
+};
 
   return (
     <div className="il-wrap">
