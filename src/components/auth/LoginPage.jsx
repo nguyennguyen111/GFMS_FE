@@ -411,7 +411,11 @@ const LoginPage = () => {
           'The phone number is already exist': 'Số điện thoại đã tồn tại',
           'The username is already exist': 'Tên người dùng đã tồn tại',
           'Create new user success': 'Đăng ký thành công',
-          'Login success': 'Đăng nhập thành công'
+          'Login success': 'Đăng nhập thành công',
+          'Account inactive': 'Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản trị viên',
+          'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ. Vui lòng liên hệ quản trị viên',
+
+          
         };
 
         if (errorMap[serverError]) userFriendlyMessage = errorMap[serverError];
