@@ -8,11 +8,14 @@ import {
   admAssignMaintenance,
   admStartMaintenance,
   admCompleteMaintenance,
+  admGetTechnicians,
+  admGetGyms,
 } from "../../../services/adminAdminCoreService";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
   { value: "pending", label: "Pending" },
+  { value: "approve", label: "Approved" },
   { value: "assigned", label: "Assigned" },
   { value: "in_progress", label: "In progress" },
   { value: "completed", label: "Completed" },
@@ -23,6 +26,13 @@ const money = (v) => {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN");
 };
+
+// Prefer displaying names (from included relations) instead of raw IDs
+const gymLabel = (m) => m?.gym?.name || m?.Gym?.name || m?.gymName || m?.gymId || "-";
+const equipmentLabel = (m) =>
+  m?.equipment?.name || m?.Equipment?.name || m?.equipmentName || m?.equipmentId || "-";
+const technicianLabel = (m) =>
+  m?.technician?.username || m?.technician?.email || m?.technician?.id || m?.assignedTo || "-";
 
 export default function MaintenancePage() {
   const [loading, setLoading] = useState(false);
@@ -38,6 +48,43 @@ export default function MaintenancePage() {
 
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
 
+  // ✅ technicians dropdown
+  const [techLoading, setTechLoading] = useState(false);
+  const [technicians, setTechnicians] = useState([]);
+
+  // ✅ gyms dropdown
+  const [gymLoading, setGymLoading] = useState(false);
+  const [gyms, setGyms] = useState([]);
+
+  const fetchTechnicians = async () => {
+    setTechLoading(true);
+    try {
+      const res = await admGetTechnicians();
+      setTechnicians(res?.data?.data || []);
+    } catch (e) {
+      console.warn("fetchTechnicians error:", e);
+      setTechnicians([]);
+    } finally {
+      setTechLoading(false);
+    }
+  };
+
+  const fetchGyms = async () => {
+    setGymLoading(true);
+    try {
+      // Nếu BE có hỗ trợ lite=1 thì càng tốt; không có cũng không sao
+      const res = await admGetGyms({ lite: 1 });
+      // Tuỳ controller trả {data} hoặc trả array trực tiếp — handle cả 2
+      const data = res?.data?.data ?? res?.data ?? [];
+      setGyms(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn("fetchGyms error:", e);
+      setGyms([]);
+    } finally {
+      setGymLoading(false);
+    }
+  };
+
   const fetchList = async () => {
     setLoading(true);
     try {
@@ -45,7 +92,6 @@ export default function MaintenancePage() {
       const data = res?.data?.data ?? res?.data?.rows ?? [];
       const metaFrom = res?.data?.meta;
 
-      // backend của bạn trả {data, meta} theo service mình viết
       setRows(data);
       setMeta(
         metaFrom || {
@@ -84,22 +130,83 @@ export default function MaintenancePage() {
     // eslint-disable-next-line
   }, [selectedId]);
 
-  const openApprove = () => setModal({ open: true, type: "approve", payload: { scheduledDate: "", estimatedCost: "", notes: "" } });
-  const openReject = () => setModal({ open: true, type: "reject", payload: { reason: "" } });
-  const openAssign = () => setModal({ open: true, type: "assign", payload: { assignedTo: "" } });
-  const openComplete = () => setModal({ open: true, type: "complete", payload: { actualCost: "" } });
+  useEffect(() => {
+    // ✅ load dropdown data once
+    fetchTechnicians();
+    fetchGyms();
+    // eslint-disable-next-line
+  }, []);
+
+  // ---------------- MODALS ----------------
+  const openApprove = () =>
+    setModal({
+      open: true,
+      type: "approve",
+      payload: { scheduledDate: "", estimatedCost: "", notes: "" },
+    });
+
+  const openReject = () =>
+    setModal({
+      open: true,
+      type: "reject",
+      payload: { reason: "" },
+    });
+
+  const openAssign = () =>
+    setModal({
+      open: true,
+      type: "assign",
+      payload: { assignedTo: detail?.assignedTo ? String(detail.assignedTo) : "" },
+    });
+
+  const openComplete = () =>
+    setModal({
+      open: true,
+      type: "complete",
+      payload: { actualCost: "" },
+    });
 
   const closeModal = () => setModal({ open: false, type: "", payload: {} });
 
+  // ---------------- BUSINESS RULES (CHUẨN FLOW ĐỒ ÁN) ----------------
+  // pending -> approve -> assigned -> in_progress -> completed
   const canApprove = useMemo(() => detail?.status === "pending", [detail]);
-  const canReject = useMemo(() => ["pending", "assigned"].includes(detail?.status), [detail]);
-  const canAssign = useMemo(() => ["pending", "assigned"].includes(detail?.status), [detail]);
-  const canStart = useMemo(() => detail?.status === "assigned", [detail]);
-  const canComplete = useMemo(() => ["assigned", "in_progress"].includes(detail?.status), [detail]);
 
+  // ✅ chuẩn nghiệp vụ: approve xong assign được; assigned có thể re-assign (đổi kỹ thuật)
+  const canAssign = useMemo(() => ["approve", "assigned"].includes(detail?.status), [detail]);
+
+  // start chỉ khi assigned
+  const canStart = useMemo(() => detail?.status === "assigned", [detail]);
+
+  // ✅ chuẩn nghiệp vụ: complete CHỈ khi in_progress
+  const canComplete = useMemo(() => detail?.status === "in_progress", [detail]);
+
+  // reject cho phép ở pending / approve / assigned
+  const canReject = useMemo(() => ["pending", "approve", "assigned"].includes(detail?.status), [detail]);
+
+  // ---------------- ACTIONS ----------------
   const doApprove = async () => {
     try {
-      await admApproveMaintenance(selectedId, modal.payload);
+      const payload = { ...(modal.payload || {}) };
+
+      if (!payload.scheduledDate) {
+        alert("Bạn chưa chọn Scheduled Date");
+        return;
+      }
+
+      // ✅ ép number
+      if (payload.estimatedCost !== "" && payload.estimatedCost !== null && payload.estimatedCost !== undefined) {
+        const n = Number(payload.estimatedCost);
+        if (Number.isNaN(n) || n < 0) {
+          alert("Estimated Cost phải là số hợp lệ");
+          return;
+        }
+        payload.estimatedCost = n;
+      } else {
+        delete payload.estimatedCost;
+      }
+
+      await admApproveMaintenance(selectedId, payload);
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
@@ -110,7 +217,13 @@ export default function MaintenancePage() {
 
   const doReject = async () => {
     try {
-      await admRejectMaintenance(selectedId, modal.payload);
+      const reason = modal?.payload?.reason;
+      if (!reason || !String(reason).trim()) {
+        alert("Bạn chưa nhập lý do từ chối");
+        return;
+      }
+
+      await admRejectMaintenance(selectedId, { reason });
       closeModal();
       setSelectedId(null);
       setDetail(null);
@@ -122,7 +235,13 @@ export default function MaintenancePage() {
 
   const doAssign = async () => {
     try {
-      await admAssignMaintenance(selectedId, modal.payload);
+      const assignedTo = modal?.payload?.assignedTo;
+      if (!assignedTo) {
+        alert("Bạn chưa chọn Technician");
+        return;
+      }
+
+      await admAssignMaintenance(selectedId, { assignedTo: Number(assignedTo) });
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
@@ -144,7 +263,16 @@ export default function MaintenancePage() {
 
   const doComplete = async () => {
     try {
-      await admCompleteMaintenance(selectedId, modal.payload);
+      const payload = { ...(modal.payload || {}) };
+
+      const n = Number(payload.actualCost);
+      if (Number.isNaN(n) || n < 0) {
+        alert("Actual Cost phải là số hợp lệ");
+        return;
+      }
+      payload.actualCost = n;
+
+      await admCompleteMaintenance(selectedId, payload);
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
@@ -158,7 +286,7 @@ export default function MaintenancePage() {
       <div className="ma-head">
         <div>
           <div className="ma-title">Bảo trì / Sửa chữa</div>
-          <div className="ma-sub">Duyệt – phân công – theo dõi tiến độ – hoàn tất (main flow)</div>
+          <div className="ma-sub">Duyệt → Phân công → Bắt đầu → Hoàn tất (chuẩn nghiệp vụ)</div>
         </div>
         <div className="ma-badge">{loading ? "Đang tải..." : "Module 2"}</div>
       </div>
@@ -166,10 +294,7 @@ export default function MaintenancePage() {
       <div className="ma-filters">
         <div className="ma-field">
           <label>Status</label>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}
-          >
+          <select value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
             {statusOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -178,13 +303,20 @@ export default function MaintenancePage() {
           </select>
         </div>
 
+        {/* ✅ FIX: Gym dropdown */}
         <div className="ma-field">
-          <label>GymId</label>
-          <input
+          <label>Phòng gym</label>
+          <select
             value={filters.gymId}
             onChange={(e) => setFilters((s) => ({ ...s, gymId: e.target.value }))}
-            placeholder="VD: 1"
-          />
+          >
+            <option value="">{gymLoading ? "Đang tải..." : "Tất cả"}</option>
+            {gyms.map((g) => (
+              <option key={g.id} value={String(g.id)}>
+                {g.name} (#{g.id})
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="ma-field ma-field--grow">
@@ -239,8 +371,8 @@ export default function MaintenancePage() {
                     <td>
                       <span className={`ma-pill ma-pill--${r.status}`}>{r.status}</span>
                     </td>
-                    <td>{r.gymId ?? "-"}</td>
-                    <td>{r.equipmentId ?? "-"}</td>
+                    <td>{gymLabel(r)}</td>
+                    <td>{equipmentLabel(r)}</td>
                     <td>{money(r.estimatedCost)}</td>
                     <td>{r.scheduledDate ? new Date(r.scheduledDate).toLocaleString() : "-"}</td>
                   </tr>
@@ -263,11 +395,7 @@ export default function MaintenancePage() {
             <div className="ma-paging__text">
               Page <b>{meta.page}</b> / {meta.totalPages}
             </div>
-            <button
-              className="ma-btn"
-              disabled={page >= meta.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
+            <button className="ma-btn" disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)}>
               →
             </button>
           </div>
@@ -296,16 +424,24 @@ export default function MaintenancePage() {
                 </div>
                 <div className="ma-kv">
                   <div className="ma-k">Gym</div>
-                  <div className="ma-v">{detail.gymId ?? "-"}</div>
+                  <div className="ma-v">{gymLabel(detail)}</div>
                 </div>
                 <div className="ma-kv">
                   <div className="ma-k">Equipment</div>
-                  <div className="ma-v">{detail.equipmentId ?? "-"}</div>
+                  <div className="ma-v">{equipmentLabel(detail)}</div>
                 </div>
                 <div className="ma-kv">
                   <div className="ma-k">Issue</div>
                   <div className="ma-v">{detail.issueDescription || "-"}</div>
                 </div>
+
+                <div className="ma-kv">
+                  <div className="ma-k">Notes</div>
+                  <div className="ma-v" style={{ whiteSpace: "pre-wrap" }}>
+                    {detail.notes || "-"}
+                  </div>
+                </div>
+
                 <div className="ma-kv">
                   <div className="ma-k">Scheduled</div>
                   <div className="ma-v">
@@ -322,7 +458,7 @@ export default function MaintenancePage() {
                 </div>
                 <div className="ma-kv">
                   <div className="ma-k">AssignedTo</div>
-                  <div className="ma-v">{detail.assignedTo ?? "-"}</div>
+                  <div className="ma-v">{technicianLabel(detail)}</div>
                 </div>
               </div>
 
@@ -370,14 +506,24 @@ export default function MaintenancePage() {
                   <input
                     type="datetime-local"
                     value={modal.payload.scheduledDate}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, scheduledDate: e.target.value } }))}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, scheduledDate: e.target.value },
+                      }))
+                    }
                   />
                 </div>
                 <div className="ma-field">
                   <label>Estimated Cost</label>
                   <input
                     value={modal.payload.estimatedCost}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, estimatedCost: e.target.value } }))}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, estimatedCost: e.target.value },
+                      }))
+                    }
                     placeholder="VD: 1200000"
                   />
                 </div>
@@ -385,7 +531,12 @@ export default function MaintenancePage() {
                   <label>Notes</label>
                   <textarea
                     value={modal.payload.notes}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, notes: e.target.value } }))}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, notes: e.target.value },
+                      }))
+                    }
                     placeholder="Ghi chú SLA, lịch, yêu cầu..."
                   />
                 </div>
@@ -397,33 +548,28 @@ export default function MaintenancePage() {
               </div>
             )}
 
-            {modal.type === "reject" && (
-              <div className="ma-modal__body">
-                <div className="ma-field">
-                  <label>Lý do từ chối</label>
-                  <textarea
-                    value={modal.payload.reason}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, reason: e.target.value } }))}
-                  />
-                </div>
-                <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--danger" onClick={doReject}>
-                    Từ chối
-                  </button>
-                </div>
-              </div>
-            )}
-
             {modal.type === "assign" && (
               <div className="ma-modal__body">
                 <div className="ma-field">
-                  <label>assignedTo (UserId kỹ thuật)</label>
-                  <input
+                  <label>Technician</label>
+                  <select
                     value={modal.payload.assignedTo}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, assignedTo: e.target.value } }))}
-                    placeholder="VD: 12"
-                  />
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, assignedTo: e.target.value },
+                      }))
+                    }
+                  >
+                    <option value="">{techLoading ? "Đang tải..." : "-- Chọn technician --"}</option>
+                    {technicians.map((u) => (
+                      <option key={u.id} value={String(u.id)}>
+                        {u.username || u.email} (#{u.id})
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div className="ma-modal__actions">
                   <button className="ma-btn ma-btn--primary" onClick={doAssign}>
                     Phân công
@@ -438,13 +584,41 @@ export default function MaintenancePage() {
                   <label>Actual Cost</label>
                   <input
                     value={modal.payload.actualCost}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, actualCost: e.target.value } }))}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, actualCost: e.target.value },
+                      }))
+                    }
                     placeholder="VD: 1500000"
                   />
                 </div>
                 <div className="ma-modal__actions">
                   <button className="ma-btn ma-btn--primary" onClick={doComplete}>
                     Hoàn tất
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {modal.type === "reject" && (
+              <div className="ma-modal__body">
+                <div className="ma-field">
+                  <label>Lý do từ chối</label>
+                  <textarea
+                    value={modal.payload.reason}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, reason: e.target.value },
+                      }))
+                    }
+                    placeholder="VD: Không đủ thông tin / Không thuộc phạm vi..."
+                  />
+                </div>
+                <div className="ma-modal__actions">
+                  <button className="ma-btn ma-btn--danger" onClick={doReject}>
+                    Từ chối
                   </button>
                 </div>
               </div>
