@@ -58,12 +58,23 @@
 .fr-card__meta{ color:rgba(238,242,255,0.70); font-size:12px; }
 
 .fr-table-wrap{ overflow:auto; }
-.fr-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.fr-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+
+/* ✅ compact: list gọn => giảm min-width */
+.fr-table--compact{ min-width: 980px; }
+
 .fr-table th, .fr-table td{ padding:11px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.fr-table td{ white-space: nowrap; }
 .fr-table th{ text-align:left; color:rgba(238,242,255,0.80); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
 .fr-table tbody tr{ cursor:pointer; transition: background 120ms ease; }
 .fr-table tbody tr:hover{ background: rgba(255,255,255,0.05); }
 .fr-table tbody tr.is-active{ background: linear-gradient(90deg, rgba(255,138,0,0.14), rgba(255,176,0,0.06)); }
+.fr-td-strong{ font-weight: 800; }
+
 .fr-empty{ color:rgba(238,242,255,0.70); text-align:center; padding:18px; }
 .fr-empty-box{ padding:16px; color:rgba(238,242,255,0.70); }
 
@@ -71,6 +82,10 @@
 .fr-pill--pending{ border-color: rgba(255,176,0,0.35); background: rgba(255,176,0,0.10); }
 .fr-pill--approved{ border-color: rgba(0,255,170,0.35); background: rgba(0,255,170,0.10); }
 .fr-pill--rejected{ border-color: rgba(255,85,85,0.35); background: rgba(255,85,85,0.10); }
+
+/* Contract status */
+.fr-pill--signed{ border-color: rgba(0,255,170,0.35); background: rgba(0,255,170,0.10); }
+.fr-pill--unsigned{ border-color: rgba(255,176,0,0.35); background: rgba(255,176,0,0.10); }
 
 .fr-detail{ padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 @media (max-width:520px){ .fr-detail{ grid-template-columns:1fr; } }

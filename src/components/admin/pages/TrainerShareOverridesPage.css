@@ -1,5 +1,5 @@
-/* same premium style */
 .to-page{ color:#eef2ff; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+
 .to-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .to-title{ font-weight:900; font-size:18px; letter-spacing:0.02em; }
 .to-sub{ color:rgba(238,242,255,0.70); font-size:12px; margin-top:6px; }
@@ -16,7 +16,7 @@
 }
 .to-field{ display:flex; flex-direction:column; gap:6px; min-width:180px; }
 .to-field label{ font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(238,242,255,0.70); }
-.to-field input,.to-field textarea{
+.to-field input,.to-field select,.to-field textarea{
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.18);
   color:#eef2ff; border-radius:14px;
@@ -52,7 +52,6 @@
 .to-card__head{ padding:12px 12px 8px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06); }
 .to-card__title{ font-weight:900; }
 .to-card__meta{ color:rgba(238,242,255,0.70); font-size:12px; }
-
 .to-table-wrap{ overflow:auto; }
 .to-table{ width:100%; border-collapse:collapse; font-size:13px; }
 .to-table th,.to-table td{ padding:11px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
@@ -62,6 +61,11 @@
 .to-table tbody tr.is-active{ background: linear-gradient(90deg, rgba(255,138,0,0.14), rgba(255,176,0,0.06)); }
 .to-empty{ color:rgba(238,242,255,0.70); text-align:center; padding:18px; }
 .to-empty-box{ padding:16px; color:rgba(238,242,255,0.70); }
+
+.to-pill{ display:inline-flex; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); font-size:12px; }
+.to-pill--pending{ border-color: rgba(255,176,0,0.35); background: rgba(255,176,0,0.10); }
+.to-pill--approved{ border-color: rgba(0,255,170,0.35); background: rgba(0,255,170,0.10); }
+.to-pill--rejected{ border-color: rgba(255,85,85,0.35); background: rgba(255,85,85,0.10); }
 
 .to-detail{ padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 @media (max-width:520px){ .to-detail{ grid-template-columns:1fr; } }
@@ -87,3 +91,13 @@
 .to-modal__title{ font-weight:900; }
 .to-modal__body{ padding:12px; }
 .to-modal__actions{ margin-top:12px; display:flex; justify-content:flex-end; gap:10px; }
+
+.to-hint{
+  margin-top:4px;
+  font-size:12px;
+  color:rgba(238,242,255,0.65);
+  line-height:1.35;
+}
+.to-hint--danger{
+  color:rgba(255,120,120,0.95);
+}

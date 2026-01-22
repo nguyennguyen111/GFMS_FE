@@ -7,6 +7,7 @@ import {
   admTogglePolicy,
 } from "../../../services/adminAdminCoreService";
 
+// ===== helpers giống style duyệt chia sẻ PT =====
 const safeJsonParse = (s) => {
   try {
     return JSON.parse(s);
@@ -17,11 +18,66 @@ const safeJsonParse = (s) => {
 
 const isoDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
+const pick = (obj, keys) => {
+  if (!obj) return undefined;
+  for (const k of keys) {
+    if (obj?.[k] !== undefined && obj?.[k] !== null && String(obj[k]).trim() !== "") return obj[k];
+  }
+  return undefined;
+};
+
+const gymLabel = (gymObj, gymId) => pick(gymObj, ["name", "gymName", "title"]) || (gymId ?? "-");
+
+const policyTypeLabel = (t) => {
+  if (!t) return "-";
+  if (t === "trainer_share") return "Chia sẻ PT";
+  if (t === "cancellation") return "Huỷ đặt lịch";
+  if (t === "commission") return "Hoa hồng";
+  return t;
+};
+
+const appliesToLabel = (v) => {
+  if (!v) return "-";
+  if (v === "system") return "System (toàn hệ thống)";
+  if (v === "gym") return "Theo Gym";
+  return v;
+};
+
+const summarizeValue = (value) => {
+  // value có thể object hoặc string JSON
+  let v = value;
+  if (typeof v === "string") {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      v = null;
+    }
+  }
+  if (!v || typeof v !== "object") return "-";
+
+  const parts = [];
+  if (v.commissionSplit !== undefined) parts.push(`Split: ${v.commissionSplit}`);
+  if (v.defaultCommissionSplit !== undefined) parts.push(`DefaultSplit: ${v.defaultCommissionSplit}`);
+  if (v.maxHoursPerWeek !== undefined) parts.push(`MaxHours/Week: ${v.maxHoursPerWeek}`);
+  if (v.maxBookingsPerDay !== undefined) parts.push(`MaxBooking/Day: ${v.maxBookingsPerDay}`);
+  if (v.cancelFee !== undefined) parts.push(`CancelFee: ${v.cancelFee}`);
+
+  // nếu nhiều key quá thì chỉ show 3 cái đầu
+  if (parts.length === 0) return "{...}";
+  return parts.slice(0, 3).join(" • ") + (parts.length > 3 ? " • ..." : "");
+};
+
 export default function SharingPoliciesPage() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
 
-  const [filters, setFilters] = useState({ policyType: "", gymId: "", isActive: "" });
+  // filter: đổi gymId input -> dropdown (tự build từ rows)
+  const [filters, setFilters] = useState({
+    policyType: "",
+    gymId: "",
+    isActive: "",
+  });
+
   const [modal, setModal] = useState({ open: false, editId: null, form: null });
 
   const emptyForm = useMemo(
@@ -38,6 +94,23 @@ export default function SharingPoliciesPage() {
     }),
     []
   );
+
+  const normalizePolicy = (p) => {
+    const gym = p?.gym || p?.Gym || p?.appliedGym || p?.AppliedGym || null; // fallback nhiều key
+    return { ...p, gym };
+  };
+
+  const normalizedRows = useMemo(() => rows.map(normalizePolicy), [rows]);
+
+  const gymOptions = useMemo(() => {
+    const map = new Map(); // gymId -> name
+    normalizedRows.forEach((p) => {
+      if (p?.gymId) map.set(String(p.gymId), gymLabel(p.gym, p.gymId));
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }, [normalizedRows]);
 
   const fetchList = async () => {
     setLoading(true);
@@ -83,6 +156,12 @@ export default function SharingPoliciesPage() {
 
   const submit = async () => {
     const f = modal.form;
+
+    // validate gymId nếu appliesTo=gym
+    if (f.appliesTo === "gym" && (!String(f.gymId || "").trim() || Number.isNaN(Number(f.gymId)))) {
+      return alert("appliesTo=gym thì gymId bắt buộc và phải là số.");
+    }
+
     const val = safeJsonParse(f.valueText);
     if (!val) return alert("JSON trong Value không hợp lệ.");
 
@@ -147,22 +226,40 @@ export default function SharingPoliciesPage() {
 
       <div className="sp-filters">
         <div className="sp-field">
-          <label>policyType</label>
-          <select value={filters.policyType} onChange={(e) => setFilters((s) => ({ ...s, policyType: e.target.value }))}>
+          <label>Policy type</label>
+          <select
+            value={filters.policyType}
+            onChange={(e) => setFilters((s) => ({ ...s, policyType: e.target.value }))}
+          >
             <option value="">Tất cả</option>
             <option value="trainer_share">trainer_share</option>
+            <option value="cancellation">cancellation</option>
             <option value="commission">commission</option>
           </select>
         </div>
 
+        {/* gym dropdown: tự build từ rows (nếu API policy trả kèm gymId) */}
         <div className="sp-field">
-          <label>gymId</label>
-          <input value={filters.gymId} onChange={(e) => setFilters((s) => ({ ...s, gymId: e.target.value }))} placeholder="VD: 1" />
+          <label>Gym</label>
+          <select
+            value={filters.gymId}
+            onChange={(e) => setFilters((s) => ({ ...s, gymId: e.target.value }))}
+          >
+            <option value="">Tất cả</option>
+            {gymOptions.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="sp-field">
-          <label>isActive</label>
-          <select value={filters.isActive} onChange={(e) => setFilters((s) => ({ ...s, isActive: e.target.value }))}>
+          <label>Active</label>
+          <select
+            value={filters.isActive}
+            onChange={(e) => setFilters((s) => ({ ...s, isActive: e.target.value }))}
+          >
             <option value="">Tất cả</option>
             <option value="true">true</option>
             <option value="false">false</option>
@@ -181,27 +278,32 @@ export default function SharingPoliciesPage() {
           <table className="sp-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>policyType</th>
-                <th>appliesTo</th>
-                <th>gymId</th>
-                <th>name</th>
-                <th>active</th>
+                <th style={{ width: 80 }}>ID</th>
+                <th style={{ width: 150 }}>Loại</th>
+                <th style={{ width: 160 }}>Áp dụng</th>
+                <th>Gym</th>
+                <th>Name</th>
+                <th>Value</th>
+                <th style={{ width: 120 }}>Active</th>
                 <th style={{ width: 200 }}>Actions</th>
               </tr>
             </thead>
+
             <tbody>
-              {rows.map((p) => (
+              {normalizedRows.map((p) => (
                 <tr key={p.id}>
-                  <td>#{p.id}</td>
-                  <td>{p.policyType}</td>
-                  <td>{p.appliesTo}</td>
-                  <td>{p.gymId ?? "-"}</td>
+                  <td className="sp-mono">#{p.id}</td>
+                  <td>{policyTypeLabel(p.policyType)}</td>
+                  <td>{appliesToLabel(p.appliesTo)}</td>
+                  <td>{p.appliesTo === "gym" ? gymLabel(p.gym, p.gymId) : "-"}</td>
                   <td className="sp-strong">{p.name || "-"}</td>
+                  <td className="sp-value">{summarizeValue(p.value)}</td>
                   <td>{pill(p.isActive)}</td>
                   <td>
                     <div className="sp-row-actions">
-                      <button className="sp-btn" onClick={() => openEdit(p)}>Edit</button>
+                      <button className="sp-btn" onClick={() => openEdit(p)}>
+                        Edit
+                      </button>
                       <button className="sp-btn sp-btn--warn" onClick={() => toggle(p.id)}>
                         Toggle
                       </button>
@@ -209,9 +311,10 @@ export default function SharingPoliciesPage() {
                   </td>
                 </tr>
               ))}
+
               {rows.length === 0 && (
                 <tr>
-                  <td className="sp-empty" colSpan={7}>
+                  <td className="sp-empty" colSpan={8}>
                     Không có policy nào
                   </td>
                 </tr>
@@ -226,7 +329,9 @@ export default function SharingPoliciesPage() {
           <div className="sp-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="sp-modal__head">
               <div className="sp-modal__title">{modal.editId ? "Cập nhật policy" : "Tạo policy"}</div>
-              <button className="sp-btn sp-btn--ghost" onClick={close}>✕</button>
+              <button className="sp-btn sp-btn--ghost" onClick={close}>
+                ✕
+              </button>
             </div>
 
             <div className="sp-modal__body">
@@ -238,6 +343,7 @@ export default function SharingPoliciesPage() {
                     onChange={(e) => setModal((m) => ({ ...m, form: { ...m.form, policyType: e.target.value } }))}
                   >
                     <option value="trainer_share">trainer_share</option>
+                    <option value="cancellation">cancellation</option>
                     <option value="commission">commission</option>
                   </select>
                 </div>
@@ -253,13 +359,30 @@ export default function SharingPoliciesPage() {
                   </select>
                 </div>
 
+                {/* gym dropdown nếu có options, fallback input */}
                 <div className="sp-field">
-                  <label>gymId (nếu appliesTo=gym)</label>
-                  <input
-                    value={modal.form.gymId}
-                    onChange={(e) => setModal((m) => ({ ...m, form: { ...m.form, gymId: e.target.value } }))}
-                    placeholder="VD: 1"
-                  />
+                  <label>Gym (nếu appliesTo=gym)</label>
+                  {gymOptions.length > 0 ? (
+                    <select
+                      value={modal.form.gymId}
+                      onChange={(e) => setModal((m) => ({ ...m, form: { ...m.form, gymId: e.target.value } }))}
+                      disabled={modal.form.appliesTo !== "gym"}
+                    >
+                      <option value="">{modal.form.appliesTo === "gym" ? "Chọn gym…" : "—"}</option>
+                      {gymOptions.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={modal.form.gymId}
+                      onChange={(e) => setModal((m) => ({ ...m, form: { ...m.form, gymId: e.target.value } }))}
+                      placeholder="VD: 101"
+                      disabled={modal.form.appliesTo !== "gym"}
+                    />
+                  )}
                 </div>
 
                 <div className="sp-field">

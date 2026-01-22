@@ -41,6 +41,8 @@
 .sp-table th{ text-align:left; color:rgba(238,242,255,0.80); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
 .sp-empty{ color:rgba(238,242,255,0.70); text-align:center; padding:18px; }
 .sp-strong{ font-weight:800; }
+.sp-mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.sp-value{ color: rgba(238,242,255,0.78); white-space:nowrap; }
 
 .sp-row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
 
