@@ -68,8 +68,12 @@ export const admGetTrainerShares = (params) =>
 export const admGetTrainerShareDetail = (id) =>
   axios.get(`/api/admin/inventory/trainer-shares/${id}`);
 
-export const admApproveTrainerShare = (id) =>
-  axios.patch(`/api/admin/inventory/trainer-shares/${id}/approve`);
+/**
+ * ✅ FIX BUG: approve phải gửi body (policyId, commissionSplit, notes...)
+ * Nếu không gửi body -> BE sẽ báo "policyId is required"
+ */
+export const admApproveTrainerShare = (id, body) =>
+  axios.patch(`/api/admin/inventory/trainer-shares/${id}/approve`, body);
 
 export const admRejectTrainerShare = (id, body) =>
   axios.patch(`/api/admin/inventory/trainer-shares/${id}/reject`, body);
