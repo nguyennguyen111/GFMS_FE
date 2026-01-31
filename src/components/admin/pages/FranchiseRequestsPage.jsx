@@ -1,361 +1,435 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { adminFranchiseApi } from "../../../services/adminFranchiseApi";
 import "./FranchiseRequestsPage.css";
-import {
-  admGetFranchiseRequests,
-  admGetFranchiseRequestDetail,
-  admApproveFranchiseRequest,
-  admRejectFranchiseRequest,
-} from "../../../services/adminAdminCoreService";
+
+const STATUS_LABEL = { pending: "Pending", approved: "Approved", rejected: "Rejected" };
+const CONTRACT_LABEL = {
+  not_sent: "Not Sent",
+  sent: "Sent",
+  viewed: "Viewed",
+  signed: "Signed",
+  completed: "Completed",
+  void: "Void",
+};
+
+function formatMoney(v) {
+  if (v === null || v === undefined) return "-";
+  const n = Number(v);
+  if (Number.isNaN(n)) return String(v);
+  return n.toLocaleString("vi-VN");
+}
+
+function normalizeListResponse(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.data?.rows)) return payload.data.rows;
+  return [];
+}
+
+function sortRowsStable(list) {
+  const arr = [...(list || [])];
+  arr.sort((a, b) => {
+    // ưu tiên createdAt nếu có
+    const ta = a?.createdAt ? new Date(a.createdAt).getTime() : null;
+    const tb = b?.createdAt ? new Date(b.createdAt).getTime() : null;
+    if (ta !== null && tb !== null && ta !== tb) return tb - ta;
+    // fallback id desc
+    return (b?.id || 0) - (a?.id || 0);
+  });
+  return arr;
+}
+
+// ===== button rules =====
+const canApprove = (r) => r.status === "pending";
+const canReject = (r) => r.status === "pending";
+const canSendContract = (r) => r.status === "approved" && r.contractStatus === "not_sent";
+
+// Waiting owner sign... = sent/viewed nhưng chưa signed
+const isWaitingSign = (r) =>
+  r.status === "approved" &&
+  (r.contractStatus === "sent" || r.contractStatus === "viewed") &&
+  !r.contractSigned;
+
+// mock events giống base SignNow
+const canMockViewed = (r) => r.status === "approved" && r.contractStatus === "sent";
+const canMockSigned = (r) =>
+  r.status === "approved" &&
+  (r.contractStatus === "sent" || r.contractStatus === "viewed") &&
+  !r.contractSigned;
+
+// complete = signed -> completed + create gym
+const canComplete = (r) => r.status === "approved" && r.contractStatus === "signed";
+const isCompleted = (r) => r.contractStatus === "completed" && r.gymId;
 
 export default function FranchiseRequestsPage() {
-  const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
-  const [filters, setFilters] = useState({ status: "", q: "" });
-  const [page, setPage] = useState(1);
-  const limit = 10;
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState("");
 
-  const [selectedId, setSelectedId] = useState(null);
-  const [detail, setDetail] = useState(null);
-  const [modal, setModal] = useState({ open: false, type: "", payload: {} });
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [contractStatus, setContractStatus] = useState("all");
 
-  const fmtDateTime = (v) => {
-    if (!v) return "-";
-    const d = new Date(v);
-    if (Number.isNaN(d.getTime())) return "-";
-    return d.toLocaleString();
-  };
+  const [modal, setModal] = useState({ open: false, type: "", id: null, text: "" });
 
-  const renderUser = (u) => {
-    if (!u) return "-";
-    return u.username || u.email || `#${u.id}`;
-  };
-
-  const fetchList = async () => {
+  async function load(extraParams) {
     setLoading(true);
+    setError("");
     try {
-      const res = await admGetFranchiseRequests({ ...filters, page, limit });
-      setRows(res?.data?.data || []);
-      setMeta(res?.data?.meta || { page, limit, totalItems: 0, totalPages: 1 });
+      // Nếu BE support filter server-side thì params sẽ giúp.
+      // Nếu không support, vẫn ok vì FE filter client-side.
+      const res = await adminFranchiseApi.list(extraParams);
+      const data = sortRowsStable(normalizeListResponse(res.data));
+      setRows(data);
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          e?.message ||
+          "Load failed"
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const fetchDetail = async (id) => {
-    setLoading(true);
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function runAction(id, fn, opts = {}) {
+    setBusyId(id);
+    setError("");
     try {
-      const res = await admGetFranchiseRequestDetail(id);
-      setDetail(res.data);
+      if (opts?.confirmText) {
+        const ok = window.confirm(opts.confirmText);
+        if (!ok) return;
+      }
+      await fn();
+      await load(); // reload để lấy state mới nhất từ BE
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      setError(
+        e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          e?.message ||
+          "Action failed"
+      );
     } finally {
-      setLoading(false);
+      setBusyId(null);
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchList();
-    // eslint-disable-next-line
-  }, [page]);
+  function openModal(type, id) {
+    setModal({ open: true, type, id, text: "" });
+  }
+  function closeModal() {
+    setModal({ open: false, type: "", id: null, text: "" });
+  }
 
-  useEffect(() => {
-    if (selectedId) fetchDetail(selectedId);
-    // eslint-disable-next-line
-  }, [selectedId]);
+  async function submitModal() {
+    const { type, id, text } = modal;
+    if (!id) return;
 
-  const openReject = () => setModal({ open: true, type: "reject", payload: { reviewNotes: "" } });
-  const closeModal = () => setModal({ open: false, type: "", payload: {} });
-
-  const doApprove = async () => {
-    if (!window.confirm("Duyệt yêu cầu nhượng quyền này và tạo Gym mới?")) return;
-    try {
-      await admApproveFranchiseRequest(selectedId);
-      await fetchDetail(selectedId);
-      await fetchList();
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    }
-  };
-
-  const doReject = async () => {
-    try {
-      await admRejectFranchiseRequest(selectedId, modal.payload);
+    if (type === "approve") {
+      await runAction(id, () => adminFranchiseApi.approve(id, { reviewNotes: text }));
       closeModal();
-      setSelectedId(null);
-      setDetail(null);
-      await fetchList();
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      return;
     }
-  };
+    if (type === "reject") {
+      if (!text.trim()) {
+        setError("Rejection reason is required");
+        return;
+      }
+      await runAction(id, () => adminFranchiseApi.reject(id, { rejectionReason: text }));
+      closeModal();
+      return;
+    }
+  }
+
+  async function copyToClipboard(value) {
+    try {
+      await navigator.clipboard.writeText(value);
+      // không cần toast, UI đơn giản
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      const okStatus = status === "all" ? true : r.status === status;
+      const okContract = contractStatus === "all" ? true : r.contractStatus === contractStatus;
+
+      const text = `${r.businessName || ""} ${r.location || ""} ${r.contactPerson || ""} ${
+        r.contactEmail || ""
+      } ${r.contractUrl || ""}`.toLowerCase();
+
+      const okQ = !qq ? true : text.includes(qq);
+      return okStatus && okContract && okQ;
+    });
+  }, [rows, q, status, contractStatus]);
 
   return (
     <div className="fr-page">
-      <div className="fr-head">
+      <div className="fr-header">
         <div>
-          <div className="fr-title">Yêu cầu nhượng quyền</div>
-          <div className="fr-sub">Admin duyệt / từ chối, tạo Gym khi approve (module 3)</div>
+          <div className="fr-title">Franchise Requests</div>
+          <div className="fr-subtitle">
+            Approve → Send Contract → Viewed → Signed → Completed → Create Gym (mock SignNow base)
+          </div>
         </div>
-        <div className="fr-badge">{loading ? "Đang tải..." : "Module 3"}</div>
+
+        <div className="fr-actions">
+          <button className="fr-btn fr-btn-ghost" onClick={() => load()} disabled={loading}>
+            Refresh
+          </button>
+        </div>
       </div>
 
-      <div className="fr-filters">
-        <div className="fr-field">
-          <label>Status</label>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}
-          >
-            <option value="">Tất cả</option>
+      <div className="fr-toolbar">
+        <div className="fr-search">
+          <input
+            className="fr-input"
+            placeholder="Search business / location / contact / contract url..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+
+        <div className="fr-filters">
+          <select className="fr-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="all">All Status</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
           </select>
-        </div>
 
-        <div className="fr-field fr-field--grow">
-          <label>Search</label>
-          <input
-            value={filters.q}
-            onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
-            placeholder="businessName / location / contact..."
-          />
+          <select
+            className="fr-select"
+            value={contractStatus}
+            onChange={(e) => setContractStatus(e.target.value)}
+          >
+            <option value="all">All Contract</option>
+            <option value="not_sent">Not Sent</option>
+            <option value="sent">Sent</option>
+            <option value="viewed">Viewed</option>
+            <option value="signed">Signed</option>
+            <option value="completed">Completed</option>
+            <option value="void">Void</option>
+          </select>
         </div>
-
-        <button
-          className="fr-btn fr-btn--primary"
-          onClick={() => {
-            setPage(1);
-            fetchList();
-          }}
-        >
-          Lọc
-        </button>
       </div>
 
-      <div className="fr-grid">
-        {/* LIST */}
-        <div className="fr-card">
-          <div className="fr-card__head">
-            <div className="fr-card__title">Danh sách</div>
-            <div className="fr-card__meta">
-              Tổng: <b>{meta.totalItems}</b>
-            </div>
-          </div>
+      {error ? <div className="fr-alert">{error}</div> : null}
 
-          <div className="fr-table-wrap">
-            <table className="fr-table fr-table--compact">
+      <div className="fr-card">
+        {loading ? (
+          <div className="fr-empty">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="fr-empty">No requests found.</div>
+        ) : (
+          <div className="fr-tableWrap">
+            <table className="fr-table">
               <thead>
                 <tr>
                   <th style={{ width: 90 }}>ID</th>
-                  <th style={{ width: 120 }}>Status</th>
-                  <th style={{ width: 130 }}>Contract</th>
                   <th>Business</th>
-                  <th style={{ width: 120 }}>Location</th>
-                  <th style={{ width: 160 }}>Requester</th>
-                  <th style={{ width: 190 }}>Created</th>
+                  <th>Location</th>
+                  <th>Contact</th>
+                  <th style={{ width: 150 }}>Investment</th>
+                  <th style={{ width: 140 }}>Status</th>
+                  <th style={{ width: 200 }}>Contract</th>
+                  <th style={{ width: 90 }}>Gym</th>
+                  <th style={{ width: 650 }}>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    className={selectedId === r.id ? "is-active" : ""}
-                    onClick={() => setSelectedId(r.id)}
-                    title="Click để xem chi tiết"
-                  >
-                    <td>#{r.id}</td>
-                    <td>
-                      <span className={`fr-pill fr-pill--${r.status}`}>{r.status}</span>
-                    </td>
-                    <td>
-                      {r.contractSigned ? (
-                        <span className="fr-pill fr-pill--signed">signed</span>
-                      ) : (
-                        <span className="fr-pill fr-pill--unsigned">not signed</span>
-                      )}
-                    </td>
-                    <td className="fr-td-strong">{r.businessName || "-"}</td>
-                    <td>{r.location || "-"}</td>
-                    <td>{renderUser(r.requester)}</td>
-                    <td>{fmtDateTime(r.createdAt)}</td>
-                  </tr>
-                ))}
+                {filtered.map((r) => {
+                  const busy = busyId === r.id;
 
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="fr-empty">
-                      Không có dữ liệu
-                    </td>
-                  </tr>
-                )}
+                  return (
+                    <tr key={r.id} className={busy ? "fr-rowBusy" : ""}>
+                      <td className="fr-mono">#{r.id}</td>
+
+                      <td>
+                        <div className="fr-main">{r.businessName || "-"}</div>
+                        <div className="fr-muted">{r.businessPlan || ""}</div>
+                      </td>
+
+                      <td>{r.location || "-"}</td>
+
+                      <td>
+                        <div className="fr-main">{r.contactPerson || "-"}</div>
+                        <div className="fr-muted">{r.contactEmail || ""}</div>
+                      </td>
+
+                      <td className="fr-mono">{formatMoney(r.investmentAmount)}</td>
+
+                      <td>
+                        <span className={`fr-pill fr-pill-${r.status}`}>
+                          {STATUS_LABEL[r.status] || r.status}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="fr-contract">
+                          <span
+                            className={`fr-pill fr-pill-contract ${
+                              r.contractStatus === "signed" || r.contractStatus === "completed"
+                                ? "fr-pill-signed"
+                                : ""
+                            }`}
+                          >
+                            {CONTRACT_LABEL[r.contractStatus] || r.contractStatus}
+                          </span>
+
+                          {r.contractUrl ? (
+                            <button
+                              className="fr-linkBtn"
+                              onClick={() => window.open(r.contractUrl, "_blank", "noopener,noreferrer")}
+                              disabled={busy}
+                              title="Open contract link (mock SignNow)"
+                            >
+                              Open
+                            </button>
+                          ) : null}
+
+                          {r.contractUrl ? (
+                            <button
+                              className="fr-linkBtn fr-linkBtn-ghost"
+                              onClick={() => copyToClipboard(r.contractUrl)}
+                              disabled={busy}
+                              title="Copy contract URL"
+                            >
+                              Copy
+                            </button>
+                          ) : null}
+                        </div>
+
+                        {isWaitingSign(r) ? <div className="fr-muted">Waiting owner sign…</div> : null}
+                      </td>
+
+                      <td>{r.gymId ? <span className="fr-mono">#{r.gymId}</span> : "-"}</td>
+
+                      <td>
+                        <div className="fr-btnRow">
+                          <button
+                            className="fr-btn fr-btn-primary"
+                            disabled={busy || !canApprove(r)}
+                            onClick={() => openModal("approve", r.id)}
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-danger"
+                            disabled={busy || !canReject(r)}
+                            onClick={() => openModal("reject", r.id)}
+                          >
+                            Reject
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-secondary"
+                            disabled={busy || !canSendContract(r)}
+                            onClick={() =>
+                              runAction(r.id, () => adminFranchiseApi.sendContract(r.id), {
+                                confirmText: "Send contract to owner (mock SignNow)?",
+                              })
+                            }
+                          >
+                            Send Contract
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-ghost"
+                            disabled={busy || !canMockViewed(r)}
+                            onClick={() => runAction(r.id, () => adminFranchiseApi.mockViewed(r.id))}
+                            title="Mock: owner opened the contract link"
+                          >
+                            Mock Viewed
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-ghost"
+                            disabled={busy || !canMockSigned(r)}
+                            onClick={() => runAction(r.id, () => adminFranchiseApi.mockSigned(r.id))}
+                            title="Mock: owner signed the contract"
+                          >
+                            Mock Signed
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-ghost"
+                            disabled={busy}
+                            onClick={() => runAction(r.id, () => adminFranchiseApi.getContractStatus(r.id))}
+                            title="Poll contract status (like SignNow status check)"
+                          >
+                            Refresh Status
+                          </button>
+
+                          <button
+                            className="fr-btn fr-btn-warning"
+                            disabled={busy || !canComplete(r)}
+                            onClick={() =>
+                              runAction(r.id, () => adminFranchiseApi.mockCompleted(r.id), {
+                                confirmText: "Complete contract and create Gym now?",
+                              })
+                            }
+                            title="Mock: complete workflow and create gym"
+                          >
+                            Complete
+                          </button>
+
+                          {isCompleted(r) ? <span className="fr-done">✅ Completed</span> : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-
-          <div className="fr-paging">
-            <button className="fr-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              ←
-            </button>
-            <div className="fr-paging__text">
-              Page <b>{meta.page}</b> / {meta.totalPages}
-            </div>
-            <button
-              className="fr-btn"
-              disabled={page >= meta.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              →
-            </button>
-          </div>
-        </div>
-
-        {/* DETAIL */}
-        <div className="fr-card">
-          <div className="fr-card__head">
-            <div className="fr-card__title">Chi tiết</div>
-            {!detail ? <div className="fr-card__meta">Chọn 1 request</div> : null}
-          </div>
-
-          {!detail ? (
-            <div className="fr-empty-box">Chưa chọn yêu cầu nhượng quyền nào.</div>
-          ) : (
-            <>
-              <div className="fr-detail">
-                <div className="fr-kv">
-                  <div className="fr-k">ID</div>
-                  <div className="fr-v">#{detail.id}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Status</div>
-                  <div className="fr-v">
-                    <span className={`fr-pill fr-pill--${detail.status}`}>{detail.status}</span>
-                  </div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Contract</div>
-                  <div className="fr-v">
-                    {detail.contractSigned ? (
-                      <span className="fr-pill fr-pill--signed">signed</span>
-                    ) : (
-                      <span className="fr-pill fr-pill--unsigned">not signed</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Created at</div>
-                  <div className="fr-v">{fmtDateTime(detail.createdAt)}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Business</div>
-                  <div className="fr-v">{detail.businessName || "-"}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Location</div>
-                  <div className="fr-v">{detail.location || "-"}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Requester</div>
-                  <div className="fr-v">{renderUser(detail.requester)}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Reviewed by</div>
-                  <div className="fr-v">{renderUser(detail.reviewer)}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Approved date</div>
-                  <div className="fr-v">{fmtDateTime(detail.approvedDate)}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Gym created</div>
-                  <div className="fr-v">
-                    {detail.createdGym?.name
-                      ? `${detail.createdGym.name} (#${detail.createdGym.id})`
-                      : "-"}
-                  </div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Contact</div>
-                  <div className="fr-v">
-                    {detail.contactPerson || "-"} • {detail.contactPhone || "-"}
-                  </div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">Email</div>
-                  <div className="fr-v">{detail.contactEmail || "-"}</div>
-                </div>
-
-                <div className="fr-kv">
-                  <div className="fr-k">ReviewNotes</div>
-                  <div className="fr-v">{detail.reviewNotes || "-"}</div>
-                </div>
-              </div>
-
-              <div className="fr-actions">
-                <button className="fr-btn" disabled={detail.status !== "pending"} onClick={doApprove}>
-                  Approve
-                </button>
-                <button
-                  className="fr-btn fr-btn--danger"
-                  disabled={detail.status !== "pending"}
-                  onClick={openReject}
-                >
-                  Reject
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* MODAL reject */}
-      {modal.open && (
-        <div className="fr-modal__backdrop" onMouseDown={closeModal}>
-          <div className="fr-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="fr-modal__head">
-              <div className="fr-modal__title">Reject Franchise Request</div>
-              <button className="fr-btn fr-btn--ghost" onClick={closeModal}>
-                ✕
-              </button>
+      {modal.open ? (
+        <div className="fr-modalOverlay" onClick={closeModal}>
+          <div className="fr-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fr-modalTitle">
+              {modal.type === "approve" ? "Approve Request" : "Reject Request"}
             </div>
 
-            <div className="fr-modal__body">
-              <div className="fr-field">
-                <label>Review Notes</label>
-                <textarea
-                  value={modal.payload.reviewNotes}
-                  onChange={(e) =>
-                    setModal((m) => ({
-                      ...m,
-                      payload: { ...m.payload, reviewNotes: e.target.value },
-                    }))
-                  }
-                />
-              </div>
-              <div className="fr-modal__actions">
-                <button className="fr-btn fr-btn--danger" onClick={doReject}>
-                  Từ chối
-                </button>
-              </div>
+            <textarea
+              className="fr-textarea"
+              rows={5}
+              placeholder={modal.type === "approve" ? "Review notes (optional)..." : "Rejection reason (required)..."}
+              value={modal.text}
+              onChange={(e) => setModal((m) => ({ ...m, text: e.target.value }))}
+            />
+
+            <div className="fr-modalActions">
+              <button className="fr-btn fr-btn-ghost" onClick={closeModal} disabled={busyId !== null}>
+                Cancel
+              </button>
+
+              <button className="fr-btn fr-btn-primary" onClick={submitModal} disabled={busyId !== null}>
+                Submit
+              </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
