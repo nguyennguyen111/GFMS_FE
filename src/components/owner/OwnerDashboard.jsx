@@ -5,6 +5,19 @@ import "./OwnerDashboard.css";
 import OwnerOverviewPage from "./pages/OwnerOverviewPage";
 import OwnerPackagesPage from "./pages/OwnerPackagesPage";
 import OwnerPoliciesPage from "./pages/OwnerPoliciesPage";
+import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
+import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
+import OwnerInventoryPage from "./pages/OwnerInventoryPage";
+import OwnerTransferPage from "./pages/OwnerTransferPage";
+import OwnerSuppliersPage from "./pages/OwnerSuppliersPage";
+import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
+import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
+import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
+import OwnerFranchiseRequestsPage from "./pages/OwnerFranchiseRequestsPage";
+import OwnerTrainerSharePage from "./pages/OwnerTrainerSharePage";
+import OwnerMembersPage from "./pages/OwnerMembersPage";
+import OwnerBookingsPage from "./pages/OwnerBookingsPage";
+import OwnerGymsPage from "./pages/OwnerGymsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
 
 export default function OwnerDashboard() {
@@ -35,8 +48,8 @@ export default function OwnerDashboard() {
         { label: "Gym của tôi", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
         { label: "Gói tập", to: "/owner/packages", key: "packages", icon: "🎫" },
         { label: "Hội viên", to: "/owner/members", key: "members", icon: "👥" },
-        { label: "Lịch PT / Booking", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
-        { label: "PT / Trainer", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
+        { label: "PT / Lịch ", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
+        { label: "Chia sẻ PT", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
         { label: "Đánh giá", to: "/owner/reviews", key: "reviews", icon: "⭐" },
       ],
     },
@@ -161,11 +174,11 @@ export default function OwnerDashboard() {
             <Route path="/overview" element={<OwnerOverviewPage />} />
 
             {/* Business */}
-            <Route path="/gyms" element={<PlaceholderPage title="Gym của tôi (gym)" />} />
+            <Route path="/gyms" element={<OwnerGymsPage />} />
             <Route path="/packages" element={<OwnerPackagesPage />} />
-            <Route path="/members" element={<PlaceholderPage title="Hội viên (member, packageActivation)" />} />
-            <Route path="/bookings" element={<PlaceholderPage title="Lịch PT / Booking (booking, sessionprogress)" />} />
-            <Route path="/trainers" element={<PlaceholderPage title="PT / Trainer (trainer, trainershare)" />} />
+            <Route path="/members" element={<OwnerMembersPage />} />
+            <Route path="/bookings" element={<OwnerBookingsPage />} />
+            <Route path="/trainers" element={<OwnerTrainerSharePage />} />
             <Route path="/reviews" element={<PlaceholderPage title="Đánh giá (review)" />} />
 
             {/* Finance */}
@@ -174,16 +187,16 @@ export default function OwnerDashboard() {
             <Route path="/withdrawals" element={<PlaceholderPage title="Rút tiền (withdrawal)" />} />
 
             {/* Inventory & Equipment */}
-            <Route path="/equipment" element={<PlaceholderPage title="Thiết bị (equipment, equipmentcategory, equipmentstock)" />} />
-            <Route path="/inventory" element={<PlaceholderPage title="Tồn kho (inventory)" />} />
-            <Route path="/transfers" element={<PlaceholderPage title="Chuyển kho (equipmenttransfer)" />} />
-            <Route path="/maintenance" element={<PlaceholderPage title="Bảo trì (maintenance)" />} />
+            <Route path="/equipment" element={<OwnerEquipmentPage />} />
+            <Route path="/inventory" element={<OwnerInventoryPage />} />
+            <Route path="/transfers" element={<OwnerTransferPage />} />
+            <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
             {/* Purchasing */}
-            <Route path="/quotations" element={<PlaceholderPage title="Báo giá (quotation, quotationitem)" />} />
-            <Route path="/purchase-orders" element={<PlaceholderPage title="Đơn mua (purchaseorder, purchaseorderitem)" />} />
-            <Route path="/receipts" element={<PlaceholderPage title="Nhập kho (receipt, receiptitem)" />} />
-            <Route path="/suppliers" element={<PlaceholderPage title="Nhà cung cấp (supplier)" />} />
+            <Route path="/quotations" element={<OwnerQuotationsPage />} />
+            <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
+            <Route path="/receipts" element={<OwnerReceiptsPage />} />
+            <Route path="/suppliers" element={<OwnerSuppliersPage />} />
 
             {/* Communication */}
             <Route path="/messages" element={<PlaceholderPage title="Tin nhắn (message)" />} />
@@ -191,7 +204,7 @@ export default function OwnerDashboard() {
 
             {/* System */}
             <Route path="/policies" element={<OwnerPoliciesPage title="Chính sách (policy)" />} />
-            <Route path="/franchise-requests" element={<PlaceholderPage title="Yêu cầu nhượng quyền (franchiserequest)" />} />
+            <Route path="/franchise-requests" element={<OwnerFranchiseRequestsPage />} />
             <Route path="/settings" element={<PlaceholderPage title="Cài đặt" />} />
 
             <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />

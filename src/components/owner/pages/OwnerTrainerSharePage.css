@@ -1,0 +1,478 @@
+.ots-page {
+  padding: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.ots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ots-title {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Alerts */
+.ots-alert {
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ots-alert--danger {
+  background: rgba(220, 38, 38, 0.14);
+  border: 1px solid rgba(220, 38, 38, 0.30);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ots-alert--success {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Buttons */
+.ots-btn {
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.ots-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.ots-btn--primary {
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(255, 138, 0, 0.35);
+}
+
+.ots-btn--primary:hover {
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  box-shadow: 0 8px 20px rgba(255, 138, 0, 0.3);
+}
+
+.ots-btn--secondary {
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.ots-btn--danger {
+  background: rgba(220, 38, 38, 0.14);
+  border-color: rgba(220, 38, 38, 0.30);
+}
+
+.ots-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: rgba(220, 38, 38, 0.40);
+}
+
+.ots-btn--sm {
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.ots-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Filters */
+.ots-filters {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ots-filters input,
+.ots-filters select {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #eef2ff;
+  border-radius: 14px;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.ots-filters input::placeholder {
+  color: rgba(238, 242, 255, 0.5);
+}
+
+/* Table */
+.ots-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  overflow: hidden;
+  font-size: 13px;
+  table-layout: auto;
+}
+
+.ots-table thead {
+  background: rgba(255, 138, 0, 0.08);
+}
+
+.ots-table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.ots-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 200px;
+}
+
+.ots-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.ots-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Badge */
+.ots-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ots-badge--warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.20), rgba(245, 158, 11, 0.15));
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ots-badge--success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.20), rgba(5, 150, 105, 0.15));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ots-badge--danger {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.20), rgba(185, 28, 28, 0.15));
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Actions */
+.ots-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ots-text--success {
+  color: rgba(16, 185, 129, 0.92);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ots-text--danger {
+  color: rgba(220, 38, 38, 0.92);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Loading & Empty */
+.ots-loading,
+.ots-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Pagination */
+.ots-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.ots-pagination span {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Modal */
+.ots-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 200ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ots-modal__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.ots-modal__content {
+  position: relative;
+  background: linear-gradient(135deg, rgba(15, 22, 33, 0.98), rgba(20, 30, 45, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  max-width: 650px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 300ms ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ots-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ots-modal__header h2 {
+  font-size: 20px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.ots-modal__close {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: all 140ms ease;
+}
+
+.ots-modal__close:hover {
+  background: rgba(220, 38, 38, 0.14);
+  border-color: rgba(220, 38, 38, 0.30);
+  color: rgba(255, 255, 255, 0.92);
+  transform: rotate(90deg);
+}
+
+/* Form */
+.ots-form {
+  padding: 24px;
+}
+
+.ots-field {
+  margin-bottom: 20px;
+}
+
+.ots-field__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ots-required {
+  color: rgba(220, 38, 38, 0.92);
+  margin-left: 3px;
+}
+
+.ots-field__hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 3px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.ots-field__control {
+  width: 100%;
+}
+
+.ots-input,
+.ots-select,
+.ots-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 200ms ease;
+}
+
+.ots-select option {
+  background: rgba(0, 0, 0, 0.95);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+}
+
+.ots-input::placeholder,
+.ots-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ots-input:focus,
+.ots-select:focus,
+.ots-textarea:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.ots-textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 100px;
+}
+
+.ots-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.ots-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ots-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ots-table {
+    font-size: 12px;
+  }
+
+  .ots-table th,
+  .ots-table td {
+    padding: 8px 10px;
+  }
+
+  .ots-modal__content {
+    max-height: 95vh;
+  }
+
+  .ots-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Custom scrollbar */
+.ots-modal__content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ots-modal__content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 10px;
+}
+
+.ots-modal__content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 10px;
+}
+
+.ots-modal__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
