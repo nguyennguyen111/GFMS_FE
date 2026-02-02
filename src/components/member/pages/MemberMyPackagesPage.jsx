@@ -9,6 +9,7 @@ const fmtMoney = (v) => {
   return n.toLocaleString("vi-VN") + " ₫";
 };
 const fmtDate = (d) => (d ? String(d).slice(0, 10) : "—");
+const isPaidStatus = (s) => ["completed", "paid"].includes(String(s || "").toLowerCase());
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
@@ -231,8 +232,8 @@ export default function MemberMyPackagesPage() {
                     <span>
                       Thanh toán: <b>{active.Transaction?.paymentMethod || "—"}</b>
                     </span>
-                    <span className={`op-badge ${active.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`}>
-                      {active.Transaction?.paymentStatus === "paid" ? "✅ Đã thanh toán" : active.Transaction?.paymentStatus || "—"}
+                    <span className={`op-badge ${isPaidStatus(active.Transaction?.paymentStatus) ? "is-on" : "is-off"}`}>
+                      {isPaidStatus(active.Transaction?.paymentStatus) ? "✅ Đã thanh toán" : active.Transaction?.paymentStatus || "—"}
                     </span>
                   </div>
                 </div>
@@ -289,8 +290,8 @@ export default function MemberMyPackagesPage() {
                           <span style={{ opacity: 0.7, fontSize: 11 }}>
                             {x.Transaction?.paymentMethod || "—"}
                           </span>
-                          <span className={`op-badge ${x.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`} style={{ fontSize: 10, padding: "4px 8px" }}>
-                            {x.Transaction?.paymentStatus === "paid" ? "✅ Paid" : x.Transaction?.paymentStatus || "—"}
+                          <span className={`op-badge ${isPaidStatus(x.Transaction?.paymentStatus) ? "is-on" : "is-off"}`} style={{ fontSize: 10, padding: "4px 8px" }}>
+                            {isPaidStatus(x.Transaction?.paymentStatus) ? "✅ Paid" : x.Transaction?.paymentStatus || "—"}
                           </span>
                         </div>
                       </td>
