@@ -253,3 +253,228 @@
   .ptp-grid{ grid-template-columns: 1fr; }
   .ptp-input, .ptp-select{ max-width: 100%; }
 }
+
+.ptp-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.ptp-toolbar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin: 10px 0 14px 0;
+}
+
+.ptp-actions{
+  display:flex;
+  gap:8px;
+}
+
+.ptp-btn--primary{
+  background:#ff8a00;
+  border-color:#ff8a00;
+  color:#111;
+  font-weight:600;
+}
+
+.ptp-btn--danger{
+  background: rgba(255, 84, 84, 0.12);
+  border-color: rgba(255, 84, 84, 0.35);
+  color: #ffb3b3;
+}
+
+.ptp-alert{
+  padding: 10px;
+  border: 1px solid rgba(255,0,0,0.35);
+  border-radius: 10px;
+  margin: 10px 0;
+  color: #ffb3b3;
+  background: rgba(255,0,0,0.06);
+}
+
+.ptp-badge{
+  display:inline-flex;
+  align-items:center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+.ptp-badge--on{
+  border-color: rgba(0, 255, 140, 0.25);
+  background: rgba(0, 255, 140, 0.08);
+}
+.ptp-badge--off{
+  border-color: rgba(255, 84, 84, 0.25);
+  background: rgba(255, 84, 84, 0.08);
+}
+
+.ptp-empty{
+  border: 1px dashed rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 10px;
+  text-align:center;
+  opacity: 0.95;
+}
+.ptp-empty__title{
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.ptp-empty__desc{
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.ptp-modal__overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+
+.ptp-modal{
+  width: min(720px, 94vw);
+  background: #0e0e10;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 16px;
+  overflow:hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+}
+
+.ptp-modal__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.ptp-modal__body{
+  padding: 14px;
+}
+
+.ptp-modal__footer{
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+
+.ptp-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ptp-label{
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.ptp-toast{
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 10000;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(20,20,22,0.95);
+  backdrop-filter: blur(8px);
+}
+.ptp-toast--success{
+  border-color: rgba(0,255,140,0.25);
+}
+.ptp-toast--info{
+  border-color: rgba(255,255,255,0.14);
+}
+.ptp-toast__close{
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* ===== FIX TABLE "BỂ FORM" PACKAGES ===== */
+.ptp-table {
+  width: 100%;
+  border-collapse: separate;     /* quan trọng để không dính */
+  border-spacing: 0;
+  table-layout: fixed;           /* giữ cột ổn định */
+  min-width: 860px;              /* tránh dồn chữ khi màn nhỏ */
+}
+
+.ptp-table th,
+.ptp-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  vertical-align: top;
+  white-space: nowrap;           /* không cho dính dòng */
+  overflow: hidden;              /* không tràn */
+  text-overflow: ellipsis;       /* ... */
+}
+
+.ptp-table thead th {
+  font-weight: 700;
+  opacity: 0.95;
+  background: rgba(255,255,255,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ptp-table tbody tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+/* cho cột Name rộng hơn + cho phép xuống dòng mô tả */
+.ptp-table th:nth-child(1),
+.ptp-table td:nth-child(1) {
+  width: 240px;
+  white-space: normal;          /* riêng cột name cho xuống dòng */
+}
+
+/* Type */
+.ptp-table th:nth-child(2),
+.ptp-table td:nth-child(2) { width: 120px; }
+
+/* Price */
+.ptp-table th:nth-child(3),
+.ptp-table td:nth-child(3) { width: 120px; }
+
+/* Sessions */
+.ptp-table th:nth-child(4),
+.ptp-table td:nth-child(4) { width: 100px; }
+
+/* Duration */
+.ptp-table th:nth-child(5),
+.ptp-table td:nth-child(5) { width: 100px; }
+
+/* Status */
+.ptp-table th:nth-child(6),
+.ptp-table td:nth-child(6) { width: 120px; }
+
+/* Actions */
+.ptp-table th:nth-child(7),
+.ptp-table td:nth-child(7) { width: 220px; }
+
+/* Wrapper scroll ngang nếu thiếu chỗ */
+.ptp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 14px;
+}
