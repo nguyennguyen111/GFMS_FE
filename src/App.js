@@ -41,6 +41,9 @@ import PTProfile from "./components/pt-portal/PTProfile";
 import PTSkills from "./components/pt-portal/PTSkills";
 import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
+import PTShareRequests from "./components/pt-portal/PTShareRequests";
+import PTPackages from "./components/pt-portal/PTPackages";
+import PTRequests from "./components/pt-portal/PTRequests";
 
 // ✅ Guard tối giản cho admin
 const AdminGuard = ({ children }) => {
@@ -118,6 +121,9 @@ function App() {
             <Route path="profile/create" element={<PTCreateProfile />} />
             <Route path="clients" element={<PTClients />} />
             <Route path="feedback" element={<PTFeedback />} />
+            <Route path="packages" element={<PTPackages />} />
+            <Route path="requests" element={<PTRequests />} />
+
 
             {/* portal routes */}
             <Route path="trainers" element={<PTList />} />
@@ -129,6 +135,7 @@ function App() {
             <Route path=":id/skills" element={<PTSkills />} />
             <Route path=":id/schedule" element={<PTSchedule />} />
             <Route path=":id/schedule-update" element={<PTScheduleUpdate />} />
+            <Route path="share-requests" element={<PTShareRequests />} />
 
             {/* fallback trong /pt */}
             <Route path="*" element={<Navigate to="dashboard" replace />} />
