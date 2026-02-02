@@ -5,7 +5,6 @@ import axios from "../../setup/axios";
 
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
 
 import InventoryLogsPage from "./pages/InventoryLogsPage";
 import EquipmentPage from "./pages/EquipmentPage";
@@ -13,8 +12,19 @@ import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
 import ReceiptImportPage from "./pages/ReceiptImportPage";
 import ExportPage from "./pages/ExportPage";
-
 import GymsPage from "./pages/GymsPage";
+
+// ✅ Purchase workflow (1.1–1.4 bạn đã code)
+import PurchaseWorkflowPage from "./pages/PurchaseWorkflowPage";
+
+// ✅ NEW: module 2–6.2 pages (bạn copy thêm bên dưới)
+import MaintenancePage from "./pages/MaintenancePage";
+import FranchiseRequestsPage from "./pages/FranchiseRequestsPage";
+import SharingPoliciesPage from "./pages/SharingPoliciesPage";
+import TrainerShareApprovalsPage from "./pages/TrainerShareApprovalsPage";
+import TrainerShareOverridesPage from "./pages/TrainerShareOverridesPage";
+import AuditLogsPage from "./pages/AuditLogsPage";
+import ReportsPage from "./pages/ReportsPage";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -33,6 +43,7 @@ export default function AdminDashboard() {
       { section: "Thiết bị & Kho" },
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
+      { label: "Purchase Workflow", to: "/admin/purchase-workflow", key: "purchase-workflow" },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
       { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
       { label: "Nhập kho", to: "/admin/import", key: "import" },
@@ -43,6 +54,7 @@ export default function AdminDashboard() {
 
       { section: "Chia sẻ PT" },
       { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
+      { label: "Duyệt chia sẻ PT", to: "/admin/shared-trainer-approvals", key: "ts-approvals" },
       { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
 
       { section: "Báo cáo & Nhật ký" },
@@ -54,18 +66,12 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      // ✅ gọi backend để clear cookie jwt
       await axios.post("/auth/logout");
     } catch (e) {
       // ignore
     } finally {
-      // ✅ clear trạng thái FE (nếu bạn lưu)
       localStorage.removeItem("user");
-
-      // ✅ replace để không back về admin
       navigate("/login", { replace: true });
-
-      // ✅ cắt BFCache mạnh (khuyến nghị)
       window.location.replace("/login");
     }
   };
@@ -129,7 +135,7 @@ export default function AdminDashboard() {
             <div className="ad-topbar__title">Admin Console</div>
             <div className="ad-topbar__hint">GFMS • ReactJS • NodeJS • MySQL</div>
           </div>
-          <div className="ad-pill">Giai đoạn 1</div>
+          <div className="ad-pill">Giai đoạn 2</div>
         </header>
 
         <div className="ad-content">
@@ -137,35 +143,36 @@ export default function AdminDashboard() {
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
             <Route path="/dashboard" element={<DashboardHome />} />
-
             <Route path="/users" element={<UsersPage />} />
 
-            <Route path="/packages" element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />} />
+            {/* Placeholder: bạn có thể code sau nếu cần */}
+            <Route path="/packages" element={<div style={{ color: "#eef2ff" }}>Gói dịch vụ (Catalog) – TODO</div>} />
+
             <Route path="/gyms" element={<GymsPage title="Quản lý phòng gym" />} />
-            <Route path="/franchises" element={<PlaceholderPage title="Yêu cầu nhượng quyền" />} />
+            <Route path="/franchises" element={<FranchiseRequestsPage />} />
 
             <Route path="/equipment" element={<EquipmentPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/purchase-workflow" element={<PurchaseWorkflowPage />} />
+
             <Route path="/stocks" element={<InventoryPage />} />
             <Route path="/inventory-logs" element={<InventoryLogsPage />} />
             <Route path="/import" element={<ReceiptImportPage />} />
             <Route path="/export" element={<ExportPage />} />
 
-            <Route path="/maintenance" element={<PlaceholderPage title="Bảo trì / Sửa chữa" />} />
+            {/* ✅ Module 2 */}
+            <Route path="/maintenance" element={<MaintenancePage />} />
 
-            <Route
-              path="/policies/sharing"
-              element={<PlaceholderPage title="Chính sách chia sẻ PT" />}
-            />
-            <Route
-              path="/shared-trainers/overrides"
-              element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />}
-            />
+            {/* ✅ Module 4–5 */}
+            <Route path="/policies/sharing" element={<SharingPoliciesPage />} />
+            <Route path="/shared-trainer-approvals" element={<TrainerShareApprovalsPage />} />
+            <Route path="/shared-trainers/overrides" element={<TrainerShareOverridesPage />} />
 
-            <Route path="/reports" element={<PlaceholderPage title="Báo cáo" />} />
-            <Route path="/audit-logs" element={<PlaceholderPage title="Audit Logs" />} />
+            {/* ✅ Module 6 */}
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/audit-logs" element={<AuditLogsPage />} />
 
-            <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />
+            <Route path="*" element={<div style={{ color: "#eef2ff" }}>Không tìm thấy trang</div>} />
           </Routes>
         </div>
       </main>

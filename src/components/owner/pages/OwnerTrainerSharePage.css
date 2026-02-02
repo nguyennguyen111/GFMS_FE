@@ -1,0 +1,988 @@
+/* === Owner Trainer Share Page === */
+.ots-page {
+  padding: 20px;
+  color: #eef2ff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.ots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ots-title {
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0 0 4px 0;
+  background: linear-gradient(135deg, #eef2ff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+/* Tabs */
+.ots-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.ots-tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0;
+}
+
+.ots-tab:hover {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ots-tab.active {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.ots-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #3b82f6;
+}
+
+/* Alerts */
+.ots-alert {
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ots-alert--danger {
+  background: rgba(255, 80, 80, 0.10);
+  border: 1px solid rgba(255, 80, 80, 0.22);
+  color: #fff;
+}
+
+.ots-alert--success {
+  background: rgba(80, 255, 180, 0.10);
+  border: 1px solid rgba(80, 255, 180, 0.24);
+  color: #fff;
+}
+
+/* Buttons */
+.ots-btn,
+.btn-primary {
+  border-radius: 14px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(0,0,0,.18);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: transform .06s ease, background .15s ease, border-color .15s ease;
+}
+
+.ots-btn:hover,
+.btn-primary:hover {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.22);
+}
+
+.ots-btn:active,
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.ots-btn--primary,
+.btn-primary {
+  background: rgba(0, 180, 255, .16);
+  border-color: rgba(0, 180, 255, .28);
+}
+
+.ots-btn--primary:hover,
+.btn-primary:hover {
+  background: rgba(0, 180, 255, .22);
+  border-color: rgba(0, 180, 255, .35);
+}
+
+.ots-btn--secondary {
+  background: rgba(0, 0, 0, .18);
+  border-color: rgba(255, 255, 255, .15);
+}
+
+.ots-btn--danger {
+  background: rgba(255, 80, 80, .14);
+  border-color: rgba(255, 80, 80, .28);
+}
+
+.ots-btn--danger:hover {
+  background: rgba(255, 80, 80, .22);
+  border-color: rgba(255, 80, 80, .35);
+}
+
+.ots-btn--sm {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.ots-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Filters */
+.ots-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+}
+
+.ots-filters input,
+.ots-filters select {
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid rgba(255, 255, 255, .12);
+  color: #eef2ff;
+  border-radius: 14px;
+  font-size: 14px;
+  min-width: 200px;
+  outline: none;
+  transition: border-color .2s ease;
+}
+
+.ots-filters input:focus,
+.ots-filters select:focus {
+  border-color: rgba(0, 180, 255, .4);
+}
+
+.ots-filters input::placeholder {
+  color: rgba(238, 242, 255, 0.4);
+}
+
+/* Table */
+.ots-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.ots-table thead {
+  background: rgba(255, 255, 255, .04);
+}
+
+.ots-table th {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+
+.ots-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.95);
+  vertical-align: top;
+}
+
+.ots-table tbody tr {
+  transition: background .15s ease;
+}
+
+.ots-table tbody tr:hover {
+  background: rgba(255, 255, 255, .04);
+}
+
+.ots-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ots-table td strong {
+  font-weight: 900;
+}
+
+/* Badge */
+.ots-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ots-badge--warning {
+  background: rgba(255, 176, 0, .10);
+  border-color: rgba(255, 176, 0, .22);
+  color: #ffc107;
+}
+
+.ots-badge--success {
+  background: rgba(80, 255, 180, .10);
+  border-color: rgba(80, 255, 180, .24);
+  color: #5fffc0;
+}
+
+.ots-badge--danger {
+  background: rgba(255, 80, 80, .10);
+  border-color: rgba(255, 80, 80, .22);
+  color: #ff5555;
+}
+
+.ots-badge--info {
+  background: rgba(59, 130, 246, .10);
+  border-color: rgba(59, 130, 246, .24);
+  color: #3b82f6;
+}
+
+/* Actions */
+.ots-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ots-text--success {
+  color: rgba(80, 255, 180, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ots-text--danger {
+  color: rgba(255, 80, 80, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Loading & Empty */
+.ots-loading,
+.ots-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+}
+
+.ots-empty p {
+  margin: 0 0 16px 0;
+  opacity: 0.8;
+}
+
+/* Pagination */
+.ots-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ots-pagination span {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 140px;
+  text-align: center;
+}
+
+/* Modal */
+.ots-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ots-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.ots-modal__content {
+  position: relative;
+  background: linear-gradient(145deg, rgba(25, 32, 48, 0.98) 0%, rgba(18, 24, 38, 0.98) 100%);
+  border: 1px solid rgba(255, 138, 0, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 138, 0, 0.08);
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ots-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 138, 0, 0.04) 0%, transparent 100%);
+}
+
+.ots-modal__header h2 {
+  font-size: 20px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #eef2ff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.ots-modal__close {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  font-weight: 300;
+}
+
+.ots-modal__close:hover {
+  background: rgba(255, 80, 80, 0.14);
+  border-color: rgba(255, 80, 80, 0.28);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Form */
+.ots-form {
+  padding: 24px;
+}
+
+.ots-field {
+  margin-bottom: 18px;
+}
+
+.ots-field__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ots-required {
+  color: rgba(255, 80, 80, 0.9);
+  margin-left: 3px;
+}
+
+.ots-field__hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.ots-field__control {
+  width: 100%;
+}
+
+.ots-input,
+.ots-select,
+.ots-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(5, 10, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+  font-weight: 500;
+}
+
+.ots-select {
+  cursor: pointer;
+}
+
+.ots-select option {
+  background: rgba(10, 15, 25, 0.98);
+  color: #fff;
+  padding: 10px;
+  font-weight: 500;
+}
+
+.ots-input::placeholder,
+.ots-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.ots-input:focus,
+.ots-select:focus,
+.ots-textarea:focus {
+  background: rgba(5, 10, 20, 0.95);
+  border-color: rgba(0, 180, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(0, 180, 255, 0.08), 0 0 20px rgba(0, 180, 255, 0.15);
+}
+
+.ots-input:disabled,
+.ots-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ots-select--sm {
+  padding: 8px 12px;
+  font-size: 13px;
+  min-width: 150px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ots-select--sm:hover {
+  border-color: rgba(0, 180, 255, 0.4);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
+  box-shadow: 0 4px 8px rgba(0, 180, 255, 0.1);
+}
+
+.ots-select--sm:focus {
+  border-color: rgba(0, 180, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 180, 255, 0.1), 0 4px 12px rgba(0, 180, 255, 0.2);
+}
+
+.ots-select--sm option {
+  background: rgba(15, 23, 42, 0.98);
+  color: #fff;
+  padding: 12px;
+  font-weight: 500;
+}
+
+.ots-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+/* Schedule Mode Selection */
+.ots-schedule-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ots-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 2px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ots-radio-label:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.ots-radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.ots-radio-label input[type="radio"]:checked + span {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.ots-radio-label span {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Specific Days Schedule */
+.ots-specific-days {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+}
+
+.ots-specific-days-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.ots-specific-days-header span {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ots-specific-days-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ots-specific-day-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ots-specific-day-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Weekdays Schedule */
+.ots-weekdays {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+}
+
+.ots-weekdays-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px 0;
+}
+
+.ots-weekdays-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ots-weekday-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.ots-weekday-item:hover {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.ots-weekday-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.ots-weekday-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.ots-weekday-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ots-weekday-times {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.ots-time-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+}
+
+.ots-input--sm {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.ots-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.ots-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 20px 24px;
+  margin: 0 -24px -24px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 20px 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ots-page {
+    padding: 14px;
+  }
+
+  .ots-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ots-title {
+    font-size: 24px;
+  }
+
+  .ots-table {
+    font-size: 12px;
+  }
+
+  .ots-table th,
+  .ots-table td {
+    padding: 10px 12px;
+  }
+
+  .ots-modal__content {
+    max-height: 95vh;
+    border-radius: 20px;
+  }
+
+  .ots-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ots-filters {
+    padding: 12px;
+  }
+
+  .ots-filters input,
+  .ots-filters select {
+    min-width: 100%;
+  }
+}
+
+/* Custom scrollbar */
+.ots-modal__content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ots-modal__content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.ots-modal__content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.ots-modal__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Trainer Schedule Display */
+.ots-schedule-info {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+/* Trainer Schedule in Modal */
+.ots-trainer-schedule {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+}
+
+.ots-trainer-schedule h4 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ots-schedule-days {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.ots-schedule-day {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.ots-schedule-day:hover {
+  border-color: rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.ots-schedule-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.ots-schedule-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.ots-schedule-empty-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.ots-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ots-schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.ots-schedule-item:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.ots-schedule-item--conflict {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ots-schedule-time {
+  color: #fbbf24;
+  font-weight: 700;
+  min-width: 130px;
+  font-size: 13px;
+}
+
+.ots-schedule-type {
+  font-size: 12px;
+  padding: 3px 8px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.ots-schedule-member {
+  color: #94a3b8;
+  font-size: 12px;
+  flex: 1;
+}
+
+.ots-conflict-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  border-radius: 8px;
+  font-weight: 700;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.ots-loading-text {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  padding: 12px;
+}
+
+.ots-empty-text {
+  text-align: center;
+  color: #4ade80;
+  font-size: 14px;
+  padding: 12px;
+  font-weight: 600;
+}
+
+/* Scrollbar for schedule days */
+.ots-schedule-days::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ots-schedule-days::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.ots-schedule-days::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+}
+
+.ots-schedule-days::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.ots-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ots-schedule-item .ots-time {
+  color: #ffc107;
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.ots-schedule-item .ots-member {
+  color: #94a3b8;
+}
