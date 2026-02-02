@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import ownerTrainerService from "../../../services/ownerTrainerService";
+import ownerBookingService from "../../../services/ownerBookingService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import "./OwnerBookingsPage.css";
 
 const OwnerBookingsPage = () => {
+  // PT Management
   const [trainers, setTrainers] = useState([]);
   const [filters, setFilters] = useState({ q: "", gymId: "" });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
@@ -12,12 +14,12 @@ const OwnerBookingsPage = () => {
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   
   // Data
   const [availableUsers, setAvailableUsers] = useState([]);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
-  const [trainerSchedule, setTrainerSchedule] = useState(null);
+  const [trainerDetail, setTrainerDetail] = useState(null);
   
   const [newTrainer, setNewTrainer] = useState({
     targetUserId: "",
@@ -103,13 +105,13 @@ const OwnerBookingsPage = () => {
     try {
       console.log("Creating trainer with data:", newTrainer);
       await ownerTrainerService.createTrainer(newTrainer);
-      alert("Tạo PT thành công!");
+      alert("Thêm huấn luyện viên thành công!");
       handleCloseCreateModal();
       loadTrainers();
     } catch (error) {
-      console.error("Lỗi khi tạo PT:", error);
+      console.error("Lỗi khi thêm huấn luyện viên:", error);
       console.error("Error response:", error.response?.data);
-      alert(error.response?.data?.message || "Lỗi khi tạo PT");
+      alert(error.response?.data?.message || "Lỗi khi thêm huấn luyện viên");
     }
   };
 
@@ -131,51 +133,88 @@ const OwnerBookingsPage = () => {
         hourlyRate: selectedTrainer.hourlyRate,
         availableHours: selectedTrainer.availableHours,
       });
-      alert("Cập nhật PT thành công!");
+      alert("Cập nhật huấn luyện viên thành công!");
       handleCloseEditModal();
       loadTrainers();
     } catch (error) {
-      console.error("Lỗi khi cập nhật PT:", error);
-      alert(error.response?.data?.message || "Lỗi khi cập nhật PT");
+      console.error("Lỗi khi cập nhật huấn luyện viên:", error);
+      alert(error.response?.data?.message || "Lỗi khi cập nhật huấn luyện viên");
     }
   };
 
-  const handleDeleteTrainer = async (trainerId) => {
-    if (!window.confirm("Bạn có chắc muốn xóa PT này? Role PT sẽ bị gỡ khỏi user.")) {
+  const handleViewDetail = async (trainer) => {
+    try {
+      const response = await ownerTrainerService.getTrainerDetail(trainer.id);
+      setTrainerDetail(response.data);
+      setSelectedTrainer(trainer);
+      setShowDetailModal(true);
+    } catch (error) {
+      console.error("Lỗi khi xem chi tiết:", error);
+      alert("Lỗi khi tải thông tin huấn luyện viên");
+    }
+  };
+
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setTrainerDetail(null);
+    setSelectedTrainer(null);
+  };
+
+  const handleToggleStatus = async (trainer) => {
+    console.log("trainer.isActive:", trainer.isActive, "type:", typeof trainer.isActive);
+    const isActivating = !trainer.isActive;
+    const action = isActivating ? "hoạt động" : "ngừng hoạt động";
+
+    // Only check for upcoming bookings if deactivating
+    if (!isActivating) {
+      try {
+        const response = await ownerBookingService.getMyBookings({
+          trainerId: trainer.id,
+          status: "confirmed,in_progress"
+        });
+        
+        const upcomingBookings = response.data?.filter(booking => {
+          const bookingDate = new Date(booking.bookingDate);
+          const today = new Date();
+          return bookingDate >= today;
+        }) || [];
+
+        if (upcomingBookings.length > 0) {
+          alert(`Không thể ngừng hoạt động! Huấn luyện viên còn ${upcomingBookings.length} lịch hẹn sắp tới.`);
+          return;
+        }
+      } catch (error) {
+        console.error("Lỗi khi kiểm tra lịch hẹn:", error);
+      }
+    }
+
+    if (!window.confirm(`Bạn có chắc muốn ${action} huấn luyện viên "${trainer.User?.username}"?`)) {
       return;
     }
-    try {
-      await ownerTrainerService.deleteTrainer(trainerId);
-      alert("Xóa PT thành công!");
-      loadTrainers();
-    } catch (error) {
-      console.error("Lỗi khi xóa PT:", error);
-      alert(error.response?.data?.message || "Lỗi khi xóa PT");
-    }
-  };
 
-  const handleViewSchedule = async (trainer) => {
     try {
-      const response = await ownerTrainerService.getTrainerSchedule(trainer.id);
-      setTrainerSchedule(response.data);
-      setShowScheduleModal(true);
+      const response = await ownerTrainerService.toggleTrainerStatus(trainer.id);
+      alert(response.message || `Đã ${action} huấn luyện viên thành công!`);
+      
+      // Close detail modal if open
+      if (showDetailModal) {
+        handleCloseDetailModal();
+      }
+      
+      // Reload trainers to update status
+      await loadTrainers(pagination.page);
     } catch (error) {
-      console.error("Lỗi khi xem lịch:", error);
-      alert("Lỗi khi tải lịch PT");
+      console.error(`Lỗi khi ${action} PT:`, error);
+      alert(error.response?.data?.message || `Lỗi khi ${action} PT`);
     }
-  };
-
-  const handleCloseScheduleModal = () => {
-    setShowScheduleModal(false);
-    setTrainerSchedule(null);
   };
 
   return (
     <div className="owner-bookings-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 className="page-title">Quản lý PT</h1>
+        <h1 className="page-title">Quản lý huấn luyện viên</h1>
         <button onClick={handleOpenCreateModal} className="search-button" style={{ marginBottom: 0 }}>
-          + Tạo PT mới
+          + Thêm huấn luyện viên mới
         </button>
       </div>
 
@@ -208,7 +247,7 @@ const OwnerBookingsPage = () => {
         <table className="bookings-table">
           <thead>
             <tr>
-              <th>Tên PT</th>
+              <th>Tên huấn luyện viên</th>
               <th>Email</th>
               <th>Điện thoại</th>
               <th>Phòng gym</th>
@@ -229,10 +268,10 @@ const OwnerBookingsPage = () => {
                   <td>{trainer.hourlyRate ? `${Number(trainer.hourlyRate).toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}đ` : "N/A"}</td>
                   <td>
                     <button
-                      onClick={() => handleViewSchedule(trainer)}
-                      className="btn-view-schedule"
+                      onClick={() => handleViewDetail(trainer)}
+                      className="btn-detail"
                     >
-                      Xem lịch
+                      Chi tiết
                     </button>
                     <button
                       onClick={() => handleOpenEditModal(trainer)}
@@ -241,10 +280,10 @@ const OwnerBookingsPage = () => {
                       Sửa
                     </button>
                     <button
-                      onClick={() => handleDeleteTrainer(trainer.id)}
-                      className="btn-delete"
+                      onClick={() => handleToggleStatus(trainer)}
+                      className="btn-deactivate"
                     >
-                      Xóa
+                      {trainer.isActive !== false ? "Ngừng hoạt động" : "Kích hoạt"}
                     </button>
                   </td>
                 </tr>
@@ -252,7 +291,7 @@ const OwnerBookingsPage = () => {
             ) : (
               <tr>
                 <td colSpan="7" className="no-bookings">
-                  Không có PT nào
+                  Không có huấn luyện viên nào
                 </td>
               </tr>
             )}
@@ -280,12 +319,12 @@ const OwnerBookingsPage = () => {
         </button>
       </div>
 
-      {/* Modal Tạo PT */}
+      
       {showCreateModal && (
         <div className="modal-overlay" onClick={handleCloseCreateModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <button className="modal-close" onClick={handleCloseCreateModal}>×</button>
-            <h2>Tạo PT mới</h2>
+            <h2>Thêm huấn luyện viên mới</h2>
             <div className="modal-body">
               <div className="detail-row">
                 <strong>Chọn user:</strong>
@@ -295,7 +334,7 @@ const OwnerBookingsPage = () => {
                   value={newTrainer.targetUserId}
                   onChange={(e) => setNewTrainer({ ...newTrainer, targetUserId: e.target.value })}
                 >
-                  <option value="">-- Chọn user chưa có role PT --</option>
+                  <option value="">-- Chọn user chưa có vai trò huấn luyện viên --</option>
                   {availableUsers.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.username} - {user.email}
@@ -362,7 +401,7 @@ const OwnerBookingsPage = () => {
                   Hủy
                 </button>
                 <button onClick={handleCreateTrainer} className="search-button" style={{ margin: 0 }}>
-                  Tạo PT
+                  Thêm huấn luyện viên
                 </button>
               </div>
             </div>
@@ -370,129 +409,163 @@ const OwnerBookingsPage = () => {
         </div>
       )}
 
-      {/* Modal Sửa PT */}
+     
       {showEditModal && selectedTrainer && (
         <div className="modal-overlay" onClick={handleCloseEditModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <button className="modal-close" onClick={handleCloseEditModal}>×</button>
-            <h2>Chỉnh sửa PT</h2>
+          <div className="modal-content edit-trainer-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chỉnh sửa huấn luyện viên</h2>
+              <button className="modal-close" onClick={handleCloseEditModal}>×</button>
+            </div>
+            
             <div className="modal-body">
-              <div className="detail-row">
-                <strong>PT:</strong> {selectedTrainer.User?.username}
+              {/* PT Name (read-only) */}
+              <div className="edit-info-card">
+                <div className="edit-label">Huấn luyện viên:</div>
+                <div className="edit-value">{selectedTrainer.User?.username}</div>
               </div>
 
-              <div className="detail-row">
-                <strong>Chuyên môn:</strong>
+              {/* Chuyên môn */}
+              <div className="edit-field">
+                <label className="edit-field-label">Chuyên môn:</label>
                 <input
                   type="text"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
+                  className="edit-field-input"
                   value={selectedTrainer.specialization}
                   onChange={(e) => setSelectedTrainer({ ...selectedTrainer, specialization: e.target.value })}
                 />
               </div>
 
-              <div className="detail-row">
-                <strong>Chứng chỉ:</strong>
+              {/* Chứng chỉ */}
+              <div className="edit-field">
+                <label className="edit-field-label">Chứng chỉ:</label>
                 <input
                   type="text"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
+                  className="edit-field-input"
                   value={selectedTrainer.certification}
                   onChange={(e) => setSelectedTrainer({ ...selectedTrainer, certification: e.target.value })}
                 />
               </div>
 
-              <div className="detail-row">
-                <strong>Giá/giờ (đ):</strong>
+              {/* Giá/giờ */}
+              <div className="edit-field">
+                <label className="edit-field-label">Giá/giờ (đ):</label>
                 <input
                   type="number"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
+                  className="edit-field-input"
                   value={selectedTrainer.hourlyRate}
                   onChange={(e) => setSelectedTrainer({ ...selectedTrainer, hourlyRate: e.target.value })}
                 />
               </div>
+            </div>
 
-              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button onClick={handleCloseEditModal} className="pagination-btn" style={{ background: '#6b7280' }}>
-                  Hủy
-                </button>
-                <button onClick={handleUpdateTrainer} className="search-button" style={{ margin: 0 }}>
-                  Cập nhật
-                </button>
-              </div>
+            <div className="modal-footer">
+              <button onClick={handleCloseEditModal} className="btn-cancel">
+                Hủy
+              </button>
+              <button onClick={handleUpdateTrainer} className="btn-submit">
+                Cập nhật
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Xem Lịch PT */}
-      {showScheduleModal && trainerSchedule && (
-        <div className="modal-overlay" onClick={handleCloseScheduleModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
-            <button className="modal-close" onClick={handleCloseScheduleModal}>×</button>
-            <h2>Lịch tập của PT {trainerSchedule.trainer?.User?.username}</h2>
+      {/* Modal Chi tiết PT */}
+      {showDetailModal && trainerDetail && (
+        <div className="modal-overlay" onClick={handleCloseDetailModal}>
+          <div className="modal-content trainer-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chi tiết huấn luyện viên: {selectedTrainer?.User?.username}</h2>
+              <button className="modal-close" onClick={handleCloseDetailModal}>×</button>
+            </div>
+            
             <div className="modal-body">
-              <div className="detail-row">
-                <strong>Chuyên môn:</strong> {trainerSchedule.trainer?.specialization || "N/A"}
-              </div>
-
-              <div className="detail-row" style={{ background: 'rgba(251, 191, 36, 0.1)', padding: '12px', borderRadius: '8px' }}>
-                <strong>📅 Lịch rảnh:</strong>
-                <div style={{ marginTop: '8px' }}>
-                  {trainerSchedule.trainer?.availableHours && typeof trainerSchedule.trainer.availableHours === 'object' && Object.keys(trainerSchedule.trainer.availableHours).length > 0 ? (
-                    Object.entries(trainerSchedule.trainer.availableHours).map(([day, hours]) => (
-                      <p key={day} style={{ margin: '4px 0' }}>
-                        <strong style={{ textTransform: 'capitalize' }}>{day}:</strong>{' '}
-                        {Array.isArray(hours) && hours.length > 0 
-                          ? hours.map((h, i) => `${h.start} - ${h.end}`).join(', ')
-                          : 'Không có'}
-                      </p>
-                    ))
-                  ) : (
-                    <p>PT chưa cập nhật lịch rảnh</p>
-                  )}
+              {/* Thông tin cơ bản */}
+              <div className="detail-section">
+                <h3 className="detail-section-title">📋 Thông tin cơ bản</h3>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Họ tên:</span>
+                    <span className="detail-value">{selectedTrainer?.User?.username || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">{selectedTrainer?.User?.email || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Số điện thoại:</span>
+                    <span className="detail-value">{selectedTrainer?.User?.phone || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Phòng gym:</span>
+                    <span className="detail-value">{selectedTrainer?.Gym?.name || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Chuyên môn:</span>
+                    <span className="detail-value">{selectedTrainer?.specialization || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Chứng chỉ:</span>
+                    <span className="detail-value">{selectedTrainer?.certification || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Giá/giờ:</span>
+                    <span className="detail-value">
+                      {selectedTrainer?.hourlyRate 
+                        ? `${Number(selectedTrainer.hourlyRate).toLocaleString("vi-VN")}đ` 
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Trạng thái:</span>
+                    <span className={`detail-value ${selectedTrainer?.isActive ? 'status-active' : 'status-inactive'}`}>
+                      {selectedTrainer?.isActive !== false ? "Đang hoạt động" : "Không hoạt động"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="detail-row">
-                <strong>📋 Lịch đã đặt:</strong>
-                {trainerSchedule.bookings && trainerSchedule.bookings.length > 0 ? (
-                  <table className="bookings-table" style={{ marginTop: '10px' }}>
-                    <thead>
-                      <tr>
-                        <th>Ngày</th>
-                        <th>Giờ</th>
-                        <th>Hội viên</th>
-                        <th>Phòng gym</th>
-                        <th>Gói tập</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trainerSchedule.bookings.map((booking) => (
-                        <tr key={booking.id}>
-                          <td>
-                            {booking.bookingDate 
-                              ? new Date(booking.bookingDate).toLocaleDateString('vi-VN')
-                              : "N/A"}
-                          </td>
-                          <td>
-                            {booking.startTime && booking.endTime
-                              ? `${booking.startTime} - ${booking.endTime}`
-                              : "N/A"}
-                          </td>
-                          <td>{booking.Member?.User?.username || "N/A"}</td>
-                          <td>{booking.Gym?.name || "N/A"}</td>
-                          <td>{booking.Package?.name || "N/A"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p style={{ marginTop: '10px' }}>Chưa có lịch nào</p>
-                )}
+              {/* Thống kê */}
+              <div className="detail-section">
+                <h3 className="detail-section-title">📊 Thống kê</h3>
+                <div className="stats-grid">
+                  <div className="stat-card">
+                    <div className="stat-icon">🏋️</div>
+                    <div className="stat-content">
+                      <div className="stat-value">{trainerDetail.totalBookings || 0}</div>
+                      <div className="stat-label">Tổng lịch</div>
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-icon">✅</div>
+                    <div className="stat-content">
+                      <div className="stat-value">{trainerDetail.completedBookings || 0}</div>
+                      <div className="stat-label">Hoàn thành</div>
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-icon">⏳</div>
+                    <div className="stat-content">
+                      <div className="stat-value">{trainerDetail.upcomingBookings || 0}</div>
+                      <div className="stat-label">Sắp tới</div>
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-icon">⭐</div>
+                    <div className="stat-content">
+                      <div className="stat-value">{trainerDetail.averageRating?.toFixed(1) || "N/A"}</div>
+                      <div className="stat-label">Đánh giá TB</div>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-close-modal" onClick={handleCloseDetailModal}>
+                Đóng
+              </button>
             </div>
           </div>
         </div>

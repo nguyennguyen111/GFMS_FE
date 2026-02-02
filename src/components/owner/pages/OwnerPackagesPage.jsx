@@ -55,8 +55,8 @@ export default function OwnerPackagesPage() {
         activeFilter === "all"
           ? true
           : activeFilter === "active"
-          ? !!p.isActive
-          : !p.isActive;
+          ? p.status === 'ACTIVE'
+          : p.status !== 'ACTIVE';
 
       return matchText && matchActive;
     });
@@ -67,7 +67,9 @@ export default function OwnerPackagesPage() {
     setErr("");
     try {
       const res = await ownerGetPackages();
-      setItems(res.data?.data || []);
+      // Lọc bỏ các item NULL hoặc không hợp lệ
+      const validItems = (res.data?.data || []).filter(item => item && item.id && item.name);
+      setItems(validItems);
     } catch (e) {
       setErr(e?.response?.data?.message || e.message || "Load failed");
     } finally {
@@ -166,7 +168,7 @@ export default function OwnerPackagesPage() {
         <div>
           <h2 className="op-title">Quản lý gói tập</h2>
           <div className="op-sub">
-            Tạo / cập nhật / công bố-ngưng gói tập theo gym thuộc quyền quản lý.
+            Tạo / cập nhật / kích hoạt-hủy kích hoạt gói tập theo gym thuộc quyền quản lý.
           </div>
         </div>
 
@@ -189,8 +191,8 @@ export default function OwnerPackagesPage() {
           onChange={(e) => setActiveFilter(e.target.value)}
         >
           <option value="all">Tất cả</option>
-          <option value="active">Đang công bố</option>
-          <option value="inactive">Đang ngưng</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Ngừng hoạt động</option>
         </select>
 
         <button className="op-btn" onClick={fetchData}>
@@ -236,8 +238,8 @@ export default function OwnerPackagesPage() {
                     <td>{Number(p.price).toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₫</td>
                     <td>{p.sessions}</td>
                     <td>
-                      <span className={`op-badge ${p.isActive ? "is-on" : "is-off"}`}>
-                        {p.isActive ? "Công bố" : "Ngưng"}
+                      <span className={`op-badge ${p.status === 'ACTIVE' ? "is-on" : "is-off"}`}>
+                        {p.status === 'ACTIVE' ? "Đang hoạt động" : "Ngừng hoạt động"}
                       </span>
                     </td>
                     <td>
@@ -245,19 +247,19 @@ export default function OwnerPackagesPage() {
                         <button className="op-btn--edit" onClick={() => openEdit(p)}>
                           Sửa
                         </button>
-                        {p.isActive ? (
+                        {p.status === 'ACTIVE' ? (
                           <button
                             className="op-btn--deactivate"
                             onClick={() => toggle(p)}
                           >
-                            Ngưng
+                            Hủy kích hoạt
                           </button>
                         ) : (
                           <button
                             className="op-btn--activate"
                             onClick={() => toggle(p)}
                           >
-                            Công bố
+                            Kích hoạt
                           </button>
                         )}
                       </div>

@@ -37,6 +37,11 @@ const ownerMemberService = {
     const response = await axios.post(`${API_URL}/${memberId}/renew-package`, { packageId });
     return response.data;
   },
+
+  async toggleMemberStatus(id) {
+    const response = await axios.patch(`${API_URL}/${id}/toggle-status`);
+    return response.data;
+  },
 };
 
 export default ownerMemberService;
