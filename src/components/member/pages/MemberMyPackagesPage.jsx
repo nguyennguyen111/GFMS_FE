@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
+import { confirmPayosPayment } from "../../../services/paymentService";
 
 const fmtMoney = (v) => {
   const n = Number(v);
@@ -38,8 +39,21 @@ export default function MemberMyPackagesPage() {
   // ✅ Check query param for PayOS success
   useEffect(() => {
     const payosParam = searchParams.get("payos");
+    const orderCode = searchParams.get("orderCode") || searchParams.get("ordercode");
     if (payosParam === "success") {
       setShowPayosSuccess(true);
+      const confirmAndReload = async () => {
+        try {
+          if (orderCode) {
+            await confirmPayosPayment(orderCode);
+          }
+        } catch (e) {
+          // ignore confirm error; still allow user to refresh data
+        } finally {
+          await load();
+        }
+      };
+      confirmAndReload();
       // Remove query param after showing
       setSearchParams({}, { replace: true });
       // Auto hide after 5 seconds
