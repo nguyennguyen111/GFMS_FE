@@ -1,0 +1,166 @@
+.oeq-page {
+  color: #eef2ff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.oeq-head {
+  margin-bottom: 20px;
+}
+
+.oeq-head h2 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0 0 6px 0;
+}
+
+.oeq-head p {
+  color: rgba(238, 242, 255, 0.7);
+  margin: 0;
+  font-size: 13px;
+}
+
+.oeq-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
+
+.oeq-filters input,
+.oeq-filters select {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #eef2ff;
+  border-radius: 14px;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.oeq-filters input::placeholder {
+  color: rgba(238, 242, 255, 0.5);
+}
+
+.btn-primary {
+  padding: 10px 16px;
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(255, 138, 0, 0.35);
+  color: #eef2ff;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 120ms ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  transform: translateY(-2px);
+}
+
+.oeq-loading {
+  padding: 20px;
+  text-align: center;
+  color: rgba(238, 242, 255, 0.7);
+}
+
+.oeq-table-wrap {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  overflow: auto;
+  margin-bottom: 20px;
+}
+
+.oeq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.oeq-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 138, 0, 0.08);
+  color: rgba(238, 242, 255, 0.8);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.oeq-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.oeq-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.oeq-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.oeq-badge--active {
+  background: rgba(0, 255, 170, 0.1);
+  border: 1px solid rgba(0, 255, 170, 0.3);
+  color: #00ffaa;
+}
+
+.oeq-badge--maintenance {
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid rgba(255, 176, 0, 0.3);
+  color: #ffb000;
+}
+
+.oeq-badge--discontinued {
+  background: rgba(255, 85, 85, 0.1);
+  border: 1px solid rgba(255, 85, 85, 0.3);
+  color: #ff5555;
+}
+
+.oeq-empty {
+  text-align: center;
+  color: rgba(238, 242, 255, 0.5);
+  padding: 20px !important;
+}
+
+.oeq-paging {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+}
+
+.oeq-paging button {
+  padding: 8px 12px;
+  background: rgba(255, 138, 0, 0.18);
+  border: 1px solid rgba(255, 138, 0, 0.3);
+  color: #eef2ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 100ms ease;
+}
+
+.oeq-paging button:hover:not(:disabled) {
+  background: rgba(255, 138, 0, 0.28);
+}
+
+.oeq-paging button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.oeq-paging span {
+  color: rgba(238, 242, 255, 0.7);
+  font-size: 13px;
+}
