@@ -6,6 +6,7 @@ import {
   ownerUpdatePackage,
   ownerTogglePackage,
 } from "../../../services/ownerPackageService";
+import { ownerGetMyGyms } from "../../../services/ownerGymService";
 
 const emptyForm = {
   gymId: "",
@@ -29,6 +30,7 @@ export default function OwnerPackagesPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
+  const [gyms, setGyms] = useState([]);
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // all | active | inactive
@@ -53,8 +55,8 @@ export default function OwnerPackagesPage() {
         activeFilter === "all"
           ? true
           : activeFilter === "active"
-          ? !!p.isActive
-          : !p.isActive;
+          ? p.status === 'ACTIVE'
+          : p.status !== 'ACTIVE';
 
       return matchText && matchActive;
     });
@@ -65,7 +67,9 @@ export default function OwnerPackagesPage() {
     setErr("");
     try {
       const res = await ownerGetPackages();
-      setItems(res.data?.data || []);
+      // Lọc bỏ các item NULL hoặc không hợp lệ
+      const validItems = (res.data?.data || []).filter(item => item && item.id && item.name);
+      setItems(validItems);
     } catch (e) {
       setErr(e?.response?.data?.message || e.message || "Load failed");
     } finally {
@@ -73,8 +77,19 @@ export default function OwnerPackagesPage() {
     }
   };
 
+  const loadGyms = async () => {
+    try {
+      const response = await ownerGetMyGyms();
+      setGyms(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      console.error("Lỗi khi load danh sách phòng gym:", error);
+      setGyms([]);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    loadGyms();
   }, []);
 
   const openCreate = () => {
@@ -153,7 +168,7 @@ export default function OwnerPackagesPage() {
         <div>
           <h2 className="op-title">Quản lý gói tập</h2>
           <div className="op-sub">
-            Tạo / cập nhật / công bố-ngưng gói tập theo gym thuộc quyền quản lý.
+            Tạo / cập nhật / kích hoạt-hủy kích hoạt gói tập theo gym thuộc quyền quản lý.
           </div>
         </div>
 
@@ -176,18 +191,18 @@ export default function OwnerPackagesPage() {
           onChange={(e) => setActiveFilter(e.target.value)}
         >
           <option value="all">Tất cả</option>
-          <option value="active">Đang công bố</option>
-          <option value="inactive">Đang ngưng</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Ngừng hoạt động</option>
         </select>
 
         <button className="op-btn" onClick={fetchData}>
-          Làm mới
+          Tìm kiếm
         </button>
       </div>
 
       {!!err && <div className="op-error">⚠ {err}</div>}
 
-      <div className="op-card">
+      <div className="op-table-wrapper">
         {loading ? (
           <div className="op-empty">Đang tải...</div>
         ) : filtered.length === 0 ? (
@@ -208,38 +223,50 @@ export default function OwnerPackagesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.id}</td>
-                  <td>
-                    <div className="op-name">{p.name}</div>
-                    <div className="op-desc">{p.description}</div>
-                  </td>
-                  <td>#{p.gymId}</td>
-                  <td>{p.type}</td>
-                  <td>{p.durationDays} days</td>
-                  <td>{Number(p.price).toLocaleString("vi-VN")}đ</td>
-                  <td>{p.sessions}</td>
-                  <td>
-                    <span className={`op-badge ${p.isActive ? "is-on" : "is-off"}`}>
-                      {p.isActive ? "Công bố" : "Ngưng"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="op-actions">
-                      <button className="op-btn op-btn--small" onClick={() => openEdit(p)}>
-                        Sửa
-                      </button>
-                      <button
-                        className={`op-btn op-btn--small ${p.isActive ? "op-btn--warn" : "op-btn--ok"}`}
-                        onClick={() => toggle(p)}
-                      >
-                        {p.isActive ? "Ngưng" : "Công bố"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((p) => {
+                const gym = gyms.find(g => g.id === p.gymId);
+                return (
+                  <tr key={p.id}>
+                    <td>{p.id}</td>
+                    <td>
+                      <div className="op-name">{p.name}</div>
+                      <div className="op-desc">{p.description}</div>
+                    </td>
+                    <td>{gym ? gym.name : `#${p.gymId}`}</td>
+                    <td>{p.type}</td>
+                    <td>{p.durationDays} ngày</td>
+                    <td>{Number(p.price).toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₫</td>
+                    <td>{p.sessions}</td>
+                    <td>
+                      <span className={`op-badge ${p.status === 'ACTIVE' ? "is-on" : "is-off"}`}>
+                        {p.status === 'ACTIVE' ? "Đang hoạt động" : "Ngừng hoạt động"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="op-actions">
+                        <button className="op-btn--edit" onClick={() => openEdit(p)}>
+                          Sửa
+                        </button>
+                        {p.status === 'ACTIVE' ? (
+                          <button
+                            className="op-btn--deactivate"
+                            onClick={() => toggle(p)}
+                          >
+                            Hủy kích hoạt
+                          </button>
+                        ) : (
+                          <button
+                            className="op-btn--activate"
+                            onClick={() => toggle(p)}
+                          >
+                            Kích hoạt
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -258,13 +285,20 @@ export default function OwnerPackagesPage() {
 
             <div className="op-form">
               <div className="op-row">
-                <label>Gym ID *</label>
-                <input
-                  className="op-input"
+                <label>Chọn phòng gym *</label>
+                <select
+                  className="op-select"
                   value={form.gymId}
                   onChange={(e) => setForm({ ...form, gymId: e.target.value })}
-                  placeholder="VD: 1"
-                />
+                  required
+                >
+                  <option value="">-- Chọn gym --</option>
+                  {gyms.map((gym) => (
+                    <option key={gym.id} value={gym.id}>
+                      {gym.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="op-row">
