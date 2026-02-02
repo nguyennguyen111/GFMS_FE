@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
+import { confirmPayosPayment } from "../../../services/paymentService";
 
 const fmtMoney = (v) => {
   const n = Number(v);
@@ -8,6 +9,7 @@ const fmtMoney = (v) => {
   return n.toLocaleString("vi-VN") + " ₫";
 };
 const fmtDate = (d) => (d ? String(d).slice(0, 10) : "—");
+const isPaidStatus = (s) => ["completed", "paid"].includes(String(s || "").toLowerCase());
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
@@ -38,8 +40,21 @@ export default function MemberMyPackagesPage() {
   // ✅ Check query param for PayOS success
   useEffect(() => {
     const payosParam = searchParams.get("payos");
+    const orderCode = searchParams.get("orderCode") || searchParams.get("ordercode");
     if (payosParam === "success") {
       setShowPayosSuccess(true);
+      const confirmAndReload = async () => {
+        try {
+          if (orderCode) {
+            await confirmPayosPayment(orderCode);
+          }
+        } catch (e) {
+          // ignore confirm error; still allow user to refresh data
+        } finally {
+          await load();
+        }
+      };
+      confirmAndReload();
       // Remove query param after showing
       setSearchParams({}, { replace: true });
       // Auto hide after 5 seconds
@@ -217,8 +232,8 @@ export default function MemberMyPackagesPage() {
                     <span>
                       Thanh toán: <b>{active.Transaction?.paymentMethod || "—"}</b>
                     </span>
-                    <span className={`op-badge ${active.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`}>
-                      {active.Transaction?.paymentStatus === "paid" ? "✅ Đã thanh toán" : active.Transaction?.paymentStatus || "—"}
+                    <span className={`op-badge ${isPaidStatus(active.Transaction?.paymentStatus) ? "is-on" : "is-off"}`}>
+                      {isPaidStatus(active.Transaction?.paymentStatus) ? "✅ Đã thanh toán" : active.Transaction?.paymentStatus || "—"}
                     </span>
                   </div>
                 </div>
@@ -275,8 +290,8 @@ export default function MemberMyPackagesPage() {
                           <span style={{ opacity: 0.7, fontSize: 11 }}>
                             {x.Transaction?.paymentMethod || "—"}
                           </span>
-                          <span className={`op-badge ${x.Transaction?.paymentStatus === "paid" ? "is-on" : "is-off"}`} style={{ fontSize: 10, padding: "4px 8px" }}>
-                            {x.Transaction?.paymentStatus === "paid" ? "✅ Paid" : x.Transaction?.paymentStatus || "—"}
+                          <span className={`op-badge ${isPaidStatus(x.Transaction?.paymentStatus) ? "is-on" : "is-off"}`} style={{ fontSize: 10, padding: "4px 8px" }}>
+                            {isPaidStatus(x.Transaction?.paymentStatus) ? "✅ Paid" : x.Transaction?.paymentStatus || "—"}
                           </span>
                         </div>
                       </td>
