@@ -152,7 +152,7 @@ const OwnerMembersPage = () => {
     try {
       await ownerMemberService.updateMember(editMember.id, {
         gymId: editMember.gymId,
-        currentPackageId: editMember.currentPackageId,
+        currentPackageId: editMember.currentPackageId === "" ? null : editMember.currentPackageId,
         status: editMember.status,
       });
       alert("Cập nhật hội viên thành công!");
@@ -201,10 +201,49 @@ const OwnerMembersPage = () => {
     }
   }, [renewMember, handleCloseRenewModal, loadMembers, pagination.page]);
 
+  const handleToggleMemberStatus = useCallback(async (member) => {
+    const isActivating = member.status !== "active";
+    const action = isActivating ? "hoạt động" : "ngừng hoạt động";
+
+    // Only check for active package if deactivating
+    if (!isActivating) {
+      // The backend will check, but we can show a warning
+      if (member.currentPackage?.name && member.packageExpiryDate) {
+        const expiryDate = new Date(member.packageExpiryDate);
+        const today = new Date();
+        if (expiryDate >= today) {
+          if (!window.confirm(`Hội viên này đang có gói tập "${member.currentPackage.name}" còn hạn đến ${expiryDate.toLocaleDateString('vi-VN')}. Bạn có chắc muốn ${action}?`)) {
+            return;
+          }
+        }
+      }
+    }
+
+    if (!window.confirm(`Bạn có chắc muốn ${action} hội viên "${member.User?.username}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await ownerMemberService.toggleMemberStatus(member.id);
+      alert(response.message || `Đã ${action} hội viên thành công!`);
+      
+      // Close detail modal if open
+      if (showModal) {
+        handleCloseModal();
+      }
+      
+      // Reload members to update status
+      await loadMembers(pagination.page);
+    } catch (error) {
+      console.error(`Lỗi khi ${action} hội viên:`, error);
+      alert(error.response?.data?.message || `Lỗi khi ${action} hội viên`);
+    }
+  }, [showModal, handleCloseModal, loadMembers, pagination.page]);
+
   const getStatusText = (status) => {
     const statusMap = {
       active: "Đang hoạt động",
-      inactive: "Ngừng hoạt động",
+      inactive: "Không hoạt động",
       pending: "Chờ duyệt",
     };
     return statusMap[status] || status;
@@ -297,11 +336,11 @@ const OwnerMembersPage = () => {
                       Sửa
                     </button>
                     <button 
-                      onClick={() => handleDeleteMember(member.id, member.User?.username)} 
-                      className="btn-delete"
+                      onClick={() => handleToggleMemberStatus(member)} 
+                      className="btn-toggle-status"
                       style={{ marginLeft: "5px" }}
                     >
-                      Xóa
+                      {member.status === "active" ? "Ngừng hoạt động" : "Kích hoạt "}
                     </button>
                   </td>
                 </tr>
@@ -550,7 +589,7 @@ const OwnerMembersPage = () => {
                   className="form-select"
                 >
                   <option value="active">Đang hoạt động</option>
-                  <option value="inactive">Ngừng hoạt động</option>
+                  <option value="inactive">Không hoạt hoạt động</option>
                   <option value="pending">Chờ duyệt</option>
                 </select>
               </div>

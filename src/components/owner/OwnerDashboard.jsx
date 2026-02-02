@@ -39,17 +39,17 @@ export default function OwnerDashboard() {
     {
       title: "Tổng quan",
       items: [
-        { label: "Dashboard", to: "/owner/overview", key: "overview", icon: "📊" },
+        { label: "Thống kê", to: "/owner/overview", key: "overview", icon: "📊" },
       ],
     },
     {
       title: "Kinh doanh",
       items: [
-        { label: "Gym của tôi", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
+        { label: "Phòng tập ", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
         { label: "Gói tập", to: "/owner/packages", key: "packages", icon: "🎫" },
         { label: "Hội viên", to: "/owner/members", key: "members", icon: "👥" },
-        { label: "PT / Lịch ", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
-        { label: "Chia sẻ PT", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
+        { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
+        { label: "Đặt lịch / Chia sẻ Huấn luyện viên", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
         { label: "Đánh giá", to: "/owner/reviews", key: "reviews", icon: "⭐" },
       ],
     },

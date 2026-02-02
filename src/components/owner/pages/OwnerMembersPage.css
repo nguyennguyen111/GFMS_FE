@@ -169,9 +169,9 @@
 
 .btn-view {
   padding: 8px 12px !important;
-  background: rgba(255, 138, 0, 0.18) !important;
-  border: 1px solid rgba(255, 138, 0, 0.3) !important;
-  color: #ff8a00 !important;
+  background: rgba(20, 184, 166, 0.18) !important;
+  border: 1px solid rgba(20, 184, 166, 0.3) !important;
+  color: #14b8a6 !important;
   border-radius: 12px !important;
   cursor: pointer;
   font-size: 13px;
@@ -180,7 +180,7 @@
 }
 
 .btn-view:hover {
-  background: rgba(255, 138, 0, 0.28) !important;
+  background: rgba(20, 184, 166, 0.28) !important;
   transform: translateY(-2px);
 }
 
@@ -198,6 +198,23 @@
 
 .btn-delete:hover {
   background: rgba(255, 85, 85, 0.28) !important;
+  transform: translateY(-2px);
+}
+
+.btn-toggle-status {
+  padding: 8px 12px !important;
+  background: rgba(251, 146, 60, 0.18) !important;
+  border: 1px solid rgba(251, 146, 60, 0.3) !important;
+  color: #fb923c !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 100ms ease;
+}
+
+.btn-toggle-status:hover {
+  background: rgba(251, 146, 60, 0.28) !important;
   transform: translateY(-2px);
 }
 
