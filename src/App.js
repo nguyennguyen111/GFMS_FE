@@ -41,6 +41,8 @@ import PTProfile from "./components/pt-portal/PTProfile";
 import PTSkills from "./components/pt-portal/PTSkills";
 import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
+import PTPayrollPage from "./components/pt-portal/PTPayrollPage";
+import PTWalletPage from "./components/pt-portal/PTWalletPage";
 import PTShareRequests from "./components/pt-portal/PTShareRequests";
 import PTPackages from "./components/pt-portal/PTPackages";
 import PTRequests from "./components/pt-portal/PTRequests";
@@ -121,9 +123,10 @@ function App() {
             <Route path="profile/create" element={<PTCreateProfile />} />
             <Route path="clients" element={<PTClients />} />
             <Route path="feedback" element={<PTFeedback />} />
+            <Route path="payroll" element={<PTPayrollPage />} />
+            <Route path="wallet" element={<PTWalletPage />} />
             <Route path="packages" element={<PTPackages />} />
             <Route path="requests" element={<PTRequests />} />
-
 
             {/* portal routes */}
             <Route path="trainers" element={<PTList />} />

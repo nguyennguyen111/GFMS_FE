@@ -1,0 +1,282 @@
+.owner-withdrawals-page {
+  color: #eef2ff;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.page-header {
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.withdrawals-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #eef2ff;
+  border-radius: 14px;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+.search-button {
+  padding: 10px 16px;
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(255, 138, 0, 0.35);
+  color: #eef2ff;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.withdrawals-table-wrapper {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  overflow: auto;
+}
+
+.withdrawals-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 180, 255, 0.15);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  color: #00b4ff;
+  cursor: pointer;
+}
+
+.withdrawals-queue {
+  margin-bottom: 16px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.queue-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.queue-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 1000px) {
+  .queue-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.queue-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.queue-card:hover {
+  border-color: rgba(0, 180, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.queue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.queue-name {
+  font-weight: 700;
+}
+
+.queue-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: #00ffaa;
+  margin-bottom: 4px;
+}
+
+.queue-meta {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.6);
+}
+
+.queue-empty {
+  color: rgba(238, 242, 255, 0.6);
+  padding: 8px 0;
+}
+
+.withdrawals-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.withdrawals-modal-content {
+  background: rgba(15, 22, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  max-width: 640px;
+  width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.withdrawals-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.withdrawals-modal-header button {
+  background: transparent;
+  border: none;
+  color: #eef2ff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.withdrawals-modal-body {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.withdrawals-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.withdrawals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.withdrawals-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 138, 0, 0.08);
+  color: rgba(238, 242, 255, 0.8);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.withdrawals-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tx-user {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tx-user-name {
+  font-weight: 700;
+}
+
+.tx-user-email {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.6);
+}
+
+.tx-amount {
+  font-weight: 700;
+  color: #00ffaa;
+}
+
+.tx-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tx-badge-pending {
+  background: rgba(255, 176, 0, 0.2);
+  color: #ffb000;
+}
+
+.tx-badge-completed {
+  background: rgba(0, 255, 170, 0.2);
+  color: #00ffaa;
+}
+
+.tx-badge-rejected {
+  background: rgba(255, 85, 85, 0.2);
+  color: #ff5555;
+}
+
+.btn-approve,
+.btn-reject {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+.btn-approve {
+  background: rgba(0, 255, 170, 0.2);
+  border-color: rgba(0, 255, 170, 0.35);
+  color: #00ffaa;
+}
+
+.btn-reject {
+  background: rgba(255, 85, 85, 0.2);
+  border-color: rgba(255, 85, 85, 0.35);
+  color: #ff5555;
+}
+
+.paid-text {
+  color: rgba(238, 242, 255, 0.6);
+}
+
+.empty-cell {
+  text-align: center;
+  color: rgba(238, 242, 255, 0.6);
+  padding: 20px !important;
+}
