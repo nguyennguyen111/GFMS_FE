@@ -66,6 +66,20 @@ const PTLayout = () => {
           >
             <span className="ptl-ic">💬</span> Feedback
           </NavLink>
+
+          <NavLink
+            to="/pt/wallet"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">💰</span> Wallet
+          </NavLink>
+
+          <NavLink
+            to="/pt/payroll"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">💵</span> Payroll
+          </NavLink>
         </nav>
       </aside>
 
