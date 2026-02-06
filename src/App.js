@@ -41,6 +41,8 @@ import PTProfile from "./components/pt-portal/PTProfile";
 import PTSkills from "./components/pt-portal/PTSkills";
 import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
+import PTPayrollPage from "./components/pt-portal/PTPayrollPage";
+import PTWalletPage from "./components/pt-portal/PTWalletPage";
 
 // ✅ Guard tối giản cho admin
 const AdminGuard = ({ children }) => {
@@ -118,6 +120,8 @@ function App() {
             <Route path="profile/create" element={<PTCreateProfile />} />
             <Route path="clients" element={<PTClients />} />
             <Route path="feedback" element={<PTFeedback />} />
+            <Route path="payroll" element={<PTPayrollPage />} />
+            <Route path="wallet" element={<PTWalletPage />} />
 
             {/* portal routes */}
             <Route path="trainers" element={<PTList />} />

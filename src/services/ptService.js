@@ -89,3 +89,45 @@ export const getMyPTProfile = async () => {
   const res = await axios.get(`${BASE}/me`, ptConfig());
   return res.data;
 };
+
+// 8) Hoa hồng (commission) của PT
+export const getMyPTCommissions = async (params = {}) => {
+  const res = await axios.get(`${BASE}/me/commissions`, { ...ptConfig(), params });
+  return res.data;
+};
+
+// 9) Kỳ lương của PT
+export const getMyPTPayrollPeriods = async () => {
+  const res = await axios.get(`${BASE}/me/payroll-periods`, ptConfig());
+  return res.data;
+};
+
+// 10) Chi tiết hoa hồng theo kỳ
+export const getMyPTPayrollPeriodCommissions = async (periodId) => {
+  const res = await axios.get(`${BASE}/me/payroll-periods/${periodId}/commissions`, ptConfig());
+  return res.data;
+};
+
+// 11) Xuất hoa hồng PT
+export const exportMyPTCommissions = async (params = {}) => {
+  const res = await axios.get(`${BASE}/me/commissions/export`, { ...ptConfig(), params, responseType: "blob" });
+  return res;
+};
+
+// 12) Yêu cầu chi trả
+export const requestPTWithdrawal = async (payload) => {
+  const res = await axios.post(`${BASE}/me/withdrawals`, payload, ptConfig());
+  return res.data;
+};
+
+// 13) Danh sách yêu cầu chi trả
+export const getMyPTWithdrawals = async () => {
+  const res = await axios.get(`${BASE}/me/withdrawals`, ptConfig());
+  return res.data;
+};
+
+// 14) Ví PT
+export const getMyPTWalletSummary = async () => {
+  const res = await axios.get(`${BASE}/me/wallet-summary`, ptConfig());
+  return res.data;
+};

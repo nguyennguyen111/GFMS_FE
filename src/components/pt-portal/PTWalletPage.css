@@ -1,0 +1,183 @@
+.ptw-wrap {
+  color: #eef2ff;
+}
+
+.ptw-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ptw-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ptw-primary {
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(255, 138, 0, 0.35);
+}
+
+.ptw-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ptw-card {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.ptw-label {
+  font-size: 12px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ptw-value {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 6px 0;
+  color: #00ffaa;
+}
+
+.ptw-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 180, 255, 0.15);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  color: #00b4ff;
+  cursor: pointer;
+}
+
+.ptw-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ptw-section-title {
+  font-weight: 700;
+}
+
+.ptw-table {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  overflow: auto;
+}
+
+.ptw-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ptw-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 138, 0, 0.08);
+  color: rgba(238, 242, 255, 0.8);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.ptw-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ptw-money {
+  color: #00ffaa;
+  font-weight: 700;
+}
+
+.ptw-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ptw-badge-pending {
+  background: rgba(255, 176, 0, 0.2);
+  color: #ffb000;
+}
+
+.ptw-badge-completed {
+  background: rgba(0, 255, 170, 0.2);
+  color: #00ffaa;
+}
+
+.ptw-badge-rejected {
+  background: rgba(255, 85, 85, 0.2);
+  color: #ff5555;
+}
+
+.ptw-empty {
+  text-align: center;
+  color: rgba(238, 242, 255, 0.6);
+  padding: 20px !important;
+}
+
+.ptw-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.ptw-modal-content {
+  background: rgba(15, 22, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  max-width: 620px;
+  width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.ptw-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ptw-modal-header button {
+  background: transparent;
+  border: none;
+  color: #eef2ff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.ptw-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
