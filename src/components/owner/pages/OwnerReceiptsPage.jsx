@@ -18,6 +18,7 @@ export default function OwnerReceiptsPage() {
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchReceipts = async () => {
     setLoading(true);
@@ -49,8 +50,10 @@ export default function OwnerReceiptsPage() {
   return (
     <div className="or-page">
       <div className="or-head">
-        <h2>Phiếu nhập kho</h2>
-        <p>Quản lý phiếu nhập kho thiết bị</p>
+        <div>
+          <h2>Phiếu nhập kho</h2>
+          <p>Quản lý phiếu nhập kho thiết bị</p>
+        </div>
       </div>
 
       <div className="or-container">
@@ -73,8 +76,10 @@ export default function OwnerReceiptsPage() {
                 {receipts.map((receipt) => (
                   <tr
                     key={receipt.id}
-                    onClick={() => fetchDetail(receipt.id)}
-                    className={detail?.id === receipt.id ? "active" : ""}
+                    onClick={() => {
+                      fetchDetail(receipt.id);
+                      setShowDetailModal(true);
+                    }}
                   >
                     <td>#{receipt.id}</td>
                     <td>#{receipt.purchaseOrder?.id || "-"}</td>
@@ -99,73 +104,86 @@ export default function OwnerReceiptsPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="or-pagination">
+            <div className="pagination">
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
+                className="pagination-btn"
               >
-                ← Trước
+                Trước
               </button>
-              <span>Trang {meta.page} / {meta.totalPages}</span>
+              <span className="pagination-info">
+                Trang {meta.page} / {meta.totalPages}
+              </span>
               <button
                 onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
                 disabled={page === meta.totalPages}
+                className="pagination-btn"
               >
-                Sau →
+                Sau
               </button>
             </div>
           )}
         </div>
 
-        {/* Detail */}
-        {detail && (
-          <div className="or-detail">
-            <h3>Chi tiết phiếu nhập</h3>
-            <div className="or-detail-field">
-              <label>ID</label>
-              <div>#{detail.id}</div>
-            </div>
-            <div className="or-detail-field">
-              <label>Đơn mua</label>
-              <div>#{detail.purchaseOrder?.id || "-"}</div>
-            </div>
-            <div className="or-detail-field">
-              <label>Gym</label>
-              <div>{detail.gym?.name || "-"}</div>
-            </div>
-            <div className="or-detail-field">
-              <label>Trạng thái</label>
-              <div>
-                <span className={`or-badge or-badge-${detail.status}`}>
-                  {statusBadge(detail.status)}
-                </span>
+        {/* Detail Modal */}
+        {showDetailModal && detail && (
+          <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Chi tiết phiếu nhập #{detail.id}</h3>
+                <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
               </div>
-            </div>
-            <div className="or-detail-field">
-              <label>Ghi chú</label>
-              <div>{detail.notes || "-"}</div>
-            </div>
+              <div className="modal-body">
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span className="detail-label">ID</span>
+                    <span className="detail-value">#{detail.id}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Đơn mua</span>
+                    <span className="detail-value">#{detail.purchaseOrder?.id || "-"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Gym</span>
+                    <span className="detail-value">{detail.gym?.name || "-"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Trạng thái</span>
+                    <span className="detail-value">
+                      <span className={`or-badge or-badge-${detail.status}`}>
+                        {statusBadge(detail.status)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Ghi chú</span>
+                    <span className="detail-value">{detail.notes || "-"}</span>
+                  </div>
+                </div>
 
-            <h4 style={{ marginTop: "15px", marginBottom: "10px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
-            <div className="or-items-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Thiết bị</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.items?.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{item.equipment?.name || "-"}</td>
-                      <td>{item.quantity}</td>
-                      <td>{Number(item.unitPrice || 0).toLocaleString("vi-VN")} đ</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <h4 style={{ marginTop: "20px", marginBottom: "12px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
+                <div className="or-items-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thiết bị</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items?.map((item, idx) => (
+                        <tr key={idx}>
+                          <td>{item.equipment?.name || "-"}</td>
+                          <td>{item.quantity}</td>
+                          <td>{Number(item.unitPrice || 0).toLocaleString("vi-VN")} đ</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}

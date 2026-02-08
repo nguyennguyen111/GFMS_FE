@@ -24,7 +24,6 @@ const money = (v) => {
 };
 
 export default function OwnerMaintenancePage() {
-  const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
 
@@ -34,6 +33,7 @@ export default function OwnerMaintenancePage() {
 
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const [myGyms, setMyGyms] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
@@ -51,7 +51,6 @@ export default function OwnerMaintenancePage() {
   };
 
   const fetchList = async () => {
-    setLoading(true);
     try {
       const res = await ownerGetMaintenances({ ...filters, page, limit });
       const data = res?.data?.data ?? res?.data?.rows ?? [];
@@ -68,20 +67,15 @@ export default function OwnerMaintenancePage() {
       );
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchDetail = async (id) => {
-    setLoading(true);
     try {
       const res = await ownerGetMaintenanceDetail(id);
       setDetail(res.data.data || res.data);
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -164,7 +158,9 @@ export default function OwnerMaintenancePage() {
           <div className="oma-title">Bảo trì / Sửa chữa</div>
           <div className="oma-sub">Tạo yêu cầu bảo trì thiết bị của gym</div>
         </div>
-        <div className="oma-badge">{loading ? "Đang tải..." : "Quản lý"}</div>
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Tạo mới
+        </button>
       </div>
 
       <div className="oma-filters">
@@ -196,7 +192,7 @@ export default function OwnerMaintenancePage() {
           <input
             value={filters.q}
             onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
-            placeholder="issueDescription / notes..."
+            placeholder="mô tả / ghi chú..."
           />
         </div>
 
@@ -207,14 +203,7 @@ export default function OwnerMaintenancePage() {
             fetchList();
           }}
         >
-          Lọc
-        </button>
-
-        <button
-          className="oma-btn oma-btn--primary"
-          onClick={openCreateModal}
-        >
-          ➕ Tạo mới
+          Tìm Kiếm 
         </button>
       </div>
 
@@ -242,8 +231,11 @@ export default function OwnerMaintenancePage() {
                 {rows.map((r) => (
                   <tr
                     key={r.id}
-                    className={selectedId === r.id ? "is-active" : ""}
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => {
+                      setSelectedId(r.id);
+                      fetchDetail(r.id).then(() => setShowDetailModal(true));
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <td>#{r.id}</td>
                     <td>
@@ -281,92 +273,111 @@ export default function OwnerMaintenancePage() {
             </button>
           </div>
         </div>
-
-        <div className="oma-card">
-          <div className="oma-card__head">
-            <div className="oma-card__title">Chi tiết</div>
-            {!detail ? <div className="oma-card__meta">Chọn 1 request ở bảng</div> : null}
-          </div>
-
-          {!detail ? (
-            <div className="oma-empty-box">Chưa có maintenance nào được chọn.</div>
-          ) : (
-            <>
-              <div className="oma-detail">
-                <div className="oma-kv">
-                  <div className="oma-k">ID</div>
-                  <div className="oma-v">#{detail.id}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Status</div>
-                  <div className="oma-v">
-                    <span className={`oma-pill oma-pill--${detail.status}`}>{detail.status}</span>
-                  </div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Gym</div>
-                  <div className="oma-v">{detail.Gym?.name || detail.gym?.name || "-"}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Equipment</div>
-                  <div className="oma-v">{detail.Equipment?.name || detail.equipment?.name || "-"}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Vấn đề</div>
-                  <div className="oma-v">{detail.issueDescription || "-"}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Ngày tạo</div>
-                  <div className="oma-v">
-                    {detail.createdAt ? new Date(detail.createdAt).toLocaleString() : "-"}
-                  </div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Ngày duyệt</div>
-                  <div className="oma-v">
-                    {detail.scheduledDate ? new Date(detail.scheduledDate).toLocaleString() : "-"}
-                  </div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Ước tính</div>
-                  <div className="oma-v">{money(detail.estimatedCost)}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Thực tế</div>
-                  <div className="oma-v">{money(detail.actualCost)}</div>
-                </div>
-                <div className="oma-kv">
-                  <div className="oma-k">Ghi chú</div>
-                  <div className="oma-v">{detail.notes || "-"}</div>
-                </div>
-              </div>
-
-              <div className="oma-actions">
-                <button className="oma-btn oma-btn--danger" disabled={!canCancel} onClick={doCancel}>
-                  Hủy yêu cầu
-                </button>
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
-      {modal.open && (
-        <div className="oma-modal__backdrop" onMouseDown={closeModal}>
-          <div className="oma-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="oma-modal__head">
-              <div className="oma-modal__title">
-                {modal.type === "create" && "Tạo yêu cầu bảo trì"}
+      {/* Detail Modal */}
+      {showDetailModal && detail && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chi tiết yêu cầu bảo trì #{detail.id}</h2>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="detail-grid">
+                <div className="detail-row">
+                  <span className="detail-label">Trạng thái:</span>
+                  <span className="detail-value">
+                    <span className={`oma-pill oma-pill--${detail.status}`}>{detail.status}</span>
+                  </span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Gym:</span>
+                  <span className="detail-value">{detail.Gym?.name || detail.gym?.name || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Thiết bị:</span>
+                  <span className="detail-value">{detail.Equipment?.name || detail.equipment?.name || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Ngày tạo:</span>
+                  <span className="detail-value">
+                    {detail.createdAt ? new Date(detail.createdAt).toLocaleString("vi-VN") : "—"}
+                  </span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Ngày duyệt:</span>
+                  <span className="detail-value">
+                    {detail.scheduledDate ? new Date(detail.scheduledDate).toLocaleString("vi-VN") : "—"}
+                  </span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Ước tính:</span>
+                  <span className="detail-value">{money(detail.estimatedCost)} đ</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Thực tế:</span>
+                  <span className="detail-value">{money(detail.actualCost)} đ</span>
+                </div>
+
+                <div className="detail-row detail-row--full">
+                  <span className="detail-label">Vấn đề:</span>
+                  <span className="detail-value">{detail.issueDescription || "—"}</span>
+                </div>
+
+                {detail.notes && (
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Ghi chú:</span>
+                    <span className="detail-value">{detail.notes}</span>
+                  </div>
+                )}
               </div>
-              <button className="oma-btn oma-btn--ghost" onClick={closeModal}>
-                ✕
+            </div>
+
+            <div className="modal-footer">
+              {canCancel && (
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    doCancel();
+                  }}
+                  className="btn-danger"
+                >
+                  ✗ Hủy yêu cầu
+                </button>
+              )}
+              <button onClick={() => setShowDetailModal(false)} className="btn-cancel">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {modal.open && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Tạo yêu cầu bảo trì</h2>
+              <button className="modal-close" onClick={closeModal}>
+                ×
               </button>
             </div>
 
-            {modal.type === "create" && (
-              <div className="oma-modal__body">
-                <div className="oma-field">
-                  <label>Gym</label>
+            <div className="modal-body">
+              <form onSubmit={(e) => { e.preventDefault(); doCreate(); }} className="modal-form">
+                <div className="form-group">
+                  <label>Gym *</label>
                   <select
                     value={modal.payload.gymId}
                     onChange={(e) => {
@@ -374,6 +385,8 @@ export default function OwnerMaintenancePage() {
                       setModal((m) => ({ ...m, payload: { ...m.payload, gymId: newGymId, equipmentId: "" } }));
                       fetchEquipmentByGym(newGymId);
                     }}
+                    required
+                    className="form-select"
                   >
                     <option value="">-- Chọn gym --</option>
                     {myGyms.map((g) => (
@@ -384,11 +397,13 @@ export default function OwnerMaintenancePage() {
                   </select>
                 </div>
 
-                <div className="oma-field">
-                  <label>Thiết bị</label>
+                <div className="form-group">
+                  <label>Thiết bị *</label>
                   <select
                     value={modal.payload.equipmentId}
                     onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, equipmentId: e.target.value } }))}
+                    required
+                    className="form-select"
                   >
                     <option value="">-- Chọn thiết bị --</option>
                     {equipmentList.map((eq) => (
@@ -399,22 +414,28 @@ export default function OwnerMaintenancePage() {
                   </select>
                 </div>
 
-                <div className="oma-field">
-                  <label>Mô tả vấn đề</label>
+                <div className="form-group">
+                  <label>Mô tả vấn đề *</label>
                   <textarea
                     value={modal.payload.issueDescription}
                     onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, issueDescription: e.target.value } }))}
                     placeholder="Mô tả chi tiết vấn đề cần bảo trì..."
+                    required
+                    className="form-textarea"
+                    rows={4}
                   />
                 </div>
 
-                <div className="oma-modal__actions">
-                  <button className="oma-btn oma-btn--primary" onClick={doCreate}>
-                    Tạo yêu cầu
+                <div className="form-actions">
+                  <button type="button" onClick={closeModal} className="btn-cancel">
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn-submit">
+                    ✓ Tạo yêu cầu
                   </button>
                 </div>
-              </div>
-            )}
+              </form>
+            </div>
           </div>
         </div>
       )}
