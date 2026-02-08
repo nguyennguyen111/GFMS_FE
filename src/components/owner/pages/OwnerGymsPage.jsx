@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ownerGetMyGyms, ownerUpdateGym } from "../../../services/ownerGymService";
+import { ownerGetMyGyms, ownerUpdateGym, ownerUploadGymImage } from "../../../services/ownerGymService";
 import "./OwnerGymsPage.css";
 
 const OwnerGymsPage = () => {
   const [gyms, setGyms] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 4;
   const [selectedGym, setSelectedGym] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [editGym, setEditGym] = useState({
     id: "",
     name: "",
@@ -14,11 +17,17 @@ const OwnerGymsPage = () => {
     phone: "",
     email: "",
     description: "",
+    images: [],
+    avatarIndex: 0,
   });
 
   useEffect(() => {
     loadGyms();
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [gyms.length]);
 
   const loadGyms = async () => {
     try {
@@ -41,6 +50,7 @@ const OwnerGymsPage = () => {
   }, []);
 
   const handleOpenEditModal = useCallback((gym) => {
+    const parsedImages = parseGymImages(gym.images);
     setEditGym({
       id: gym.id,
       name: gym.name || "",
@@ -48,25 +58,38 @@ const OwnerGymsPage = () => {
       phone: gym.phone || "",
       email: gym.email || "",
       description: gym.description || "",
+      images: parsedImages,
+      avatarIndex: parsedImages.length > 0 ? 0 : -1,
     });
     setShowEditModal(true);
   }, []);
 
   const handleCloseEditModal = useCallback(() => {
     setShowEditModal(false);
-    setEditGym({ id: "", name: "", address: "", phone: "", email: "", description: "" });
+    setEditGym({ id: "", name: "", address: "", phone: "", email: "", description: "", images: [], avatarIndex: 0 });
   }, []);
 
   const handleUpdateGym = useCallback(async (e) => {
     e.preventDefault();
     try {
-      await ownerUpdateGym(editGym.id, {
+      const images = Array.isArray(editGym.images) ? [...editGym.images] : [];
+      let orderedImages = images;
+      if (images.length > 0 && editGym.avatarIndex >= 0) {
+        const avatar = images[editGym.avatarIndex] || images[0];
+        orderedImages = [avatar, ...images.filter((img) => img !== avatar)].slice(0, 10);
+      }
+      const payload = {
         name: editGym.name,
         address: editGym.address,
-        phone: editGym.phone,
-        email: editGym.email,
-        description: editGym.description,
-      });
+        images: orderedImages,
+      };
+      const phoneValue = (editGym.phone || "").trim();
+      const emailValue = (editGym.email || "").trim();
+      const descriptionValue = (editGym.description || "").trim();
+      if (phoneValue) payload.phone = phoneValue;
+      if (emailValue) payload.email = emailValue;
+      if (descriptionValue) payload.description = descriptionValue;
+      await ownerUpdateGym(editGym.id, payload);
       alert("Cập nhật gym thành công!");
       handleCloseEditModal();
       loadGyms();
@@ -86,23 +109,75 @@ const OwnerGymsPage = () => {
     const statusInfo = statusMap[normalizedStatus] || { text: status, className: "status-active" };
     return <span className={`status-badge ${statusInfo.className}`}>{statusInfo.text}</span>;
   };
-
-  const getGymImage = (gym) => {
-    if (gym.images) {
+  const parseGymImages = (imagesValue) => {
+    if (!imagesValue) return [];
+    if (Array.isArray(imagesValue)) return imagesValue.filter(Boolean);
+    if (typeof imagesValue === "string") {
       try {
-        const imageArray = JSON.parse(gym.images);
-        if (Array.isArray(imageArray) && imageArray.length > 0) {
-          return imageArray[0];
-        }
+        const parsed = JSON.parse(imagesValue);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
       } catch (e) {
-        // If images is a string URL
-        if (typeof gym.images === 'string' && gym.images.startsWith('http')) {
-          return gym.images;
-        }
+        return imagesValue.startsWith("http") ? [imagesValue] : [];
       }
     }
-    return null;
+    return [];
   };
+
+  const getGymImage = (gym) => {
+    const images = parseGymImages(gym.images);
+    return images.length > 0 ? images[0] : null;
+  };
+
+  const handleSelectImages = async (files) => {
+    if (!files || files.length === 0) return;
+    const currentImages = Array.isArray(editGym.images) ? editGym.images : [];
+    if (currentImages.length >= 10) {
+      alert("Tối đa 10 ảnh (1 đại diện + 9 ảnh)");
+      return;
+    }
+    setUploadingImages(true);
+    try {
+      const remain = 10 - currentImages.length;
+      const slice = Array.from(files).slice(0, remain);
+      const uploaded = await Promise.all(
+        slice.map(async (file) => {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await ownerUploadGymImage(fd);
+          return res?.data?.url;
+        })
+      );
+      const unique = uploaded.filter((img) => img && !currentImages.includes(img));
+      setEditGym((prev) => {
+        const nextImages = [...currentImages, ...unique].slice(0, 10);
+        const nextAvatarIndex = prev.avatarIndex >= 0 ? prev.avatarIndex : (nextImages.length ? 0 : -1);
+        return { ...prev, images: nextImages, avatarIndex: nextAvatarIndex };
+      });
+    } catch (e) {
+      console.error("Upload ảnh gym thất bại:", e);
+      alert(e?.response?.data?.error || e?.message || "Upload ảnh thất bại");
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (idx) => {
+    setEditGym((prev) => {
+      const nextImages = prev.images.filter((_, i) => i !== idx);
+      let nextAvatarIndex = prev.avatarIndex;
+      if (idx === prev.avatarIndex) {
+        nextAvatarIndex = nextImages.length ? 0 : -1;
+      } else if (idx < prev.avatarIndex) {
+        nextAvatarIndex = prev.avatarIndex - 1;
+      }
+      return { ...prev, images: nextImages, avatarIndex: nextAvatarIndex };
+    });
+  };
+
+  const totalPages = Math.max(1, Math.ceil(gyms.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const visibleGyms = gyms.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="owner-gyms-page">
@@ -120,7 +195,7 @@ const OwnerGymsPage = () => {
             <p>Bạn chưa có gym nào</p>
           </div>
         ) : (
-          gyms.map((gym) => (
+          visibleGyms.map((gym) => (
             <div key={gym.id} className="gym-card">
               <div className="gym-image-container">
                 {getGymImage(gym) ? (
@@ -181,6 +256,26 @@ const OwnerGymsPage = () => {
           ))
         )}
       </div>
+
+      {gyms.length > pageSize && (
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          >
+            Trước
+          </button>
+          <span>
+            Trang {currentPage} / {totalPages}
+          </span>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+          >
+            Sau
+          </button>
+        </div>
+      )}
 
       {/* Modal Chi tiết */}
       {showDetailModal && selectedGym && (
@@ -321,6 +416,64 @@ const OwnerGymsPage = () => {
                     rows="4"
                     placeholder="Mô tả về gym..."
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Ảnh phòng gym</label>
+                  <div className="gym-upload">
+                    <label className="gym-upload__drop">
+                      <div className="gym-upload__text">
+                        <strong>Chọn ảnh</strong>
+                        <span>Tối đa 10 ảnh (1 đại diện + 9 ảnh)</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => handleSelectImages(e.target.files)}
+                        disabled={uploadingImages || (editGym.images?.length || 0) >= 10}
+                      />
+                    </label>
+
+                    {uploadingImages && (
+                      <div className="gym-upload__hint">Đang tải ảnh...</div>
+                    )}
+
+                    {editGym.images?.length ? (
+                      <div className="gym-upload__grid">
+                        {editGym.images.map((img, idx) => (
+                          <div className="gym-upload__item" key={`${img}-${idx}`}>
+                            <div
+                              className="gym-upload__thumb"
+                              style={{ backgroundImage: `url(${img})` }}
+                            />
+                            <div className="gym-upload__actions">
+                              <label className="gym-upload__radio">
+                                <input
+                                  type="radio"
+                                  name="gym-avatar"
+                                  checked={editGym.avatarIndex === idx}
+                                  onChange={() =>
+                                    setEditGym((prev) => ({ ...prev, avatarIndex: idx }))
+                                  }
+                                />
+                                Ảnh đại diện
+                              </label>
+                              <button
+                                type="button"
+                                className="gym-upload__remove"
+                                onClick={() => removeImage(idx)}
+                              >
+                                Xoá
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="gym-upload__empty">Chưa có ảnh nào</div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="renew-note">

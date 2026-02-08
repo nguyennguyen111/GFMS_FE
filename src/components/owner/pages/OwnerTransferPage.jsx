@@ -28,6 +28,7 @@ export default function OwnerTransferPage() {
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [myGyms, setMyGyms] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
 
@@ -178,13 +179,14 @@ export default function OwnerTransferPage() {
   return (
     <div className="otrf-page">
       <div className="otrf-head">
-        <h2>Chuyển kho</h2>
-        <p>Quản lý chuyển thiết bị giữa các cơ sở</p>
+        <div>
+          <h2>Chuyển kho</h2>
+          <p>Quản lý chuyển thiết bị giữa các cơ sở</p>
+        </div>
+        <button className="btn-primary" onClick={() => setShowCreate(true)}>
+          + Tạo phiếu chuyển kho
+        </button>
       </div>
-
-      <button className="otrf-btn-new" onClick={() => setShowCreate(true)}>
-        + Tạo phiếu chuyển kho
-      </button>
 
       <div className="otrf-container">
         {/* List */}
@@ -205,8 +207,11 @@ export default function OwnerTransferPage() {
                 {transfers.map((t) => (
                   <tr
                     key={t.id}
-                    onClick={() => fetchDetail(t.id)}
-                    className={detail?.id === t.id ? "active" : ""}
+                    onClick={() => {
+                      fetchDetail(t.id);
+                      setShowDetailModal(true);
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <td>#{t.id}</td>
                     <td>{t.fromGym?.name || "-"}</td>
@@ -242,205 +247,256 @@ export default function OwnerTransferPage() {
             </button>
           </div>
         </div>
-
-        {/* Detail */}
-        {detail && (
-          <div className="otrf-detail">
-            <h3>Chi tiết</h3>
-            <div className="otrf-info">
-              <p>
-                <strong>ID:</strong> #{detail.id}
-              </p>
-              <p>
-                <strong>Trạng thái:</strong>{" "}
-                <span className={`otrf-badge otrf-badge-${detail.status}`}>
-                  {statusBadge(detail.status)}
-                </span>
-              </p>
-              <p>
-                <strong>Từ gym:</strong> {detail.fromGym?.name}
-              </p>
-              <p>
-                <strong>Đến gym:</strong> {detail.toGym?.name}
-              </p>
-              <p>
-                <strong>Ngày tạo:</strong> {new Date(detail.createdAt).toLocaleString("vi-VN")}
-              </p>
-              {detail.notes && (
-                <p>
-                  <strong>Ghi chú:</strong> {detail.notes}
-                </p>
-              )}
-            </div>
-
-            <div className="otrf-items">
-              <h4>Thiết bị chuyển</h4>
-              <table className="otrf-items-table">
-                <thead>
-                  <tr>
-                    <th>Tên thiết bị</th>
-                    <th>Mã</th>
-                    <th>Số lượng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.items?.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{item.equipment?.name || "-"}</td>
-                      <td>{item.equipment?.code || "-"}</td>
-                      <td>{item.quantity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {detail.status === "pending" && (
-              <div className="otrf-actions">
-                <button
-                  className="otrf-btn-approve"
-                  onClick={() => handleApprove(detail.id)}
-                  disabled={actionLoading}
-                >
-                  Duyệt
-                </button>
-                <button
-                  className="otrf-btn-reject"
-                  onClick={() => handleReject(detail.id)}
-                  disabled={actionLoading}
-                >
-                  Từ chối
-                </button>
-              </div>
-            )}
-
-            {detail.status === "approved" && (
-              <div className="otrf-actions">
-                <button
-                  className="otrf-btn-complete"
-                  onClick={() => handleComplete(detail.id)}
-                  disabled={actionLoading}
-                >
-                  Hoàn tất
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && detail && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chi tiết phiếu chuyển kho #{detail.id}</h2>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="detail-grid">
+                <div className="detail-row">
+                  <span className="detail-label">Từ Gym:</span>
+                  <span className="detail-value">{detail.fromGym?.name || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Đến Gym:</span>
+                  <span className="detail-value">{detail.toGym?.name || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Trạng thái:</span>
+                  <span className="detail-value">
+                    <span className={`otrf-badge otrf-badge-${detail.status}`}>
+                      {statusBadge(detail.status)}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Ngày tạo:</span>
+                  <span className="detail-value">{new Date(detail.createdAt).toLocaleString("vi-VN")}</span>
+                </div>
+
+                {detail.notes && (
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Ghi chú:</span>
+                    <span className="detail-value">{detail.notes}</span>
+                  </div>
+                )}
+
+                <div className="detail-row detail-row--full">
+                  <span className="detail-label">Thiết bị chuyển:</span>
+                  <div className="detail-value">
+                    <table className="detail-table">
+                      <thead>
+                        <tr>
+                          <th>Tên thiết bị</th>
+                          <th>Mã</th>
+                          <th>Số lượng</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detail.items?.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.equipment?.name || "-"}</td>
+                            <td>{item.equipment?.code || "-"}</td>
+                            <td>{item.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              {detail.status === "pending" && (
+                <>
+                  <button
+                    onClick={() => {
+                      handleApprove(detail.id);
+                      setShowDetailModal(false);
+                    }}
+                    className="btn-success"
+                    disabled={actionLoading}
+                  >
+                    ✓ Duyệt
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleReject(detail.id);
+                      setShowDetailModal(false);
+                    }}
+                    className="btn-danger"
+                    disabled={actionLoading}
+                  >
+                    ✗ Từ chối
+                  </button>
+                </>
+              )}
+              {detail.status === "approved" && (
+                <button
+                  onClick={() => {
+                    handleComplete(detail.id);
+                    setShowDetailModal(false);
+                  }}
+                  className="btn-success"
+                  disabled={actionLoading}
+                >
+                  ✓ Hoàn tất
+                </button>
+              )}
+              <button onClick={() => setShowDetailModal(false)} className="btn-cancel">
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="otrf-modal">
-          <div className="otrf-modal-content">
-            <h3>Tạo phiếu chuyển kho</h3>
-
-            <div className="otrf-form-group">
-              <label>Gym đi</label>
-              <select
-                value={createForm.fromGymId}
-                onChange={(e) => {
-                  const newGymId = e.target.value;
-                  setCreateForm({ ...createForm, fromGymId: newGymId });
-                  fetchEquipmentByGym(newGymId);
-                }}
-              >
-                <option value="">-- Chọn gym --</option>
-                {myGyms.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Tạo phiếu chuyển kho</h2>
+              <button className="modal-close" onClick={() => setShowCreate(false)}>
+                ×
+              </button>
             </div>
 
-            <div className="otrf-form-group">
-              <label>Gym đến</label>
-              <select
-                value={createForm.toGymId}
-                onChange={(e) => setCreateForm({ ...createForm, toGymId: e.target.value })}
-              >
-                <option value="">-- Chọn gym --</option>
-                {myGyms.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="otrf-form-group">
-              <label>Ghi chú</label>
-              <textarea
-                value={createForm.notes}
-                onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
-                placeholder="Ghi chú (tuỳ chọn)"
-                rows={3}
-              />
-            </div>
-
-            <div className="otrf-form-group">
-              <label>Thiết bị chuyển</label>
-              {createForm.items.map((item, idx) => (
-                <div key={idx} className="otrf-item-row">
+            <div className="modal-body">
+              <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }} className="modal-form">
+                <div className="form-group">
+                  <label>Gym đi *</label>
                   <select
-                    value={item.equipmentId}
+                    value={createForm.fromGymId}
                     onChange={(e) => {
-                      const newItems = [...createForm.items];
-                      newItems[idx].equipmentId = e.target.value;
-                      setCreateForm({ ...createForm, items: newItems });
+                      const newGymId = e.target.value;
+                      setCreateForm({ ...createForm, fromGymId: newGymId });
+                      fetchEquipmentByGym(newGymId);
                     }}
+                    required
+                    className="form-select"
                   >
-                    <option value="">-- Chọn thiết bị --</option>
-                    {equipmentList.map((eq) => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.name} (Mã: {eq.code}) - Còn: {eq.stock?.availableQuantity || 0}
+                    <option value="">-- Chọn gym --</option>
+                    {myGyms.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Số lượng"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newItems = [...createForm.items];
-                      newItems[idx].quantity = e.target.value;
-                      setCreateForm({ ...createForm, items: newItems });
-                    }}
-                  />
-                  {createForm.items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newItems = createForm.items.filter((_, i) => i !== idx);
-                        setCreateForm({ ...createForm, items: newItems });
-                      }}
-                    >
-                      Xóa
-                    </button>
-                  )}
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setCreateForm({
-                    ...createForm,
-                    items: [...createForm.items, { equipmentId: "", quantity: "" }],
-                  });
-                }}
-                className="otrf-btn-add-item"
-              >
-                + Thêm thiết bị
-              </button>
-            </div>
 
-            <div className="otrf-modal-actions">
-              <button onClick={() => setShowCreate(false)}>Hủy</button>
-              <button onClick={handleCreate} disabled={actionLoading} className="otrf-btn-primary">
-                Tạo
-              </button>
+                <div className="form-group">
+                  <label>Gym đến *</label>
+                  <select
+                    value={createForm.toGymId}
+                    onChange={(e) => setCreateForm({ ...createForm, toGymId: e.target.value })}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">-- Chọn gym --</option>
+                    {myGyms.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Ghi chú</label>
+                  <textarea
+                    value={createForm.notes}
+                    onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                    placeholder="Ghi chú (tuỳ chọn)"
+                    rows={3}
+                    className="form-textarea"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Thiết bị chuyển *</label>
+                  {createForm.items.map((item, idx) => (
+                    <div key={idx} className="equipment-item-row">
+                      <select
+                        value={item.equipmentId}
+                        onChange={(e) => {
+                          const newItems = [...createForm.items];
+                          newItems[idx].equipmentId = e.target.value;
+                          setCreateForm({ ...createForm, items: newItems });
+                        }}
+                        required
+                        className="form-select"
+                      >
+                        <option value="">-- Chọn thiết bị --</option>
+                        {equipmentList.map((eq) => (
+                          <option key={eq.id} value={eq.id}>
+                            {eq.name} (Mã: {eq.code}) - Còn: {eq.stock?.availableQuantity || 0}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Số lượng"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newItems = [...createForm.items];
+                          newItems[idx].quantity = e.target.value;
+                          setCreateForm({ ...createForm, items: newItems });
+                        }}
+                        required
+                        className="form-input"
+                      />
+                      {createForm.items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newItems = createForm.items.filter((_, i) => i !== idx);
+                            setCreateForm({ ...createForm, items: newItems });
+                          }}
+                          className="btn-remove"
+                        >
+                          ✗
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateForm({
+                        ...createForm,
+                        items: [...createForm.items, { equipmentId: "", quantity: "" }],
+                      });
+                    }}
+                    className="btn-add-item"
+                  >
+                    + Thêm thiết bị
+                  </button>
+                </div>
+
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowCreate(false)} className="btn-cancel">
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn-submit" disabled={actionLoading}>
+                    ✓ Tạo
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

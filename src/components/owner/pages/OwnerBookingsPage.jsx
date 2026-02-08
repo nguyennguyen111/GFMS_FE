@@ -322,88 +322,91 @@ const OwnerBookingsPage = () => {
       
       {showCreateModal && (
         <div className="modal-overlay" onClick={handleCloseCreateModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <button className="modal-close" onClick={handleCloseCreateModal}>×</button>
-            <h2>Thêm huấn luyện viên mới</h2>
+          <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Thêm huấn luyện viên mới</h2>
+              <button className="modal-close" onClick={handleCloseCreateModal}>
+                ×
+              </button>
+            </div>
             <div className="modal-body">
-              <div className="detail-row">
-                <strong>Chọn user:</strong>
-                <select
-                  className="filter-select"
-                  style={{ width: '100%', marginTop: '8px' }}
-                  value={newTrainer.targetUserId}
-                  onChange={(e) => setNewTrainer({ ...newTrainer, targetUserId: e.target.value })}
-                >
-                  <option value="">-- Chọn user chưa có vai trò huấn luyện viên --</option>
-                  {availableUsers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.username} - {user.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateTrainer(); }} className="modal-form">
+                <div className="form-group">
+                  <label>Chọn người dùng *</label>
+                  <select
+                    value={newTrainer.targetUserId}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, targetUserId: e.target.value })}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">-- Chọn user chưa có vai trò huấn luyện viên --</option>
+                    {availableUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="detail-row">
-                <strong>Phòng gym:</strong>
-                <select
-                  className="filter-select"
-                  style={{ width: '100%', marginTop: '8px' }}
-                  value={newTrainer.gymId}
-                  onChange={(e) => setNewTrainer({ ...newTrainer, gymId: e.target.value })}
-                >
-                  <option value="">-- Chọn phòng gym --</option>
-                  {gyms.map((gym) => (
-                    <option key={gym.id} value={gym.id}>
-                      {gym.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="form-group">
+                  <label>Chọn phòng gym *</label>
+                  <select
+                    value={newTrainer.gymId}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, gymId: e.target.value })}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">-- Chọn phòng gym --</option>
+                    {gyms.map((gym) => (
+                      <option key={gym.id} value={gym.id}>
+                        {gym.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="detail-row">
-                <strong>Chuyên môn:</strong>
-                <input
-                  type="text"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
-                  value={newTrainer.specialization}
-                  onChange={(e) => setNewTrainer({ ...newTrainer, specialization: e.target.value })}
-                  placeholder="VD: Yoga, Gym, Boxing..."
-                />
-              </div>
+                <div className="form-group">
+                  <label>Chuyên môn</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newTrainer.specialization}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, specialization: e.target.value })}
+                    placeholder="VD: Yoga, Gym, Boxing..."
+                  />
+                </div>
 
-              <div className="detail-row">
-                <strong>Chứng chỉ:</strong>
-                <input
-                  type="text"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
-                  value={newTrainer.certification}
-                  onChange={(e) => setNewTrainer({ ...newTrainer, certification: e.target.value })}
-                  placeholder="VD: ACE-CPT, NASM..."
-                />
-              </div>
+                <div className="form-group">
+                  <label>Chứng chỉ</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newTrainer.certification}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, certification: e.target.value })}
+                    placeholder="VD: ACE-CPT, NASM..."
+                  />
+                </div>
 
-              <div className="detail-row">
-                <strong>Giá/giờ (đ):</strong>
-                <input
-                  type="number"
-                  className="search-input"
-                  style={{ width: '100%', marginTop: '8px' }}
-                  value={newTrainer.hourlyRate}
-                  onChange={(e) => setNewTrainer({ ...newTrainer, hourlyRate: e.target.value })}
-                  placeholder="VD: 200000"
-                />
-              </div>
+                <div className="form-group">
+                  <label>Giá/giờ (đ)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={newTrainer.hourlyRate}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, hourlyRate: e.target.value })}
+                    placeholder="VD: 200000"
+                  />
+                </div>
 
-              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button onClick={handleCloseCreateModal} className="pagination-btn" style={{ background: '#6b7280' }}>
-                  Hủy
-                </button>
-                <button onClick={handleCreateTrainer} className="search-button" style={{ margin: 0 }}>
-                  Thêm huấn luyện viên
-                </button>
-              </div>
+                <div className="form-actions">
+                  <button type="button" onClick={handleCloseCreateModal} className="btn-cancel">
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn-submit">
+                    ✓ Thêm huấn luyện viên
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

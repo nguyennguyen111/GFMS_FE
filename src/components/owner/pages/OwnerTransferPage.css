@@ -4,7 +4,12 @@
 }
 
 .otrf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .otrf-head h2 {
@@ -19,26 +24,8 @@
   font-size: 13px;
 }
 
-.otrf-btn-new {
-  padding: 10px 16px;
-  background: linear-gradient(90deg, rgba(0, 255, 170, 0.2), rgba(0, 200, 136, 0.15));
-  border: 1px solid rgba(0, 255, 170, 0.3);
-  color: #00ffaa;
-  border-radius: 14px;
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 20px;
-  transition: all 120ms ease;
-}
-
-.otrf-btn-new:hover {
-  background: linear-gradient(90deg, rgba(0, 255, 170, 0.25), rgba(0, 200, 136, 0.2));
-}
-
 .otrf-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: block;
 }
 
 @media (max-width: 1200px) {
@@ -288,107 +275,79 @@
   background: rgba(0, 180, 255, 0.25);
 }
 
-/* Modal */
-.otrf-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+/* Equipment Item Row */
+.equipment-item-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+
+.equipment-item-row .form-select {
+  flex: 1;
+}
+
+.equipment-item-row .form-input {
+  width: 120px;
+}
+
+.btn-remove {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-width: 44px;
+}
+
+.btn-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-add-item {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px dashed rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #3b82f6;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.btn-add-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  border-style: solid;
+}
+
+/* Modal - Remove old styles */
+.otrf-modal {
+  display: none;
 }
 
 .otrf-modal-content {
-  background: rgba(15, 22, 33, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 24px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.otrf-modal-content h3 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 700;
+  display: none;
 }
 
 .otrf-form-group {
-  margin-bottom: 16px;
-}
-
-.otrf-form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(238, 242, 255, 0.8);
-}
-
-.otrf-form-group select,
-.otrf-form-group textarea {
-  width: 100%;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #eef2ff;
-  border-radius: 12px;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.otrf-form-group select option {
-  background: #1a1a2e;
-  color: #eef2ff;
-}
-
-.otrf-hint {
-  margin: 6px 0 0 0;
-  font-size: 12px;
-  color: rgba(238, 242, 255, 0.5);
+  display: none;
 }
 
 .otrf-modal-actions {
-  display: flex;
-  gap: 12px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: none;
 }
 
-.otrf-modal-actions button {
-  flex: 1;
-  padding: 10px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  background: rgba(100, 100, 100, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  color: #eef2ff !important;
-}
-
-.otrf-btn-primary {
-  background: linear-gradient(90deg, rgba(0, 180, 255, 0.25), rgba(0, 200, 220, 0.15)) !important;
-  border: 1px solid rgba(0, 180, 255, 0.3) !important;
-  color: #00b4ff !important;
-}
-
-.otrf-btn-primary:hover {
-  background: linear-gradient(90deg, rgba(0, 180, 255, 0.3), rgba(0, 200, 220, 0.2)) !important;
-}
-
-.otrf-modal-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .otrf-item-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-  align-items: center;
+  display: none;
 }
 
 .otrf-item-row select {
@@ -429,4 +388,100 @@
   color: #00b4ff !important;
   margin-top: 10px !important;
   font-size: 13px !important;
+}
+
+/* Detail Grid for Modal */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.detail-row:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.detail-row--full {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #eef2ff;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.detail-table th {
+  padding: 10px 12px;
+  text-align: left;
+  background: rgba(59, 130, 246, 0.1);
+  color: rgba(238, 242, 255, 0.8);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #eef2ff;
+  font-size: 13px;
+}
+
+.detail-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.detail-table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Modal Responsive */
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .equipment-item-row {
+    flex-direction: column;
+  }
+
+  .equipment-item-row .form-select,
+  .equipment-item-row .form-input {
+    width: 100%;
+  }
 }
