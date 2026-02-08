@@ -15,10 +15,12 @@ const OwnerMembersPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
+  const [showBuyPTModal, setShowBuyPTModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [newMember, setNewMember] = useState({ targetUserId: "", gymId: "", packageId: "" });
   const [editMember, setEditMember] = useState({ id: "", gymId: "", currentPackageId: "", status: "active" });
   const [renewMember, setRenewMember] = useState({ id: "", name: "", packageId: "" });
+  const [buyPTMember, setBuyPTMember] = useState({ id: "", name: "", gymId: "", packageId: "" });
 
   useEffect(() => {
     loadGyms();
@@ -69,6 +71,8 @@ const OwnerMembersPage = () => {
   const handleViewDetail = useCallback(async (id) => {
     try {
       const data = await ownerMemberService.getMemberDetail(id);
+      console.log("Member detail data:", data.data);
+      console.log("PackageActivations:", data.data?.PackageActivations);
       setSelectedMember(data.data);
       setShowModal(true);
     } catch (error) {
@@ -182,6 +186,21 @@ const OwnerMembersPage = () => {
     setRenewMember({ id: "", name: "", gymId: "", packageId: "", currentPackageName: "", packageExpiryDate: null, sessionsRemaining: 0 });
   }, []);
 
+  const handleOpenBuyPTModal = useCallback((member) => {
+    setBuyPTMember({
+      id: member.id,
+      name: member.User?.username || "N/A",
+      gymId: member.gymId,
+      packageId: "",
+    });
+    setShowBuyPTModal(true);
+  }, []);
+
+  const handleCloseBuyPTModal = useCallback(() => {
+    setShowBuyPTModal(false);
+    setBuyPTMember({ id: "", name: "", gymId: "", packageId: "" });
+  }, []);
+
   const handleRenewPackage = useCallback(async (e) => {
     e.preventDefault();
     
@@ -200,6 +219,25 @@ const OwnerMembersPage = () => {
       alert(error.response?.data?.message || "Gia hạn gói thất bại");
     }
   }, [renewMember, handleCloseRenewModal, loadMembers, pagination.page]);
+
+  const handleBuyPTPackage = useCallback(async (e) => {
+    e.preventDefault();
+    
+    if (!buyPTMember.packageId) {
+      alert("Vui lòng chọn gói PT");
+      return;
+    }
+
+    try {
+      const result = await ownerMemberService.renewMemberPackage(buyPTMember.id, buyPTMember.packageId);
+      alert(result.message || "Mua gói PT thành công!");
+      handleCloseBuyPTModal();
+      loadMembers(pagination.page);
+    } catch (error) {
+      console.error("Lỗi khi mua gói PT:", error);
+      alert(error.response?.data?.message || "Mua gói PT thất bại");
+    }
+  }, [buyPTMember, handleCloseBuyPTModal, loadMembers, pagination.page]);
 
   const handleToggleMemberStatus = useCallback(async (member) => {
     const isActivating = member.status !== "active";
@@ -329,18 +367,27 @@ const OwnerMembersPage = () => {
                     <button onClick={() => handleViewDetail(member.id)} className="btn-view">
                       Chi tiết
                     </button>
-                    <button onClick={() => handleOpenRenewModal(member)} className="btn-renew" style={{ marginLeft: "5px" }}>
+                    <button onClick={() => handleOpenRenewModal(member)} className="btn-renew">
                       Gia hạn
                     </button>
-                    <button onClick={() => handleOpenEditModal(member)} className="btn-edit" style={{ marginLeft: "5px" }}>
+                    <button onClick={() => handleOpenBuyPTModal(member)} className="btn-buy-pt">
+                      Mua gói PT
+                    </button>
+                    <button onClick={() => handleOpenEditModal(member)} className="btn-edit">
                       Sửa
                     </button>
                     <button 
                       onClick={() => handleToggleMemberStatus(member)} 
                       className="btn-toggle-status"
-                      style={{ marginLeft: "5px" }}
                     >
-                      {member.status === "active" ? "Ngừng hoạt động" : "Kích hoạt "}
+                      {member.status === "active" ? "Ngừng HĐ" : "Kích hoạt"}
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteMember(member.id, member.User?.username)} 
+                      className="btn-delete"
+                      title="Xóa hội viên"
+                    >
+                      Xóa
                     </button>
                   </td>
                 </tr>
@@ -413,9 +460,98 @@ const OwnerMembersPage = () => {
                 </div>
                 
                 <div className="info-card">
-                  <div className="info-label">Gói tập:</div>
-                  <div className="info-value">{selectedMember.currentPackage?.name || <span style={{ color: 'rgba(238, 242, 255, 0.5)' }}>Chưa có gói</span>}</div>
+                  <div className="info-label">Gói tập hiện tại:</div>
+                  <div className="info-value">
+                    {selectedMember.currentPackage ? (
+                      <div>
+                        <div style={{fontWeight: 'bold', color: '#eef2ff'}}>{selectedMember.currentPackage.name}</div>
+                        <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.7)', marginTop: '4px'}}>
+                          {selectedMember.currentPackage.packageType === 'membership' ? '🏋️ Thẻ membership' : '👤 Gói PT'}
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ color: 'rgba(238, 242, 255, 0.5)' }}>Chưa có gói</span>
+                    )}
+                  </div>
                 </div>
+
+                {selectedMember.PackageActivations && selectedMember.PackageActivations.length > 0 && (
+                  <div className="info-card" style={{gridColumn: '1 / -1', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.25)'}}>
+                    <div className="info-label" style={{marginBottom: '12px', fontSize: '0.95rem', color: '#c084fc', fontWeight: 'bold'}}>
+                      📋 Danh sách gói đang hoạt động ({selectedMember.PackageActivations.length} gói)
+                    </div>
+                    <div style={{display: 'grid', gap: '10px'}}>
+                      {selectedMember.PackageActivations.map((pa, idx) => {
+                        const packageInfo = pa.Package;
+                        const isMembership = packageInfo?.packageType === 'membership';
+                        return (
+                          <div key={idx} style={{
+                            background: isMembership 
+                              ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)'
+                              : 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                            padding: '14px',
+                            borderRadius: '12px',
+                            border: isMembership 
+                              ? '1px solid rgba(59, 130, 246, 0.3)'
+                              : '1px solid rgba(168, 85, 247, 0.3)',
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr auto',
+                            gap: '14px',
+                            alignItems: 'center',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            <div style={{
+                              fontSize: '2rem',
+                              width: '48px',
+                              height: '48px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: 'rgba(0, 0, 0, 0.2)',
+                              borderRadius: '10px'
+                            }}>
+                              {isMembership ? '🏋️' : '👤'}
+                            </div>
+                            <div>
+                              <div style={{fontWeight: 'bold', color: '#eef2ff', marginBottom: '6px', fontSize: '0.95rem'}}>
+                                {packageInfo?.name || 'Gói không xác định'}
+                              </div>
+                              <div style={{fontSize: '0.8rem', color: 'rgba(238, 242, 255, 0.7)', display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+                                {isMembership ? (
+                                  <>
+                                    <span>📅 Hết hạn: {pa.expiryDate ? new Date(pa.expiryDate).toLocaleDateString('vi-VN') : 'Không giới hạn'}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>👨‍🏫 PT: {packageInfo?.Trainer?.User?.username || 'N/A'}</span>
+                                    <span>📊 Tổng: {pa.totalSessions || 0} buổi</span>
+                                    <span>✅ Đã tập: {pa.sessionsUsed || 0} buổi</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{textAlign: 'right'}}>
+                              <div style={{
+                                fontSize: '1.4rem', 
+                                fontWeight: 'bold', 
+                                color: isMembership ? '#60a5fa' : '#c084fc',
+                                textShadow: '0 0 10px rgba(0, 255, 170, 0.3)'
+                              }}>
+                                {isMembership 
+                                  ? '∞'
+                                  : (pa.sessionsRemaining ?? 0)
+                                }
+                              </div>
+                              <div style={{fontSize: '0.75rem', color: 'rgba(238, 242, 255, 0.5)', marginTop: '2px'}}>
+                                {isMembership ? 'Không giới hạn' : 'buổi còn lại'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="info-card highlight">
                   <div className="info-label">Trạng thái:</div>
@@ -425,25 +561,6 @@ const OwnerMembersPage = () => {
                     </span>
                   </div>
                 </div>
-
-                {selectedMember.PackageActivations && selectedMember.PackageActivations.length > 0 && (
-                  <>
-                    <div className="info-card">
-                      <div className="info-label">Ngày bắt đầu gói:</div>
-                      <div className="info-value">{selectedMember.PackageActivations[0].startDate || "N/A"}</div>
-                    </div>
-                    
-                    <div className="info-card">
-                      <div className="info-label">Ngày hết hạn:</div>
-                      <div className="info-value">{selectedMember.PackageActivations[0].endDate || "N/A"}</div>
-                    </div>
-                    
-                    <div className="info-card highlight">
-                      <div className="info-label">Số buổi còn lại:</div>
-                      <div className="info-value">{selectedMember.PackageActivations[0].remainingSessions || 0} buổi</div>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
             <div className="modal-actions">
@@ -691,7 +808,7 @@ const OwnerMembersPage = () => {
 
             <form onSubmit={handleRenewPackage} className="modal-form">
               <div className="form-group">
-                <label>Chọn gói cần gia hạn *</label>
+                <label>Chọn gói cần mua/gia hạn *</label>
                 <select
                   value={renewMember.packageId}
                   onChange={(e) => setRenewMember({ ...renewMember, packageId: e.target.value })}
@@ -699,22 +816,24 @@ const OwnerMembersPage = () => {
                   className="form-select"
                 >
                   <option value="">-- Chọn gói --</option>
-                  {packages.map((pkg) => {
-                    const isForThisGym = Number(pkg.gymId) === Number(renewMember.gymId);
-                    return (
-                      <option 
-                        key={pkg.id} 
-                        value={pkg.id}
-                        disabled={!isForThisGym}
-                        style={{ color: isForThisGym ? '#eef2ff' : '#666' }}
-                      >
-                        {pkg.name} - {Number(pkg.price).toLocaleString()}đ ({pkg.durationDays} ngày, {pkg.sessions} buổi) {!isForThisGym ? '(Gym khác)' : ''}
-                      </option>
-                    );
-                  })}
+                  
+                  {/* Membership packages */}
+                  <optgroup label="🏋️ GÓI MEMBERSHIP (Thẻ tập gym)">
+                    {packages
+                      .filter(pkg => 
+                        Number(pkg.gymId) === Number(renewMember.gymId) && 
+                        pkg.packageType === 'membership' &&
+                        pkg.status === 'ACTIVE'
+                      )
+                      .map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name} - {Number(pkg.price).toLocaleString()}đ ({pkg.durationDays} ngày)
+                        </option>
+                      ))}
+                  </optgroup>
                 </select>
                 <small style={{ color: 'rgba(238, 242, 255, 0.6)', marginTop: '8px', display: 'block' }}>
-                  Gymİd: {renewMember.gymId} - Tổng {packages.length} gói - {packages.filter(p => Number(p.gymId) === Number(renewMember.gymId)).length} gói phù hợp
+                  Chỉ hiển thị gói Membership. Để mua gói PT, vui lòng dùng nút "Mua gói PT"
                 </small>
               </div>
               
@@ -723,8 +842,8 @@ const OwnerMembersPage = () => {
                 <div className="note-text">
                   <strong>Lưu ý:</strong>
                   <ul>
-                    <li>Nếu gói hiện tại còn hiệu lực, thời gian sẽ được <strong>cộng dồn</strong></li>
-                    <li>Nếu đã hết hạn, gói mới sẽ tính từ hôm nay</li>
+                    <li><strong>Membership:</strong> Mỗi member chỉ có 1 gói membership hoạt động. Mua mới sẽ thay thế gói cũ</li>
+                    <li>Để mua <strong>gói PT</strong>, vui lòng sử dụng nút <strong>"Mua gói PT"</strong> riêng</li>
                     <li>Thanh toán bằng tiền mặt sẽ được kích hoạt ngay lập tức</li>
                   </ul>
                 </div>
@@ -738,6 +857,78 @@ const OwnerMembersPage = () => {
                   ✓ Xác nhận gia hạn
                 </button>
               </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buy PT Package Modal */}
+      {showBuyPTModal && (
+        <div className="modal-overlay" onClick={handleCloseBuyPTModal}>
+          <div className="modal-content modal-renew" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">🏋️ Mua gói PT cho hội viên</h2>
+              <button className="modal-close" onClick={handleCloseBuyPTModal}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="renew-member-info">
+                <div className="info-card">
+                  <div className="info-label">HỘI VIÊN:</div>
+                  <div className="info-value">{buyPTMember.name}</div>
+                </div>
+              </div>
+
+              <form onSubmit={handleBuyPTPackage} className="modal-form">
+                <div className="form-group">
+                  <label>Chọn gói PT *</label>
+                  <select
+                    value={buyPTMember.packageId}
+                    onChange={(e) => setBuyPTMember({ ...buyPTMember, packageId: e.target.value })}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">-- Chọn gói PT --</option>
+                    {packages
+                      .filter(pkg => 
+                        Number(pkg.gymId) === Number(buyPTMember.gymId) && 
+                        pkg.packageType === 'personal_training' &&
+                        pkg.status === 'ACTIVE'
+                      )
+                      .map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          👤 {pkg.name} - {Number(pkg.price).toLocaleString()}đ ({pkg.sessions} buổi) - PT: {pkg.Trainer?.User?.username || 'N/A'}
+                        </option>
+                      ))}
+                  </select>
+                  <small style={{ color: 'rgba(238, 242, 255, 0.6)', marginTop: '8px', display: 'block' }}>
+                    Gói PT theo buổi tập với HLV riêng. Member có thể mua nhiều gói PT khác nhau.
+                  </small>
+                </div>
+                
+                <div className="renew-note" style={{background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)'}}>
+                  <div className="note-icon">💡</div>
+                  <div className="note-text">
+                    <strong>Lưu ý:</strong>
+                    <ul>
+                      <li>Member <strong>phải có membership</strong> đang hoạt động để mua gói PT</li>
+                      <li>Có thể mua <strong>nhiều gói PT</strong> khác nhau (mỗi PT một gói)</li>
+                      <li>Gói PT tính theo <strong>số buổi</strong>, không theo thời hạn</li>
+                      <li>Thanh toán bằng tiền mặt sẽ được kích hoạt ngay lập tức</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button type="button" onClick={handleCloseBuyPTModal} className="btn-cancel">
+                    Hủy
+                  </button>
+                  <button type="submit" className="btn-submit" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+                    ✓ Xác nhận mua gói PT
+                  </button>
+                </div>
               </form>
             </div>
           </div>
