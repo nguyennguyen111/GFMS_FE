@@ -218,6 +218,137 @@
   margin-top: 16px;
 }
 
+.gym-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gym-upload__drop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  cursor: pointer;
+}
+
+.gym-upload__drop input {
+  display: none;
+}
+
+.gym-upload__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.gym-upload__text strong {
+  color: #eef2ff;
+}
+
+.gym-upload__hint {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.gym-upload__empty {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.gym-upload__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.gym-upload__item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gym-upload__thumb {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+}
+
+.gym-upload__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.gym-upload__radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.gym-upload__remove {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.gym-upload__remove:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  background: rgba(255, 138, 0, 0.18);
+  border: 1px solid rgba(255, 138, 0, 0.3);
+  color: #eef2ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 100ms ease;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: rgba(255, 138, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: rgba(238, 242, 255, 0.7);
+  font-size: 13px;
+}
+
 .gym-actions .btn-view,
 .gym-actions .btn-edit {
   flex: 1;

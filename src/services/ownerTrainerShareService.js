@@ -4,6 +4,18 @@ import axios from "../setup/axios";
 export const ownerGetMyTrainerShares = (params = {}) => 
   axios.get("/api/owner/trainer-shares", { params });
 
+// Lấy danh sách yêu cầu chia sẻ nhận được (Owner B)
+export const ownerGetReceivedTrainerShares = (params = {}) => 
+  axios.get("/api/owner/trainer-shares/received", { params });
+
+// Chấp nhận yêu cầu chia sẻ (Owner B)
+export const ownerAcceptTrainerShare = (id) => 
+  axios.post(`/api/owner/trainer-shares/${id}/accept`);
+
+// Từ chối yêu cầu chia sẻ (Owner B)
+export const ownerRejectTrainerShare = (id, reason) => 
+  axios.post(`/api/owner/trainer-shares/${id}/reject`, { reason });
+
 // Lấy chi tiết một trainer share
 export const ownerGetTrainerShareDetail = (id) => 
   axios.get(`/api/owner/trainer-shares/${id}`);

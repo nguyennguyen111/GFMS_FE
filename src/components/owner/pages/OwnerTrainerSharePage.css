@@ -8,7 +8,7 @@
 .ots-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 12px;
@@ -23,6 +23,13 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.02em;
+}
+
+.ots-subtitle {
+  font-size: 14px;
+  color: rgba(238, 242, 255, 0.6);
+  margin: 0;
+  font-weight: 400;
 }
 
 /* Tabs */
@@ -985,4 +992,441 @@
 
 .ots-schedule-item .ots-member {
   color: #94a3b8;
+}
+
+/* Trainer Share Blocks */
+.ots-schedule-item.trainer-share-block {
+  background: rgba(139, 69, 19, 0.15); /* Brown background for trainer share */
+  border-color: rgba(139, 69, 19, 0.3);
+}
+
+.ots-schedule-item.trainer-share-block:hover {
+  background: rgba(139, 69, 19, 0.25);
+  border-color: rgba(139, 69, 19, 0.4);
+}
+
+.ots-schedule-item.trainer-share-block .ots-time {
+  color: #d4a574; /* Lighter brown for time */
+}
+
+.ots-schedule-item.trainer-share-block .ots-member {
+  color: #d4a574; /* Lighter brown for "Chia sẻ PT" */
+  font-weight: 600;
+}
+
+/* Multiple Dates Component */
+.ots-multiple-dates {
+  display: flex;
+  flex-direction: column;
+}
+
+.ots-multiple-dates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ots-multiple-date-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ots-multiple-date-item input[type="date"] {
+  flex: 1.5;
+  min-width: 140px;
+}
+
+.ots-multiple-date-item input[type="time"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.ots-multiple-date-item .ots-btn {
+  flex-shrink: 0;
+}
+
+/* === Statistics Cards === */
+.ots-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ots-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.ots-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ots-stat-card--primary { border-left: 3px solid #3b82f6; }
+.ots-stat-card--warning { border-left: 3px solid #ffc107; }
+.ots-stat-card--info { border-left: 3px solid #00bcd4; }
+.ots-stat-card--success { border-left: 3px solid #4caf50; }
+.ots-stat-card--danger { border-left: 3px solid #f44336; }
+
+.ots-stat-icon {
+  font-size: 32px;
+  opacity: 0.8;
+}
+
+.ots-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ots-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+}
+
+.ots-stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* === View Controls === */
+.ots-view-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.ots-view-mode-toggle {
+  display: flex;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.3);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+/* === Advanced Filters === */
+.ots-filters--advanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ots-filter-input,
+.ots-filter-select {
+  padding: 10px 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  color: #eef2ff;
+  font-size: 14px;
+}
+
+.ots-filter-input:focus,
+.ots-filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(30, 41, 59, 0.7);
+}
+
+/* === Bulk Actions === */
+.ots-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.ots-bulk-count {
+  font-weight: 600;
+  color: #3b82f6;
+  flex: 1;
+}
+
+/* === Calendar View === */
+.ots-calendar {
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ots-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.ots-calendar-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: capitalize;
+}
+
+.ots-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ots-calendar-day-name {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 4px;
+  text-transform: uppercase;
+}
+
+.ots-calendar-day {
+  min-height: 70px;
+  max-height: 90px;
+  padding: 6px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ots-calendar-day:hover {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.ots-calendar-day--empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+  min-height: 0;
+}
+
+.ots-calendar-day--today {
+  border: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.ots-calendar-day--has-bookings {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.ots-calendar-day-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 3px;
+}
+
+.ots-calendar-bookings {
+  margin-top: 4px;
+}
+
+.ots-calendar-booking-count {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 3px;
+}
+
+.ots-calendar-booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 45px;
+  overflow: hidden;
+}
+
+.ots-calendar-booking {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ots-calendar-booking:hover {
+  background: rgba(59, 130, 246, 0.3);
+  z-index: 1;
+}
+
+.ots-calendar-booking--confirmed { background: rgba(0, 188, 212, 0.2); }
+.ots-calendar-booking--in_progress { background: rgba(255, 193, 7, 0.2); }
+
+/* Trainer Share Blocks in Calendar */
+.ots-calendar-booking.trainer-share-block {
+  background: rgba(139, 69, 19, 0.25);
+  border: 1px solid rgba(139, 69, 19, 0.4);
+}
+
+.ots-calendar-booking.trainer-share-block:hover {
+  background: rgba(139, 69, 19, 0.35);
+  border-color: rgba(139, 69, 19, 0.5);
+}
+
+.ots-calendar-booking.trainer-share-block .ots-booking-time,
+.ots-calendar-booking.trainer-share-block .ots-booking-trainer {
+  color: #d4a574;
+  font-weight: 600;
+}
+.ots-calendar-booking--completed { background: rgba(76, 175, 80, 0.2); }
+.ots-calendar-booking--cancelled { background: rgba(244, 67, 54, 0.2); }
+.ots-calendar-booking--pending { background: rgba(255, 193, 7, 0.2); }
+
+.ots-booking-time {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.ots-booking-trainer {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ots-calendar-booking-more {
+  text-align: center;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2px;
+  font-weight: 600;
+}
+
+/* === Quick Action Buttons === */
+.ots-btn--xs {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: 28px;
+}
+
+.ots-row-selected {
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.ots-row-shared {
+  background: rgba(168, 85, 247, 0.08) !important;
+  border-left: 3px solid rgba(168, 85, 247, 0.5) !important;
+}
+
+.ots-row-shared:hover {
+  background: rgba(168, 85, 247, 0.15) !important;
+}
+
+.ots-row-shared.ots-row-selected {
+  background: rgba(139, 92, 246, 0.2) !important;
+  border-left: 3px solid rgba(168, 85, 247, 0.8) !important;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .ots-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ots-filters--advanced {
+    grid-template-columns: 1fr;
+  }
+
+  .ots-calendar {
+    padding: 12px;
+  }
+
+  .ots-calendar-grid {
+    gap: 4px;
+  }
+
+  .ots-calendar-day {
+    min-height: 60px;
+    max-height: 70px;
+    padding: 4px;
+  }
+
+  .ots-calendar-day-number {
+    font-size: 11px;
+  }
+
+  .ots-calendar-booking {
+    font-size: 8px;
+    padding: 2px 3px;
+  }
+
+  .ots-booking-trainer {
+    display: none;
+  }
+}
+
+@media (min-width: 1400px) {
+  .ots-calendar-day {
+    min-height: 85px;
+    max-height: 110px;
+  }
+
+  .ots-calendar-booking-list {
+    max-height: 55px;
+  }
+}
+
+/* Schedule days view for multiple dates */
+.ots-schedule-days {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+}
+
+.ots-schedule-day {
+  padding: 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 6px;
+}
+
+.ots-schedule-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
 }
