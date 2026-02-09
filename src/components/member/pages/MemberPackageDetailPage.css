@@ -1,0 +1,55 @@
+.mpd-header{
+  margin-bottom:16px;
+}
+
+.mpd-sub{
+  margin-top:6px;
+  opacity:.75;
+}
+
+.mpd-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+  gap:16px;
+  margin-bottom:16px;
+}
+
+.mpd-progress{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  background: rgba(255,255,255,.12);
+  overflow:hidden;
+  margin:10px 0;
+}
+
+.mpd-progress-bar{
+  height:100%;
+  background: linear-gradient(90deg,#ffb703,#ff8c00);
+}
+
+.mpd-actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.mpd-header {
+  margin-bottom: 14px;
+}
+
+.mpd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+  gap: 14px;
+}
+
+.mpd-link {
+  cursor: pointer;
+  color: var(--m-gold);
+}
+
+.mpd-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
