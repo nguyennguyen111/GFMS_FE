@@ -2,15 +2,21 @@ import axios from "../setup/axios";
 
 const API_PREFIX = "/api/member/bookings";
 
-export const memberGetTrainers = (date) =>
-  axios.get(`${API_PREFIX}/trainers`, { params: date ? { date } : {} });
+// ✅ truyền gymId/date nếu cần
 
-export const memberGetSlots = ({ trainerId, date }) =>
-  axios.get(`${API_PREFIX}/slots`, { params: { trainerId, date } });
+export const memberGetTrainers = (params) =>
+  axios.get(`${API_PREFIX}/trainers`, { params });
 
-export const memberCreateBooking = (payload) => axios.post(API_PREFIX, payload);
+export const memberGetSlots = ({ trainerId, date, activationId }) =>
+  axios.get(`${API_PREFIX}/slots`, {
+    params: { trainerId, date, activationId },
+  });
 
-export const memberGetMyBookings = () => axios.get(API_PREFIX);
+export const memberCreateBooking = (payload) =>
+  axios.post(API_PREFIX, payload);
+
+export const memberGetMyBookings = (params) =>
+  axios.get(API_PREFIX, { params: params || {} });
 
 export const memberCancelBooking = (id, payload) =>
   axios.patch(`${API_PREFIX}/${id}/cancel`, payload);

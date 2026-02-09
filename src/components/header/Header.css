@@ -1,320 +1,361 @@
-/* ====== Header (GFMS) - Modern Glass ====== */
-.header {
+:root{
+  --gf-bg0:#070A10;
+  --gf-bg1:#0B1020;
+
+  --gf-text: rgba(255,255,255,.92);
+  --gf-muted: rgba(255,255,255,.65);
+
+  --gf-border: rgba(255,255,255,.12);
+  --gf-border2: rgba(255,255,255,.18);
+
+  --gf-gold:#FFB100;
+  --gf-gold2:#FF8A00;
+
+  --gf-shadow: 0 22px 70px rgba(0,0,0,.45);
+}
+
+/* HEADER shell */
+.h{
   position: sticky;
   top: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  z-index: 9999;
 
-  padding: 0.75rem 1.25rem;
-  background: rgba(12, 12, 12, 0.72);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding: 14px 22px;
+
+  /* glass giống template */
+  background: rgba(8,10,16,.70);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-bottom: 1px solid rgba(255,255,255,.10);
 }
 
 /* Left brand */
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  cursor: pointer;
-  user-select: none;
+.h-left{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  cursor:pointer;
+  user-select:none;
 }
 
-.logo {
-  width: 2.9rem;
-  height: 2.9rem;
+.h-logo{
+  width: 40px;
+  height: 40px;
   object-fit: contain;
+  filter: drop-shadow(0 10px 25px rgba(0,0,0,.35));
 }
 
-.brand-title {
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.h-brand{ display:flex; flex-direction:column; }
+.h-title{
+  font-weight: 1000;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gf-text);
   line-height: 1.1;
-  color: rgba(255,255,255,0.95);
+  font-size: 14px;
+}
+.h-sub{
+  font-size: 12px;
+  color: var(--gf-muted);
+  margin-top: 2px;
 }
 
-.brand-sub {
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.55);
-  margin-top: 0.15rem;
+/* Nav */
+.h-nav{ display:flex; }
+.h-ul{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  margin:0;
+  padding:0;
 }
 
-/* Top nav */
-.header-menu {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;              /* giảm gap, dùng padding trên item để nhìn pro */
-  color: white;
-  margin: 0;
-  padding: 0;
-}
+.h-item{ position:relative; }
 
-/* Nav link as pill */
-.nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+/* Menu link - template style */
+.h-link{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  padding: 10px 10px;
 
-  padding: 0.45rem 0.7rem;
-  border-radius: 999px;
-
-  color: rgba(255,255,255,0.90);
-  text-decoration: none;
-
-  border: 1px solid transparent;
-  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-}
-
-.nav:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.98);
-}
-
-.nav.active {
-  background: rgba(255, 165, 0, 0.12);
-  border-color: rgba(255, 165, 0, 0.25);
-  color: var(--orange);
   font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-size: 12px;
+
+  color: rgba(255,255,255,.80);
+  text-decoration:none;
+
+  transition: color .18s ease, transform .18s ease;
 }
 
-/* For <li class="linklike">Dashboard */
-.linklike {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.45rem 0.7rem;
-  border-radius: 999px;
-  color: rgba(255,255,255,0.90);
-  border: 1px solid transparent;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-}
-
-.linklike:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.10);
-  color: var(--orange);
-  cursor: pointer;
-}
-
-/* Right action cluster */
-.menu-actions {
-  display: flex;
-  gap: 0.55rem;
-  align-items: center;
-  margin-left: 0.35rem;
-}
-
-/* Hamburger */
-.hamburger {
-  background: rgba(255,255,255,0.06);
-  padding: 0.55rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.12);
-  cursor: pointer;
-  transition: transform 0.12s ease, background 0.12s ease;
-}
-.hamburger:hover {
-  background: rgba(255,255,255,0.09);
+.h-link:hover{
+  color: rgba(255,255,255,.96);
   transform: translateY(-1px);
 }
-.hamburger img {
-  width: 1.4rem;
-  height: 1.4rem;
+
+/* underline glow active */
+.h-link::after{
+  content:"";
+  position:absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+
+  background: linear-gradient(90deg, var(--gf-gold), var(--gf-gold2));
+  border-radius: 999px;
+
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .20s ease;
+  opacity: .95;
 }
 
-/* Ghost button */
-.btn-ghost {
+.h-link.is-active{
+  color: rgba(255,255,255,.98);
+}
+
+.h-link.is-active::after{
+  transform: scaleX(1);
+  box-shadow: 0 0 18px rgba(255,177,0,.45);
+}
+
+/* Actions (right) */
+.h-actions{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  margin-left: 10px;
+}
+
+/* Buttons */
+.h-btn{
+  border: 1px solid var(--gf-border);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+
+  border-radius: 999px;
+  padding: 9px 14px;
+
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: 12px;
+
+  cursor:pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.h-btn:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+}
+
+.h-btn--ghost{
   background: transparent;
-  border: none;
-  text-decoration: underline;
-  color: rgba(255,255,255,0.85);
 }
 
-/* ====== Icon button (notification) ====== */
-.icon-btn {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+.h-btn--primary{
+  border-color: rgba(255,177,0,.40);
+  background: linear-gradient(135deg, rgba(255,177,0,.22), rgba(255,138,0,.14));
+  color: rgba(255,255,255,.96);
+}
+
+.h-btn--primary:hover{
+  border-color: rgba(255,177,0,.70);
+  box-shadow: 0 0 0 3px rgba(255,177,0,.12) inset;
+}
+
+/* icon button */
+.h-iconBtn{
+  border: 1px solid var(--gf-border);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+
   border-radius: 999px;
-  padding: 0.45rem 0.65rem;
-  cursor: pointer;
-  color: rgba(255,255,255,0.92);
-  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  padding: 9px 12px;
+  cursor:pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }
-.icon-btn:hover {
-  background: rgba(255,255,255,0.09);
-  border-color: rgba(255,255,255,0.16);
-  color: var(--orange);
+
+.h-iconBtn:hover{
   transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
 }
 
-/* ====== Account dropdown ====== */
-.account {
-  position: relative;
+/* burger */
+.h-burger{
+  border: 1px solid var(--gf-border);
+  background: rgba(255,255,255,.06);
+  padding: 10px;
+  border-radius: 14px;
+  cursor:pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }
+.h-burger:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+}
+.h-burger img{ width: 20px; height: 20px; }
 
-.account-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
+/* Account dropdown */
+.h-account{ position:relative; }
+.h-accountBtn{
+  display:inline-flex;
+  align-items:center;
+  gap: 10px;
 
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--gf-border);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+
   border-radius: 999px;
-  padding: 0.40rem 0.65rem;
+  padding: 9px 12px;
+  cursor:pointer;
 
-  cursor: pointer;
-  color: rgba(255,255,255,0.92);
-
-  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }
 
-.account-btn:hover {
-  background: rgba(255,255,255,0.09);
-  border-color: rgba(255,255,255,0.16);
+.h-accountBtn:hover{
   transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
 }
 
-.account-btn:focus {
-  outline: none;
-}
-
-.account-avatar {
-  font-size: 1rem;
-  opacity: 0.95;
-}
-
-.account-name {
+.h-avatar{ opacity:.95; }
+.h-name{
   max-width: 160px;
-  overflow: hidden;
+  overflow:hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
-}
-
-.account-caret {
-  opacity: 0.75;
-}
-
-/* Dropdown panel */
-.account-menu {
-  position: absolute;
-  top: 3rem;
-  right: 0;
-
-  width: 320px;
-  max-height: 70vh;     /* nếu nhiều item sẽ scroll */
-  overflow: auto;
-
-  background: rgba(16,16,16,0.98);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 16px;
-
-  box-shadow: 0 22px 60px rgba(0,0,0,0.45);
-  z-index: 9999;
-  padding: 0.35rem;
-}
-
-/* group title */
-.account-group {
-  padding: 0.65rem 0.8rem 0.25rem;
-  font-size: 0.75rem;
   font-weight: 900;
-  letter-spacing: 0.09em;
+}
+.h-caret{ opacity:.75; }
+
+/* dropdown panel */
+.h-menu{
+  position:absolute;
+  right:0;
+  top: 46px;
+
+  width: 330px;
+  max-height: 72vh;
+  overflow:auto;
+
+  background: rgba(10,12,18,.96);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  box-shadow: var(--gf-shadow);
+
+  padding: 8px;
+}
+
+.h-group{
+  padding: 10px 12px 6px;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .14em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,.55);
 }
 
-/* divider */
-.account-sep {
+.h-sep{
   height: 1px;
-  background: rgba(255,255,255,0.10);
-  margin: 0.25rem 0.35rem;
+  background: rgba(255,255,255,.10);
+  margin: 6px 6px;
 }
 
-/* menu item button */
-.account-item {
-  width: 100%;
-  text-align: left;
+.h-menuItem{
+  width:100%;
+  text-align:left;
 
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  display:flex;
+  align-items:center;
+  gap: 10px;
 
-  padding: 0.62rem 0.8rem;
-  background: transparent;
+  padding: 10px 12px;
+  border-radius: 14px;
   border: 1px solid transparent;
-  border-radius: 12px;
 
-  color: rgba(255,255,255,0.92);
-  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,.92);
 
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease, color 0.12s ease;
+  cursor:pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
 }
 
-.account-item:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.98);
+.h-menuItem:hover{
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.10);
   transform: translateY(-1px);
 }
 
-.account-item.danger:hover {
+.h-menuItem.danger:hover{
   color: #ff6b6b;
 }
 
-/* ====== Mobile ====== */
-@media screen and (max-width: 768px) {
-  .header {
-    padding: 0.7rem 0.9rem;
-  }
+/* Mobile nav */
+@media (max-width: 768px){
+  .h-sub{ display:none; }
 
-  .brand-sub {
-    display: none;
-  }
-
-  .header-menu {
+  .h-nav.is-mobile{
     position: fixed;
-    right: 0.75rem;
-    top: 4.2rem;
-    width: min(94vw, 380px);
+    right: 14px;
+    top: 64px;
+    width: min(92vw, 420px);
 
+    background: rgba(10,12,18,.96);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    box-shadow: var(--gf-shadow);
+    padding: 12px;
+  }
+
+  .h-ul{
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
-
-    background: rgba(16, 16, 16, 0.96);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 16px;
-    padding: 0.75rem;
-
-    box-shadow: 0 22px 60px rgba(0,0,0,0.45);
+    gap: 8px;
   }
 
-  .menu-actions {
-    width: 100%;
-    display: grid;
+  .h-link{
+    width:100%;
+    justify-content: flex-start;
+    padding: 12px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+  }
+  .h-link::after{ left: 12px; right: 12px; bottom: 7px; }
+
+  .h-actions{
+    width:100%;
+    display:grid;
     grid-template-columns: 1fr;
-    gap: 0.55rem;
+    gap: 10px;
     margin-left: 0;
-    margin-top: 0.35rem;
+    margin-top: 6px;
   }
 
-  .account-menu {
+  .h-menu{
     position: static;
     width: 100%;
-    margin-top: 0.55rem;
+    margin-top: 10px;
   }
 
-  .account-name {
-    max-width: none;
-  }
-
-  .close-row {
-    margin-top: 0.25rem;
-    display: flex;
-    justify-content: flex-end;
+  .h-closeRow{
+    display:flex;
+    justify-content:flex-end;
+    margin-top: 2px;
   }
 }
