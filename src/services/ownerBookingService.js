@@ -33,9 +33,9 @@ const ownerBookingService = {
     return response.data;
   },
 
-  async getTrainerSchedule(trainerId, date) {
+  async getTrainerSchedule(trainerId, date, params = {}) {
     const response = await axios.get(`${API_URL}/trainer/${trainerId}/schedule`, {
-      params: { date },
+      params: { date, ...params },
     });
     return response.data;
   },

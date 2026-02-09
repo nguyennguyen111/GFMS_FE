@@ -66,6 +66,34 @@ const PTLayout = () => {
           >
             <span className="ptl-ic">💬</span> Feedback
           </NavLink>
+
+          <NavLink
+            to="/pt/wallet"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">💰</span> Wallet
+          </NavLink>
+
+          <NavLink
+            to="/pt/payroll"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">💵</span> Payroll
+          </NavLink>
+
+          <NavLink
+            to="/pt/requests"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">📝</span> Requests
+          </NavLink>
+
+          <NavLink
+            to="/pt/share-requests"
+            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
+          >
+            <span className="ptl-ic">🔁</span> Sharing
+          </NavLink>
         </nav>
       </aside>
 

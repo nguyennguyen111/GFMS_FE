@@ -21,6 +21,7 @@ export default function OwnerQuotationsPage() {
   const [detail, setDetail] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [gyms, setGyms] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -150,7 +151,7 @@ export default function OwnerQuotationsPage() {
           <h2>Báo giá</h2>
           <p>Quản lý báo giá từ nhà cung cấp</p>
         </div>
-        <button className="oq-btn-create" onClick={handleOpenModal}>
+        <button className="btn-primary" onClick={handleOpenModal}>
           + Tạo báo giá mới
         </button>
       </div>
@@ -175,8 +176,10 @@ export default function OwnerQuotationsPage() {
                 {quotations.map((q) => (
                   <tr
                     key={q.id}
-                    onClick={() => fetchDetail(q.id)}
-                    className={detail?.id === q.id ? "active" : ""}
+                    onClick={() => {
+                      fetchDetail(q.id);
+                      setShowDetailModal(true);
+                    }}
                   >
                     <td>#{q.id}</td>
                     <td>{q.supplier?.name || "-"}</td>
@@ -201,73 +204,86 @@ export default function OwnerQuotationsPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="oq-pagination">
+            <div className="pagination">
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
+                className="pagination-btn"
               >
-                ← Trước
+                Trước
               </button>
-              <span>Trang {meta.page} / {meta.totalPages}</span>
+              <span className="pagination-info">
+                Trang {meta.page} / {meta.totalPages}
+              </span>
               <button
                 onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
                 disabled={page === meta.totalPages}
+                className="pagination-btn"
               >
-                Sau →
+                Sau
               </button>
             </div>
           )}
         </div>
 
-        {/* Detail */}
-        {detail && (
-          <div className="oq-detail">
-            <h3>Chi tiết báo giá</h3>
-            <div className="oq-detail-field">
-              <label>ID</label>
-              <div>#{detail.id}</div>
-            </div>
-            <div className="oq-detail-field">
-              <label>Nhà cung cấp</label>
-              <div>{detail.supplier?.name || "-"}</div>
-            </div>
-            <div className="oq-detail-field">
-              <label>Gym</label>
-              <div>{detail.gym?.name || "-"}</div>
-            </div>
-            <div className="oq-detail-field">
-              <label>Trạng thái</label>
-              <div>
-                <span className={`oq-badge oq-badge-${detail.status}`}>
-                  {statusBadge(detail.status)}
-                </span>
+        {/* Detail Modal */}
+        {showDetailModal && detail && (
+          <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Chi tiết báo giá #{detail.id}</h3>
+                <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
               </div>
-            </div>
-            <div className="oq-detail-field">
-              <label>Ghi chú</label>
-              <div>{detail.notes || "-"}</div>
-            </div>
+              <div className="modal-body">
+                <div className="detail-grid">
+                  <div className="detail-row">
+                    <span className="detail-label">ID</span>
+                    <span className="detail-value">#{detail.id}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Nhà cung cấp</span>
+                    <span className="detail-value">{detail.supplier?.name || "-"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Gym</span>
+                    <span className="detail-value">{detail.gym?.name || "-"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Trạng thái</span>
+                    <span className="detail-value">
+                      <span className={`oq-badge oq-badge-${detail.status}`}>
+                        {statusBadge(detail.status)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Ghi chú</span>
+                    <span className="detail-value">{detail.notes || "-"}</span>
+                  </div>
+                </div>
 
-            <h4 style={{ marginTop: "15px", marginBottom: "10px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
-            <div className="oq-items-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Thiết bị</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.items?.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{item.equipment?.name || "-"}</td>
-                      <td>{item.quantity}</td>
-                      <td>{Number(item.unitPrice || 0).toLocaleString("vi-VN")} đ</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <h4 style={{ marginTop: "20px", marginBottom: "12px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
+                <div className="oq-items-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thiết bị</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items?.map((item, idx) => (
+                        <tr key={idx}>
+                          <td>{item.equipment?.name || "-"}</td>
+                          <td>{item.quantity}</td>
+                          <td>{Number(item.unitPrice || 0).toLocaleString("vi-VN")} đ</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -275,83 +291,92 @@ export default function OwnerQuotationsPage() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="oq-modal-overlay" onClick={handleCloseModal}>
-          <div className="oq-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Tạo báo giá mới</h3>
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tạo báo giá mới</h3>
+              <button className="modal-close" onClick={handleCloseModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-form">
+                <div className="form-group">
+                  <label>Chọn gym</label>
+                  <select className="form-select" value={formData.gymId} onChange={(e) => setFormData({ ...formData, gymId: e.target.value })}>
+                    <option value="">-- Chọn gym --</option>
+                    {gyms.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="oq-form-group">
-              <label>Chọn gym</label>
-              <select value={formData.gymId} onChange={(e) => setFormData({ ...formData, gymId: e.target.value })}>
-                <option value="">-- Chọn gym --</option>
-                {gyms.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
+                <div className="form-group">
+                  <label>Nhà cung cấp</label>
+                  <select className="form-select" value={formData.supplierId} onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}>
+                    <option value="">-- Chọn nhà cung cấp --</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Ghi chú</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={3}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Ghi chú thêm..."
+                  />
+                </div>
+
+                <h4 style={{ marginTop: "15px", marginBottom: "10px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
+                {formData.items.map((item, idx) => (
+                  <div key={`item-${idx}`} className="oq-item-row">
+                    <select
+                      className="form-select"
+                      value={item.equipmentId}
+                      onChange={(e) => handleItemChange(idx, "equipmentId", e.target.value)}
+                    >
+                      <option value="">-- Chọn thiết bị --</option>
+                      {equipments.map((eq) => (
+                        <option key={`eq-${eq.id}-${idx}`} value={eq.id}>{eq.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={1}
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(idx, "quantity", Number(e.target.value))}
+                      placeholder="SL"
+                    />
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={0}
+                      value={item.unitPrice}
+                      onChange={(e) => handleItemChange(idx, "unitPrice", Number(e.target.value))}
+                      placeholder="Đơn giá"
+                    />
+                    <button
+                      className="btn-danger"
+                      onClick={() => handleRemoveItem(idx)}
+                      disabled={formData.items.length === 1}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
-              </select>
-            </div>
 
-            <div className="oq-form-group">
-              <label>Nhà cung cấp</label>
-              <select value={formData.supplierId} onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}>
-                <option value="">-- Chọn nhà cung cấp --</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="oq-form-group">
-              <label>Ghi chú</label>
-              <textarea
-                rows={3}
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Ghi chú thêm..."
-              />
-            </div>
-
-            <h4>Danh sách thiết bị</h4>
-            {formData.items.map((item, idx) => (
-              <div key={`item-${idx}`} className="oq-item-row">
-                <select
-                  value={item.equipmentId}
-                  onChange={(e) => handleItemChange(idx, "equipmentId", e.target.value)}
-                >
-                  <option value="">-- Chọn thiết bị --</option>
-                  {equipments.map((eq) => (
-                    <option key={`eq-${eq.id}-${idx}`} value={eq.id}>{eq.name}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(e) => handleItemChange(idx, "quantity", Number(e.target.value))}
-                  placeholder="SL"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  value={item.unitPrice}
-                  onChange={(e) => handleItemChange(idx, "unitPrice", Number(e.target.value))}
-                  placeholder="Đơn giá"
-                />
-                <button
-                  className="oq-btn-remove"
-                  onClick={() => handleRemoveItem(idx)}
-                  disabled={formData.items.length === 1}
-                >
-                  ✕
+                <button className="btn-primary" onClick={handleAddItem} style={{ marginTop: "10px" }}>
+                  + Thêm thiết bị
                 </button>
               </div>
-            ))}
-
-            <button className="oq-btn-add-item" onClick={handleAddItem}>
-              + Thêm thiết bị
-            </button>
-
-            <div className="oq-modal-actions">
-              <button onClick={handleCloseModal} className="oq-btn-cancel">Hủy</button>
-              <button onClick={handleSubmit} className="oq-btn-submit">Tạo báo giá</button>
+            </div>
+            <div className="modal-footer">
+              <button onClick={handleCloseModal} className="btn-cancel">Hủy</button>
+              <button onClick={handleSubmit} className="btn-submit">Tạo báo giá</button>
             </div>
           </div>
         </div>

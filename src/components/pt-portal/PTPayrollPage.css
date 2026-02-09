@@ -1,0 +1,216 @@
+.ptpay-wrap {
+  color: #eef2ff;
+}
+
+.ptpay-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .ptpay-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ptpay-card {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.ptpay-label {
+  font-size: 12px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ptpay-value {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 6px 0;
+  color: #00ffaa;
+}
+
+.ptpay-meta {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.ptpay-section {
+  margin-top: 16px;
+}
+
+.ptpay-section-title {
+  font-weight: 700;
+  margin: 8px 0 10px 0;
+}
+
+.ptpay-table {
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  overflow: auto;
+}
+
+.ptpay-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ptpay-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 138, 0, 0.08);
+  color: rgba(238, 242, 255, 0.8);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.ptpay-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ptpay-row {
+  cursor: pointer;
+}
+
+.ptpay-empty {
+  text-align: center;
+  color: rgba(238, 242, 255, 0.6);
+  padding: 20px !important;
+}
+
+.ptpay-money {
+  color: #00ffaa;
+  font-weight: 700;
+}
+
+.ptpay-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ptpay-badge-pending {
+  background: rgba(255, 176, 0, 0.2);
+  color: #ffb000;
+}
+
+.ptpay-badge-calculated {
+  background: rgba(0, 180, 255, 0.2);
+  color: #00b4ff;
+}
+
+.ptpay-badge-paid {
+  background: rgba(0, 255, 170, 0.2);
+  color: #00ffaa;
+}
+
+.ptpay-request {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1000px) {
+  .ptpay-request {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ptpay-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.ptpay-modal-content {
+  background: rgba(15, 22, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  max-width: 820px;
+  width: 92%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.ptpay-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ptpay-modal-header button {
+  background: transparent;
+  border: none;
+  color: #eef2ff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.ptpay-modal-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ptpay-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 180, 255, 0.15);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  color: #00b4ff;
+  cursor: pointer;
+}
+
+.react-datepicker {
+  background: #0f1621;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #eef2ff;
+}
+
+.react-datepicker__header {
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: #eef2ff;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: rgba(255, 138, 0, 0.6);
+  color: #fff;
+}
+
+.react-datepicker__day:hover {
+  background: rgba(255, 138, 0, 0.35);
+}
