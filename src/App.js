@@ -55,14 +55,22 @@ import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerD
 import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
 import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
 
-/* ================= ADMIN GUARD ================= */
+/* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
     const raw = localStorage.getItem("user");
     if (!raw) return <Navigate to="/login" replace />;
 
     const data = JSON.parse(raw);
-    const groupId = data?.user?.groupId;
+
+    // ✅ Support both shapes:
+    // - user stored directly: { id, email, groupId, ... }
+    // - wrapped: { user: { ... } }
+    const storedUser = data?.user ?? data;
+
+    const groupId = Number(storedUser?.groupId ?? storedUser?.group_id);
+
+    // groupId = 1 là Admin
     if (groupId !== 1) return <Navigate to="/" replace />;
 
     return children;
