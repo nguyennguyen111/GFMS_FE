@@ -43,8 +43,6 @@ import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
 import PTPayrollPage from "./components/pt-portal/PTPayrollPage";
 import PTWalletPage from "./components/pt-portal/PTWalletPage";
-import PTShareRequests from "./components/pt-portal/PTShareRequests";
-import PTPackages from "./components/pt-portal/PTPackages";
 import PTRequests from "./components/pt-portal/PTRequests";
 
 /* ================= MARKETPLACE ================= */
@@ -63,8 +61,8 @@ const AdminGuard = ({ children }) => {
 
     const data = JSON.parse(raw);
 
-    // ✅ Support both shapes:
-    // - user stored directly: { id, email, groupId, ... }
+    // Support both shapes:
+    // - stored directly: { id, email, groupId, ... }
     // - wrapped: { user: { ... } }
     const storedUser = data?.user ?? data;
 
@@ -130,28 +128,26 @@ function App() {
           <Route path="reviews" element={<MemberReviewsPage />} />
         </Route>
 
-        {/* ===== PT (GIỮ CŨ + MỚI) ===== */}
+        {/* ===== PT ===== */}
         <Route path="/pt" element={<PTLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<PTDashboard />} />
 
-          {/* CŨ */}
+          {/* CRUD PT */}
           <Route path="trainers" element={<PTList />} />
           <Route path="create" element={<PTForm />} />
           <Route path="edit/:id" element={<PTForm />} />
 
-          {/* MỚI */}
+          {/* PT pages (no :id) */}
           <Route path="profile" element={<PTProfile />} />
           <Route path="profile/create" element={<PTCreateProfile />} />
           <Route path="clients" element={<PTClients />} />
           <Route path="feedback" element={<PTFeedback />} />
           <Route path="payroll" element={<PTPayrollPage />} />
           <Route path="wallet" element={<PTWalletPage />} />
-          <Route path="packages" element={<PTPackages />} />
           <Route path="requests" element={<PTRequests />} />
-          <Route path="share-requests" element={<PTShareRequests />} />
 
-          {/* CHUNG (:id) */}
+          {/* PT pages (need :id) */}
           <Route path=":id/details" element={<PTDetails />} />
           <Route path=":id/skills" element={<PTSkills />} />
           <Route path=":id/schedule" element={<PTSchedule />} />

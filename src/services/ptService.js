@@ -44,21 +44,16 @@ export const updatePT = async (ptId, ptData) => {
 };
 
 // 4) Xem lịch
-export const getPTSchedule = async (ptId) => {
-  const res = await axios.get(`${BASE}/${ptId}/schedule`, ptConfig());
-  const data = res.data;
+// 4a) Lấy schedule RAW (range) để đổ vào form update
+export const getPTScheduleRaw = async (ptId) => {
+  const res = await axios.get(`${BASE}/${ptId}/schedule?mode=raw`, ptConfig());
+  return res.data?.availableHours || {};
+};
 
-  // ✅ nếu BE trả string JSON ("{}" hoặc "{\"monday\":...}") thì parse
-  if (typeof data === "string") {
-    try {
-      return JSON.parse(data || "{}");
-    } catch {
-      return {};
-    }
-  }
-
-  // ✅ nếu BE trả object rồi thì dùng luôn
-  return data || {};
+// 4b) Lấy schedule SLOTS để hiển thị calendar
+export const getPTScheduleSlots = async (ptId) => {
+  const res = await axios.get(`${BASE}/${ptId}/schedule?mode=slots`, ptConfig());
+  return res.data?.slots || {};
 };
 
 

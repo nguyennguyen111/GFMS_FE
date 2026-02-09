@@ -1,7 +1,8 @@
 // src/components/pt-portal/PTScheduleUpdate.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getMyPTProfile, getPTSchedule, updatePTSchedule } from "../../services/ptService";
+import { getMyPTProfile, getPTScheduleRaw, updatePTSchedule } from "../../services/ptService";
+
 import "./PTScheduleUpdate.css";
 
 const EMPTY = {
@@ -106,8 +107,9 @@ const PTScheduleUpdate = () => {
     const run = async () => {
       try {
         setLoading(true);
-        const sch = await getPTSchedule(ptId);
-        setSchedule({ ...EMPTY, ...(sch || {}) });
+       const sch = await getPTScheduleRaw(ptId);
+setSchedule({ ...EMPTY, ...(sch || {}) });
+
       } catch (e) {
         console.error(e);
         setSchedule(EMPTY);
