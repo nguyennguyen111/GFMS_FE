@@ -91,6 +91,10 @@ export default function PurchaseWorkflowPage() {
   const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
 
+  // ===== Payments summary for list (Paid/Remaining) =====
+  const [paymentSummaryByPO, setPaymentSummaryByPO] = useState({});
+  const [paymentSummaryLoading, setPaymentSummaryLoading] = useState(false);
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState(null);
 
@@ -104,14 +108,15 @@ export default function PurchaseWorkflowPage() {
   // ✅ LƯU "SỐ SẠCH" (digits), KHÔNG lưu dấu chấm
   const [paymentAmount, setPaymentAmount] = useState("");
 
-  const [paymentMethod, setPaymentMethod] = useState("manual");
+  // ✅ default method hợp lệ
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+
   const [paymentTxs, setPaymentTxs] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const totalPO = useMemo(() => Number(paymentPO?.totalAmount || 0), [paymentPO]);
 
   const totalPaid = useMemo(() => {
-    // chỉ tính completed để đúng nghiệp vụ
     return (paymentTxs || [])
       .filter((t) => (t.paymentStatus || t.status) === "completed")
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -119,7 +124,6 @@ export default function PurchaseWorkflowPage() {
 
   const remaining = useMemo(() => Math.max(0, totalPO - totalPaid), [totalPO, totalPaid]);
 
-  // ✅ parse đúng: paymentAmount đang là digits
   const parsedPaymentAmount = useMemo(() => {
     const n = parseVNDInputToNumber(paymentAmount);
     return Number.isFinite(n) ? n : NaN;
@@ -129,12 +133,44 @@ export default function PurchaseWorkflowPage() {
     if (!paymentPO) return "Chưa chọn PO";
     if (remaining <= 0) return "PO đã được thanh toán đủ";
     if (!Number.isFinite(parsedPaymentAmount) || parsedPaymentAmount <= 0) return "Số tiền không hợp lệ";
-    if (parsedPaymentAmount > remaining)
-      return `Vượt quá remaining (${remaining.toLocaleString("vi-VN")} đ)`;
+    if (parsedPaymentAmount > remaining) return `Vượt quá remaining (${remaining.toLocaleString("vi-VN")} đ)`;
     return "";
   }, [paymentPO, remaining, parsedPaymentAmount]);
 
   const isPaymentDisabled = !!paymentInvalidReason || paymentLoading;
+
+  const loadPaymentSummariesForPOs = async (pos) => {
+    if (!Array.isArray(pos) || pos.length === 0) {
+      setPaymentSummaryByPO({});
+      return;
+    }
+    setPaymentSummaryLoading(true);
+    try {
+      const results = await Promise.all(
+        pos.map(async (po) => {
+          try {
+            const res = await adminPurchaseWorkflowService.getPaymentsByPO(po.id);
+            const txs = res.data?.data || res.data || [];
+            const paid = (txs || [])
+              .filter((t) => String(t.paymentStatus || t.status || "").toLowerCase() === "completed")
+              .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+            const total = Number(po.totalAmount || 0);
+            const remaining = Math.max(0, total - paid);
+            return [po.id, { paid, remaining, count: txs.length }];
+          } catch (e) {
+            const total = Number(po.totalAmount || 0);
+            return [po.id, { paid: 0, remaining: total, count: 0 }];
+          }
+        })
+      );
+
+      const map = {};
+      for (const [id, val] of results) map[id] = val;
+      setPaymentSummaryByPO(map);
+    } finally {
+      setPaymentSummaryLoading(false);
+    }
+  };
 
   const fetchList = async () => {
     setLoading(true);
@@ -164,8 +200,10 @@ export default function PurchaseWorkflowPage() {
       } else {
         // payments tab: list PO
         const res = await adminPurchaseWorkflowService.getPurchaseOrders(params);
-        setRows(res.data?.data || []);
+        const list = res.data?.data || [];
+        setRows(list);
         setMeta(res.data?.meta || meta);
+        await loadPaymentSummariesForPOs(list);
       }
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
@@ -176,6 +214,7 @@ export default function PurchaseWorkflowPage() {
 
   useEffect(() => {
     setMeta((m) => ({ ...m, page: 1 }));
+    if (tab !== "payments") setPaymentSummaryByPO({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -280,11 +319,14 @@ export default function PurchaseWorkflowPage() {
     }
   };
 
+  // ✅ FIX UX: complete xong nhảy sang Payments
   const doCompleteReceipt = async (r) => {
     if (!window.confirm(`Complete receipt ${r.code}?`)) return;
     try {
       await adminPurchaseWorkflowService.completeReceipt(r.id);
-      await fetchList();
+      alert("Complete receipt thành công. Chuyển qua Payments để ghi nhận thanh toán.");
+      setTab("payments");
+      setMeta((m) => ({ ...m, page: 1 }));
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
@@ -292,12 +334,11 @@ export default function PurchaseWorkflowPage() {
 
   const openPaymentModal = async (po) => {
     setPaymentPO(po);
-    setPaymentAmount(""); // digits
-    setPaymentMethod("manual");
+    setPaymentAmount("");
+    setPaymentMethod("bank_transfer");
     setPaymentTxs([]);
     setPaymentOpen(true);
 
-    // load txs để tính Total Paid / Remaining (LEVEL 2)
     try {
       setPaymentLoading(true);
       const res = await adminPurchaseWorkflowService.getPaymentsByPO(po.id);
@@ -316,12 +357,11 @@ export default function PurchaseWorkflowPage() {
     try {
       setPaymentLoading(true);
       await adminPurchaseWorkflowService.createPayment(paymentPO.id, {
-        amount: parsedPaymentAmount, // ✅ number sạch
+        amount: parsedPaymentAmount,
         paymentMethod,
         status: "completed",
       });
 
-      // reload txs + list
       const res = await adminPurchaseWorkflowService.getPaymentsByPO(paymentPO.id);
       const list = res.data?.data || res.data || [];
       setPaymentTxs(list);
@@ -381,12 +421,7 @@ export default function PurchaseWorkflowPage() {
         </select>
 
         <input value={gymId} onChange={(e) => setGymId(e.target.value)} placeholder="Gym ID (optional)" style={inputSmall} />
-        <input
-          value={supplierId}
-          onChange={(e) => setSupplierId(e.target.value)}
-          placeholder="Supplier ID (optional)"
-          style={inputSmall}
-        />
+        <input value={supplierId} onChange={(e) => setSupplierId(e.target.value)} placeholder="Supplier ID (optional)" style={inputSmall} />
 
         <button className="ad-btn" onClick={fetchList} disabled={loading}>
           {loading ? "Đang tải..." : "Tải lại"}
@@ -441,7 +476,9 @@ export default function PurchaseWorkflowPage() {
                 <th style={th}>Supplier</th>
                 <th style={th}>Status</th>
                 <th style={th}>Total</th>
-                <th style={thRight}>Hành động</th>
+                <th style={th}>Paid</th>
+                <th style={th}>Remaining</th>
+                <th style={thRight}>Hành động {paymentSummaryLoading ? "• ..." : ""}</th>
               </tr>
             )}
           </thead>
@@ -451,32 +488,20 @@ export default function PurchaseWorkflowPage() {
               if (tab === "quotations") {
                 return (
                   <tr key={r.id} style={tr}>
-                    <td style={td}>
-                      <b>{r.code || "-"}</b>
-                    </td>
+                    <td style={td}><b>{r.code || "-"}</b></td>
                     <td style={td}>{r.gym?.name || "-"}</td>
                     <td style={td}>{r.supplier?.name || "-"}</td>
                     <td style={td}>
                       {r.requester?.username || "-"}
                       {r.requester?.email ? <div style={{ opacity: 0.7, fontSize: 12 }}>{r.requester.email}</div> : null}
                     </td>
-                    <td style={td}>
-                      <Badge>{r.status}</Badge>
-                    </td>
+                    <td style={td}><Badge>{r.status}</Badge></td>
                     <td style={td}>{money(r.totalAmount)}</td>
                     <td style={tdRight}>
-                      <button className="ad-btn" onClick={() => openDetail(r)}>
-                        Chi tiết
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doCreatePOFromQuotation(r)} disabled={r.status !== "approved"}>
-                        Create PO
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doApproveQuotation(r)} disabled={r.status !== "pending"}>
-                        Approve
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doRejectQuotation(r)} disabled={r.status !== "pending"}>
-                        Reject
-                      </button>
+                      <button className="ad-btn" onClick={() => openDetail(r)}>Chi tiết</button>{" "}
+                      <button className="ad-btn" onClick={() => doCreatePOFromQuotation(r)} disabled={r.status !== "approved"}>Create PO</button>{" "}
+                      <button className="ad-btn" onClick={() => doApproveQuotation(r)} disabled={r.status !== "pending"}>Approve</button>{" "}
+                      <button className="ad-btn" onClick={() => doRejectQuotation(r)} disabled={r.status !== "pending"}>Reject</button>
                     </td>
                   </tr>
                 );
@@ -485,9 +510,7 @@ export default function PurchaseWorkflowPage() {
               if (tab === "purchaseOrders") {
                 return (
                   <tr key={r.id} style={tr}>
-                    <td style={td}>
-                      <b>{r.code || "-"}</b>
-                    </td>
+                    <td style={td}><b>{r.code || "-"}</b></td>
                     <td style={td}>{r.quotation?.code || "-"}</td>
                     <td style={td}>{r.gym?.name || "-"}</td>
                     <td style={td}>{r.supplier?.name || "-"}</td>
@@ -495,26 +518,14 @@ export default function PurchaseWorkflowPage() {
                       {r.requester?.username || "-"}
                       {r.requester?.email ? <div style={{ opacity: 0.7, fontSize: 12 }}>{r.requester.email}</div> : null}
                     </td>
-                    <td style={td}>
-                      <Badge>{r.status}</Badge>
-                    </td>
+                    <td style={td}><Badge>{r.status}</Badge></td>
                     <td style={td}>{money(r.totalAmount)}</td>
                     <td style={tdRight}>
-                      <button className="ad-btn" onClick={() => openDetail(r)}>
-                        Chi tiết
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doApprovePO(r)} disabled={r.status !== "pending"}>
-                        Approve
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doSetOrderedPO(r)} disabled={r.status !== "approved"}>
-                        Set Ordered
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doCancelPO(r)} disabled={r.status === "cancelled" || r.status === "delivered"}>
-                        Cancel
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doCreateReceiptFromPO(r)} disabled={!(r.status === "approved" || r.status === "ordered")}>
-                        Create Receipt
-                      </button>
+                      <button className="ad-btn" onClick={() => openDetail(r)}>Chi tiết</button>{" "}
+                      <button className="ad-btn" onClick={() => doApprovePO(r)} disabled={r.status !== "pending"}>Approve</button>{" "}
+                      <button className="ad-btn" onClick={() => doSetOrderedPO(r)} disabled={r.status !== "approved"}>Set Ordered</button>{" "}
+                      <button className="ad-btn" onClick={() => doCancelPO(r)} disabled={r.status === "cancelled" || r.status === "delivered"}>Cancel</button>{" "}
+                      <button className="ad-btn" onClick={() => doCreateReceiptFromPO(r)} disabled={!(r.status === "approved" || r.status === "ordered")}>Create Receipt</button>
                     </td>
                   </tr>
                 );
@@ -523,50 +534,39 @@ export default function PurchaseWorkflowPage() {
               if (tab === "receipts") {
                 return (
                   <tr key={r.id} style={tr}>
-                    <td style={td}>
-                      <b>{r.code || "-"}</b>
-                    </td>
+                    <td style={td}><b>{r.code || "-"}</b></td>
                     <td style={td}>{r.purchaseOrder?.code || "-"}</td>
                     <td style={td}>{r.gym?.name || "-"}</td>
                     <td style={td}>
                       {r.processor?.username || "-"}
                       {r.processor?.email ? <div style={{ opacity: 0.7, fontSize: 12 }}>{r.processor.email}</div> : null}
                     </td>
-                    <td style={td}>
-                      <Badge>{r.status}</Badge>
-                    </td>
+                    <td style={td}><Badge>{r.status}</Badge></td>
                     <td style={td}>{money(r.totalValue)}</td>
                     <td style={tdRight}>
-                      <button className="ad-btn" onClick={() => openDetail(r)}>
-                        Chi tiết
-                      </button>{" "}
-                      <button className="ad-btn" onClick={() => doCompleteReceipt(r)} disabled={r.status !== "pending"}>
-                        Complete
-                      </button>
+                      <button className="ad-btn" onClick={() => openDetail(r)}>Chi tiết</button>{" "}
+                      <button className="ad-btn" onClick={() => doCompleteReceipt(r)} disabled={r.status !== "pending"}>Complete</button>
                     </td>
                   </tr>
                 );
               }
 
               // payments tab
+              const summary = paymentSummaryByPO[r.id] || { paid: 0, remaining: Number(r.totalAmount || 0) };
+              const disableAddPayment = String(r.status || "").toLowerCase() === "cancelled" || summary.remaining <= 0;
+
               return (
                 <tr key={r.id} style={tr}>
-                  <td style={td}>
-                    <b>{r.code || "-"}</b>
-                  </td>
+                  <td style={td}><b>{r.code || "-"}</b></td>
                   <td style={td}>{r.gym?.name || "-"}</td>
                   <td style={td}>{r.supplier?.name || "-"}</td>
-                  <td style={td}>
-                    <Badge>{r.status}</Badge>
-                  </td>
+                  <td style={td}><Badge>{r.status}</Badge></td>
                   <td style={td}>{money(r.totalAmount)}</td>
+                  <td style={td}>{money(summary.paid)}</td>
+                  <td style={td}>{money(summary.remaining)}</td>
                   <td style={tdRight}>
-                    <button className="ad-btn" onClick={() => openDetail(r)}>
-                      Chi tiết
-                    </button>{" "}
-                    <button className="ad-btn" onClick={() => openPaymentModal(r)}>
-                      Add Payment
-                    </button>
+                    <button className="ad-btn" onClick={() => openDetail(r)}>Chi tiết</button>{" "}
+                    <button className="ad-btn" onClick={() => openPaymentModal(r)} disabled={disableAddPayment}>Add Payment</button>
                   </td>
                 </tr>
               );
@@ -574,7 +574,7 @@ export default function PurchaseWorkflowPage() {
 
             {!rows.length && (
               <tr>
-                <td style={{ ...td, opacity: 0.7 }} colSpan={9}>
+                <td style={{ ...td, opacity: 0.7 }} colSpan={tab === "payments" ? 8 : 9}>
                   Không có dữ liệu.
                 </td>
               </tr>
@@ -597,142 +597,6 @@ export default function PurchaseWorkflowPage() {
           </button>
         </div>
       </div>
-
-      {/* Detail modal */}
-      <Modal
-        open={detailOpen}
-        title={
-          detail
-            ? tab === "quotations"
-              ? `Quotation: ${detail.code || ""}`
-              : tab === "purchaseOrders" || tab === "payments"
-              ? `Purchase Order: ${detail.code || ""}`
-              : `Receipt: ${detail.code || ""}`
-            : "Detail"
-        }
-        onClose={() => {
-          setDetailOpen(false);
-          setDetail(null);
-        }}
-      >
-        {!detail ? null : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div style={card}>
-              <div style={cardTitle}>Thông tin</div>
-              <div style={line}>
-                <span style={k}>Gym</span>
-                <span style={v}>{detail.gym?.name || "-"}</span>
-              </div>
-              <div style={line}>
-                <span style={k}>Supplier</span>
-                <span style={v}>{detail.supplier?.name || detail.purchaseOrder?.supplier?.name || "-"}</span>
-              </div>
-              <div style={line}>
-                <span style={k}>Status</span>
-                <span style={v}>
-                  <Badge>{detail.status}</Badge>
-                </span>
-              </div>
-              <div style={line}>
-                <span style={k}>Total</span>
-                <span style={v}>{money(detail.totalAmount || detail.totalValue || 0)}</span>
-              </div>
-              <div style={line}>
-                <span style={k}>Notes</span>
-                <span style={v}>{detail.notes || "-"}</span>
-              </div>
-            </div>
-
-            <div style={card}>
-              <div style={cardTitle}>Người liên quan</div>
-              <div style={line}>
-                <span style={k}>Requester</span>
-                <span style={v}>
-                  {detail.requester?.username || "-"}
-                  {detail.requester?.email ? ` (${detail.requester.email})` : ""}
-                </span>
-              </div>
-              <div style={line}>
-                <span style={k}>Approver</span>
-                <span style={v}>
-                  {detail.approver?.username || "-"}
-                  {detail.approver?.email ? ` (${detail.approver.email})` : ""}
-                </span>
-              </div>
-              <div style={line}>
-                <span style={k}>Processor</span>
-                <span style={v}>
-                  {detail.processor?.username || "-"}
-                  {detail.processor?.email ? ` (${detail.processor.email})` : ""}
-                </span>
-              </div>
-              <div style={line}>
-                <span style={k}>Quotation</span>
-                <span style={v}>{detail.quotation?.code || "-"}</span>
-              </div>
-              <div style={line}>
-                <span style={k}>PO</span>
-                <span style={v}>{detail.purchaseOrder?.code || "-"}</span>
-              </div>
-            </div>
-
-            <div style={{ ...card, gridColumn: "1 / -1" }}>
-              <div style={cardTitle}>Items</div>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead style={{ opacity: 0.85 }}>
-                  <tr>
-                    <th style={th}>Equipment</th>
-                    <th style={th}>Qty</th>
-                    <th style={th}>Unit</th>
-                    <th style={th}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(detail.items || []).map((it) => (
-                    <tr key={it.id} style={tr}>
-                      <td style={td}>{it.equipment?.name || "-"}</td>
-                      <td style={td}>{it.quantity}</td>
-                      <td style={td}>{money(it.unitPrice)}</td>
-                      <td style={td}>{money(it.totalPrice)}</td>
-                    </tr>
-                  ))}
-                  {!detail.items?.length && (
-                    <tr>
-                      <td style={{ ...td, opacity: 0.7 }} colSpan={4}>
-                        Không có items.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {tab === "payments" ? (
-                <div style={{ marginTop: 12 }}>
-                  <PaymentsBlock poId={detail.id} />
-                </div>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Reject modal */}
-      <Modal open={rejectOpen} title="Reject quotation" onClose={() => setRejectOpen(false)} width={560}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ opacity: 0.85 }}>
-            Lý do từ chối quotation <b>{detail?.code}</b>
-          </div>
-          <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={4} placeholder="Nhập lý do..." style={textarea} />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button className="ad-btn" onClick={() => setRejectOpen(false)}>
-              Huỷ
-            </button>
-            <button className="ad-btn" onClick={submitRejectQuotation} disabled={!rejectReason.trim()}>
-              Reject
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Payment modal */}
       <Modal
@@ -766,11 +630,9 @@ export default function PurchaseWorkflowPage() {
             </div>
           </div>
 
-          {/* ✅ INPUT HIỂN THỊ DẤU CHẤM */}
           <input
             value={formatVNDInput(paymentAmount)}
             onChange={(e) => {
-              // lưu digits (số sạch)
               const digits = String(e.target.value || "").replace(/\./g, "").replace(/\D/g, "");
               setPaymentAmount(digits);
             }}
@@ -780,7 +642,6 @@ export default function PurchaseWorkflowPage() {
           />
 
           <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} style={select}>
-            <option value="manual">manual</option>
             <option value="cash">cash</option>
             <option value="bank_transfer">bank_transfer</option>
             <option value="card">card</option>
@@ -855,71 +716,6 @@ export default function PurchaseWorkflowPage() {
   );
 }
 
-function PaymentsBlock({ poId }) {
-  const [loading, setLoading] = useState(false);
-  const [txs, setTxs] = useState([]);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await adminPurchaseWorkflowService.getPaymentsByPO(poId);
-      setTxs(res.data?.data || res.data || []);
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poId]);
-
-  return (
-    <div style={card}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontWeight: 900 }}>Payments (Transactions)</div>
-        <button className="ad-btn" onClick={load} disabled={loading}>
-          {loading ? "..." : "Reload"}
-        </button>
-      </div>
-      <div style={{ height: 10 }} />
-      <div style={{ border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead style={{ background: "rgba(255,255,255,0.04)" }}>
-            <tr>
-              <th style={th}>Transaction Code</th>
-              <th style={th}>Amount</th>
-              <th style={th}>Method</th>
-              <th style={th}>Status</th>
-              <th style={th}>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {txs.map((t) => (
-              <tr key={t.id} style={tr}>
-                <td style={td}>{t.transactionCode || "-"}</td>
-                <td style={td}>{money(t.amount)}</td>
-                <td style={td}>{t.paymentMethod || "-"}</td>
-                <td style={td}>{t.paymentStatus || "-"}</td>
-                <td style={td}>{t.transactionDate ? new Date(t.transactionDate).toLocaleString("vi-VN") : "-"}</td>
-              </tr>
-            ))}
-            {!txs.length && (
-              <tr>
-                <td style={{ ...td, opacity: 0.7 }} colSpan={5}>
-                  Chưa có giao dịch.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // ===== styles
 const th = { textAlign: "left", padding: "12px 12px", fontSize: 12, opacity: 0.85 };
 const thRight = { ...th, textAlign: "right" };
@@ -953,17 +749,6 @@ const textarea = {
   color: "#eef2ff",
   resize: "vertical",
 };
-
-const card = {
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: 16,
-  padding: 12,
-  background: "rgba(255,255,255,0.04)",
-};
-const cardTitle = { fontWeight: 900, marginBottom: 10 };
-const line = { display: "flex", justifyContent: "space-between", gap: 10, padding: "6px 0" };
-const k = { opacity: 0.75 };
-const v = { fontWeight: 700 };
 
 const miniCard = {
   border: "1px solid rgba(255,255,255,0.12)",
