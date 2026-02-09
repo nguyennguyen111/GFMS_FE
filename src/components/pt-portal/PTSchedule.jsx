@@ -1,8 +1,11 @@
 // src/components/pt-portal/PTSchedule.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getPTSchedule, getPTDetails, getMyPTProfile } from "../../services/ptService";
+import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
 import "./PTSchedule.css";
+
+import PTAttendanceModal from "./PTAttendanceModal";
+import { getPTAttendanceSchedule, ptCheckIn, ptCheckOut } from "../../services/ptAttendanceService";
 
 const VI_DAY = {
   monday: "Thứ 2",
@@ -42,37 +45,14 @@ const parseTimeToMinutes = (hhmm) => {
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-const monthLabel = (m) => `Tháng ${m}`; // KHÔNG dùng "tháng giêng" nữa
+const monthLabel = (m) => `Tháng ${m}`;
 
-// ===== NEW: split slot dài thành nhiều block 1 giờ =====
-const MIN_PER_HOUR = 60;
-
-const minutesToHHMM = (min) => {
-  const h = String(Math.floor(min / 60)).padStart(2, "0");
-  const m = String(min % 60).padStart(2, "0");
-  return `${h}:${m}`;
-};
-
-const splitToHourlyBlocks = (startMin, endMin) => {
-  if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || endMin <= startMin) return [];
-
-  const blocks = [];
-  let cur = startMin;
-
-  while (cur < endMin) {
-    const nextHourBoundary = Math.ceil(cur / MIN_PER_HOUR) * MIN_PER_HOUR;
-    const end = Math.min(endMin, nextHourBoundary === cur ? cur + MIN_PER_HOUR : nextHourBoundary);
-
-    blocks.push({
-      startMin: cur,
-      endMin: end,
-      start: minutesToHHMM(cur),
-      end: minutesToHHMM(end),
-    });
-
-    cur = end;
-  }
-  return blocks;
+// ✅ helper convert Date -> YYYY-MM-DD for attendance API
+const toYMD = (d) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 };
 
 const PTSchedule = () => {
@@ -84,6 +64,7 @@ const PTSchedule = () => {
 
   const [activeTab, setActiveTab] = useState("week");
 
+  // schedule = slotsByDay (vì getPTSchedule đã trả slots)
   const [schedule, setSchedule] = useState(null);
   const [pt, setPT] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,17 +72,26 @@ const PTSchedule = () => {
   // week navigation
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Month/Year picker (chỉ dùng để nhảy nhanh)
+  // Month/Year picker
   const now = useMemo(() => new Date(), []);
   const [pickMonth, setPickMonth] = useState(now.getMonth() + 1); // 1..12
   const [pickYear, setPickYear] = useState(now.getFullYear());
+
+  // ===== Attendance modal state =====
+  const [attOpen, setAttOpen] = useState(false);
+  const [attLoading, setAttLoading] = useState(false);
+  const [attError, setAttError] = useState("");
+  const [attBooking, setAttBooking] = useState(null);
+
+  // cache attendance rows theo ngày (YYYY-MM-DD)
+  const [attCache, setAttCache] = useState({}); // { [ymd]: rows[] }
 
   // calendar config
   const START_HOUR = 6;
   const END_HOUR = 22;
   const SLOT_MINUTES = 30;
 
-  // ===== Resolve trainer id when missing/undefined =====
+  // Resolve trainer id
   useEffect(() => {
     if (id && id !== "undefined") {
       setPtId(String(id));
@@ -122,15 +112,16 @@ const PTSchedule = () => {
     run();
   }, [id]);
 
-  // ===== Fetch schedule + details after ptId is resolved =====
+  // Fetch schedule + details after ptId is resolved
   useEffect(() => {
     if (!ptId) return;
 
     const run = async () => {
       try {
         setLoading(true);
-        const [sch, info] = await Promise.all([getPTSchedule(ptId), getPTDetails(ptId)]);
-        setSchedule(sch);
+        const [sch, info] = await Promise.all([getPTScheduleSlots(ptId), getPTDetails(ptId)]);
+        // sch = slotsByDay
+        setSchedule(sch || {});
         setPT(info);
       } catch (e) {
         console.error(e);
@@ -142,14 +133,12 @@ const PTSchedule = () => {
     run();
   }, [ptId]);
 
-  // ===== Month jump => update weekOffset only =====
+  // Month jump => update weekOffset only
   const jumpToMonth = (month1to12, year) => {
     const firstDay = new Date(year, month1to12 - 1, 1);
     const monday = startOfWeekMonday(firstDay);
 
-    // base = monday của tuần hiện tại
     const baseMonday = startOfWeekMonday(new Date());
-
     const diffMs = monday.getTime() - baseMonday.getTime();
     const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
 
@@ -157,7 +146,7 @@ const PTSchedule = () => {
     setActiveTab("week");
   };
 
-  // ===== Week view data (Mon..Sun) =====
+  // Week view data (Mon..Sun)
   const weekDays = useMemo(() => {
     if (!schedule) return [];
     const base = new Date();
@@ -226,6 +215,83 @@ const PTSchedule = () => {
     return { top: `${topPct}%`, height: `${heightPct}%` };
   };
 
+  // ===== Attendance logic =====
+  const loadAttendanceRowsByDate = async (ymd) => {
+    if (attCache[ymd]) return attCache[ymd];
+    const data = await getPTAttendanceSchedule({ date: ymd });
+    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    setAttCache((prev) => ({ ...prev, [ymd]: rows }));
+    return rows;
+  };
+
+  const openAttendanceForSlot = async (dateObj, slot) => {
+  const ymd = toYMD(dateObj);
+
+  setAttError("");
+  setAttLoading(true);
+  setAttOpen(true);
+
+  try {
+    const rows = await loadAttendanceRowsByDate(ymd);
+
+    const found = rows.find(
+      (b) =>
+        String(b?.bookingDate || "").slice(0, 10) === ymd &&
+        String(b?.startTime || "").slice(0, 5) === String(slot?.start || "").slice(0, 5)
+    );
+
+    // nếu không tìm thấy => lịch rảnh
+    setAttBooking(found || null);
+  } catch (e) {
+    // ✅ chặn 500: coi như không có booking (slot rảnh), đừng show đỏ lỗi
+    setAttBooking(null);
+    setAttError("");
+  } finally {
+    setAttLoading(false);
+  }
+};
+
+
+  const refreshCurrentBooking = async () => {
+    if (!attBooking?.bookingDate) return;
+    const ymd = String(attBooking.bookingDate).slice(0, 10);
+
+    const data = await getPTAttendanceSchedule({ date: ymd });
+    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    setAttCache((prev) => ({ ...prev, [ymd]: rows }));
+
+    const found = rows.find((b) => b.id === attBooking.id);
+    setAttBooking(found || attBooking);
+  };
+
+  const doCheckIn = async () => {
+    if (!attBooking?.id) return;
+    setAttError("");
+    setAttLoading(true);
+    try {
+      await ptCheckIn({ bookingId: attBooking.id, method: "manual", status: "present" });
+      await refreshCurrentBooking();
+    } catch (e) {
+      setAttError(e?.response?.data?.EM || e?.message || "Check-in failed");
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const doCheckOut = async () => {
+    if (!attBooking?.id) return;
+    setAttError("");
+    setAttLoading(true);
+    try {
+      await ptCheckOut({ bookingId: attBooking.id });
+      await refreshCurrentBooking();
+    } catch (e) {
+      setAttError(e?.response?.data?.EM || e?.message || "Check-out failed");
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
   if (resolveError) {
     return (
       <div className="ptSchedule">
@@ -286,7 +352,6 @@ const PTSchedule = () => {
           7 ngày tới
         </button>
 
-        {/* Month picker chỉ dùng để nhảy tuần */}
         <div className="ptMonthPick">
           <span className="ptMonthLabel">Tháng:</span>
 
@@ -379,28 +444,25 @@ const PTSchedule = () => {
                         <div className="ptWeek__gridLine" key={i} />
                       ))}
 
-                      {/* ✅ FIX: remove "Rảnh" + split long slots into hourly blocks */}
-                      {(d.slots || []).flatMap((s, i) => {
-                        const rawStart = parseTimeToMinutes(s.start);
-                        const rawEnd = parseTimeToMinutes(s.end);
+                      {/* ✅ slot đã được BE sinh sẵn (60' + nghỉ 15') => render trực tiếp */}
+                      {(d.slots || []).map((s, i) => {
+                        const startMin = parseTimeToMinutes(s.start);
+                        const endMin = parseTimeToMinutes(s.end);
 
-                        const startMin = clamp(rawStart, minutesRangeStart, minutesRangeEnd);
-                        const endMin = clamp(rawEnd, minutesRangeStart, minutesRangeEnd);
-
-                        const blocks = splitToHourlyBlocks(startMin, endMin);
-
-                        return blocks.map((b, bi) => (
+                        return (
                           <div
                             className="ptWeek__block"
-                            key={`${i}-${bi}`}
-                            style={calcBlockStyleByMinutes(b.startMin, b.endMin)}
+                            key={i}
+                            style={calcBlockStyleByMinutes(startMin, endMin)}
+                            onClick={() => openAttendanceForSlot(d.date, s)}
+                            role="button"
+                            tabIndex={0}
                           >
-                            {/* ❌ bỏ title */}
                             <div className="ptWeek__blockTime">
-                              {b.start} - {b.end}
+                              {s.start} - {s.end}
                             </div>
                           </div>
-                        ));
+                        );
                       })}
                     </div>
                   ))}
@@ -488,6 +550,21 @@ const PTSchedule = () => {
           </>
         )}
       </div>
+
+      {/* ✅ Attendance Modal */}
+      <PTAttendanceModal
+        open={attOpen}
+        booking={attBooking}
+        loading={attLoading}
+        error={attError}
+        onClose={() => {
+          setAttOpen(false);
+          setAttError("");
+          setAttBooking(null);
+        }}
+        onCheckIn={doCheckIn}
+        onCheckOut={doCheckOut}
+      />
     </div>
   );
 };
