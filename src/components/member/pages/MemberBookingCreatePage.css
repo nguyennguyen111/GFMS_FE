@@ -1,0 +1,137 @@
+.booking-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.booking-card {
+  width: 100%;
+  max-width: 1000px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.35));
+  backdrop-filter: blur(14px);
+  border-radius: 26px;
+  padding: 28px;
+  color: #fff;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+}
+
+.booking-title {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.booking-error {
+  background: rgba(255,0,0,.15);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.package-box {
+  background: rgba(255,177,0,.15);
+  border: 1px solid rgba(255,177,0,.45);
+  padding: 16px;
+  border-radius: 18px;
+  margin-bottom: 24px;
+}
+
+.pkg-ok {
+  font-size: 13px;
+  color: #ffb100;
+  margin-top: 6px;
+}
+
+.section {
+  margin-bottom: 26px;
+}
+
+.pt-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pt-chip {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.3);
+  border: 1px solid rgba(255,255,255,.15);
+  cursor: pointer;
+  color: #fff;
+}
+
+.pt-chip.active {
+  background: rgba(255,177,0,.25);
+  border-color: #ffb100;
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  gap: 10px;
+}
+
+.day-chip {
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.25);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff;
+  cursor: pointer;
+}
+
+.day-chip.active {
+  background: rgba(255,177,0,.2);
+  border-color: #ffb100;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(90px,1fr));
+  gap: 10px;
+}
+
+.slot-cell {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.25);
+  border: 1px solid rgba(255,255,255,.15);
+  cursor: pointer;
+  color: #fff;
+}
+
+.slot-cell.active {
+  background: rgba(255,177,0,.25);
+  border-color: #ffb100;
+}
+
+.empty-slot {
+  opacity: .6;
+  font-size: 14px;
+}
+
+.submit-btn {
+  margin-top: 30px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg,#ffb100,#ff8c00);
+  border: none;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  color: #000;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(0,0,0,.2);
+  border-top: 3px solid #000;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

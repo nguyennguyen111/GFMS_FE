@@ -1,0 +1,113 @@
+.trainer-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  color: #fff;
+}
+
+/* ===== HEADER ===== */
+.trainer-header {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 32px;
+}
+
+.trainer-avatar img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.trainer-main h1 {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.trainer-spec {
+  opacity: .8;
+  margin-bottom: 10px;
+}
+
+.trainer-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  opacity: .85;
+}
+
+.trainer-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #ffb100, #ff7a00);
+  color: #111;
+  font-weight: 700;
+}
+
+.btn.outline {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+}
+
+/* ===== CARDS ===== */
+.trainer-card {
+  background: rgba(255,255,255,.045);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 24px;
+}
+
+.trainer-card h3 {
+  margin-bottom: 14px;
+}
+
+/* ===== GRID ===== */
+.trainer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ===== INFO LIST ===== */
+.trainer-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.trainer-card li {
+  margin-bottom: 8px;
+  opacity: .9;
+}
+
+/* ===== SCHEDULE ===== */
+.schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.schedule-row span {
+  margin-right: 8px;
+  opacity: .85;
+}

@@ -12,7 +12,6 @@ import Footer from "../footer/Footer";
 const LandingPage = () => {
   return (
     <>
-      <Header />
       <GFMSHero />
       <RolesSection />
       <WorkflowSection />
@@ -20,7 +19,6 @@ const LandingPage = () => {
       <PricingSection />
       <FAQSection />
       <JoinCTA />
-      <Footer />
     </>
   );
 };
