@@ -175,7 +175,7 @@ const Header = () => {
               <button className="h-menuItem" onClick={() => go("/member/bookings")}>
                 📖 Lịch đã đặt
               </button>
-              <button className="h-menuItem" onClick={() => go("/member/my")}>
+              <button className="h-menuItem" onClick={() => go("/member/my-packages")}>
                 🎫 Gói của tôi
               </button>
               <button className="h-menuItem" onClick={() => go("/member/profile")}>
