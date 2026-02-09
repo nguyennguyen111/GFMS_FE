@@ -9,6 +9,7 @@ export default function OwnerSuppliersPage() {
   const [page, setPage] = useState(1);
   const [searchQ, setSearchQ] = useState("");
   const [detail, setDetail] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchSuppliers = async () => {
     setLoading(true);
@@ -36,8 +37,10 @@ export default function OwnerSuppliersPage() {
   return (
     <div className="osup-page">
       <div className="osup-head">
-        <h2>Nhà cung cấp</h2>
-        <p>Quản lý danh sách nhà cung cấp thiết bị</p>
+        <div>
+          <h2>Nhà cung cấp</h2>
+          <p>Quản lý danh sách nhà cung cấp thiết bị</p>
+        </div>
       </div>
 
       <div className="osup-container">
@@ -72,8 +75,11 @@ export default function OwnerSuppliersPage() {
                 {suppliers.map((supplier) => (
                   <tr
                     key={supplier.id}
-                    onClick={() => fetchDetail(supplier.id)}
-                    className={detail?.id === supplier.id ? "active" : ""}
+                    onClick={() => {
+                      fetchDetail(supplier.id);
+                      setShowDetailModal(true);
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <td>{supplier.name}</td>
                     <td>{supplier.code || "-"}</td>
@@ -98,59 +104,88 @@ export default function OwnerSuppliersPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="osup-pagination">
+            <div className="pagination">
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
+                className="pagination-btn"
               >
-                ← Trước
+                Trước
               </button>
-              <span>Trang {meta.page} / {meta.totalPages}</span>
+              <span className="pagination-info">
+                Trang {meta.page} / {meta.totalPages}
+              </span>
               <button
                 onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
                 disabled={page === meta.totalPages}
+                className="pagination-btn"
               >
-                Sau →
+                Sau
               </button>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Detail */}
-        {detail && (
-          <div className="osup-detail">
-            <h3>Chi tiết nhà cung cấp</h3>
-            <div className="osup-detail-field">
-              <label>Tên</label>
-              <div>{detail.name}</div>
+      {/* Detail Modal */}
+      {showDetailModal && detail && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chi tiết nhà cung cấp</h2>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+                ×
+              </button>
             </div>
-            <div className="osup-detail-field">
-              <label>Mã</label>
-              <div>{detail.code || "-"}</div>
-            </div>
-            <div className="osup-detail-field">
-              <label>Email</label>
-              <div>{detail.email || "-"}</div>
-            </div>
-            <div className="osup-detail-field">
-              <label>SĐT</label>
-              <div>{detail.phone || "-"}</div>
-            </div>
-            <div className="osup-detail-field">
-              <label>Địa chỉ</label>
-              <div>{detail.address || "-"}</div>
-            </div>
-            <div className="osup-detail-field">
-              <label>Trạng thái</label>
-              <div>
-                <span className={`osup-badge ${detail.isActive ? "active" : "inactive"}`}>
-                  {detail.isActive ? "Hoạt động" : "Ngưng"}
-                </span>
+            
+            <div className="modal-body">
+              <div className="detail-grid">
+                <div className="detail-row">
+                  <span className="detail-label">Tên:</span>
+                  <span className="detail-value">{detail.name}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Mã:</span>
+                  <span className="detail-value">{detail.code || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Email:</span>
+                  <span className="detail-value">{detail.email || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">SĐT:</span>
+                  <span className="detail-value">{detail.phone || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Trạng thái:</span>
+                  <span className="detail-value">
+                    <span className={`osup-badge ${detail.isActive ? "active" : "inactive"}`}>
+                      {detail.isActive ? "Hoạt động" : "Ngưng"}
+                    </span>
+                  </span>
+                </div>
+
+                {detail.address && (
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Địa chỉ:</span>
+                    <span className="detail-value">{detail.address}</span>
+                  </div>
+                )}
               </div>
             </div>
+
+            <div className="modal-footer">
+              <button onClick={() => setShowDetailModal(false)} className="btn-cancel">
+                Đóng
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

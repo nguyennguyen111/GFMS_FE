@@ -18,6 +18,9 @@ import OwnerTrainerSharePage from "./pages/OwnerTrainerSharePage";
 import OwnerMembersPage from "./pages/OwnerMembersPage";
 import OwnerBookingsPage from "./pages/OwnerBookingsPage";
 import OwnerGymsPage from "./pages/OwnerGymsPage";
+import OwnerTransactionsPage from "./pages/OwnerTransactionsPage";
+import OwnerCommissionsPage from "./pages/OwnerCommissionsPage";
+import OwnerWithdrawalsPage from "./pages/OwnerWithdrawalsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
 
 export default function OwnerDashboard() {
@@ -58,7 +61,7 @@ export default function OwnerDashboard() {
       items: [
         { label: "Giao dịch", to: "/owner/transactions", key: "transactions", icon: "💳" },
         { label: "Hoa hồng", to: "/owner/commissions", key: "commissions", icon: "🧾" },
-        { label: "Rút tiền", to: "/owner/withdrawals", key: "withdrawals", icon: "🏦" },
+        { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals", icon: "🏦" },
       ],
     },
     {
@@ -182,9 +185,9 @@ export default function OwnerDashboard() {
             <Route path="/reviews" element={<PlaceholderPage title="Đánh giá (review)" />} />
 
             {/* Finance */}
-            <Route path="/transactions" element={<PlaceholderPage title="Giao dịch (transaction)" />} />
-            <Route path="/commissions" element={<PlaceholderPage title="Hoa hồng (commission)" />} />
-            <Route path="/withdrawals" element={<PlaceholderPage title="Rút tiền (withdrawal)" />} />
+            <Route path="/transactions" element={<OwnerTransactionsPage />} />
+            <Route path="/commissions" element={<OwnerCommissionsPage />} />
+            <Route path="/withdrawals" element={<OwnerWithdrawalsPage />} />
 
             {/* Inventory & Equipment */}
             <Route path="/equipment" element={<OwnerEquipmentPage />} />

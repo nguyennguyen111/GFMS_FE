@@ -203,7 +203,7 @@ const PTForm = () => {
               Quay lại
             </Link>
             <button form="ptf-form" type="submit" className="ptf-btnPrimary">
-              Save
+              Lưu
             </button>
           </div>
         </div>

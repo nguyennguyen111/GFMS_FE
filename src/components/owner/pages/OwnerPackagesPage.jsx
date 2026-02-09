@@ -7,12 +7,15 @@ import {
   ownerTogglePackage,
 } from "../../../services/ownerPackageService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import ownerTrainerService from "../../../services/ownerTrainerService";
 
 const emptyForm = {
   gymId: "",
   name: "",
   description: "",
   type: "basic",
+  packageType: "membership", // membership | personal_training
+  trainerId: "", // Chỉ áp dụng cho personal_training
   durationDays: 30,
   price: 0,
   sessions: 0,
@@ -31,9 +34,14 @@ export default function OwnerPackagesPage() {
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
   const [gyms, setGyms] = useState([]);
+  const [trainers, setTrainers] = useState([]);
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // all | active | inactive
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
   // modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,6 +70,13 @@ export default function OwnerPackagesPage() {
     });
   }, [items, search, activeFilter]);
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [filtered, currentPage]);
+
   const fetchData = async () => {
     setLoading(true);
     setErr("");
@@ -87,9 +102,20 @@ export default function OwnerPackagesPage() {
     }
   };
 
+  const loadTrainers = async () => {
+    try {
+      const response = await ownerTrainerService.getMyTrainers();
+      setTrainers(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error("Lỗi khi load danh sách PT:", error);
+      setTrainers([]);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     loadGyms();
+    loadTrainers();
   }, []);
 
   const openCreate = () => {
@@ -107,6 +133,8 @@ export default function OwnerPackagesPage() {
       name: pkg.name ?? "",
       description: pkg.description ?? "",
       type: pkg.type ?? "basic",
+      packageType: pkg.packageType ?? "membership",
+      trainerId: pkg.trainerId ?? "",
       durationDays: pkg.durationDays ?? 30,
       price: pkg.price ?? 0,
       sessions: pkg.sessions ?? 0,
@@ -132,6 +160,8 @@ export default function OwnerPackagesPage() {
       name: form.name.trim(),
       description: form.description,
       type: form.type,
+      packageType: form.packageType,
+      trainerId: form.packageType === 'personal_training' && form.trainerId ? safeNum(form.trainerId) : null,
       durationDays: safeNum(form.durationDays),
       price: safeNum(form.price),
       sessions: safeNum(form.sessions),
@@ -182,13 +212,19 @@ export default function OwnerPackagesPage() {
           className="op-input"
           placeholder="Tìm theo tên / mô tả / type..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
         />
 
         <select
           className="op-select"
           value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value)}
+          onChange={(e) => {
+            setActiveFilter(e.target.value);
+            setCurrentPage(1);
+          }}
         >
           <option value="all">Tất cả</option>
           <option value="active">Đang hoạt động</option>
@@ -214,7 +250,8 @@ export default function OwnerPackagesPage() {
                 <th>ID</th>
                 <th>Tên gói</th>
                 <th>Gym</th>
-                <th>Type</th>
+                <th>Loại gói</th>
+                <th>PT</th>
                 <th>Thời hạn</th>
                 <th>Giá</th>
                 <th>Buổi</th>
@@ -223,8 +260,9 @@ export default function OwnerPackagesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => {
+              {paginatedItems.map((p) => {
                 const gym = gyms.find(g => g.id === p.gymId);
+                const trainer = trainers.find(t => t.id === p.trainerId);
                 return (
                   <tr key={p.id}>
                     <td>{p.id}</td>
@@ -233,10 +271,15 @@ export default function OwnerPackagesPage() {
                       <div className="op-desc">{p.description}</div>
                     </td>
                     <td>{gym ? gym.name : `#${p.gymId}`}</td>
-                    <td>{p.type}</td>
+                    <td>
+                      <span className={`op-badge ${p.packageType === 'membership' ? 'badge-membership' : 'badge-pt'}`}>
+                        {p.packageType === 'membership' ? '🏋️ Membership' : '👤 PT'}
+                      </span>
+                    </td>
+                    <td>{trainer ? trainer.User?.username : '-'}</td>
                     <td>{p.durationDays} ngày</td>
                     <td>{Number(p.price).toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₫</td>
-                    <td>{p.sessions}</td>
+                    <td>{p.packageType === 'membership' ? 'Không giới hạn' : p.sessions}</td>
                     <td>
                       <span className={`op-badge ${p.status === 'ACTIVE' ? "is-on" : "is-off"}`}>
                         {p.status === 'ACTIVE' ? "Đang hoạt động" : "Ngừng hoạt động"}
@@ -271,6 +314,29 @@ export default function OwnerPackagesPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div className="op-pagination">
+          <button 
+            className="op-pagination-btn"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            Trước
+          </button>
+          <span className="op-pagination-pages">
+            Trang {currentPage} / {totalPages}
+          </span>
+          <button 
+            className="op-pagination-btn"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Sau
+          </button>
+        </div>
+      )}
 
       {/* MODAL */}
       {modalOpen && (
@@ -321,77 +387,124 @@ export default function OwnerPackagesPage() {
                 />
               </div>
 
+              <div className="op-row">
+                <label>Loại gói *</label>
+                <select
+                  className="op-select"
+                  value={form.packageType}
+                  onChange={(e) => setForm({ ...form, packageType: e.target.value, trainerId: "" })}
+                >
+                  <option value="membership">🏋️ Membership (Thẻ tập gym)</option>
+                  <option value="personal_training">👤 Personal Training (Gói PT)</option>
+                </select>
+              </div>
+
+              {form.packageType === 'personal_training' && (
+                <div className="op-row">
+                  <label>Chọn PT *</label>
+                  <select
+                    className="op-select"
+                    value={form.trainerId}
+                    onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
+                  >
+                    <option value="">-- Chọn PT --</option>
+                    {trainers.map((trainer) => (
+                      <option key={trainer.id} value={trainer.id}>
+                        {trainer.User?.username || `Trainer #${trainer.id}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="op-grid">
                 <div className="op-row">
-                  <label>Type</label>
+                  <label>Phân loại</label>
                   <select
                     className="op-select"
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                   >
-                    <option value="basic">basic</option>
-                    <option value="premium">premium</option>
-                    <option value="pt_only">pt_only</option>
-                    <option value="unlimited">unlimited</option>
+                    <option value="basic">Cơ bản</option>
+                    <option value="premium">Cao cấp</option>
+                    <option value="pt_only">Chỉ PT</option>
+                    <option value="unlimited">Không giới hạn</option>
                   </select>
                 </div>
 
                 <div className="op-row">
-                  <label>Thời hạn (days)</label>
+                  <label>Thời hạn (ngày)</label>
                   <input
                     className="op-input"
+                    type="number"
                     value={form.durationDays}
                     onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
+                    placeholder="30"
                   />
                 </div>
 
                 <div className="op-row">
-                  <label>Giá</label>
+                  <label>Giá (VNĐ)</label>
                   <input
                     className="op-input"
+                    type="number"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    placeholder="0"
                   />
                 </div>
 
-                <div className="op-row">
-                  <label>Số buổi</label>
-                  <input
-                    className="op-input"
-                    value={form.sessions}
-                    onChange={(e) => setForm({ ...form, sessions: e.target.value })}
-                  />
-                </div>
+                {form.packageType === 'personal_training' && (
+                  <div className="op-row">
+                    <label>Số buổi tập *</label>
+                    <input
+                      className="op-input"
+                      type="number"
+                      value={form.sessions}
+                      onChange={(e) => setForm({ ...form, sessions: e.target.value })}
+                      placeholder="VD: 12"
+                    />
+                  </div>
+                )}
+
+                {form.packageType === 'personal_training' && (
+                  <div className="op-row">
+                    <label>Tỷ lệ hoa hồng PT</label>
+                    <input
+                      className="op-input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={form.commissionRate}
+                      onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
+                      placeholder="0.6"
+                    />
+                    <small style={{color: 'rgba(238, 242, 255, 0.6)', fontSize: '0.75rem', marginTop: '4px', display: 'block'}}>Nhập giá trị từ 0 đến 1 (VD: 0.6 = 60%)</small>
+                  </div>
+                )}
 
                 <div className="op-row">
-                  <label>Hoa hồng PT (0-1)</label>
-                  <input
-                    className="op-input"
-                    value={form.commissionRate}
-                    onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
-                  />
-                </div>
-
-                <div className="op-row">
-                  <label>ValidityType</label>
+                  <label>Loại thời hạn</label>
                   <select
                     className="op-select"
                     value={form.validityType}
                     onChange={(e) => setForm({ ...form, validityType: e.target.value })}
                   >
-                    <option value="days">days</option>
-                    <option value="months">months</option>
-                    <option value="sessions">sessions</option>
+                    <option value="days">Theo ngày</option>
+                    <option value="months">Theo tháng</option>
+                    <option value="sessions">Theo buổi</option>
                   </select>
                 </div>
 
                 <div className="op-row">
-                  <label>Max sessions/week</label>
+                  <label>Số buổi tối đa/tuần</label>
                   <input
                     className="op-input"
+                    type="number"
                     value={form.maxSessionsPerWeek}
                     onChange={(e) => setForm({ ...form, maxSessionsPerWeek: e.target.value })}
-                    placeholder="(optional)"
+                    placeholder="Không giới hạn"
                   />
                 </div>
               </div>
