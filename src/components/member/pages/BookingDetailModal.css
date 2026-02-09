@@ -1,0 +1,63 @@
+.bd-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.bd-modal {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(180deg, rgba(30,30,30,.95), rgba(10,10,10,.95));
+  border-radius: 22px;
+  padding: 22px;
+  color: #fff;
+  box-shadow: 0 40px 100px rgba(0,0,0,.6);
+}
+
+.bd-modal h3 {
+  margin-bottom: 16px;
+}
+
+.bd-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.bd-row span {
+  opacity: .7;
+}
+
+.bd-row .st.confirmed { color: #ffb100; }
+.bd-row .st.completed { color: #00c878; }
+.bd-row .st.cancelled { color: #ff4d4f; }
+
+.bd-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.bd-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.bd-btn.primary {
+  background: linear-gradient(135deg,#ffb100,#ff8c00);
+  color: #000;
+}
+
+.bd-btn.ghost {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}

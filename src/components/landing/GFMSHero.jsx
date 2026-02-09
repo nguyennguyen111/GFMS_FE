@@ -70,20 +70,6 @@ const GFMSHero = () => {
         transition={transition}
         className="gfms-hero__panel"
       >
-        <div className="panel-card" id="demo">
-          <div className="panel-title">Demo nhanh theo vai trò</div>
-          <div className="panel-desc">Chọn để xem luồng & màn hình tương ứng (bạn có thể map link thật sau).</div>
-
-          <div className="panel-buttons">
-            <button className="btn btn-small" onClick={() => navigate("/admin/dashboard")}>Admin</button>
-            <button className="btn btn-small" onClick={() => navigate("/owner/packages")}>Owner</button>
-            <button className="btn btn-small" onClick={() => navigate("/member/packages")}>Member</button>
-          </div>
-
-          <div className="panel-footnote">
-            * Nếu route demo yêu cầu đăng nhập, bạn có thể chuyển sang trang “Login” trước.
-          </div>
-        </div>
       </motion.div>
     </section>
   );

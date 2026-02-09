@@ -4,7 +4,7 @@ import Header from "../components/header/Header";
 import Footer from "../components/footer/Footer";
 import "../styles/memberTheme.css"; // ✅ NEW
 
-export default function MemberWebLayout() {
+export default function WebsiteLayout() {
   return (
     <div className="site member-app">
       <Header />

@@ -1,0 +1,161 @@
+/* ======================
+   TRAINER LIST
+====================== */
+
+.trainer-card {
+  background: #0f1115;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: .25s;
+}
+
+.trainer-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 60px rgba(0,0,0,.5);
+}
+
+.trainer-card__img {
+  position: relative;
+}
+
+.trainer-card__img img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+}
+
+.trainer-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trainer-badge.active {
+  background: #22c55e;
+  color: #000;
+}
+
+.trainer-badge.inactive {
+  background: #ef4444;
+  color: #fff;
+}
+
+.trainer-card__body {
+  padding: 18px;
+}
+
+.trainer-card__name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.trainer-card__spec {
+  font-size: 14px;
+  opacity: .75;
+}
+
+.trainer-card__stats {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.trainer-card__gym {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: .8;
+}
+
+/* ======================
+   TRAINER DETAIL (IG)
+====================== */
+
+.ig-profile {
+  max-width: 1000px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+.ig-header {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.ig-avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid rgba(255,255,255,.2);
+}
+
+.ig-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ig-info h1 {
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.ig-spec {
+  opacity: .8;
+}
+
+.ig-stats {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+}
+
+.ig-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ig-btn--outline {
+  border: 1px solid rgba(255,255,255,.3);
+  background: transparent;
+  color: #fff;
+}
+
+.ig-bio {
+  margin-top: 30px;
+  line-height: 1.6;
+}
+
+.ig-tabs {
+  display: flex;
+  gap: 30px;
+  margin-top: 40px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.ig-tabs button {
+  background: none;
+  border: none;
+  padding: 14px 0;
+  font-weight: 600;
+  opacity: .6;
+  cursor: pointer;
+}
+
+.ig-tabs button.active {
+  opacity: 1;
+  border-bottom: 2px solid #fff;
+}
+
+.ig-content {
+  margin-top: 30px;
+}

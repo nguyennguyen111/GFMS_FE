@@ -320,6 +320,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import { loginUser } from '../../services/authService';
+import { setCurrentUser } from '../../utils/auth';
+
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -370,76 +372,97 @@ const LoginPage = () => {
       1: '/admin',     // admin area
       2: '/owner',          // tạm thời chưa có owner page => về home
       3: '/pt',          // tạm thời chưa có trainer page => về home
-      4: '/member',          // tạm thời chưa có member page => về home
+      4: '/',          // tạm thời chưa có member page => về home
       5: '/',          // guest => home
     };
     return map[groupId] || '/';
   };
 
   const handleLogin = async () => {
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    const response = await loginUser(email, password);
+    const data = response?.data;
+
+    console.log('Login response:', data);
+
+    if (data?.EC === 0) {
+      alert(`✅ ${data?.EM || "Đăng nhập thành công"}`);
+
+      const dt = data?.DT || {};
+      const user = dt?.user || null;
+      const accessToken = dt?.accessToken || dt?.access_Token || "";
+
+      if (!user) {
+        alert("❌ Không lấy được thông tin người dùng");
+        return;
+      }
+
+      // ✅ LƯU TOKEN (CHO AXIOS)
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
+      }
+
+      // ✅ LƯU USER CHUẨN CHO TOÀN HỆ THỐNG
+      setCurrentUser(user);
+
+      // ✅ BACKWARD COMPAT (để các chỗ cũ không vỡ)
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("roles", JSON.stringify(dt?.roles || []));
+
+      // ✅ REDIRECT LOGIC (QUAN TRỌNG)
+      const redirect = sessionStorage.getItem("redirectAfterLogin");
+
+      if (redirect) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        navigate(redirect, { replace: true });
+        return;
+      }
+
+      // ✅ FALLBACK: redirect theo role
+      const groupIdRaw = user?.groupId ?? user?.group_id;
+      const groupId = Number(groupIdRaw);
+      const homePath = getHomePathByGroupId(groupId);
+
+      navigate(homePath, { replace: true });
       return;
     }
 
-    setIsLoading(true);
+    // ❌ LOGIN FAIL
+    const serverError = data?.EM || "Có lỗi xảy ra";
+    const errorMap = {
+      'User not found': 'Email không tồn tại trong hệ thống',
+      'Wrong password': 'Mật khẩu không đúng',
+      'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
+      'Account inactive': 'Tài khoản đã bị vô hiệu hoá',
+      'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ',
+    };
 
-    try {
-      let response = await loginUser(email, password);
-      console.log('Login response:', response.data);
+    alert(`❌ ${errorMap[serverError] || serverError}`);
 
-      if (response.data.EC === 0) {
-        alert(`✅ ${response.data.EM}`);
+  } catch (error) {
+    console.error('Login error:', error);
 
-        // ✅ Lưu full DT (đang chứa access_Token + user)
-        localStorage.setItem('user', JSON.stringify(response.data.DT));
-
-        const groupId = response?.data?.DT?.user?.groupId;
-        const homePath = getHomePathByGroupId(groupId);
-
-       navigate(homePath, { replace: true });
-      } else {
-        const serverError = response.data.EM;
-        let userFriendlyMessage = serverError;
-
-        const errorMap = {
-          'User not found': 'Email không tồn tại trong hệ thống',
-          'Wrong password': 'Mật khẩu không đúng',
-          'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
-          'The email is already exist': 'Email đã tồn tại',
-          'The phone number is already exist': 'Số điện thoại đã tồn tại',
-          'The username is already exist': 'Tên người dùng đã tồn tại',
-          'Create new user success': 'Đăng ký thành công',
-          'Login success': 'Đăng nhập thành công',
-          'Account inactive': 'Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản trị viên',
-          'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ. Vui lòng liên hệ quản trị viên',
-
-          
-        };
-
-        if (errorMap[serverError]) userFriendlyMessage = errorMap[serverError];
-        alert(`❌ ${userFriendlyMessage}`);
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-
-      let errorMessage = "Có lỗi xảy ra khi đăng nhập";
-      if (error.response) {
-        if (error.response.data && error.response.data.EM) {
-          errorMessage = error.response.data.EM;
-        } else {
-          errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
-        }
-      } else if (error.request) {
-        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
-      }
-
-      alert(`❌ ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
+    let errorMessage = "Có lỗi xảy ra khi đăng nhập";
+    if (error.response?.data?.EM) {
+      errorMessage = error.response.data.EM;
+    } else if (error.request) {
+      errorMessage = "Không thể kết nối đến server";
     }
-  };
+
+    alert(`❌ ${errorMessage}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleForgotPassword = () => {
     navigate('/forgot-password');
