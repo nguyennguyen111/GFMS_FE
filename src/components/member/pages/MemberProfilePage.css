@@ -1,0 +1,142 @@
+/* ===== PAGE ===== */
+.profile-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  color: #fff;
+}
+
+/* ===== HEADER ===== */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffb100, #ff7a00);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 800;
+  color: #111;
+}
+
+.meta h2 {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.role {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: rgba(14,165,233,.25);
+  color: #7ad7ff;
+}
+
+.profile-header .btn {
+  margin-left: auto;
+}
+
+/* ===== CONTENT ===== */
+.profile-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 28px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: rgba(255,255,255,.045);
+  border-radius: 18px;
+  padding: 22px;
+}
+
+.card.subtle {
+  background: rgba(255,255,255,.035);
+}
+
+.card h4 {
+  margin-bottom: 18px;
+  font-size: 16px;
+}
+
+/* ===== FIELD ===== */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 12px;
+  opacity: .7;
+}
+
+.field input {
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.12);
+  color: #fff;
+}
+
+.field input:read-only {
+  opacity: .75;
+}
+
+/* ===== INFO ===== */
+.info {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.info:last-child {
+  border-bottom: none;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #ffb100, #ff7a00);
+  color: #111;
+  font-weight: 700;
+}
+
+.btn.ghost {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+}
+
+.btn.danger {
+  background: rgba(255,77,79,.18);
+  border: 1px solid #ff4d4f;
+  color: #ffd1d1;
+}
+
+.save {
+  margin-top: 12px;
+}
+
+.delete {
+  margin-top: 22px;
+}

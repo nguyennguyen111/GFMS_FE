@@ -42,6 +42,15 @@ import PTSkills from "./components/pt-portal/PTSkills";
 import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
 
+// ✅ Marketplace pages (public)
+import WebsiteLayout from "./layouts/WebsiteLayout";
+import GymListPage from "./components/pages/marketplace/gyms/GymListPage";
+import TrainerListPage from "./components/pages/marketplace/trainers/TrainerListPage";
+import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerDetailsPage";
+import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
+import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
+import MemberPackageDetailPage from "./components/member/pages/MemberPackageDetailPage";
+
 // ✅ Guard tối giản cho admin
 const AdminGuard = ({ children }) => {
   try {
@@ -65,7 +74,21 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* ✅ Website layout có Header dùng chung (Guest/Marketplace/Pages public) */}
+          <Route element={<WebsiteLayout />}>
+            <Route path="/" element={<LandingPage />} />
+
+            {/* Marketplace public */}
+            <Route path="/marketplace/gyms" element={<GymListPage />} />
+            <Route path="/marketplace/trainers" element={<TrainerListPage />} />
+            <Route path="/marketplace/trainers/:trainerId" element={<TrainerDetailsPage />} />
+            <Route path="/marketplace/gyms/:gymId" element={<GymDetailsPage />} />
+            <Route
+              path="/marketplace/packages/:packageId"
+              element={<PackageDetailsPage />}
+            />
+
+          </Route>
 
           {/* Auth */}
           <Route path="/login" element={<LoginPage />} />
@@ -93,52 +116,50 @@ function App() {
             <Route path="home" element={<MemberHomePage />} />
             <Route path="packages" element={<MemberPackagesPage />} />
             <Route path="my-packages" element={<MemberMyPackagesPage />} />
-            <Route path="bookings" element={<MemberBookingsPage />} />
-            <Route path="bookings/new" element={<MemberBookingCreatePage />} />
-            <Route path="checkin/:id" element={<MemberCheckinPage />} />
+            <Route
+              path="my-packages/:activationId"
+              element={<MemberPackageDetailPage />}
+            />
+          <Route path="bookings" element={<MemberBookingsPage />} />
+          <Route path="bookings/new" element={<MemberBookingCreatePage />} />
+          <Route path="checkin/:id" element={<MemberCheckinPage />} />
 
-            {/* dropdown routes */}
-            <Route path="my" element={<MemberMyPackagesPage />} />
-            <Route path="profile" element={<MemberProfilePage />} />
-            <Route path="notifications" element={<MemberNotificationsPage />} />
-            <Route path="messages" element={<MemberMessagesPage />} />
-            <Route path="progress" element={<MemberProgressPage />} />
-            <Route path="reviews" element={<MemberReviewsPage />} />
-          </Route>
+          {/* dropdown routes */}
+          <Route path="my" element={<MemberMyPackagesPage />} />
+          <Route path="profile" element={<MemberProfilePage />} />
+          <Route path="notifications" element={<MemberNotificationsPage />} />
+          <Route path="messages" element={<MemberMessagesPage />} />
+          <Route path="progress" element={<MemberProgressPage />} />
+          <Route path="reviews" element={<MemberReviewsPage />} />
+        </Route>
 
-          {/* ✅ PT routes (được bọc layout để sidebar không mất) */}
-          <Route path="/pt" element={<PTLayout />}>
-            {/* Nếu gõ /pt thì đẩy về dashboard */}
-            <Route index element={<Navigate to="dashboard" replace />} />
+        {/* ✅ PT routes */}
+        <Route path="/pt" element={<PTLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<PTDashboard />} />
 
-            <Route path="dashboard" element={<PTDashboard />} />
+          <Route path="profile" element={<PTProfile />} />
+          <Route path="profile/create" element={<PTCreateProfile />} />
+          <Route path="clients" element={<PTClients />} />
+          <Route path="feedback" element={<PTFeedback />} />
 
-            {/* các trang PT không có :id */}
-            <Route path="profile" element={<PTProfile />} />
-            <Route path="profile/create" element={<PTCreateProfile />} />
-            <Route path="clients" element={<PTClients />} />
-            <Route path="feedback" element={<PTFeedback />} />
+          <Route path="trainers" element={<PTList />} />
+          <Route path="create" element={<PTForm />} />
+          <Route path="edit/:id" element={<PTForm />} />
 
-            {/* portal routes */}
-            <Route path="trainers" element={<PTList />} />
-            <Route path="create" element={<PTForm />} />
-            <Route path="edit/:id" element={<PTForm />} />
+          <Route path=":id/details" element={<PTDetails />} />
+          <Route path=":id/skills" element={<PTSkills />} />
+          <Route path=":id/schedule" element={<PTSchedule />} />
+          <Route path=":id/schedule-update" element={<PTScheduleUpdate />} />
 
-            {/* các trang cần :id */}
-            <Route path=":id/details" element={<PTDetails />} />
-            <Route path=":id/skills" element={<PTSkills />} />
-            <Route path=":id/schedule" element={<PTSchedule />} />
-            <Route path=":id/schedule-update" element={<PTScheduleUpdate />} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
 
-            {/* fallback trong /pt */}
-            <Route path="*" element={<Navigate to="dashboard" replace />} />
-          </Route>
-
-          {/* fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </Router>
+        {/* fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
+    </Router >
   );
 }
 

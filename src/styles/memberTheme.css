@@ -1,15 +1,8 @@
-/* ===========================
-   MEMBER PAGES - PRO SYSTEM UI
-   (dark-gold template style)
-   =========================== */
-
 :root{
   --m-bg0:#070A10;
   --m-bg1:#0B1020;
-
   --m-card: rgba(255,255,255,.08);
   --m-card2: rgba(255,255,255,.06);
-
   --m-border: rgba(255,255,255,.12);
   --m-border2: rgba(255,255,255,.18);
 
@@ -23,49 +16,73 @@
   --m-shadow: 0 24px 70px rgba(0,0,0,.45);
 }
 
-/* Page header */
-.mh-wrap{ }
-.mh-head{
+/* ✅ Không được opacity toàn trang */
+.member-app{
+  color: var(--m-text);
+  background:
+    radial-gradient(1100px 560px at 20% 8%, rgba(255,177,0,.18), transparent 60%),
+    radial-gradient(900px 520px at 80% 18%, rgba(0,186,255,.20), transparent 60%),
+    radial-gradient(900px 700px at 50% 100%, rgba(255,138,0,.12), transparent 62%),
+    linear-gradient(180deg, var(--m-bg0), var(--m-bg1));
+  min-height: 100vh;
+}
+
+/* Site container: giống hệ thống professional */
+.member-app .site-main{
+  padding: 22px 0 60px;
+}
+
+.member-app .site-container{
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+/* ✅ Reset các “dim layer” nếu bạn lỡ có class nào opacity */
+.member-app *{
+  filter: none !important;
+}
+
+/* Common helpers */
+.m-pageHead{
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
   gap: 14px;
   margin-bottom: 14px;
 }
-.mh-title{
+
+.m-title{
   margin:0 0 6px 0;
   font-size: 22px;
-  font-weight: 1100;
+  font-weight: 1000;
   letter-spacing: -0.02em;
 }
-.mh-sub{
+
+.m-sub{
   color: var(--m-muted);
   font-size: 13px;
   line-height: 1.45;
 }
-.mh-toolbar{
+
+.m-toolbar{
   display:flex;
   gap: 10px;
   flex-wrap: wrap;
-  align-items:center;
+  align-items: center;
 }
 
-/* Cards */
+/* Glass card system */
 .m-card{
-  border-radius: 22px;
-  overflow:hidden;
+  background: var(--m-card);
   border: 1px solid var(--m-border);
-  background: rgba(255,255,255,.07);
+  border-radius: 22px;
   box-shadow: var(--m-shadow);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  overflow:hidden;
 }
-.m-card.padded{ padding: 16px; }
 
-.m-empty{
-  padding: 14px;
-  opacity: .85;
-}
+.m-card.padded{ padding: 16px; }
 
 .m-divider{
   height:1px;
@@ -81,7 +98,7 @@
   background: rgba(255,255,255,.06);
   color: var(--m-text);
   cursor:pointer;
-  font-weight: 1000;
+  font-weight: 900;
   transition: transform .12s ease, background .12s ease, border-color .12s ease;
 }
 .m-btn:hover{
@@ -99,14 +116,16 @@
   border-color: rgba(255,177,0,.75);
   box-shadow: 0 0 0 3px rgba(255,177,0,.12) inset;
 }
-.m-btn--ghost{ background: transparent; }
+.m-btn--ghost{
+  background: transparent;
+}
 .m-btn--ok{
-  background: rgba(80,255,180,.10);
   border-color: rgba(80,255,180,.24);
+  background: rgba(80,255,180,.10);
 }
 .m-btn--warn{
-  background: rgba(255,80,80,.12);
   border-color: rgba(255,80,80,.28);
+  background: rgba(255,80,80,.12);
 }
 .m-btn--small{
   padding: 8px 10px;
@@ -127,29 +146,6 @@
 .m-input:focus, .m-select:focus, .m-textarea:focus{
   border-color: rgba(255,177,0,.45);
   box-shadow: 0 0 0 3px rgba(255,177,0,.10);
-}
-.m-input{ max-width: 420px; }
-.m-select{ max-width: 280px; }
-
-.m-row{
-  display:flex;
-  flex-direction:column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.m-row label{
-  opacity:.8;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-/* Grid */
-.m-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 12px;
 }
 
 /* Badges */
@@ -202,23 +198,20 @@
 .m-table th{
   font-size: 12px;
   color: var(--m-muted);
-  font-weight: 1000;
-  letter-spacing: .08em;
+  font-weight: 900;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }
-.m-name{ font-weight: 1100; }
+.m-name{ font-weight: 1000; }
 .m-desc{
-  opacity:.72;
+  opacity:.75;
   font-size: 12px;
   margin-top: 4px;
   max-width: 560px;
 }
 
-/* Actions row */
-.m-actions{ display:flex; gap: 8px; flex-wrap: wrap; }
-
 /* Responsive */
 @media (max-width: 720px){
-  .m-grid{ grid-template-columns: 1fr; }
-  .m-input, .m-select{ max-width: 100%; }
+  .member-app .site-container{ width: calc(100% - 18px); }
+  .m-title{ font-size: 20px; }
 }

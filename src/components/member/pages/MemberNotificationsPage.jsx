@@ -1,19 +1,20 @@
 import React from "react";
+import "../member-pages.css";
 
 export default function MemberNotificationsPage() {
   return (
-    <div className="op-wrap">
-      <div className="op-head">
+    <div className="mh-wrap">
+      <div className="mh-head">
         <div>
-          <h2 className="op-title">🔔 Thông báo</h2>
-          <div className="op-sub">Nhắc lịch, thông báo hệ thống, trạng thái gói tập...</div>
+          <h2 className="mh-title">🔔 Thông báo</h2>
+          <div className="mh-sub">Nhận thông báo booking, thanh toán, hệ thống.</div>
         </div>
       </div>
 
-      <div className="op-card padded">
-        <div className="op-empty">
+      <div className="m-card padded">
+        <div className="m-empty">
           (MVP) Nối dữ liệu từ <b>notification</b>.<br />
-          Gợi ý: hiển thị list: title • content • createdAt • read/unread.
+          Gợi ý: list thông báo + trạng thái đã đọc.
         </div>
       </div>
     </div>
