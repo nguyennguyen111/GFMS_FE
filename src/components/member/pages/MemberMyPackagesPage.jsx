@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
+import { confirmPayosPayment } from "../../../services/paymentService";
 import "./MemberMyPackagesPage.css";
 
 const fmtMoney = (v) => {
@@ -11,6 +12,7 @@ const fmtMoney = (v) => {
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -32,6 +34,29 @@ export default function MemberMyPackagesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search || "");
+    const payosStatus = params.get("payos");
+    const orderCode = params.get("orderCode");
+
+    if (!payosStatus) return;
+
+    const runConfirm = async () => {
+      try {
+        if (payosStatus === "success" && orderCode) {
+          await confirmPayosPayment(orderCode);
+        }
+      } catch (e) {
+        setErr(e.response?.data?.message || "Xác nhận thanh toán PayOS thất bại.");
+      } finally {
+        load();
+        navigate(location.pathname, { replace: true });
+      }
+    };
+
+    runConfirm();
+  }, [location.pathname, location.search, navigate, load]);
 
   return (
     <div className="mh-wrap">
