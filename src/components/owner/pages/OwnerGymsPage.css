@@ -234,6 +234,18 @@
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.5);
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gym-upload__drop:hover:not(.disabled) {
+  border-color: rgba(255, 138, 0, 0.6);
+  background: rgba(255, 138, 0, 0.08);
+}
+
+.gym-upload__drop.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .gym-upload__drop input {
@@ -253,12 +265,27 @@
 
 .gym-upload__hint {
   font-size: 12px;
-  color: rgba(148, 163, 184, 0.9);
+  color: rgba(255, 138, 0, 0.9);
+  padding: 8px 12px;
+  background: rgba(255, 138, 0, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 138, 0, 0.2);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .gym-upload__empty {
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(148, 163, 184, 0.8);
+  text-align: center;
+  padding: 24px 16px;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
 }
 
 .gym-upload__grid {
@@ -275,6 +302,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gym-upload__item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 138, 0, 0.4);
 }
 
 .gym-upload__thumb {
@@ -283,6 +317,19 @@
   border-radius: 10px;
   background-size: cover;
   background-position: center;
+  background-color: rgba(148, 163, 184, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.gym-upload__thumb::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3));
 }
 
 .gym-upload__actions {
@@ -298,6 +345,18 @@
   gap: 6px;
   font-size: 11px;
   color: rgba(226, 232, 240, 0.85);
+  cursor: pointer;
+  user-select: none;
+}
+
+.gym-upload__radio input[type="radio"] {
+  cursor: pointer;
+  accent-color: #ff8a00;
+}
+
+.gym-upload__radio:has(input:checked) {
+  color: #ff8a00;
+  font-weight: 600;
 }
 
 .gym-upload__remove {
@@ -308,10 +367,14 @@
   padding: 4px 8px;
   font-size: 11px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .gym-upload__remove:hover {
-  background: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.4);
+  color: #fee2e2;
+  transform: scale(1.05);
 }
 
 .pagination {
