@@ -39,6 +39,15 @@ export const forgotPassword = (email) => {
   return axios.post("/auth/forgot-password", { email });
 };
 
+// ===== Forgot password (OTP) =====
+export const verifyOtp = (email, otp) => {
+  return axios.post("/auth/verify-otp", { email, otp });
+};
+
+export const resetPassword = (email, otp, newPassword) => {
+  return axios.post("/auth/reset-password", { email, otp, newPassword });
+};
+
 export const logoutUser = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("user");

@@ -97,3 +97,7 @@ export const admGetReportInventory = (params) =>
 
 export const admGetReportTrainerShare = (params) =>
   axios.get("/api/admin/inventory/reports/trainer-share", { params });
+
+/* ================= DASHBOARD ================= */
+export const admGetDashboardOverview = (params) =>
+  axios.get("/api/admin/inventory/dashboard/overview", { params });

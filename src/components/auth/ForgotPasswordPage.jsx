@@ -1,9 +1,8 @@
 // ForgotPasswordPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './ForgotPasswordPage.css';
-import { forgotPassword } from '../../services/authService';
+import { forgotPassword, verifyOtp, resetPassword } from '../../services/authService';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
@@ -51,7 +50,8 @@ const ForgotPasswordPage = () => {
     try {
       const response = await forgotPassword(email);
       
-      if (response.data.EC === 0) {
+      // NOTE: backend có thể trả EC dạng number hoặc string ("0").
+      if (Number(response.data.EC) === 0) {
         alert('✅ OTP đã được gửi đến email của bạn!');
         setStep(2);
         setOtpSent(true);
@@ -82,12 +82,9 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:8080/auth/verify-otp', {
-        email,
-        otp
-      });
+      const response = await verifyOtp(email, otp);
       
-      if (response.data.EC === 0) {
+      if (Number(response.data.EC) === 0) {
         alert('✅ OTP hợp lệ! Vui lòng đặt mật khẩu mới.');
         setStep(3);
       } else {
@@ -95,7 +92,7 @@ const ForgotPasswordPage = () => {
       }
     } catch (error) {
       console.error('Verify OTP error:', error);
-      alert('❌ Có lỗi xảy ra khi xác thực OTP');
+      alert(`❌ ${error?.response?.data?.EM || 'Có lỗi xảy ra khi xác thực OTP'}`);
     } finally {
       setIsLoading(false);
     }
@@ -127,13 +124,9 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:8080/auth/reset-password', {
-        email,
-        otp,
-        newPassword
-      });
+      const response = await resetPassword(email, otp, newPassword);
       
-      if (response.data.EC === 0) {
+      if (Number(response.data.EC) === 0) {
         alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
         navigate('/login');
       } else {
@@ -141,7 +134,7 @@ const ForgotPasswordPage = () => {
       }
     } catch (error) {
       console.error('Reset password error:', error);
-      alert('❌ Có lỗi xảy ra khi đặt lại mật khẩu');
+      alert(`❌ ${error?.response?.data?.EM || 'Có lỗi xảy ra khi đặt lại mật khẩu'}`);
     } finally {
       setIsLoading(false);
     }
@@ -152,11 +145,9 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:8080/auth/forgot-password', {
-        email
-      });
+      const response = await forgotPassword(email);
       
-      if (response.data.EC === 0) {
+      if (Number(response.data.EC) === 0) {
         alert('✅ Đã gửi lại OTP mới!');
         startTimer();
       } else {
@@ -164,7 +155,7 @@ const ForgotPasswordPage = () => {
       }
     } catch (error) {
       console.error('Resend OTP error:', error);
-      alert('❌ Có lỗi xảy ra khi gửi lại OTP');
+      alert(`❌ ${error?.response?.data?.EM || 'Có lỗi xảy ra khi gửi lại OTP'}`);
     } finally {
       setIsLoading(false);
     }
