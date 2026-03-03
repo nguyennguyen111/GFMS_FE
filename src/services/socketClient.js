@@ -23,7 +23,11 @@ const getAccessToken = () => {
 
 export const getSocket = () => {
   if (!socketInstance) {
-    socketInstance = io("http://localhost:8080", {
+    const envBase = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_BASE;
+    const winBase = typeof window !== "undefined" ? window.__API_BASE__ : null;
+    const base = (envBase || winBase || "http://localhost:8080").toString().replace(/\/+$/, "");
+
+    socketInstance = io(base, {
       autoConnect: false,
       transports: ["websocket"],
       auth: { token: getAccessToken() },

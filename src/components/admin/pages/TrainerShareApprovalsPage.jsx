@@ -5,7 +5,136 @@ import {
   admGetTrainerShareDetail,
   admApproveTrainerShare,
   admRejectTrainerShare,
+  // ✅ NEW: lấy policies theo gym/system (đổi tên nếu service bạn đang khác)
+  admGetPolicies,
 } from "../../../services/adminAdminCoreService";
+
+/* =======================
+   Helpers (OUTSIDE COMPONENT)
+   -> ESLint will NOT require adding deps for useMemo/useEffect
+======================= */
+const pick = (obj, keys) => {
+  if (!obj) return undefined;
+  for (const k of keys) {
+    if (obj?.[k] !== undefined && obj?.[k] !== null && String(obj[k]).trim() !== "") return obj[k];
+  }
+  return undefined;
+};
+
+const userLabel = (u) =>
+  pick(u, ["username", "fullName", "name", "email"]) || (u?.id ? `#${u.id}` : "-");
+
+const gymLabel = (gymObj, gymId) =>
+  pick(gymObj, ["name", "gymName", "title"]) || (gymId ?? "-");
+
+const trainerLabel = (trainerObj, trainerId) => {
+  const u = trainerObj?.User || trainerObj?.user;
+  if (u) return userLabel(u);
+  return pick(trainerObj, ["displayName", "fullName", "name"]) || (trainerId ?? "-");
+};
+
+const policyLabel = (policyObj, policyId) =>
+  pick(policyObj, ["name", "policyName", "title"]) || (policyId ?? "-");
+
+const normalizeRow = (r) => {
+  const fromGym = r?.fromGym || r?.FromGym;
+  const toGym = r?.toGym || r?.ToGym;
+
+  const trainer = r?.trainer || r?.Trainer;
+  const requester = r?.requester || r?.Requester;
+  const approver = r?.approver || r?.Approver;
+
+  const policy = r?.policy || r?.Policy;
+
+  return { ...r, fromGym, toGym, trainer, requester, approver, policy };
+};
+
+// ====== helper lấy default split từ policy.value ======
+const getDefaultSplitFromPolicy = (policyObj) => {
+  if (!policyObj) return "";
+  const v = policyObj.value;
+
+  let parsed = v;
+  if (typeof v === "string") {
+    try {
+      parsed = JSON.parse(v);
+    } catch {
+      parsed = null;
+    }
+  }
+
+  const candidate =
+    parsed?.defaultCommissionSplit ??
+    parsed?.commissionSplit ??
+    parsed?.defaultSplit ??
+    null;
+
+  if (candidate === null || candidate === undefined) return "";
+  return String(candidate);
+};
+
+// ✅ lọc hiệu lực policy theo ngày (nếu BE có trả)
+const isEffectiveNow = (p) => {
+  const now = new Date();
+
+  const fromRaw =
+    p?.effectiveFrom ??
+    p?.effective_from ??
+    p?.effective_from_date ??
+    p?.startDate ??
+    p?.start_date ??
+    null;
+
+  const toRaw =
+    p?.effectiveTo ??
+    p?.effective_to ??
+    p?.effective_to_date ??
+    p?.endDate ??
+    p?.end_date ??
+    null;
+
+  const fromOk = !fromRaw || new Date(fromRaw) <= now;
+  const toOk = !toRaw || new Date(toRaw) >= now;
+  return fromOk && toOk;
+};
+
+// ====== normalize policies response ======
+const normalizePolicies = (raw) => {
+  const list = raw?.data?.data ?? raw?.data ?? raw ?? [];
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter(Boolean)
+    .map((p) => ({
+      id: String(p.id),
+      name: pick(p, ["name", "policyName", "title"]) || `Policy #${p.id}`,
+      value: p.value,
+      isActive: p.isActive,
+      policyType: p.policyType,
+      appliesTo: p.appliesTo,
+      gymId: p.gymId,
+      effectiveFrom:
+        p.effectiveFrom ??
+        p.effective_from ??
+        p.startDate ??
+        p.start_date ??
+        null,
+      effectiveTo:
+        p.effectiveTo ??
+        p.effective_to ??
+        p.endDate ??
+        p.end_date ??
+        null,
+    }));
+};
+
+const uniqById = (arr) => {
+  const map = new Map();
+  (arr || []).forEach((x) => {
+    if (!x?.id) return;
+    map.set(String(x.id), x);
+  });
+  return Array.from(map.values());
+};
 
 export default function TrainerShareApprovalsPage() {
   const [loading, setLoading] = useState(false);
@@ -21,57 +150,12 @@ export default function TrainerShareApprovalsPage() {
   const [detail, setDetail] = useState(null);
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
 
-  // ====== helpers: render "tên đầy đủ" thay vì id ======
-  const pick = (obj, keys) => {
-    if (!obj) return undefined;
-    for (const k of keys) {
-      if (
-        obj?.[k] !== undefined &&
-        obj?.[k] !== null &&
-        String(obj[k]).trim() !== ""
-      )
-        return obj[k];
-    }
-    return undefined;
-  };
-
-  const userLabel = (u) =>
-    pick(u, ["username", "fullName", "name", "email"]) ||
-    (u?.id ? `#${u.id}` : "-");
-
-  const gymLabel = (gymObj, gymId) =>
-    pick(gymObj, ["name", "gymName", "title"]) || (gymId ?? "-");
-
-  const trainerLabel = (trainerObj, trainerId) => {
-    const u = trainerObj?.User || trainerObj?.user;
-    if (u) return userLabel(u);
-    return (
-      pick(trainerObj, ["displayName", "fullName", "name"]) ||
-      (trainerId ?? "-")
-    );
-  };
-
-  const policyLabel = (policyObj, policyId) =>
-    pick(policyObj, ["name", "policyName", "title"]) || (policyId ?? "-");
-
-  const normalizeRow = (r) => {
-    const fromGym = r?.fromGym || r?.FromGym;
-    const toGym = r?.toGym || r?.ToGym;
-
-    const trainer = r?.trainer || r?.Trainer;
-    const requester = r?.requester || r?.Requester;
-    const approver = r?.approver || r?.Approver;
-
-    const policy = r?.policy || r?.Policy;
-
-    return { ...r, fromGym, toGym, trainer, requester, approver, policy };
-  };
+  // ✅ policies load theo FROM_GYM + SYSTEM cho modal approve
+  const [availablePolicies, setAvailablePolicies] = useState([]);
+  const [policiesLoading, setPoliciesLoading] = useState(false);
 
   const normalizedRows = useMemo(() => rows.map(normalizeRow), [rows]);
-  const normalizedDetail = useMemo(
-    () => (detail ? normalizeRow(detail) : null),
-    [detail]
-  );
+  const normalizedDetail = useMemo(() => (detail ? normalizeRow(detail) : null), [detail]);
 
   // ====== dropdown options (tự build từ list data) ======
   const gymOptions = useMemo(() => {
@@ -100,14 +184,13 @@ export default function TrainerShareApprovalsPage() {
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }, [normalizedRows]);
 
-  // ====== NEW: policy dropdown options (tự build từ list + detail) ======
-  const policyOptions = useMemo(() => {
-    const map = new Map(); // policyId -> { id, name, value }
+  // ====== FALLBACK: policy options (tự build từ list + detail như cũ) ======
+  const fallbackPolicyOptions = useMemo(() => {
+    const map = new Map();
     const ingest = (p, pid) => {
       const id = String(p?.id ?? pid ?? "");
       if (!id) return;
       const name = pick(p, ["name", "policyName", "title"]) || `Policy #${id}`;
-      // value có thể là JSON/string tuỳ bạn lưu
       const value = p?.value;
       map.set(id, { id, name, value });
     };
@@ -124,30 +207,66 @@ export default function TrainerShareApprovalsPage() {
     );
   }, [normalizedRows, normalizedDetail]);
 
-  // ====== helper lấy default split từ policy.value ======
-  const getDefaultSplitFromPolicy = (policyObj) => {
-    if (!policyObj) return "";
-    const v = policyObj.value;
+  // ✅ load policies theo nghiệp vụ chuẩn (FROM gym + system fallback)
+  const fetchPoliciesForApprove = async () => {
+    const fromGymId =
+      normalizedDetail?.fromGym?.id ??
+      normalizedDetail?.fromGymId ??
+      normalizedDetail?.from_gym_id;
 
-    // value có thể là object JSON hoặc string JSON
-    let parsed = v;
-    if (typeof v === "string") {
-      try {
-        parsed = JSON.parse(v);
-      } catch {
-        parsed = null;
-      }
+    if (!fromGymId) {
+      setAvailablePolicies([]);
+      return;
     }
 
-    const candidate =
-      parsed?.defaultCommissionSplit ??
-      parsed?.commissionSplit ??
-      parsed?.defaultSplit ??
-      null;
+    setPoliciesLoading(true);
+    try {
+      const calls = [
+        admGetPolicies?.({
+          policyType: "trainer_share",
+          appliesTo: "gym",
+          gymId: String(fromGymId),
+          isActive: true,
+        }),
+        admGetPolicies?.({
+          policyType: "trainer_share",
+          appliesTo: "system",
+          isActive: true,
+        }),
+        admGetPolicies?.({
+          policyType: "trainer_share",
+          gymId: "null",
+          isActive: true,
+        }),
+      ].filter(Boolean);
 
-    if (candidate === null || candidate === undefined) return "";
-    // chuẩn hoá thành string để set vào input
-    return String(candidate);
+      if (calls.length === 0) throw new Error("admGetPolicies is not available");
+
+      const settled = await Promise.allSettled(calls);
+
+      const all = [];
+      settled.forEach((s) => {
+        if (s.status === "fulfilled") all.push(...normalizePolicies(s.value));
+      });
+
+      const merged = uniqById(all)
+        .filter((p) => p.isActive !== false)
+        .filter(isEffectiveNow);
+
+      merged.sort((a, b) => {
+        const pa = String(a.appliesTo || "").toLowerCase() === "gym" ? 0 : 1;
+        const pb = String(b.appliesTo || "").toLowerCase() === "gym" ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return String(a.name).localeCompare(String(b.name));
+      });
+
+      setAvailablePolicies(merged);
+    } catch (e) {
+      console.error(e);
+      setAvailablePolicies([]);
+    } finally {
+      setPoliciesLoading(false);
+    }
   };
 
   // ====== data ======
@@ -187,9 +306,7 @@ export default function TrainerShareApprovalsPage() {
   }, [selectedId]);
 
   // ====== modal ======
-  const openApprove = () => {
-    // prefill: nếu detail đã có policyId/commissionSplit thì đưa vào cho tiện,
-    // nếu chưa có thì rỗng
+  const openApprove = async () => {
     const prePolicyId = normalizedDetail?.policyId ? String(normalizedDetail.policyId) : "";
     const preSplit =
       normalizedDetail?.commissionSplit !== null &&
@@ -197,6 +314,8 @@ export default function TrainerShareApprovalsPage() {
       String(normalizedDetail.commissionSplit).trim() !== ""
         ? String(normalizedDetail.commissionSplit)
         : "";
+
+    await fetchPoliciesForApprove();
 
     setModal({
       open: true,
@@ -224,10 +343,14 @@ export default function TrainerShareApprovalsPage() {
     if (!canApprove) return;
     setLoading(true);
     try {
+      const policyIdNum = Number(modal.payload.policyId);
+      const commissionSplitNum = Number(modal.payload.commissionSplit);
+
       await admApproveTrainerShare(selectedId, {
-        policyId: modal.payload.policyId,
-        commissionSplit: modal.payload.commissionSplit,
+        policyId: policyIdNum,
+        commissionSplit: commissionSplitNum,
       });
+
       close();
       await fetchDetail(selectedId);
       await fetchList();
@@ -253,14 +376,15 @@ export default function TrainerShareApprovalsPage() {
     }
   };
 
+  // ✅ chọn nguồn options cho dropdown policy
+  const policyOptions = availablePolicies.length > 0 ? availablePolicies : fallbackPolicyOptions;
+
   return (
     <div className="ta-page">
       <div className="ta-head">
         <div>
           <div className="ta-title">Duyệt chia sẻ PT</div>
-          <div className="ta-sub">
-            Danh sách pending → Approve/Reject (module 5)
-          </div>
+          <div className="ta-sub">Danh sách pending → Approve/Reject (module 5)</div>
         </div>
         <div className="ta-badge">{loading ? "Đang tải..." : "Approvals"}</div>
       </div>
@@ -270,9 +394,7 @@ export default function TrainerShareApprovalsPage() {
           <label>status</label>
           <select
             value={filters.status}
-            onChange={(e) =>
-              setFilters((s) => ({ ...s, status: e.target.value }))
-            }
+            onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}
           >
             <option value="pending">pending</option>
             <option value="approved">approved</option>
@@ -280,14 +402,11 @@ export default function TrainerShareApprovalsPage() {
           </select>
         </div>
 
-        {/* Dropdown Gym/Trainer (options lấy từ dữ liệu list hiện có) */}
         <div className="ta-field">
           <label>Từ Gym</label>
           <select
             value={filters.fromGymId}
-            onChange={(e) =>
-              setFilters((s) => ({ ...s, fromGymId: e.target.value }))
-            }
+            onChange={(e) => setFilters((s) => ({ ...s, fromGymId: e.target.value }))}
           >
             <option value="">Tất cả</option>
             {gymOptions.map((g) => (
@@ -302,9 +421,7 @@ export default function TrainerShareApprovalsPage() {
           <label>Đến Gym</label>
           <select
             value={filters.toGymId}
-            onChange={(e) =>
-              setFilters((s) => ({ ...s, toGymId: e.target.value }))
-            }
+            onChange={(e) => setFilters((s) => ({ ...s, toGymId: e.target.value }))}
           >
             <option value="">Tất cả</option>
             {gymOptions.map((g) => (
@@ -319,9 +436,7 @@ export default function TrainerShareApprovalsPage() {
           <label>PT</label>
           <select
             value={filters.trainerId}
-            onChange={(e) =>
-              setFilters((s) => ({ ...s, trainerId: e.target.value }))
-            }
+            onChange={(e) => setFilters((s) => ({ ...s, trainerId: e.target.value }))}
           >
             <option value="">Tất cả</option>
             {trainerOptions.map((t) => (
@@ -332,11 +447,7 @@ export default function TrainerShareApprovalsPage() {
           </select>
         </div>
 
-        <button
-          className="ta-btn ta-btn--primary"
-          onClick={fetchList}
-          disabled={loading}
-        >
+        <button className="ta-btn ta-btn--primary" onClick={fetchList} disabled={loading}>
           Lọc
         </button>
       </div>
@@ -372,9 +483,7 @@ export default function TrainerShareApprovalsPage() {
                     title={`Request #${r.id}`}
                   >
                     <td>
-                      <span className={`ta-pill ta-pill--${r.status}`}>
-                        {r.status}
-                      </span>
+                      <span className={`ta-pill ta-pill--${r.status}`}>{r.status}</span>
                     </td>
                     <td>{trainerLabel(r.trainer, r.trainerId)}</td>
                     <td>{gymLabel(r.fromGym, r.fromGymId)}</td>
@@ -399,9 +508,7 @@ export default function TrainerShareApprovalsPage() {
         <div className="ta-card">
           <div className="ta-card__head">
             <div className="ta-card__title">Chi tiết</div>
-            {!normalizedDetail ? (
-              <div className="ta-card__meta">Chọn 1 request</div>
-            ) : null}
+            {!normalizedDetail ? <div className="ta-card__meta">Chọn 1 request</div> : null}
           </div>
 
           {!normalizedDetail ? (
@@ -417,9 +524,7 @@ export default function TrainerShareApprovalsPage() {
                 <div className="ta-kv">
                   <div className="ta-k">Status</div>
                   <div className="ta-v">
-                    <span
-                      className={`ta-pill ta-pill--${normalizedDetail.status}`}
-                    >
+                    <span className={`ta-pill ta-pill--${normalizedDetail.status}`}>
                       {normalizedDetail.status}
                     </span>
                   </div>
@@ -428,51 +533,37 @@ export default function TrainerShareApprovalsPage() {
                 <div className="ta-kv">
                   <div className="ta-k">PT</div>
                   <div className="ta-v">
-                    {trainerLabel(
-                      normalizedDetail.trainer,
-                      normalizedDetail.trainerId
-                    )}
+                    {trainerLabel(normalizedDetail.trainer, normalizedDetail.trainerId)}
                   </div>
                 </div>
 
                 <div className="ta-kv">
                   <div className="ta-k">Từ Gym</div>
                   <div className="ta-v">
-                    {gymLabel(
-                      normalizedDetail.fromGym,
-                      normalizedDetail.fromGymId
-                    )}
+                    {gymLabel(normalizedDetail.fromGym, normalizedDetail.fromGymId)}
                   </div>
                 </div>
 
                 <div className="ta-kv">
                   <div className="ta-k">Đến Gym</div>
-                  <div className="ta-v">
-                    {gymLabel(normalizedDetail.toGym, normalizedDetail.toGymId)}
-                  </div>
+                  <div className="ta-v">{gymLabel(normalizedDetail.toGym, normalizedDetail.toGymId)}</div>
                 </div>
 
                 <div className="ta-kv">
                   <div className="ta-k">Người gửi</div>
                   <div className="ta-v">
-                    {normalizedDetail.requester
-                      ? userLabel(normalizedDetail.requester)
-                      : "-"}
+                    {normalizedDetail.requester ? userLabel(normalizedDetail.requester) : "-"}
                   </div>
                 </div>
 
                 <div className="ta-kv">
                   <div className="ta-k">Policy</div>
-                  <div className="ta-v">
-                    {policyLabel(normalizedDetail.policy, normalizedDetail.policyId)}
-                  </div>
+                  <div className="ta-v">{policyLabel(normalizedDetail.policy, normalizedDetail.policyId)}</div>
                 </div>
 
                 <div className="ta-kv">
                   <div className="ta-k">CommissionSplit</div>
-                  <div className="ta-v">
-                    {normalizedDetail.commissionSplit ?? "-"}
-                  </div>
+                  <div className="ta-v">{normalizedDetail.commissionSplit ?? "-"}</div>
                 </div>
 
                 <div className="ta-kv ta-kv--full">
@@ -508,9 +599,7 @@ export default function TrainerShareApprovalsPage() {
           <div className="ta-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="ta-modal__head">
               <div className="ta-modal__title">
-                {modal.type === "approve"
-                  ? "Approve Trainer Share"
-                  : "Reject Trainer Share"}
+                {modal.type === "approve" ? "Approve Trainer Share" : "Reject Trainer Share"}
               </div>
               <button className="ta-btn ta-btn--ghost" onClick={close}>
                 ✕
@@ -520,19 +609,17 @@ export default function TrainerShareApprovalsPage() {
             <div className="ta-modal__body">
               {modal.type === "approve" ? (
                 <>
-                  {/* POLICY DROPDOWN */}
                   <div className="ta-field">
                     <label>Policy</label>
 
-                    {policyOptions.length > 0 ? (
+                    {policiesLoading ? (
+                      <div className="ta-hint">Đang tải policies...</div>
+                    ) : policyOptions.length > 0 ? (
                       <select
                         value={modal.payload.policyId}
                         onChange={(e) => {
                           const val = e.target.value;
-                          const picked = policyOptions.find(
-                            (p) => String(p.id) === String(val)
-                          );
-
+                          const picked = policyOptions.find((p) => String(p.id) === String(val));
                           const defaultSplit = getDefaultSplitFromPolicy(picked);
 
                           setModal((m) => ({
@@ -540,7 +627,6 @@ export default function TrainerShareApprovalsPage() {
                             payload: {
                               ...m.payload,
                               policyId: val,
-                              // auto fill split nếu đang rỗng
                               commissionSplit:
                                 String(m.payload.commissionSplit || "").trim() !== ""
                                   ? m.payload.commissionSplit
@@ -557,8 +643,6 @@ export default function TrainerShareApprovalsPage() {
                         ))}
                       </select>
                     ) : (
-                      // fallback: nếu chưa có option (do data list chưa include policy),
-                      // vẫn cho nhập tay policyId
                       <input
                         value={modal.payload.policyId}
                         onChange={(e) =>
@@ -567,16 +651,15 @@ export default function TrainerShareApprovalsPage() {
                             payload: { ...m.payload, policyId: e.target.value },
                           }))
                         }
-                        placeholder="Nhập policyId (VD: 600)"
+                        placeholder="Nhập policyId (VD: 614)"
                       />
                     )}
 
                     <div className="ta-hint">
-                      Chọn chính sách chia sẻ (hiển thị theo tên, không phải nhớ ID).
+                      Chuẩn nghiệp vụ: dropdown hiển thị policy theo <b>FROM_GYM</b> + fallback <b>SYSTEM</b>.
                     </div>
                   </div>
 
-                  {/* COMMISSION SPLIT NUMBER */}
                   <div className="ta-field">
                     <label>Commission Split (0 → 1)</label>
                     <input
@@ -588,15 +671,16 @@ export default function TrainerShareApprovalsPage() {
                       onChange={(e) =>
                         setModal((m) => ({
                           ...m,
-                          payload: {
-                            ...m.payload,
-                            commissionSplit: e.target.value,
-                          },
+                          payload: { ...m.payload, commissionSplit: e.target.value },
                         }))
                       }
                       placeholder="VD: 0.6"
                     />
-                    <div className={`ta-hint ${!splitValid && modal.payload.commissionSplit !== "" ? "ta-hint--danger" : ""}`}>
+                    <div
+                      className={`ta-hint ${
+                        !splitValid && modal.payload.commissionSplit !== "" ? "ta-hint--danger" : ""
+                      }`}
+                    >
                       Ví dụ 0.6 = 60%. Giá trị hợp lệ: lớn hơn 0 và nhỏ hơn 1.
                     </div>
                   </div>
@@ -634,11 +718,7 @@ export default function TrainerShareApprovalsPage() {
                     />
                   </div>
                   <div className="ta-modal__actions">
-                    <button
-                      className="ta-btn ta-btn--danger"
-                      onClick={doReject}
-                      disabled={loading}
-                    >
+                    <button className="ta-btn ta-btn--danger" onClick={doReject} disabled={loading}>
                       Từ chối
                     </button>
                   </div>

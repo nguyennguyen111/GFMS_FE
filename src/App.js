@@ -53,6 +53,9 @@ import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerD
 import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
 import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
 
+/* ================= SIGNING (PUBLIC) ================= */
+import SignContractPage from "./components/public/SignContractPage";
+
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
@@ -81,6 +84,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* ===== PUBLIC SIGNING ===== */}
+        <Route path="/sign-contract" element={<SignContractPage />} />
+
         {/* ===== PUBLIC / MARKETPLACE ===== */}
         <Route element={<WebsiteLayout />}>
           <Route path="/" element={<LandingPage />} />

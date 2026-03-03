@@ -36,14 +36,14 @@ export default function AdminDashboard() {
 
       { section: "Quản trị hệ thống" },
       { label: "Người dùng", to: "/admin/users", key: "users" },
-      { label: "Gói dịch vụ", to: "/admin/packages", key: "packages" },
+    
       { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
       { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
       { section: "Thiết bị & Kho" },
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
-      { label: "Purchase Workflow", to: "/admin/purchase-workflow", key: "purchase-workflow" },
+      { label: "Mua sắm trang thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
       { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
       { label: "Nhập kho", to: "/admin/import", key: "import" },
