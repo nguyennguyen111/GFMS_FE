@@ -98,6 +98,47 @@ export default function PurchaseWorkflowPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState(null);
 
+  // Enterprise: timeline + payment history inside detail
+  const [detailTimeline, setDetailTimeline] = useState([]);
+  const [detailTimelineLoading, setDetailTimelineLoading] = useState(false);
+  const [detailPayments, setDetailPayments] = useState([]);
+  const [detailPaymentsLoading, setDetailPaymentsLoading] = useState(false);
+
+  // Enterprise: edit receipt items for partial delivery
+  const [receiptDraftItems, setReceiptDraftItems] = useState([]);
+  const [receiptSaving, setReceiptSaving] = useState(false);
+
+  const detailItems = useMemo(() => {
+    const d = detail || {};
+    const items = d.items || d.data?.items || d.quotationItems || d.purchaseOrderItems || d.receiptItems || [];
+    return Array.isArray(items) ? items : [];
+  }, [detail]);
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setDetail(null);
+    setDetailTimeline([]);
+    setDetailPayments([]);
+    setReceiptDraftItems([]);
+  };
+
+  const saveReceiptDraft = async () => {
+    if (!detail || tab !== "receipts") return;
+    try {
+      setReceiptSaving(true);
+      await adminPurchaseWorkflowService.updateReceiptItems(detail.id, {
+        items: receiptDraftItems.map((x) => ({ id: x.id, quantity: Number(x.quantity || 0), notes: x.notes })),
+      });
+      const refreshed = await adminPurchaseWorkflowService.getReceiptDetail(detail.id);
+      setDetail(refreshed.data);
+      alert("Đã lưu receipt items.");
+    } catch (e) {
+      alert(e?.response?.data?.message || e.message);
+    } finally {
+      setReceiptSaving(false);
+    }
+  };
+
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -231,8 +272,44 @@ export default function PurchaseWorkflowPage() {
       if (tab === "receipts") res = await adminPurchaseWorkflowService.getReceiptDetail(row.id);
       if (tab === "payments") res = await adminPurchaseWorkflowService.getPurchaseOrderDetail(row.id);
 
-      setDetail(res.data);
+      const d = res.data;
+      setDetail(d);
       setDetailOpen(true);
+
+      // Enterprise: load timeline + payments for PO
+      if (tab === "purchaseOrders" || tab === "payments") {
+        setDetailTimeline([]);
+        setDetailPayments([]);
+        setDetailTimelineLoading(true);
+        setDetailPaymentsLoading(true);
+        try {
+          const [tl, pay] = await Promise.all([
+            adminPurchaseWorkflowService.getPOTimeline(d.id),
+            adminPurchaseWorkflowService.getPaymentsByPO(d.id),
+          ]);
+          setDetailTimeline(tl.data?.data || tl.data || []);
+          setDetailPayments(pay.data?.data || pay.data || []);
+        } catch (e) {
+          // ignore
+        } finally {
+          setDetailTimelineLoading(false);
+          setDetailPaymentsLoading(false);
+        }
+      }
+
+      // Enterprise: receipt draft (partial delivery edit)
+      if (tab === "receipts") {
+        const items = d?.items || [];
+        setReceiptDraftItems(
+          items.map((x) => ({
+            id: x.id,
+            equipmentName: x.equipment?.name || "-",
+            quantity: Number(x.quantity || 0),
+            unitPrice: Number(x.unitPrice || 0),
+            notes: x.notes || "",
+          }))
+        );
+      }
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
@@ -597,6 +674,261 @@ export default function PurchaseWorkflowPage() {
           </button>
         </div>
       </div>
+
+      {/* Detail modal */}
+      <Modal
+        open={detailOpen}
+        title={
+          tab === "quotations"
+            ? "Quotation detail"
+            : tab === "purchaseOrders"
+            ? "Purchase Order detail"
+            : tab === "receipts"
+            ? "Receipt detail"
+            : "Detail"
+        }
+        onClose={closeDetail}
+        width={980}
+      >
+        {!detail ? (
+          <div style={{ opacity: 0.75 }}>Không có dữ liệu.</div>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+              <div style={miniCard}>
+                <div style={miniLabel}>Code</div>
+                <div style={miniValue} className="ad-mono">
+                  {detail.code || "-"}
+                </div>
+              </div>
+              <div style={miniCard}>
+                <div style={miniLabel}>Gym</div>
+                <div style={miniValue}>{detail.gym?.name || "-"}</div>
+              </div>
+              <div style={miniCard}>
+                <div style={miniLabel}>Supplier</div>
+                <div style={miniValue}>{detail.supplier?.name || "-"}</div>
+              </div>
+              <div style={miniCard}>
+                <div style={miniLabel}>Status</div>
+                <div style={miniValue}>
+                  <Badge>{detail.status || "-"}</Badge>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ height: 10 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+              <div style={miniCard}>
+                <div style={miniLabel}>Requester</div>
+                <div style={miniValue}>{detail.requester?.username || "-"}</div>
+                <div style={{ opacity: 0.7, fontSize: 12 }}>{detail.requester?.email || ""}</div>
+              </div>
+              <div style={miniCard}>
+                <div style={miniLabel}>Total</div>
+                <div style={miniValue}>{money(detail.totalAmount ?? detail.totalValue)}</div>
+              </div>
+              <div style={miniCard}>
+                <div style={miniLabel}>Created</div>
+                <div style={miniValue}>
+                  {detail.createdAt ? new Date(detail.createdAt).toLocaleString() : "-"}
+                </div>
+              </div>
+            </div>
+
+            {detail.notes || detail.rejectionReason ? (
+              <>
+                <div style={{ height: 10 }} />
+                <div style={miniCard}>
+                  <div style={miniLabel}>Notes / Reason</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{detail.notes || detail.rejectionReason}</div>
+                </div>
+              </>
+            ) : null}
+
+            <div style={{ height: 12 }} />
+            <div style={{ fontWeight: 900, opacity: 0.9 }}>Items</div>
+            <div style={{ border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <tr>
+                    <th style={th}>Equipment</th>
+                    <th style={th}>Qty</th>
+                    <th style={th}>Unit price</th>
+                    <th style={th}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailItems.map((it) => {
+                    const isReceiptEdit = tab === "receipts" && String(detail?.status) === "pending";
+                    const draft = receiptDraftItems.find((x) => String(x.id) === String(it.id));
+                    const qtyVal = isReceiptEdit ? draft?.quantity ?? it.quantity : it.quantity;
+                    return (
+                      <tr key={it.id} style={tr}>
+                        <td style={td}>{it.equipment?.name || it.equipmentName || "-"}</td>
+                        <td style={td}>
+                          {isReceiptEdit ? (
+                            <input
+                              value={String(qtyVal ?? "")}
+                              onChange={(e) => {
+                                const v = Math.max(0, Number(String(e.target.value || "").replace(/\D/g, "")));
+                                setReceiptDraftItems((arr) =>
+                                  arr.map((x) => (String(x.id) === String(it.id) ? { ...x, quantity: v } : x))
+                                );
+                              }}
+                              style={{ ...inputSmall, width: 110, maxWidth: 110 }}
+                              inputMode="numeric"
+                            />
+                          ) : (
+                            qtyVal ?? "-"
+                          )}
+                        </td>
+                        <td style={td}>{money(it.unitPrice)}</td>
+                        <td style={td}>{money(it.totalPrice)}</td>
+                      </tr>
+                    );
+                  })}
+                  {!detailItems.length ? (
+                    <tr>
+                      <td style={{ ...td, opacity: 0.7 }} colSpan={4}>
+                        Không có item.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Enterprise: receipt edit controls */}
+            {tab === "receipts" && String(detail?.status) === "pending" ? (
+              <>
+                <div style={{ height: 10 }} />
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                  <div style={{ opacity: 0.85 }}>
+                    Partial delivery: sửa Qty theo số thực nhận trước khi <b>Complete</b>.
+                  </div>
+                  <button className="ad-btn" onClick={saveReceiptDraft} disabled={receiptSaving}>
+                    {receiptSaving ? "Đang lưu..." : "Lưu Qty"}
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {/* Enterprise: PO summary + timeline */}
+            {tab !== "receipts" && detail?.items ? (
+              <>
+                <div style={{ height: 12 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
+                  <div style={miniCard}>
+                    <div style={miniLabel}>Delivery progress</div>
+                    <div style={miniValue}>
+                      {(() => {
+                        const items = detail.items || [];
+                        const ordered = items.reduce((s, x) => s + Number(x.quantity || 0), 0);
+                        const received = items.reduce((s, x) => s + Number(x.receivedQuantity || 0), 0);
+                        return `${received}/${ordered}`;
+                      })()}
+                    </div>
+                    <div style={{ opacity: 0.7, fontSize: 12 }}>received / ordered</div>
+                  </div>
+                  <div style={miniCard}>
+                    <div style={miniLabel}>Payment progress</div>
+                    <div style={miniValue}>
+                      {detailPaymentsLoading
+                        ? "..."
+                        : (() => {
+                            const total = Number(detail.totalAmount || 0);
+                            const paid = (detailPayments || []).reduce(
+                              (s, x) => (String(x.paymentStatus) === "success" ? s + Number(x.amount || 0) : s),
+                              0
+                            );
+                            return `${money(paid)} / ${money(total)}`;
+                          })()}
+                    </div>
+                    <div style={{ opacity: 0.7, fontSize: 12 }}>paid / total</div>
+                  </div>
+                  <div style={miniCard}>
+                    <div style={miniLabel}>Actions note</div>
+                    <div style={{ opacity: 0.85, fontSize: 13 }}>
+                      Enterprise flow: Approve → Ordered → Create Receipt(s) → Complete Receipt(s) → Payments
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ height: 12 }} />
+                <div style={{ fontWeight: 900, opacity: 0.9 }}>Activity timeline</div>
+                <div style={{ border: "1px solid rgba(255,255,255,0.10)", borderRadius: 14, padding: 10 }}>
+                  {detailTimelineLoading ? (
+                    <div style={{ opacity: 0.75 }}>Loading...</div>
+                  ) : !detailTimeline?.length ? (
+                    <div style={{ opacity: 0.75 }}>Chưa có hoạt động.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {detailTimeline.slice(0, 18).map((ev, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            padding: "8px 10px",
+                            borderRadius: 12,
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.10)",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <div style={{ fontWeight: 800 }}>
+                              {ev.kind === "audit"
+                                ? ev.action
+                                : ev.kind === "receipt"
+                                ? `Receipt ${ev.code}`
+                                : ev.kind === "payment"
+                                ? `Payment ${ev.code}`
+                                : "Event"}
+                            </div>
+                            <div style={{ opacity: 0.75, fontSize: 12 }}>
+                              {ev.actor?.username ? `by ${ev.actor.username}` : ""} {ev.tableName ? `• ${ev.tableName}` : ""}
+                            </div>
+                          </div>
+                          <div style={{ opacity: 0.75, fontSize: 12, whiteSpace: "nowrap" }}>
+                            {ev.at ? new Date(ev.at).toLocaleString() : "-"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </>
+        )}
+      </Modal>
+
+      {/* Reject quotation modal */}
+      <Modal
+        open={rejectOpen}
+        title={`Reject quotation • ${detail?.code || ""}`}
+        onClose={() => setRejectOpen(false)}
+        width={720}
+      >
+        <div style={{ opacity: 0.85, marginBottom: 8 }}>Nhập lý do từ chối (bắt buộc).</div>
+        <textarea
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          rows={4}
+          style={{ ...textarea, width: "100%" }}
+        />
+        <div style={{ height: 10 }} />
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button className="ad-btn" onClick={() => setRejectOpen(false)}>
+            Huỷ
+          </button>
+          <button className="ad-btn" onClick={submitRejectQuotation} disabled={!rejectReason.trim()}>
+            Từ chối
+          </button>
+        </div>
+      </Modal>
 
       {/* Payment modal */}
       <Modal

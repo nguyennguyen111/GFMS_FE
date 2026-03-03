@@ -71,3 +71,65 @@
   .dh-card { grid-column: span 12; }
   .dh-mini { grid-column: span 12; }
 }
+
+.dh-wrap {
+  padding: 16px;
+  background: #0c121c;
+  min-height: 100vh;
+  color: #eef2ff;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+}
+
+.dh-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dh-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dh-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef2ff;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 12px;
+  transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.dh-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+.dh-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dh-alert {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 70, 70, 0.35);
+  background: rgba(255, 70, 70, 0.10);
+  border-radius: 14px;
+  color: rgba(255, 220, 220, 0.95);
+}
+
+.dh-foot {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dh-foot__muted {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.65);
+}

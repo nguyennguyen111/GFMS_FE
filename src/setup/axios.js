@@ -1,9 +1,18 @@
 // src/setup/axios.js
 import axios from "axios";
 
+const resolveBaseURL = () => {
+  // CRA/Vercel: đặt REACT_APP_API_BASE=https://your-backend
+  const envBase = process.env.REACT_APP_API_BASE;
+  const winBase = typeof window !== "undefined" ? window.__API_BASE__ : null;
+  const base = (envBase || winBase || "http://localhost:8080").toString();
+  return base.replace(/\/+$/, "");
+};
+
 const instance = axios.create({
-  baseURL: "http://localhost:8080",
-  timeout: 10000,
+  baseURL: resolveBaseURL(),
+  // Enterprise-friendly: some actions (generate PDF + upload + send email) can take >10s.
+  timeout: 60000,
   headers: { "Content-Type": "application/json" },
 });
 

@@ -32,6 +32,8 @@ const adminPurchaseWorkflowService = {
 
   getReceiptDetail: (id) => axios.get(`/api/admin/inventory/receipts/${id}`),
 
+  updateReceiptItems: (id, body) => axios.patch(`/api/admin/inventory/receipts/${id}/items`, body),
+
   // ✅ FIX: theo BE route: POST /purchase-orders/:id/receipts/inbound
   createReceiptFromPO: (poId) =>
     axios.post(`/api/admin/inventory/purchase-orders/${poId}/receipts/inbound`),
@@ -42,6 +44,9 @@ const adminPurchaseWorkflowService = {
   getPaymentsByPO: (poId) => axios.get(`/api/admin/inventory/purchase-orders/${poId}/payments`),
 
   createPayment: (poId, body) => axios.post(`/api/admin/inventory/purchase-orders/${poId}/payments`, body),
+
+  /* ================= TIMELINE ================= */
+  getPOTimeline: (poId) => axios.get(`/api/admin/inventory/purchase-orders/${poId}/timeline`),
 };
 
 export default adminPurchaseWorkflowService;
