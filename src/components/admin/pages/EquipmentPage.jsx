@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./EquipmentPage.css";
+import axios from "../../../setup/axios";
 
 import {
   createEquipment,
@@ -51,8 +52,8 @@ export default function EquipmentPage() {
   const [gallery, setGallery] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  // ✅ nếu FE chạy 3000 và BE chạy 8080 thì url ảnh sẽ đúng
-  const API_HOST = "http://localhost:8080";
+  // ✅ tuyệt đối hoá url ảnh theo baseURL hiện tại (local/deploy)
+  const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
   const absUrl = (u) => (u ? (u.startsWith("http") ? u : `${API_HOST}${u}`) : "");
 
   const fetchInit = async () => {

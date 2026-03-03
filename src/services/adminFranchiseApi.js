@@ -1,31 +1,32 @@
 import axios from "../setup/axios";
 
-/**
- * Base demo (mock SignNow) - khớp BE:
- * - Franchise requests: /api/admin/inventory/franchise-requests
- * - Contract: /api/admin/inventory/franchise-contract
- */
-
 export const adminFranchiseApi = {
-  // list & detail
   list: (params) => axios.get("/api/admin/inventory/franchise-requests", { params }),
   detail: (id) => axios.get(`/api/admin/inventory/franchise-requests/${id}`),
 
-  // approve/reject
-  approve: (id, payload) =>
-    axios.patch(`/api/admin/inventory/franchise-requests/${id}/approve`, payload || {}),
-  reject: (id, payload) =>
-    axios.patch(`/api/admin/inventory/franchise-requests/${id}/reject`, payload || {}),
+  approve: (id, payload) => axios.patch(`/api/admin/inventory/franchise-requests/${id}/approve`, payload || {}),
+  reject: (id, payload) => axios.patch(`/api/admin/inventory/franchise-requests/${id}/reject`, payload || {}),
 
-  // ===== Contract base mock =====
-  // send contract (not_sent -> sent)
+  // enterprise contract
   sendContract: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/send`),
 
-  // polling status
+  // giữ backward compatible (nếu code cũ gọi resendContract)
+  resendContract: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/resend`),
+
+  // JSX của bạn gọi resendInvite
+  resendInvite: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/resend`),
+
+  // { signerName, signatureDataUrl }
+  countersign: (id, payload) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/countersign`, payload || {}),
   getContractStatus: (id) => axios.get(`/api/admin/inventory/franchise-contract/${id}/status`),
 
-  // mock transitions (đại diện cho event/webhook từ SignNow)
-  mockViewed: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/mock/viewed`),
-  mockSigned: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/mock/signed`),
-  mockCompleted: (id) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/mock/completed`),
+  // download PDF (auth required) -> blob
+  downloadDocument: (id, type = "final") =>
+    axios.get(`/api/admin/inventory/franchise-contract/${id}/document`, {
+      params: { type },
+      responseType: "blob",
+    }),
+
+  // JSX của bạn gọi simulateEvent
+  simulateEvent: (id, event) => axios.patch(`/api/admin/inventory/franchise-contract/${id}/simulate/${event}`),
 };
