@@ -126,3 +126,11 @@ export const getMyPTWalletSummary = async () => {
   const res = await axios.get(`${BASE}/me/wallet-summary`, ptConfig());
   return res.data;
 };
+
+// 15) Lấy danh sách học viên đã đặt lịch (Bookings)
+export const getPTBookings = async (ptId) => {
+  // Nếu ptId là "me", nó sẽ gọi /api/pt/me/bookings
+  const res = await axios.get(`${BASE}/${ptId}/bookings`, ptConfig());
+  return res.data; // Trả về mảng danh sách học viên
+};
+

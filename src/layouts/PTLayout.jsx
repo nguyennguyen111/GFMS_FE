@@ -1,19 +1,22 @@
+
 import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { getTrainerId } from "../components/pt-portal/ptStorage";
 import "./PTLayout.css";
 
 const PTLayout = () => {
   const trainerId = getTrainerId();
+  const navigate = useNavigate();
 
-  // fallback an toàn nếu chưa có trainerId
-  const scheduleLink = trainerId
-    ? `/pt/${trainerId}/schedule`
-    : "/pt/profile";
+  // Hàm xử lý Logout
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    // Thêm các lệnh xóa token khác nếu có
+    navigate("/login");
+  };
 
-  const profileLink = trainerId
-    ? `/pt/${trainerId}/details`
-    : "/pt/profile";
+  const scheduleLink = trainerId ? `/pt/${trainerId}/schedule` : "/pt/profile";
+  const profileLink = trainerId ? `/pt/${trainerId}/details` : "/pt/profile";
 
   return (
     <div className="ptl-wrap">
@@ -80,8 +83,14 @@ const PTLayout = () => {
           >
             <span className="ptl-ic">📝</span> Requests
           </NavLink>
-
         </nav>
+
+        {/* Nút Logout tách biệt ở cuối Sidebar */}
+        <div className="ptl-logout-wrap">
+          <button onClick={handleLogout} className="ptl-item ptl-logout-btn">
+            <span className="ptl-ic">🚪</span> Logout
+          </button>
+        </div>
       </aside>
 
       {/* Content đổi theo route */}

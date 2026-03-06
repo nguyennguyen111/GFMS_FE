@@ -1,7 +1,8 @@
-/* =========================
-   PTSchedule.css
-   FINAL – week view + month/year picker
-   ========================= */
+:root {
+  --orange: #f48915;
+  --gray: #888;
+  --lightgray: #f2f2f2;
+}
 
 .ptSchedule {
   min-height: 100vh;
@@ -35,25 +36,7 @@
   font-weight: 700;
 }
 
-/* Back arrow */
-.ptBack {
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  color: var(--lightgray);
-  font-weight: 900;
-  padding: 10px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: 200ms;
-  white-space: nowrap;
-}
-.ptBack:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  border-color: rgba(244, 137, 21, 0.35);
-}
-
-/* Actions */
+/* Buttons & Actions */
 .ptSchedule__actions {
   display: flex;
   gap: 10px;
@@ -61,7 +44,6 @@
   justify-content: flex-end;
 }
 
-/* Buttons */
 .ptBtn {
   background: var(--orange);
   color: #111;
@@ -77,24 +59,28 @@
   gap: 8px;
   white-space: nowrap;
 }
+
 .ptBtn:hover {
   filter: brightness(1.07);
   transform: translateY(-1px);
 }
+
 .ptBtn--ghost {
   background: transparent;
   color: var(--lightgray);
   border: 2px solid rgba(244, 137, 21, 0.35);
 }
-.ptBtn--ghost:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+
+/* Tabs & Control Wrapper */
+.ptSchedule__controlWrapper {
+  width: min(1100px, 92vw);
+  margin: 0 auto 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Tabs (no lệch khung) */
 .ptSchedule__tabs {
-  width: min(1100px, 92vw);
-  margin: 0 auto 14px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -104,69 +90,6 @@
   border-radius: 14px;
 }
 
-/* ===== Month/Year Picker (dropdown - giữ khung đẹp) ===== */
-.ptMonthPick {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
-}
-
-.ptMonthLabel {
-  color: var(--gray);
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.ptMonthSelect,
-.ptYearSelect {
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(244, 137, 21, 0.35);
-  background: rgba(0, 0, 0, 0.22);
-  color: #f2f2f2;
-  outline: none;
-  font-weight: 900;
-  cursor: pointer;
-  appearance: auto;
-}
-
-.ptMonthSelect:hover,
-.ptYearSelect:hover {
-  filter: brightness(1.05);
-}
-
-.ptMonthSelect:focus,
-.ptYearSelect:focus {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(244, 137, 21, 0.18);
-}
-
-.ptMonthSelect option,
-.ptYearSelect option {
-  background-color: #141414;
-  color: #f2f2f2;
-  font-weight: 800;
-}
-
-.ptMonthSelect option:checked,
-.ptYearSelect option:checked {
-  background-color: #f48915;
-  color: #111;
-}
-
-.ptMonthSelect option:hover,
-.ptYearSelect option:hover {
-  background-color: rgba(244, 137, 21, 0.25);
-  color: #fff;
-}
-
-/* Tab button */
 .ptTab {
   padding: 10px 14px;
   border-radius: 12px;
@@ -176,18 +99,36 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.18);
   transition: 200ms;
-  white-space: nowrap;
 }
-.ptTab:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-}
+
 .ptTab.active {
   background: rgba(244, 137, 21, 0.15);
   border-color: rgba(244, 137, 21, 0.35);
+  color: var(--orange);
 }
 
-/* Card */
+/* Month/Year Picker */
+.ptMonthPick {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ptMonthSelect, .ptYearSelect {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: white;
+  border: 1px solid #444;
+  font-weight: bold;
+}
+
+/* Card & Table */
 .ptSchedule__card {
   width: min(1100px, 92vw);
   margin: 0 auto;
@@ -196,120 +137,49 @@
   border-radius: 18px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
 }
 
-.ptSchedule__cardTitle {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin: 4px 0 12px;
-  font-weight: 900;
-  color: var(--lightgray);
-}
-
-.ptSchedule__muted,
-.ptMuted {
-  color: var(--gray);
-  font-weight: 700;
-}
-
-/* Table */
 .ptTable {
   width: 100%;
   border-collapse: collapse;
-  border-radius: 14px;
-  overflow: hidden;
-}
-.ptTable thead th {
-  text-align: left;
-  color: var(--gray);
-  font-weight: 900;
-  padding: 12px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(0, 0, 0, 0.18);
-}
-.ptTable tbody td {
-  padding: 12px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--lightgray);
-  vertical-align: top;
-}
-.ptTable tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
-}
-.ptTable__empty {
-  padding: 18px 10px;
-  color: var(--gray);
-  font-weight: 800;
-  text-align: center;
 }
 
-/* Pills */
-.ptPillWrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.ptTable thead th {
+  text-align: left;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--gray);
 }
-.ptPill {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-weight: 900;
-  color: var(--lightgray);
-  background: rgba(244, 137, 21, 0.14);
-  border: 1px solid rgba(244, 137, 21, 0.28);
+
+.ptTable td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ======================
-   WEEK VIEW (Google-like)
+   WEEK VIEW (Grid)
    ====================== */
-
-.ptWeekBar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 6px 0 14px;
-}
-
 .ptWeek {
   display: grid;
   grid-template-columns: 80px 1fr;
   gap: 10px;
 }
 
-/* time column */
-.ptWeek__timeCol {
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.16);
-}
-.ptWeek__timeHead {
-  height: 58px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.18);
-}
-.ptWeek__timeBody {
-  position: relative;
-}
 .ptWeek__timeRow {
-  height: 56px; /* 1 hour row */
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  height: 56px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 8px;
 }
+
 .ptWeek__timeLabel {
   color: var(--gray);
   font-weight: 900;
   font-size: 0.85rem;
 }
 
-/* days grid */
 .ptWeek__days {
   border-radius: 14px;
   overflow: hidden;
@@ -319,22 +189,26 @@
 
 .ptWeek__daysHead {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  height: 58px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  grid-template-columns: repeat(7, 1fr);
   background: rgba(0, 0, 0, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .ptWeek__dayHead {
-  padding: 10px 10px 8px;
+  padding: 10px;
+  text-align: center;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .ptWeek__dayHead:last-child {
   border-right: none;
 }
+
 .ptWeek__dayName {
   font-weight: 900;
   color: var(--lightgray);
 }
+
 .ptWeek__dayDate {
   margin-top: 2px;
   color: var(--gray);
@@ -344,77 +218,120 @@
 
 .ptWeek__daysBody {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  height: calc(56px * 16); /* 06:00 -> 22:00 = 16 hours */
+  grid-template-columns: repeat(7, 1fr);
+  position: relative;
 }
 
 .ptWeek__dayCol {
   position: relative;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  min-height: 896px; /* 16 hours * 56px */
 }
+
 .ptWeek__dayCol:last-child {
   border-right: none;
 }
 
-/* grid line every 30 mins */
 .ptWeek__gridLine {
-  height: 28px; /* 30 mins = half of 56px hour */
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+  height: 28px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
 }
 
-/* availability blocks */
+/* ==================================
+   MÀU SẮC TRẠNG THÁI (FIXED)
+   ================================== */
+
+/* 1. MẶC ĐỊNH / LỊCH TRỐNG: CAM */
 .ptWeek__block {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  border-radius: 12px;
-  background: rgba(244, 137, 21, 0.16);
-  border: 1px solid rgba(244, 137, 21, 0.35);
-  padding: 8px 10px; /* ✅ gọn hơn */
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  left: 4px;
+  right: 4px;
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.1s;
+  /* Màu cam mặc định */
+  background-color: rgba(244, 137, 21, 0.15) !important;
+  border: 1px solid rgba(244, 137, 21, 0.4) !important;
+  border-left: 4px solid var(--orange) !important;
+}
+.ptWeek__block .ptWeek__blockTime,
+.ptWeek__block .ptWeek__studentName {
+  color: var(--orange) !important;
 }
 
-/* ❌ không dùng title nữa nhưng giữ class nếu sau muốn dùng lại */
-.ptWeek__blockTitle {
-  display: none;
+.ptWeek__block:hover {
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+/* 2. CÓ HỌC VIÊN NHƯNG CHƯA ĐIỂM DANH: XANH DƯƠNG */
+.ptWeek__block.is-pending {
+  background-color: rgba(52, 152, 219, 0.15) !important;
+  border: 1px solid rgba(52, 152, 219, 0.4) !important;
+  border-left: 4px solid #3498db !important;
+}
+.ptWeek__block.is-pending .ptWeek__blockTime,
+.ptWeek__block.is-pending .ptWeek__studentName {
+  color: #3498db !important;
+}
+
+/* 3. ĐÃ CÓ MẶT: XANH LÁ */
+.ptWeek__block.is-present {
+  background-color: rgba(46, 204, 113, 0.15) !important;
+  border: 1px solid rgba(46, 204, 113, 0.5) !important;
+  border-left: 4px solid #2ecc71 !important;
+}
+.ptWeek__block.is-present .ptWeek__blockTime,
+.ptWeek__block.is-present .ptWeek__studentName,
+.ptWeek__block.is-present .mini-status {
+  color: #2ecc71 !important;
+}
+
+/* 4. ĐÃ VẮNG MẶT: ĐỎ */
+.ptWeek__block.is-absent {
+  background-color: rgba(231, 76, 60, 0.2) !important;
+  border: 1px solid rgba(231, 76, 60, 0.6) !important;
+  border-left: 4px solid #e74c3c !important;
+}
+.ptWeek__block.is-absent .ptWeek__blockTime,
+.ptWeek__block.is-absent .ptWeek__studentName,
+.ptWeek__block.is-absent .mini-status {
+  color: #ff4d4d !important;
 }
 
 .ptWeek__blockTime {
-  margin-top: 0; /* ✅ bỏ khoảng cách title */
-  color: var(--lightgray); /* ✅ rõ hơn */
-  font-weight: 950;
-  font-size: 0.9rem;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 2px;
 }
 
-/* Responsive */
-@media (max-width: 980px) {
-  .ptSchedule__header {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-  .ptSchedule__actions {
-    justify-content: flex-start;
-  }
+.ptWeek__studentName {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.mini-status {
+  font-size: 10px;
+  font-weight: 900;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.week-range {
+  margin-left: auto;
+  color: var(--lightgray);
+  font-weight: 800;
+}
+
+/* Mobile Responsive Fix */
 @media (max-width: 860px) {
-  .ptSchedule__tabs {
-    flex-wrap: wrap;
-  }
-  .ptMonthPick {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-  .ptWeek {
-    grid-template-columns: 1fr;
-  }
-  .ptWeek__timeCol {
-    display: none;
-  }
-  .ptWeek__daysBody {
-    height: calc(56px * 12);
-  }
+  .ptWeek__timeCol { display: none; }
+  .ptWeek__daysHead, .ptWeek__daysBody { grid-template-columns: 1fr; }
+  .ptWeek__dayCol { border-bottom: 1px solid #333; margin-bottom: 10px; }
+  .ptWeek__block { position: relative; left: 0; right: 0; margin-bottom: 4px; top: auto !important; height: auto !important; }
 }

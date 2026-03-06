@@ -51,6 +51,7 @@ export default function OwnerDashboard() {
         { label: "Phòng tập ", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
         { label: "Gói tập", to: "/owner/packages", key: "packages", icon: "🎫" },
         { label: "Hội viên", to: "/owner/members", key: "members", icon: "👥" },
+         { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
         { label: "Đặt lịch / Chia sẻ Huấn luyện viên", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
         { label: "Đánh giá", to: "/owner/reviews", key: "reviews", icon: "⭐" },
       ],

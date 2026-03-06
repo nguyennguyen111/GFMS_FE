@@ -41,10 +41,10 @@ const buildCleanSchedule = (raw) => {
     const slots = Array.isArray(raw?.[k]) ? raw[k] : [];
     out[k] = slots
       .map((x) => ({
-        start: toHHMM(x?.start),
+        start: toHHMM(x?.start),  // Chuyển đổi giá trị time thành HH:MM
         end: toHHMM(x?.end),
       }))
-      .filter((x) => x.start && x.end);
+      .filter((x) => x.start && x.end);  // Kiểm tra rằng cả start và end đều hợp lệ
   }
   return out;
 };
@@ -143,29 +143,27 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
     }));
   };
 
-  const handleSave = async () => {
-    if (!ptId) return;
+const handleSave = async () => {
+  if (!ptId) return;
 
-    try {
-      setSaving(true);
-      setMsg("");
+  try {
+    setSaving(true);
+    setMsg("");
 
-      const clean = buildCleanSchedule(schedule);
+    const clean = buildCleanSchedule(schedule);  // Chuẩn hóa dữ liệu lịch
 
-      // ✅ CÁCH A: ptService sẽ tự wrap { availableHours: ... }
-      await updatePTSchedule(ptId, clean);
+    await updatePTSchedule(ptId, clean);  // Gửi dữ liệu như đối tượng JSON
 
-      setMsg("✅ Lưu lịch rảnh thành công!");
-      navigate(`/pt/${ptId}/schedule`);
-    } catch (e) {
-      console.error(e);
-      const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
-      setMsg(`❌ ${err}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
+    setMsg("✅ Lưu lịch rảnh thành công!");
+    navigate(`/pt/${ptId}/schedule`);
+  } catch (e) {
+    console.error(e);
+    const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
+    setMsg(`❌ ${err}`);
+  } finally {
+    setSaving(false);
+  }
+};
   if (resolveError) {
     return (
       <div className="ptSUPage">
@@ -276,3 +274,4 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
 };
 
 export default PTScheduleUpdate;
+
