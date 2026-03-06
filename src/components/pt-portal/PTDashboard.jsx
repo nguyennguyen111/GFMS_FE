@@ -90,11 +90,6 @@ const PTDashboard = () => {
             <span className="ptd-userDot" />
             <span className="ptd-userChipName">{displayName}</span>
           </div>
-
-          {/* ✅ Logout vẫn giữ */}
-          <button className="ptd-pillBtn" onClick={handleLogout}>
-            Logout
-          </button>
         </div>
       </header>
 

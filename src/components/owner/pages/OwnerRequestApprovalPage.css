@@ -1,0 +1,127 @@
+/* Scoped CSS - Chỉ tác động trong trang duyệt yêu cầu */
+.owner-request-approval {
+  padding: 20px;
+  color: #eef2ff;
+}
+
+.owner-request-approval .od2-h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ff8a00;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+/* Container bảng giống trang Quản lý PT */
+.owner-request-approval .table-container {
+  background: rgba(15, 22, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.owner-request-approval .approval-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+/* Header của bảng */
+.owner-request-approval .approval-table thead {
+  background: rgba(255, 138, 0, 0.1);
+}
+
+.owner-request-approval .approval-table th {
+  padding: 15px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #ff8a00;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Từng dòng trong bảng */
+.owner-request-approval .approval-table td {
+  padding: 14px 15px;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(238, 242, 255, 0.9);
+}
+
+.owner-request-approval .approval-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Badge trạng thái và Loại yêu cầu */
+.owner-request-approval .type-badge {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.owner-request-approval .status-pending {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.owner-request-approval .status-approved {
+  color: #00ffaa;
+  background: rgba(0, 255, 170, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.owner-request-approval .status-rejected {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* Nút hành động */
+.owner-request-approval .action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-request-approval .btn-approve {
+  background: #00ffaa;
+  color: #000;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+
+.owner-request-approval .btn-reject {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.owner-request-approval .btn-approve:hover {
+  background: #00cc88;
+  transform: translateY(-1px);
+}
+
+.owner-request-approval .btn-reject:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.owner-request-approval .action-done {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  font-size: 12px;
+}

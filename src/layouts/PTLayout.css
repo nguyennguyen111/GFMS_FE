@@ -1,71 +1,114 @@
-.ptl-wrap{
-  min-height:100vh;
-  display:flex;
+.ptl-wrap {
+  min-height: 100vh;
+  display: flex;
   background: radial-gradient(circle at top, #18202b, #0f1113 62%);
 }
 
 /* Sidebar */
-.ptl-sidebar{
+.ptl-sidebar {
   width: 260px;
   padding: 18px 14px;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  background: rgba(0,0,0,0.20);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  /* Quan trọng: Để đẩy nút logout xuống đáy */
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
-.ptl-brand{
+.ptl-brand {
   padding: 10px 10px 16px;
+  flex-shrink: 0;
 }
-.ptl-logo{
+
+.ptl-logo {
   font-size: 28px;
   font-weight: 900;
   color: #fff;
 }
-.ptl-sub{
+
+.ptl-sub {
   margin-top: 4px;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 13px;
 }
 
-.ptl-nav{
-  display:flex;
-  flex-direction:column;
+.ptl-nav {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: 8px;
+  /* Cho phép menu scroll nếu quá dài trên màn hình nhỏ */
+  overflow-y: auto;
+  flex: 1;
 }
 
-.ptl-item{
-  display:flex;
-  align-items:center;
+/* Ẩn thanh scrollbar của nav cho đẹp */
+.ptl-nav::-webkit-scrollbar {
+  width: 0px;
+}
+
+.ptl-item {
+  display: flex;
+  align-items: center;
   gap: 10px;
   padding: 14px 14px;
   border-radius: 14px;
-  text-decoration:none;
-  color: rgba(255,255,255,0.92);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   font-weight: 800;
-  transition: .2s;
+  transition: 0.2s;
+  font-family: inherit; /* Cho button */
+  font-size: 16px;      /* Cho button */
+  cursor: pointer;     /* Cho button */
 }
 
-.ptl-item:hover{
+.ptl-item:hover {
   transform: translateY(-1px);
   filter: brightness(1.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.ptl-ic{
+.ptl-ic {
   width: 20px;
-  display:inline-flex;
-  justify-content:center;
+  display: inline-flex;
+  justify-content: center;
 }
 
-.ptl-item.active{
-  border: 1px solid rgba(244,137,21,0.55);
-  box-shadow: 0 0 0 3px rgba(244,137,21,0.12);
+.ptl-item.active {
+  border: 1px solid rgba(244, 137, 21, 0.55);
+  box-shadow: 0 0 0 3px rgba(244, 137, 21, 0.12);
+  background: rgba(244, 137, 21, 0.1);
+}
+
+/* Logout cụ thể */
+.ptl-logout-wrap {
+  margin-top: auto; /* Đẩy xuống đáy */
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.ptl-logout-btn {
+  width: 100%;
+  color: #ff6b6b; /* Giữ tông đỏ nhẹ cho hành động thoát */
+  background: rgba(255, 107, 107, 0.02);
+}
+
+.ptl-logout-btn:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.2);
 }
 
 /* Content */
-.ptl-content{
-  flex:1;
+.ptl-content {
+  flex: 1;
   padding: 18px 18px 30px;
   min-width: 0;
+  overflow-y: auto;
 }
