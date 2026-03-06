@@ -1,0 +1,203 @@
+/* ptclients.css - Đồng bộ với tông màu Wallet */
+
+.ptp-wrap {
+    color: #eef2ff;
+    padding: 10px;
+}
+
+.ptp-card {
+    background: rgba(15, 22, 33, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.ptp-card h2 {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: #eef2ff;
+    letter-spacing: 0.05em;
+    border-left: 4px solid #ff8a00;
+    padding-left: 15px;
+}
+
+/* Container cho table để scroll mượt trên mobile */
+.pt-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pt-custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: transparent;
+}
+
+.pt-custom-table th {
+    padding: 14px 16px;
+    text-align: left;
+    background: rgba(255, 138, 0, 0.08); /* Màu cam nhẹ từ ptw-table th */
+    color: rgba(238, 242, 255, 0.8);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pt-custom-table td {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: middle;
+}
+
+.pt-custom-table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Styling cho tên học viên */
+.student-name {
+    color: #00ffaa; /* Màu xanh neon từ ptw-value */
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.student-info small {
+    color: rgba(238, 242, 255, 0.5);
+    font-size: 12px;
+}
+
+/* Badge trạng thái - Lấy logic từ ptw-badge */
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.CONFIRMED {
+    background: rgba(0, 180, 255, 0.15);
+    color: #00b4ff;
+}
+
+.status-badge.COMPLETED {
+    background: rgba(0, 255, 170, 0.2);
+    color: #00ffaa;
+}
+
+.status-badge.IN_PROGRESS {
+    background: rgba(255, 176, 0, 0.2);
+    color: #ffb000;
+}
+
+.status-badge.PENDING {
+    background: rgba(238, 242, 255, 0.1);
+    color: rgba(238, 242, 255, 0.6);
+}
+
+/* Nút thao tác */
+.btn-action {
+    background: rgba(255, 138, 0, 0.15);
+    border: 1px solid rgba(255, 138, 0, 0.4);
+    color: #ff8a00;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-action:hover {
+    background: #ff8a00;
+    color: #000;
+}
+/* --- Bổ sung cho PTSchedule.jsx --- */
+
+/* Ô lịch có học viên (slot đã được đặt) */
+.ptWeek__block.has-booking {
+    background: rgba(0, 255, 170, 0.15) !important; /* Xanh neon rất nhạt */
+    border-left: 3px solid #00ffaa !important; /* Vạch kẻ xanh bên trái cho nổi bật */
+    box-shadow: inset 0 0 10px rgba(0, 255, 170, 0.1);
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+/* Hover vào ô có học viên */
+.ptWeek__block.has-booking:hover {
+    background: rgba(0, 255, 170, 0.25) !important;
+    transform: scale(1.02);
+}
+
+/* Style cho tên học viên hiển thị trực tiếp trên Block */
+.ptWeek__studentName {
+    font-size: 11px;
+    font-weight: 800;
+    color: #00ffaa; /* Xanh neon đồng bộ với student-name */
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Nếu tên dài quá thì tự hiện dấu ... */
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Style cho giờ giấc trong ô cho gọn lại */
+.ptWeek__blockTime {
+    font-size: 10px;
+    color: rgba(238, 242, 255, 0.6);
+    font-weight: 600;
+}
+
+/* Nếu bạn muốn ô trống (chưa có người đặt) mờ đi một chút */
+.ptWeek__block:not(.has-booking) {
+    background: rgba(255, 138, 0, 0.05);
+    border-left: 2px solid rgba(255, 138, 0, 0.3);
+}
+/* Trạng thái điểm danh nhỏ hiển thị dưới tên học viên trên lịch */
+.mini-status {
+    font-size: 9px;
+    margin-top: 2px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.mini-status.present {
+    color: #00ffaa; /* Xanh neon cho Có mặt */
+}
+
+.mini-status.absent {
+    color: #ff4d4d; /* Màu đỏ cho Vắng mặt */
+}
+
+.ptWeek__block {
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hiệu ứng khi ô lịch được focus hoặc click */
+.ptWeek__block:active {
+    transform: scale(0.95);
+    filter: brightness(0.8);
+}
+
+.pt-table-container::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.pt-table-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 138, 0, 0.3);
+    border-radius: 10px;
+}
