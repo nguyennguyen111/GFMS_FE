@@ -61,6 +61,7 @@ const PTSchedule = () => {
 
   const START_HOUR = 6;
   const END_HOUR = 22;
+  const ROW_HEIGHT = 60; // Đồng bộ với CSS
 
   const [activeTab, setActiveTab] = useState("week"); 
   const now = new Date();
@@ -164,15 +165,10 @@ const PTSchedule = () => {
 
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
-  // Hàm này sẽ lấy màu chữ cho tên học viên dựa vào trạng thái
   const getStudentNameColor = (status) => {
-    if (status === 'present') {
-      return '#2ecc71'; // Màu xanh lá khi có mặt
-    } else if (status === 'absent') {
-      return '#e74c3c'; // Màu đỏ khi vắng mặt
-    } else {
-      return '#3498db'; // Màu xanh dương khi chưa điểm danh
-    }
+    if (status === 'present') return '#2ecc71';
+    if (status === 'absent') return '#e74c3c';
+    return '#3498db';
   };
 
   return (
@@ -210,16 +206,20 @@ const PTSchedule = () => {
           <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(v=>v+1)}>Tuần sau →</button>
           <span className="week-range">{formatDate(weekDays[0].date)} - {formatDate(weekDays[6].date)}</span>
         </div>}
-
       </div>
 
       <div className="ptSchedule__card">
         {activeTab==="week" ? (
           <div className="ptWeek">
             <div className="ptWeek__timeCol">
-              <div className="ptWeek__timeHead" />
+              {/* FIXED: Spacer đẩy hàng 06:00 xuống đúng vị trí */}
+              <div className="ptWeek__timeSpacer" />
               <div className="ptWeek__timeBody">
-                {Array.from({length:END_HOUR-START_HOUR+1}).map((_,i)=>(<div key={i} className="ptWeek__timeRow"><span className="ptWeek__timeLabel">{(START_HOUR+i).toString().padStart(2,'0')}:00</span></div>))}
+                {Array.from({length:END_HOUR-START_HOUR + 1}).map((_,i)=>(
+                  <div key={i} className="ptWeek__timeRow" style={{height: `${ROW_HEIGHT}px`}}>
+                    <span className="ptWeek__timeLabel">{(START_HOUR+i).toString().padStart(2,'0')}:00</span>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="ptWeek__days">
@@ -227,44 +227,49 @@ const PTSchedule = () => {
                 {weekDays.map((d,idx)=>(<div key={idx} className="ptWeek__dayHead"><div className="ptWeek__dayName">{d.dayLabel}</div><div className="ptWeek__dayDate">{formatDate(d.date).slice(0,5)}</div></div>))}
               </div>
               <div className="ptWeek__daysBody">
-                {weekDays.map((d,idx)=>(<div key={idx} className="ptWeek__dayCol">
-                  {Array.from({length:(END_HOUR-START_HOUR)*2+1}).map((_,i)=><div key={i} className="ptWeek__gridLine" />)}
-                  {(d.slots||[]).map((s,i)=>{
-                    const startMin=parseTimeToMinutes(s.start);
-                    const endMin=parseTimeToMinutes(s.end);
-                    if(startMin>=endMin || startMin<START_HOUR*60) return null;
-                    
-                    const booking=(attCache[toYMD(d.date)]||[]).find(b=>String(b.startTime||"").slice(0,5)===String(s.start||"").slice(0,5));
-                    
-                    let statusClass = ""; 
-                    if (booking) {
-                      if (booking.status === 'present') {
-                        statusClass = "is-present";
-                      } else if (booking.status === 'absent') {
-                        statusClass = "is-absent";
-                      } else {
-                        statusClass = "is-pending"; // Có học viên nhưng chưa điểm danh
+                {weekDays.map((d,idx)=>(
+                  <div key={idx} className="ptWeek__dayCol" style={{height: `${(END_HOUR-START_HOUR + 1) * ROW_HEIGHT}px`}}>
+                    {(d.slots||[]).map((s,i)=>{
+                      const startMin=parseTimeToMinutes(s.start);
+                      const endMin=parseTimeToMinutes(s.end);
+                      if(startMin>=endMin || startMin<START_HOUR*60) return null;
+                      
+                      const booking=(attCache[toYMD(d.date)]||[]).find(b=>String(b.startTime||"").slice(0,5)===String(s.start||"").slice(0,5));
+                      
+                      let statusClass = ""; 
+                      if (booking) {
+                        if (booking.status === 'present') statusClass = "is-present";
+                        else if (booking.status === 'absent') statusClass = "is-absent";
+                        else statusClass = "is-pending";
                       }
-                    }
 
-                    const top=((startMin-START_HOUR*60)/((END_HOUR-START_HOUR)*60))*100;
-                    const height=((endMin-startMin)/((END_HOUR-START_HOUR)*60))*100;
-                    
-                    return (
-                      <div key={i} className={`ptWeek__block ${statusClass}`} style={{top:`${top}%`,height:`${height}%`,minHeight:'20px'}} onClick={()=>openAttendance(d.date,s)}>
-                        <div className="ptWeek__blockTime">{s.start}</div>
-                        {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(booking.status) }}>
-                          👤 {booking.Member?.User?.username || "Học viên"}
-                          {booking.status && (
-                            <div className="mini-status">
-                                {booking.status === 'present' ? '✓ Có mặt' : booking.status === 'absent' ? '✗ Vắng mặt' : ''}
-                            </div>
-                          )}
-                        </div>}
-                      </div>
-                    );
-                  })}
-                </div>))}
+                      const topPx = ((startMin - START_HOUR * 60) / 60) * ROW_HEIGHT;
+                      const heightPx = ((endMin - startMin) / 60) * ROW_HEIGHT;
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          className={`ptWeek__block ${statusClass}`} 
+                          style={{
+                            top: `${topPx}px`, 
+                            height: `${heightPx - 2}px`,
+                          }} 
+                          onClick={()=>openAttendance(d.date,s)}
+                        >
+                          <div className="ptWeek__blockTime">{s.start}</div>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(booking.status) }}>
+                            👤 {booking.Member?.User?.username || "Học viên"}
+                            {booking.status && (
+                              <div className="mini-status">
+                                  {booking.status === 'present' ? '✓ Có mặt' : booking.status === 'absent' ? '✗ Vắng mặt' : ''}
+                              </div>
+                            )}
+                          </div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -279,18 +284,12 @@ const PTSchedule = () => {
             </thead>
             <tbody>
               {todaySlots.length === 0 ? (
-                <tr>
-                  <td colSpan="3" className="ptTable__empty">
-                    Không có khung giờ rảnh hôm nay.
-                  </td>
-                </tr>
+                <tr><td colSpan="3" className="ptTable__empty">Không có khung giờ rảnh hôm nay.</td></tr>
               ) : (
                 todaySlots.map((s, i) => (
                   <tr key={i}>
                     <td>{formatDate(new Date())}</td>
-                    <td>
-                      <span className="ptPill">{s.start}-{s.end}</span>
-                    </td>
+                    <td><span className="ptPill">{s.start}-{s.end}</span></td>
                     <td className="ptSchedule__muted">—</td>
                   </tr>
                 ))
