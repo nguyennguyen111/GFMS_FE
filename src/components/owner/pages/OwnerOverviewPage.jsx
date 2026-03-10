@@ -1,5 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Line } from "react-chartjs-2";
+import "../../../services/chartSetup";
 import "./OwnerOverviewPage.css";
 import ownerDashboardService from "../../../services/ownerDashboardService";
 
@@ -120,9 +122,15 @@ function GymDropdown({ gyms, selectedGymId, onChange }) {
 }
 
 export default function OwnerOverviewPage() {
+  const PREVIEW_LIMIT = 4;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [revenueTrendLoading, setRevenueTrendLoading] = useState(false);
+  const [revenueTrendError, setRevenueTrendError] = useState(null);
+  const [revenuePeriod, setRevenuePeriod] = useState("day");
+  const [revenueTrend, setRevenueTrend] = useState([]);
+  const [viewAllType, setViewAllType] = useState(null);
   const [gyms, setGyms] = useState([]);
   const [selectedGymId, setSelectedGymId] = useState(null);
   const [data, setData] = useState({
@@ -141,7 +149,9 @@ export default function OwnerOverviewPage() {
       setLoading(true);
       setError(null);
       const result = await ownerDashboardService.getSummary(selectedGymId);
-      if (result.gyms && gyms.length === 0) setGyms(result.gyms);
+      if (Array.isArray(result.gyms)) {
+        setGyms((prev) => (prev.length === 0 ? result.gyms : prev));
+      }
       setData({
         todayBookings: result.todayBookings ?? 0,
         totalMembers: result.totalMembers ?? 0,
@@ -163,38 +173,138 @@ export default function OwnerOverviewPage() {
     fetchData();
   }, [fetchData]);
 
+  const fetchRevenueTrend = useCallback(async () => {
+    try {
+      setRevenueTrendLoading(true);
+      setRevenueTrendError(null);
+      const result = await ownerDashboardService.getRevenueTrend(revenuePeriod, selectedGymId);
+      setRevenueTrend(Array.isArray(result?.series) ? result.series : []);
+    } catch (e) {
+      setRevenueTrend([]);
+      setRevenueTrendError(e?.response?.data?.message || e.message || "Lỗi tải biểu đồ doanh thu");
+    } finally {
+      setRevenueTrendLoading(false);
+    }
+  }, [revenuePeriod, selectedGymId]);
+
+  useEffect(() => {
+    fetchRevenueTrend();
+  }, [fetchRevenueTrend]);
+
   const formatRevenue = (val) => {
     if (val >= 1_000_000_000) return `₫ ${(val / 1_000_000_000).toFixed(1)}B`;
     if (val >= 1_000_000) return `₫ ${(val / 1_000_000).toFixed(1)}M`;
     return `₫ ${val.toLocaleString("vi-VN")}`;
   };
 
+  const chartData = useMemo(() => ({
+    labels: revenueTrend.map((item) => item.label),
+    datasets: [
+      {
+        label: "Doanh thu (₫)",
+        data: revenueTrend.map((item) => Number(item.total || 0)),
+        tension: 0.35,
+        fill: true,
+        borderColor: "rgba(244,137,21,0.95)",
+        backgroundColor: "rgba(244,137,21,0.12)",
+        pointRadius: 3,
+        pointHoverRadius: 4,
+      },
+    ],
+  }), [revenueTrend]);
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: (context) => `Doanh thu: ₫ ${Number(context.parsed.y || 0).toLocaleString("vi-VN")}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "rgba(255,255,255,0.7)" },
+        grid: { color: "rgba(255,255,255,0.06)" },
+      },
+      y: {
+        ticks: {
+          color: "rgba(255,255,255,0.7)",
+          callback: (value) => `₫ ${Number(value).toLocaleString("vi-VN")}`,
+        },
+        grid: { color: "rgba(255,255,255,0.06)" },
+      },
+    },
+  }), []);
+
+  const revenuePeriodOptions = [
+    { key: "day", label: "Ngày" },
+    { key: "month", label: "Tháng" },
+    { key: "year", label: "Năm" },
+  ];
+
   const stats = [
     {
       title: "Booking hôm nay",
       value: data.todayBookings,
-      hint: "tổng booking trong ngày",
+      hint: "Tổng booking trong ngày",
       icon: "🗓️",
     },
     {
       title: "Tổng hội viên",
       value: data.totalMembers,
-      hint: `hội viên active${data.newMembersCount > 0 ? ` • +${data.newMembersCount} hôm nay` : ""}`,
+      hint: `Hội viên đang hoạt động${data.newMembersCount > 0 ? ` • +${data.newMembersCount} hôm nay` : ""}`,
       icon: "👥",
     },
     {
       title: "Hội viên sắp hết hạn",
       value: data.expiringMembers.length,
-      hint: "hết hạn trong 7 ngày tới",
+      hint: "Hết hạn trong 7 ngày tới",
       icon: "⏰",
     },
     {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
-      hint: "giao dịch đã hoàn thành",
+      hint: "Giao dịch đã hoàn thành",
       icon: "💳",
     },
   ];
+
+  const upcomingPreview = data.upcomingBookings.slice(0, PREVIEW_LIMIT);
+  const expiringPreview = data.expiringMembers.slice(0, PREVIEW_LIMIT);
+  const newMembersPreview = data.newMembersToday.slice(0, PREVIEW_LIMIT);
+
+  const closeViewAll = () => setViewAllType(null);
+
+  const getViewAllConfig = () => {
+    if (viewAllType === "bookings") {
+      return {
+        title: "Tất cả booking sắp tới",
+        items: data.upcomingBookings,
+        empty: "Không có booking sắp tới",
+      };
+    }
+    if (viewAllType === "expiring") {
+      return {
+        title: "Tất cả hội viên sắp hết hạn",
+        items: data.expiringMembers,
+        empty: "Không có hội viên sắp hết hạn",
+      };
+    }
+    if (viewAllType === "newMembers") {
+      return {
+        title: "Tất cả hội viên mới hôm nay",
+        items: data.newMembersToday,
+        empty: "Chưa có hội viên mới hôm nay",
+      };
+    }
+    return null;
+  };
+
+  const viewAllConfig = getViewAllConfig();
 
   return (
     <div className="ov-wrap">
@@ -243,15 +353,46 @@ export default function OwnerOverviewPage() {
         ))}
       </div>
 
+      <Panel
+        title="Tổng quan doanh thu"
+        right={
+          <div className="ov-segment">
+            {revenuePeriodOptions.map((option) => (
+              <button
+                key={option.key}
+                className={`ov-segmentBtn ${revenuePeriod === option.key ? "is-active" : ""}`}
+                onClick={() => setRevenuePeriod(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        {revenueTrendLoading ? (
+          <div className="ov-empty">Đang tải biểu đồ doanh thu…</div>
+        ) : revenueTrendError ? (
+          <div className="ov-empty">⚠️ {revenueTrendError}</div>
+        ) : revenueTrend.length === 0 ? (
+          <div className="ov-empty">Chưa có dữ liệu doanh thu trong khoảng thời gian đã chọn.</div>
+        ) : (
+          <div className="ov-chartBox">
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        )}
+      </Panel>
+
       {/* ── Row 1 ── */}
       <div className="ov-grid2">
         {/* Booking sắp tới */}
         <Panel
           title="Booking sắp tới"
           right={
-            <button className="ov-linkBtn" onClick={() => navigate("/owner/trainers")}>
-              Xem tất cả
-            </button>
+            data.upcomingBookings.length > PREVIEW_LIMIT ? (
+              <button className="ov-linkBtn" onClick={() => setViewAllType("bookings")}>
+                Xem tất cả
+              </button>
+            ) : null
           }
         >
           {loading ? (
@@ -260,7 +401,7 @@ export default function OwnerOverviewPage() {
             <div className="ov-empty">Không có booking sắp tới</div>
           ) : (
             <div className="ov-list">
-              {data.upcomingBookings.map((b) => (
+              {upcomingPreview.map((b) => (
                 <div className="ov-row" key={b.id}>
                   <div className="ov-badge">
                     {formatDate(b.bookingDate)}&nbsp;{formatTime(b.startTime)}
@@ -288,9 +429,11 @@ export default function OwnerOverviewPage() {
         <Panel
           title="Hội viên sắp hết hạn gói"
           right={
-            <button className="ov-linkBtn" onClick={() => navigate("/owner/members")}>
-              Xem hội viên
-            </button>
+            data.expiringMembers.length > PREVIEW_LIMIT ? (
+              <button className="ov-linkBtn" onClick={() => setViewAllType("expiring")}>
+                Xem tất cả
+              </button>
+            ) : null
           }
         >
           {loading ? (
@@ -299,7 +442,7 @@ export default function OwnerOverviewPage() {
             <div className="ov-empty">Không có hội viên sắp hết hạn</div>
           ) : (
             <div className="ov-list">
-              {data.expiringMembers.map((m) => (
+              {expiringPreview.map((m) => (
                 <div className="ov-row" key={m.id}>
                   <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>
                     {m.daysLeft}d
@@ -323,63 +466,16 @@ export default function OwnerOverviewPage() {
         </Panel>
       </div>
 
-      {/* ── Row 2 ── */}
-      <div className="ov-grid2">
-        {/* Tồn kho thấp */}
-        <Panel
-          title="Tồn kho thấp"
-          right={
-            <button className="ov-linkBtn" onClick={() => navigate("/owner/inventory")}>
-              Xem tồn kho
-            </button>
-          }
-        >
-          {loading ? (
-            <div className="ov-empty">Đang tải…</div>
-          ) : data.lowStock.length === 0 ? (
-            <div className="ov-empty">Tồn kho ổn định</div>
-          ) : (
-            <div className="ov-list">
-              {data.lowStock.map((x) => (
-                <div className="ov-row" key={x.id}>
-                  <div className="ov-badge danger">
-                    {x.availableQuantity}/{x.reorderPoint}
-                  </div>
-                  <div className="ov-rowMain">
-                    <div className="ov-rowTitle">
-                      {x.equipmentName}{x.equipmentCode ? ` (${x.equipmentCode})` : ""}
-                    </div>
-                    <div className="ov-rowSub">{x.gymName}</div>
-                  </div>
-                  <button className="ov-miniBtn" onClick={() => navigate("/owner/purchase-orders")}>
-                    Đặt hàng
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        <Panel
-          title="Thông báo mới"
-          right={
-            <button className="ov-linkBtn" onClick={() => navigate("/owner/notifications")}>
-              Mở Inbox
-            </button>
-          }
-        >
-          <div className="ov-empty">Tính năng thông báo sẽ hiện tại đây.</div>
-        </Panel>
-      </div>
-
       {/* ── Row 3: Hội viên mới hôm nay ── */}
       <div className="ov-grid2">
         <Panel
           title={`Hội viên mới hôm nay${data.newMembersCount > 0 ? ` (${data.newMembersCount})` : ""}`}
           right={
-            <button className="ov-linkBtn" onClick={() => navigate("/owner/members")}>
-              Xem tất cả
-            </button>
+            data.newMembersToday.length > PREVIEW_LIMIT ? (
+              <button className="ov-linkBtn" onClick={() => setViewAllType("newMembers")}>
+                Xem tất cả
+              </button>
+            ) : null
           }
         >
           {loading ? (
@@ -388,7 +484,7 @@ export default function OwnerOverviewPage() {
             <div className="ov-empty">Chưa có hội viên mới hôm nay</div>
           ) : (
             <div className="ov-list">
-              {data.newMembersToday.map((m) => (
+              {newMembersPreview.map((m) => (
                 <div className="ov-row" key={m.id}>
                   <div className="ov-badge" style={{ background: "rgba(34,197,94,.15)", borderColor: "rgba(34,197,94,.3)", color: "rgba(34,197,94,1)", fontSize: 11 }}>
                     Mới
@@ -410,6 +506,91 @@ export default function OwnerOverviewPage() {
         </Panel>
         <div />
       </div>
+
+      {viewAllConfig && (
+        <div className="ov-modalBackdrop" onClick={closeViewAll}>
+          <div className="ov-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ov-modalHead">
+              <div className="ov-modalTitle">{viewAllConfig.title}</div>
+              <button className="ov-miniBtn" onClick={closeViewAll}>Đóng</button>
+            </div>
+
+            <div className="ov-modalBody">
+              {viewAllConfig.items.length === 0 ? (
+                <div className="ov-empty">{viewAllConfig.empty}</div>
+              ) : (
+                <div className="ov-list">
+                  {viewAllType === "bookings" && viewAllConfig.items.map((b) => (
+                    <div className="ov-row" key={`modal-booking-${b.id}`}>
+                      <div className="ov-badge">
+                        {formatDate(b.bookingDate)}&nbsp;{formatTime(b.startTime)}
+                      </div>
+                      <div className="ov-rowMain">
+                        <div className="ov-rowTitle">{b.memberName} • {b.trainerName}</div>
+                        <div className="ov-rowSub">{b.gymName}</div>
+                      </div>
+                      <button
+                        className="ov-miniBtn"
+                        onClick={() => {
+                          closeViewAll();
+                          navigate("/owner/trainers");
+                        }}
+                      >
+                        Chi tiết
+                      </button>
+                    </div>
+                  ))}
+
+                  {viewAllType === "expiring" && viewAllConfig.items.map((m) => (
+                    <div className="ov-row" key={`modal-exp-${m.id}`}>
+                      <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>
+                        {m.daysLeft}d
+                      </div>
+                      <div className="ov-rowMain">
+                        <div className="ov-rowTitle">{m.memberName}</div>
+                        <div className="ov-rowSub">
+                          {m.packageName}
+                          {m.sessionsRemaining != null ? ` • còn ${m.sessionsRemaining} buổi` : ""}
+                        </div>
+                      </div>
+                      <button
+                        className="ov-miniBtn"
+                        onClick={() => {
+                          closeViewAll();
+                          navigate("/owner/members");
+                        }}
+                      >
+                        Chi tiết
+                      </button>
+                    </div>
+                  ))}
+
+                  {viewAllType === "newMembers" && viewAllConfig.items.map((m) => (
+                    <div className="ov-row" key={`modal-new-${m.id}`}>
+                      <div className="ov-badge" style={{ background: "rgba(34,197,94,.15)", borderColor: "rgba(34,197,94,.3)", color: "rgba(34,197,94,1)", fontSize: 11 }}>
+                        Mới
+                      </div>
+                      <div className="ov-rowMain">
+                        <div className="ov-rowTitle">{m.memberName}</div>
+                        <div className="ov-rowSub">{m.packageName} • {m.gymName}</div>
+                      </div>
+                      <button
+                        className="ov-miniBtn"
+                        onClick={() => {
+                          closeViewAll();
+                          navigate("/owner/members");
+                        }}
+                      >
+                        Chi tiết
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
