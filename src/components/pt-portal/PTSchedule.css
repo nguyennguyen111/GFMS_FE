@@ -13,7 +13,7 @@
   color: var(--lightgray);
 }
 
-/* Header */
+/* Header & Titles */
 .ptSchedule__header {
   width: min(1100px, 92vw);
   margin: 0 auto 14px;
@@ -60,18 +60,13 @@
   white-space: nowrap;
 }
 
-.ptBtn:hover {
-  filter: brightness(1.07);
-  transform: translateY(-1px);
-}
-
 .ptBtn--ghost {
   background: transparent;
   color: var(--lightgray);
   border: 2px solid rgba(244, 137, 21, 0.35);
 }
 
-/* Tabs & Control Wrapper */
+/* Tabs & Filters */
 .ptSchedule__controlWrapper {
   width: min(1100px, 92vw);
   margin: 0 auto 12px;
@@ -107,7 +102,6 @@
   color: var(--orange);
 }
 
-/* Month/Year Picker */
 .ptMonthPick {
   margin-left: auto;
   display: flex;
@@ -119,7 +113,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.ptMonthSelect, .ptYearSelect {
+.ptMonthSelect, 
+.ptYearSelect {
   padding: 6px 10px;
   border-radius: 8px;
   background: #1a1a1a;
@@ -128,7 +123,7 @@
   font-weight: bold;
 }
 
-/* Card & Table */
+/* Card Container */
 .ptSchedule__card {
   width: min(1100px, 92vw);
   margin: 0 auto;
@@ -139,81 +134,65 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
-.ptTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.ptTable thead th {
-  text-align: left;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  color: var(--gray);
-}
-
-.ptTable td {
-  padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* ======================
-   WEEK VIEW (Grid)
-   ====================== */
+/* GRID VIEW - Layout */
 .ptWeek {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 10px;
+  display: flex;
+  gap: 0;
+}
+
+.ptWeek__timeCol {
+  width: 70px;
+}
+
+.ptWeek__timeSpacer {
+  height: 44px; /* Chiều cao khớp với Header ngày */
 }
 
 .ptWeek__timeRow {
-  height: 56px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding-top: 8px;
+  justify-content: flex-end;
+  padding-right: 12px;
+  box-sizing: border-box;
 }
 
 .ptWeek__timeLabel {
   color: var(--gray);
-  font-weight: 900;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-top: -8px; /* Căn lề nhãn giờ trùng với vạch ngang */
 }
 
+/* GRID VIEW - Main Calendar Area */
 .ptWeek__days {
-  border-radius: 14px;
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.14);
 }
 
 .ptWeek__daysHead {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: rgba(0, 0, 0, 0.18);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .ptWeek__dayHead {
-  padding: 10px;
+  padding: 8px 0;
   text-align: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ptWeek__dayHead:last-child {
-  border-right: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .ptWeek__dayName {
-  font-weight: 900;
-  color: var(--lightgray);
+  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .ptWeek__dayDate {
-  margin-top: 2px;
+  font-size: 0.7rem;
   color: var(--gray);
-  font-weight: 800;
-  font-size: 0.85rem;
 }
 
 .ptWeek__daysBody {
@@ -224,114 +203,129 @@
 
 .ptWeek__dayCol {
   position: relative;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  min-height: 896px; /* 16 hours * 56px */
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 100% 60px; /* Khớp với ROW_HEIGHT */
 }
 
-.ptWeek__dayCol:last-child {
-  border-right: none;
-}
-
-.ptWeek__gridLine {
-  height: 28px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
-}
-
-/* ==================================
-   MÀU SẮC TRẠNG THÁI (FIXED)
-   ================================== */
-
-/* 1. MẶC ĐỊNH / LỊCH TRỐNG: CAM */
+/* Slot Blocks (Ca làm việc) */
 .ptWeek__block {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  border-radius: 8px;
-  padding: 6px;
-  font-size: 0.85rem;
+  left: 2px;
+  right: 2px;
+  border-radius: 4px;
+  padding: 4px;
   cursor: pointer;
-  z-index: 2;
-  transition: transform 0.1s;
-  /* Màu cam mặc định */
-  background-color: rgba(244, 137, 21, 0.15) !important;
-  border: 1px solid rgba(244, 137, 21, 0.4) !important;
-  border-left: 4px solid var(--orange) !important;
-}
-.ptWeek__block .ptWeek__blockTime,
-.ptWeek__block .ptWeek__studentName {
-  color: var(--orange) !important;
-}
-
-.ptWeek__block:hover {
-  transform: scale(1.02);
   z-index: 10;
-}
-
-/* 2. CÓ HỌC VIÊN NHƯNG CHƯA ĐIỂM DANH: XANH DƯƠNG */
-.ptWeek__block.is-pending {
-  background-color: rgba(52, 152, 219, 0.15) !important;
-  border: 1px solid rgba(52, 152, 219, 0.4) !important;
-  border-left: 4px solid #3498db !important;
-}
-.ptWeek__block.is-pending .ptWeek__blockTime,
-.ptWeek__block.is-pending .ptWeek__studentName {
-  color: #3498db !important;
-}
-
-/* 3. ĐÃ CÓ MẶT: XANH LÁ */
-.ptWeek__block.is-present {
-  background-color: rgba(46, 204, 113, 0.15) !important;
-  border: 1px solid rgba(46, 204, 113, 0.5) !important;
-  border-left: 4px solid #2ecc71 !important;
-}
-.ptWeek__block.is-present .ptWeek__blockTime,
-.ptWeek__block.is-present .ptWeek__studentName,
-.ptWeek__block.is-present .mini-status {
-  color: #2ecc71 !important;
-}
-
-/* 4. ĐÃ VẮNG MẶT: ĐỎ */
-.ptWeek__block.is-absent {
-  background-color: rgba(231, 76, 60, 0.2) !important;
-  border: 1px solid rgba(231, 76, 60, 0.6) !important;
-  border-left: 4px solid #e74c3c !important;
-}
-.ptWeek__block.is-absent .ptWeek__blockTime,
-.ptWeek__block.is-absent .ptWeek__studentName,
-.ptWeek__block.is-absent .mini-status {
-  color: #ff4d4d !important;
+  box-sizing: border-box;
+  background: rgba(244, 137, 21, 0.15) !important;
+  border: 1px solid rgba(244, 137, 21, 0.4) !important;
+  border-left: 3px solid var(--orange) !important;
 }
 
 .ptWeek__blockTime {
+  font-size: 10px;
   font-weight: 900;
-  display: block;
-  margin-bottom: 2px;
+  color: var(--orange);
 }
 
 .ptWeek__studentName {
+  font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--orange);
 }
 
-.mini-status {
-  font-size: 10px;
-  font-weight: 900;
-  margin-top: 2px;
-  text-transform: uppercase;
+/* Attendance Status Colors */
+.ptWeek__block.is-pending {
+  background: rgba(52, 152, 219, 0.15) !important;
+  border-color: #3498db66 !important;
+  border-left-color: #3498db !important;
+}
+.ptWeek__block.is-pending * {
+  color: #3498db !important;
+}
+
+.ptWeek__block.is-present {
+  background: rgba(46, 204, 113, 0.15) !important;
+  border-color: #2ecc7166 !important;
+  border-left-color: #2ecc71 !important;
+}
+.ptWeek__block.is-present * {
+  color: #2ecc71 !important;
+}
+
+.ptWeek__block.is-absent {
+  background: rgba(231, 76, 60, 0.15) !important;
+  border-color: #e74c3c66 !important;
+  border-left-color: #e74c3c !important;
+}
+.ptWeek__block.is-absent * {
+  color: #ff5e4d !important;
+}
+
+/* Weekly Bar & Table Fallsbacks */
+.ptWeekBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .week-range {
   margin-left: auto;
-  color: var(--lightgray);
-  font-weight: 800;
+  font-weight: bold;
 }
 
-/* Mobile Responsive Fix */
+.ptTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ptTable th {
+  text-align: left;
+  padding: 12px;
+  color: var(--gray);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ptTable td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ptPill {
+  background: var(--orange);
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* Responsive Mobile */
 @media (max-width: 860px) {
-  .ptWeek__timeCol { display: none; }
-  .ptWeek__daysHead, .ptWeek__daysBody { grid-template-columns: 1fr; }
-  .ptWeek__dayCol { border-bottom: 1px solid #333; margin-bottom: 10px; }
-  .ptWeek__block { position: relative; left: 0; right: 0; margin-bottom: 4px; top: auto !important; height: auto !important; }
+  .ptWeek__timeCol {
+    display: none;
+  }
+  
+  .ptWeek__daysHead, 
+  .ptWeek__daysBody {
+    grid-template-columns: 1fr;
+  }
+  
+  .ptWeek__dayCol {
+    height: auto !important;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+  }
+  
+  .ptWeek__block {
+    position: relative;
+    top: auto !important;
+    height: auto !important;
+    margin-top: 4px;
+  }
 }
