@@ -1,0 +1,59 @@
+/* src/components/pages/LandingPage.css */
+.landing-modern-page {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(34,211,238,0.08), transparent 24%),
+    radial-gradient(circle at 88% 16%, rgba(37,99,235,0.08), transparent 22%),
+    linear-gradient(180deg, #06101b 0%, #081421 38%, #091827 100%);
+  color: #f8fbff;
+  min-height: 100vh;
+}
+
+.lm-sectionHead {
+  max-width: 840px;
+  margin: 0 auto 28px;
+}
+.lm-sectionHead.center {
+  text-align: center;
+}
+.lm-kicker {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: #7dd6ff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lm-sectionHead h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 3rem);
+  line-height: 1.14;
+  font-weight: 900;
+}
+.lm-btn {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+.lm-btn:hover {
+  transform: translateY(-2px);
+}
+.lm-btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #1ea7ff, #2563eb);
+  box-shadow: 0 12px 28px rgba(37,99,235,0.28);
+}
+.lm-btn--secondary {
+  color: #e7f4ff;
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+}
+.lm-btn--ghost {
+  color: #bcd4ec;
+  background: transparent;
+  border-color: rgba(255,255,255,0.14);
+}
