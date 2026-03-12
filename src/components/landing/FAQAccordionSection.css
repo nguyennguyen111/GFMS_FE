@@ -1,0 +1,55 @@
+/* src/components/landing/FAQAccordionSection.css */
+.faq-accordion-modern {
+  width: min(1060px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 84px 0 0;
+}
+
+.faq-accordion-modern__list {
+  display: grid;
+  gap: 14px;
+}
+
+.faq-acc-item {
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(12,22,38,0.88), rgba(8,16,28,0.98));
+  border: 1px solid rgba(148,163,184,0.14);
+  overflow: hidden;
+}
+
+.faq-acc-item__head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 20px 22px;
+  background: transparent;
+  border: 0;
+  color: #f8fbff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.faq-acc-item__head b {
+  font-size: 1.3rem;
+  color: #7fd8ff;
+}
+
+.faq-acc-item__body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+}
+
+.faq-acc-item.open .faq-acc-item__body {
+  max-height: 220px;
+}
+
+.faq-acc-item__bodyInner {
+  padding: 0 22px 20px;
+  color: #9fb0c5;
+  line-height: 1.8;
+}

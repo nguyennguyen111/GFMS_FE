@@ -1,20 +1,34 @@
 // src/components/common/ImageWithFallback.jsx
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { normalizeSingleImageSrc } from "../../utils/image";
 
 export default function ImageWithFallback({
   src,
-  alt,
-  fallback = "/placeholder.jpg",
-  ...props
+  alt = "",
+  fallback = "/placeholder-gym.jpg",
+  className = "",
+  ...rest
 }) {
-  const [img, setImg] = useState(src || fallback);
+  const mainSrc = useMemo(() => normalizeSingleImageSrc(src), [src]);
+  const fallbackSrc = useMemo(() => normalizeSingleImageSrc(fallback, { preferBackend: false }), [fallback]);
+
+  const [currentSrc, setCurrentSrc] = useState(mainSrc || fallbackSrc);
+
+  useEffect(() => {
+    setCurrentSrc(mainSrc || fallbackSrc);
+  }, [mainSrc, fallbackSrc]);
 
   return (
     <img
-      src={img}
+      {...rest}
+      className={className}
+      src={currentSrc || fallbackSrc}
       alt={alt}
-      onError={() => setImg(fallback)}
-      {...props}
+      onError={() => {
+        if (currentSrc !== fallbackSrc) {
+          setCurrentSrc(fallbackSrc);
+        }
+      }}
     />
   );
 }

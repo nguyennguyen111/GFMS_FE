@@ -13,7 +13,6 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import OwnerDashboard from "./components/owner/OwnerDashboard";
 
 /* ================= MEMBER ================= */
-import MemberWebLayout from "./layouts/MemberWebLayout";
 import MemberHomePage from "./components/member/pages/MemberHomePage";
 import MemberPackagesPage from "./components/member/pages/MemberPackagesPage";
 import MemberBookingCreatePage from "./components/member/pages/MemberBookingCreatePage";
@@ -52,6 +51,7 @@ import TrainerListPage from "./components/pages/marketplace/trainers/TrainerList
 import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerDetailsPage";
 import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
 import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
+import MemberBookingWizard from "./components/member/pages/bookingWizard/MemberBookingWizard";
 
 /* ================= SIGNING (PUBLIC) ================= */
 import SignContractPage from "./components/public/SignContractPage";
@@ -116,7 +116,7 @@ function App() {
         <Route path="/owner/*" element={<OwnerDashboard />} />
 
         {/* ===== MEMBER ===== */}
-        <Route path="/member" element={<MemberWebLayout />}>
+        <Route path="/member" element={<WebsiteLayout />}>
           <Route index element={<Navigate to="home" replace />} />
           <Route path="home" element={<MemberHomePage />} />
           <Route path="packages" element={<MemberPackagesPage />} />
@@ -125,6 +125,7 @@ function App() {
           <Route path="bookings" element={<MemberBookingsPage />} />
           <Route path="bookings/new" element={<MemberBookingCreatePage />} />
           <Route path="checkin/:id" element={<MemberCheckinPage />} />
+          <Route path="booking/wizard" element={<MemberBookingWizard />} />
 
           {/* dropdown */}
           <Route path="profile" element={<MemberProfilePage />} />

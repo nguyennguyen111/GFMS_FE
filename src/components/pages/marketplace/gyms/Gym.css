@@ -1,118 +1,394 @@
-/* ======================
-   GYM CARD
-====================== */
+/* ================= GYM LIST PAGE (Modern Dark) ================= */
+:root{
+  --bg:#070b14;
+  --panel:#0c1324;
+  --panel2:#0a1020;
+  --stroke: rgba(255,255,255,.10);
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --brand:#38bdf8;
+  --brand2:#2563eb;
+  --shadow: 0 25px 60px rgba(0,0,0,.45);
 
-.gym-card {
-  background: radial-gradient(
-    120% 120% at 10% 0%,
-    rgba(255, 177, 0, 0.12),
-    #0f1115 60%
-  );
-  border-radius: 18px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: 0.3s;
+  /* ✅ 1 nguồn container để khỏi lệch */
+  --container: 1560px;
+  --gutter: 28px;
 }
 
-.gym-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 30px 70px rgba(0,0,0,.5);
+.gym-page{
+  min-height: 100vh;
+  background: radial-gradient(1200px 700px at 15% 0%, rgba(56,189,248,.14), transparent 55%),
+              radial-gradient(900px 600px at 85% 10%, rgba(37,99,235,.12), transparent 55%),
+              linear-gradient(180deg, var(--bg), #050713 55%, #050713);
+  color: var(--text);
 }
 
-.gym-card__img {
-  position: relative;
-  height: 200px;
-}
-
-.gym-card__img img {
+/* ================= HERO (✅ bỏ 100vw để hết lệch) ================= */
+.gym-hero{
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Badge */
-.gym-badge {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(0,0,0,.6);
-}
-
-.gym-badge--active { color: #00ff9d; }
-.gym-badge--inactive { color: #aaa; }
-.gym-badge--suspended { color: #ff4d4f; }
-
-/* Body */
-.gym-card__body {
-  padding: 18px;
-}
-
-.gym-address {
-  font-size: 14px;
-  opacity: .8;
-}
-
-.gym-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 14px;
-  font-size: 13px;
-  opacity: .75;
-}
-
-/* ======================
-   GYM DETAIL
-====================== */
-
-.pd-content {
-  max-width: 1100px;
-  margin: -90px auto 0;
-  padding: 32px;
+  margin-left: 0;
+  padding: 62px 0 26px;
   position: relative;
-  z-index: 2;
-}
-
-.pd-section {
-  margin-bottom: 36px;
-}
-
-.pd-empty {
-  opacity: .6;
-  font-style: italic;
-}
-
-/* ======================
-   GYM HERO
-====================== */
-
-.gym-hero {
-  position: relative;
-  height: 65vh;
-  min-height: 420px;
   overflow: hidden;
 }
 
-.gym-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0,0,0,.35),
-    rgba(0,0,0,.9)
-  );
-  z-index: 1;
+/* nền hero */
+.gym-hero::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  z-index: 0;
+  background:
+    radial-gradient(900px 500px at 20% 0%, rgba(56,189,248,.20), transparent 60%),
+    radial-gradient(700px 420px at 85% 12%, rgba(37,99,235,.14), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.035), transparent 55%);
+  pointer-events:none;
 }
 
-.gym-hero__overlay {
-  position: absolute;
+.gym-hero-inner{
+  position:relative;
   z-index: 2;
-  bottom: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(1100px, 92%);
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* head layout */
+.gym-hero-head{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-start;
+  gap: 18px;
+}
+
+.gym-section-label{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(56,189,248,.95);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.gym-title{
+  margin: 12px 0 10px;
+  font-size: 52px;     
+  font-weight: 950;
+  letter-spacing: -.02em;
+  line-height: 1.04;
+  color: #fff;
+}
+
+.gym-subtitle{
+  color: var(--muted);
+  max-width: 720px;
+  font-size: 15px;
+  line-height: 1.04;
+}
+
+/* quick stats row */
+.gym-hero-stats{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.gym-pill{
+  background: rgba(15,23,42,.50);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: rgba(226,232,240,.92);
+  backdrop-filter: blur(10px);
+}
+.gym-pill b{ color:#fff; }
+
+/* ================= TOOLBAR (✅ sáng + rõ) ================= */
+.gym-toolbar{
+  margin-top: 20px;
+  background: rgba(12,19,36,.88);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  backdrop-filter: blur(14px);
+  position: relative;
+  z-index: 3;
+}
+
+.gym-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background: rgba(2,6,23,.42);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 14px 14px;
+}
+
+.gym-search-icon{
+  width: 18px;
+  height: 18px;
+  opacity: .9;
+  color: rgba(226,232,240,.9);
+}
+
+.gym-toolbar input{
+  width:100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 14.5px;
+}
+
+.gym-clear{
+  border:none;
+  background: rgba(255,255,255,.06);
+  color: rgba(226,232,240,.9);
+  cursor:pointer;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.gym-clear:hover{ background: rgba(255,255,255,.10); }
+
+.gym-toolbar-row{
+  display:grid;
+  grid-template-columns: 220px 240px 240px 200px;
+  gap: 10px;
+}
+
+.gym-toolbar select{
+  background: rgba(2,6,23,.42);
+  border: 1px solid rgba(255,255,255,.10);
+  color: #fff;
+  outline:none;
+  font-size: 13.5px;
+  border-radius: 14px;
+  padding: 12px 12px;
+  cursor: pointer;
+}
+
+.gym-btn{
+  background: linear-gradient(135deg, var(--brand2), #1d4ed8);
+  border: none;
+  color: #fff;
+  font-weight: 950;
+  border-radius: 14px;
+  cursor: pointer;
+  padding: 12px 12px;
+  transition: .2s ease;
+}
+.gym-btn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+.gym-btn:active{ transform: translateY(0); }
+
+.gym-btn.is-on{
+  background: rgba(56,189,248,.14);
+  border: 1px solid rgba(56,189,248,.35);
+}
+
+/* ================= RESULT ================= */
+.gym-result{
+  max-width: var(--container);
+  margin: 18px auto 70px;
+  padding: 0 var(--gutter);
+}
+
+.gym-result-header{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap: 12px;
+  color: var(--muted);
+  margin: 10px 0 12px;
+  font-size: 13px;
+}
+
+.gym-tip{ color: rgba(226,232,240,.75); }
+
+.gym-chips{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.gym-chip{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(15,23,42,.35);
+  color: rgba(226,232,240,.92);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .2s ease;
+}
+.gym-chip:hover{ background: rgba(255,255,255,.06); }
+.gym-chip.active{
+  border-color: rgba(56,189,248,.55);
+  background: rgba(56,189,248,.12);
+  color: #e0f2fe;
+}
+
+/* ================= GRID ================= */
+.gym-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+/* ================= CARD ================= */
+.gym-card{
+  background: rgba(12,19,36,.70);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.10);
+  cursor: pointer;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  position: relative;
+}
+
+.gym-card:hover{
+  transform: translateY(-6px);
+  box-shadow: var(--shadow);
+  border-color: rgba(56,189,248,.28);
+}
+
+.gym-card__img{
+  position: relative;
+  height: 190px;
+  background: rgba(2,6,23,.35);
+}
+.gym-card__img img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+  filter: saturate(1.05) contrast(1.02);
+}
+
+.gym-img-overlay{
+  position:absolute;
+  inset:0;
+  background: linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.60));
+}
+
+.gym-badge{
+  position:absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 950;
+  border-radius: 999px;
+  color:#fff;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+}
+.gym-badge.active{ background: linear-gradient(135deg, #22c55e, #16a34a); }
+.gym-badge.inactive{ background: rgba(100,116,139,.85); }
+.gym-badge.suspended{ background: linear-gradient(135deg, #ef4444, #dc2626); }
+.gym-badge.unknown{ background: rgba(148,163,184,.6); }
+
+.gym-card__body{ padding: 16px 16px 14px; }
+.gym-card__top{
+  display:flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items:flex-start;
+}
+.gym-card__body h3{
+  margin:0;
+  font-size: 16px;
+  font-weight: 950;
+  color: #fff;
+  line-height: 1.25;
+}
+.gym-card__sub{
+  margin-top: 6px;
+  color: rgba(226,232,240,.72);
+  font-size: 13px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gym-meta{
+  margin-top: 12px;
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gym-tag{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: rgba(226,232,240,.9);
+  background: rgba(2,6,23,.40);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.gym-card__footer{
+  margin-top: 12px;
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap: 10px;
+  color: rgba(148,163,184,.9);
+  font-size: 12px;
+}
+
+.gym-view{
+  color: rgba(56,189,248,.95);
+  font-weight: 900;
+}
+.gym-view:hover{ text-decoration: underline; }
+
+/* ================= STATES ================= */
+.gym-empty{
+  padding: 70px 0;
+  text-align:center;
+  color: var(--muted);
+  border: 1px dashed rgba(148,163,184,.25);
+  border-radius: 18px;
+  background: rgba(15,23,42,.18);
+}
+.gym-loading{
+  padding: 60px 0;
+  color: var(--muted);
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1080px){
+  .gym-hero-head{ flex-direction: column; }
+  .gym-hero-stats{ justify-content: flex-start; }
+  .gym-toolbar-row{
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px){
+  :root{ --gutter: 16px; }
+  .gym-title{ font-size: 34px; }
+  .gym-toolbar-row{
+    grid-template-columns: 1fr;
+  }
 }
