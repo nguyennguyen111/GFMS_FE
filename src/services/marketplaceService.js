@@ -7,4 +7,4 @@ export const mpGetPackages = (p) => axios.get("/api/marketplace/packages", { par
 export const mpGetGymDetail = (id) => axios.get(`/api/marketplace/gyms/${id}`);
 export const mpGetTrainerDetail = (id) => axios.get(`/api/marketplace/trainers/${id}`);
 export const mpGetPackageDetail = (id) => axios.get(`/api/marketplace/packages/${id}`);
-
+export const mpGetSlotsPublic = (p) => axios.get(`/api/marketplace/slots`, { params: p });
