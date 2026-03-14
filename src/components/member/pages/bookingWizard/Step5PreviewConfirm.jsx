@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { memberPurchasePackage } from "../../../../services/memberPackageService";
 import { memberCreateBooking, memberAutoBookWeeks } from "../../../../services/memberBookingService";
+import { createPayosPayment } from "../../../../services/paymentService";
 import "./bookingWizard.css";
 
 const fmtVND = (n) => Number(n || 0).toLocaleString("vi-VN");
@@ -42,7 +43,7 @@ export default function Step5PreviewConfirm({
   onDone,
 }) {
   const [showPreview, setShowPreview] = useState(true);
-  const [payMethod, setPayMethod] = useState("cash");
+  const [payMethod, setPayMethod] = useState("payos");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
   const [result, setResult] = useState(null);
@@ -91,7 +92,22 @@ export default function Step5PreviewConfirm({
       const firstDate = preview?.[0]?.dateISO;
       if (!firstDate) throw new Error("Không tạo được lịch preview từ pattern/startDate.");
 
-      // 1) mua gói
+      // Nếu chọn PayOS thì tạo link thanh toán PayOS và redirect sang trang PayOS (hiển thị QR)
+      if (payMethod === "payos") {
+        const res = await createPayosPayment(pkg.id);
+        const checkoutUrl =
+          res?.data?.checkoutUrl ||
+          res?.data?.data?.checkoutUrl;
+
+        if (!checkoutUrl) {
+          throw new Error("Không lấy được link thanh toán PayOS.");
+        }
+
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      // 1) mua gói (các phương thức khác)
       const buyRes = await memberPurchasePackage(pkg.id, {
         paymentMethod: payMethod,
         gymId: gym?.id || pkg.gymId,
@@ -210,9 +226,6 @@ export default function Step5PreviewConfirm({
             className="bw-input bw-inputCompact"
             disabled={submitting}
           >
-            <option value="cash">Tiền mặt</option>
-            <option value="momo">MoMo</option>
-            <option value="vnpay">VNPay</option>
             <option value="payos">PayOS</option>
           </select>
 

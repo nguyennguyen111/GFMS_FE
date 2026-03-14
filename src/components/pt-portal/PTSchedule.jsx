@@ -58,6 +58,7 @@ const PTSchedule = () => {
   const [attLoading, setAttLoading] = useState(false);
   const [attBooking, setAttBooking] = useState(null);
   const [attCache, setAttCache] = useState({});
+  const [attError, setAttError] = useState("");
 
   const START_HOUR = 6;
   const END_HOUR = 22;
@@ -143,6 +144,7 @@ const PTSchedule = () => {
     const ymd = toYMD(dateObj);
     setAttOpen(true);
     setAttLoading(true);
+    setAttError("");
     const rows = attCache[ymd] || [];
     const found = rows.find((b) => String(b.startTime || "").slice(0, 5) === String(slot.start || "").slice(0, 5));
     setAttBooking(found || null);
@@ -158,6 +160,14 @@ const PTSchedule = () => {
       const res = await getPTAttendanceSchedule({ date: ymd });
       setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
       setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+      setAttError("");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.EM ||
+        "Không thể cập nhật điểm danh cho buổi này.";
+      setAttError(msg);
+      console.error("Lỗi cập nhật điểm danh:", e);
     } finally {
       setAttLoading(false);
     }
@@ -334,6 +344,7 @@ const PTSchedule = () => {
         open={attOpen}
         booking={attBooking}
         loading={attLoading}
+        error={attError}
         onClose={() => setAttOpen(false)}
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}

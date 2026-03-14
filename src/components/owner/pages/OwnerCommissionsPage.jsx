@@ -87,6 +87,8 @@ const OwnerCommissionsPage = () => {
 
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
+  // dialog: { title, message, type, confirmLabel?, cancelLabel?, onConfirm? }
+  const [dialog, setDialog] = useState(null);
 
   const loadGyms = useCallback(async () => {
     try {
@@ -200,7 +202,11 @@ const OwnerCommissionsPage = () => {
 
   const handleClosePeriod = async () => {
     if (!periodForm.gymId || !periodForm.startDate || !periodForm.endDate) {
-      alert("Vui lòng chọn gym và thời gian kỳ lương");
+      setDialog({
+        title: "Thiếu thông tin",
+        message: "Vui lòng chọn phòng gym và thời gian kỳ lương.",
+        type: "error",
+      });
       return;
     }
     try {
@@ -213,43 +219,88 @@ const OwnerCommissionsPage = () => {
       const totalSessions = Number(preview.data?.data?.totalSessions || 0);
 
       if (totalSessions <= 0) {
-        alert("Không có buổi nào để chốt trong khoảng này.");
+        setDialog({
+          title: "Không có dữ liệu",
+          message: "Không có buổi nào để chốt trong khoảng thời gian đã chọn.",
+          type: "info",
+        });
         return;
       }
 
-      const ok = window.confirm(
-        `Chốt kỳ lương với ${totalSessions} buổi, tổng tiền ${formatMoney(totalAmount)}?`
-      );
-      if (!ok) return;
-
-      await ownerClosePayrollPeriod(periodForm);
-      alert("Đã chốt kỳ lương thành công!");
-      setPeriodForm({ gymId: "", startDate: "", endDate: "", notes: "" });
-      loadCommissions();
-      loadPeriods();
+      setDialog({
+        title: "Xác nhận chốt kỳ",
+        message: `Chốt kỳ lương với ${totalSessions} buổi, tổng tiền ${formatMoney(totalAmount)}?`,
+        type: "confirm",
+        confirmLabel: "Chốt kỳ",
+        cancelLabel: "Hủy",
+        onConfirm: async () => {
+          try {
+            await ownerClosePayrollPeriod(periodForm);
+            setDialog({
+              title: "Thành công",
+              message: "Đã chốt kỳ lương thành công.",
+              type: "success",
+            });
+            setPeriodForm({ gymId: "", startDate: "", endDate: "", notes: "" });
+            loadCommissions();
+            loadPeriods();
+          } catch (error) {
+            console.error("Lỗi khi chốt kỳ lương:", error);
+            setDialog({
+              title: "Lỗi chốt kỳ",
+              message: error.response?.data?.message || "Không thể chốt kỳ lương.",
+              type: "error",
+            });
+          }
+        },
+      });
     } catch (error) {
       console.error("Lỗi khi chốt kỳ lương:", error);
-      alert(error.response?.data?.message || "Không thể chốt kỳ lương");
+      setDialog({
+        title: "Lỗi chốt kỳ",
+        message: error.response?.data?.message || "Không thể chốt kỳ lương.",
+        type: "error",
+      });
     }
   };
 
   const handlePayPeriod = async (periodId) => {
-    if (!window.confirm("Xác nhận chi trả kỳ lương này?")) return;
-    try {
-      await ownerPayPayrollPeriod(periodId);
-      alert("Chi trả kỳ lương thành công!");
-      loadCommissions();
-      loadPeriods();
-    } catch (error) {
-      console.error("Lỗi khi chi trả kỳ lương:", error);
-      alert(error.response?.data?.message || "Không thể chi trả kỳ lương");
-    }
+    setDialog({
+      title: "Xác nhận chi trả",
+      message: "Xác nhận chi trả kỳ lương này cho tất cả PT?",
+      type: "confirm",
+      confirmLabel: "Chi trả",
+      cancelLabel: "Hủy",
+      onConfirm: async () => {
+        try {
+          await ownerPayPayrollPeriod(periodId);
+          setDialog({
+            title: "Thành công",
+            message: "Chi trả kỳ lương thành công.",
+            type: "success",
+          });
+          loadCommissions();
+          loadPeriods();
+        } catch (error) {
+          console.error("Lỗi khi chi trả kỳ lương:", error);
+          setDialog({
+            title: "Lỗi chi trả",
+            message: error.response?.data?.message || "Không thể chi trả kỳ lương.",
+            type: "error",
+          });
+        }
+      },
+    });
   };
 
   const handlePayByTrainer = async () => {
     const { gymId, trainerId, fromDate, toDate } = payByTrainerForm;
     if (!gymId || !trainerId || !fromDate || !toDate) {
-      alert("Vui lòng chọn gym, PT và thời gian");
+      setDialog({
+        title: "Thiếu thông tin",
+        message: "Vui lòng chọn phòng gym, PT và khoảng thời gian cần chi trả.",
+        type: "error",
+      });
       return;
     }
     try {
@@ -263,29 +314,58 @@ const OwnerCommissionsPage = () => {
       const totalSessions = Number(preview.data?.data?.totalSessions || 0);
 
       if (totalSessions <= 0) {
-        alert("Không có buổi nào để chi trả trong khoảng này.");
+        setDialog({
+          title: "Không có dữ liệu",
+          message: "Không có buổi nào để chi trả trong khoảng thời gian đã chọn.",
+          type: "info",
+        });
         return;
       }
 
-      const ok = window.confirm(
-        `Chi trả ${totalSessions} buổi cho PT, tổng tiền ${formatMoney(totalAmount)}?`
-      );
-      if (!ok) return;
-
-      const result = await ownerPayByTrainer(payByTrainerForm);
-      alert(`Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho PT`);
-      loadCommissions();
-      loadPeriods();
-      setPayByTrainerForm({ gymId: "", trainerId: "", fromDate: "", toDate: "" });
+      setDialog({
+        title: "Xác nhận chi trả PT",
+        message: `Chi trả ${totalSessions} buổi cho PT, tổng tiền ${formatMoney(totalAmount)}?`,
+        type: "confirm",
+        confirmLabel: "Chi trả",
+        cancelLabel: "Hủy",
+        onConfirm: async () => {
+          try {
+            const result = await ownerPayByTrainer(payByTrainerForm);
+            setDialog({
+              title: "Đã chi trả",
+              message: `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho PT.`,
+              type: "success",
+            });
+            loadCommissions();
+            loadPeriods();
+            setPayByTrainerForm({ gymId: "", trainerId: "", fromDate: "", toDate: "" });
+          } catch (error) {
+            console.error("Lỗi khi chi trả theo PT:", error);
+            setDialog({
+              title: "Lỗi chi trả",
+              message: error.response?.data?.message || "Không thể chi trả theo PT.",
+              type: "error",
+            });
+          }
+        },
+      });
     } catch (error) {
       console.error("Lỗi khi chi trả theo PT:", error);
-      alert(error.response?.data?.message || "Không thể chi trả theo PT");
+      setDialog({
+        title: "Lỗi chi trả",
+        message: error.response?.data?.message || "Không thể chi trả theo PT.",
+        type: "error",
+      });
     }
   };
 
   const handleLoadRate = async () => {
     if (!rateForm.gymId) {
-      alert("Vui lòng chọn gym");
+      setDialog({
+        title: "Thiếu thông tin",
+        message: "Vui lòng chọn phòng gym trước khi tải tỷ lệ.",
+        type: "error",
+      });
       return;
     }
     try {
@@ -294,26 +374,46 @@ const OwnerCommissionsPage = () => {
       setRateForm({ ...rateForm, ownerRate: String(Math.round(ownerRate * 100)) });
     } catch (error) {
       console.error("Lỗi khi tải tỷ lệ hoa hồng:", error);
-      alert(error.response?.data?.message || "Không thể tải tỷ lệ hoa hồng");
+      setDialog({
+        title: "Lỗi tải tỷ lệ",
+        message: error.response?.data?.message || "Không thể tải tỷ lệ hoa hồng.",
+        type: "error",
+      });
     }
   };
 
   const handleSaveRate = async () => {
     if (!rateForm.gymId || rateForm.ownerRate === "") {
-      alert("Vui lòng chọn gym và nhập % hoa hồng");
+      setDialog({
+        title: "Thiếu thông tin",
+        message: "Vui lòng chọn phòng gym và nhập % hoa hồng.",
+        type: "error",
+      });
       return;
     }
     const ownerRate = Number(rateForm.ownerRate) / 100;
     if (Number.isNaN(ownerRate) || ownerRate < 0 || ownerRate > 1) {
-      alert("Tỷ lệ hoa hồng phải từ 0 - 100%");
+      setDialog({
+        title: "Giá trị không hợp lệ",
+        message: "Tỷ lệ hoa hồng phải nằm trong khoảng từ 0% đến 100%.",
+        type: "error",
+      });
       return;
     }
     try {
       await ownerSetGymCommissionRate({ gymId: Number(rateForm.gymId), ownerRate });
-      alert("Đã cập nhật tỷ lệ hoa hồng");
+      setDialog({
+        title: "Thành công",
+        message: "Đã cập nhật tỷ lệ hoa hồng cho phòng gym.",
+        type: "success",
+      });
     } catch (error) {
       console.error("Lỗi khi cập nhật tỷ lệ hoa hồng:", error);
-      alert(error.response?.data?.message || "Không thể cập nhật tỷ lệ");
+      setDialog({
+        title: "Lỗi cập nhật",
+        message: error.response?.data?.message || "Không thể cập nhật tỷ lệ hoa hồng.",
+        type: "error",
+      });
     }
   };
 
@@ -713,6 +813,52 @@ const OwnerCommissionsPage = () => {
             </div>
             <div className="tx-modal-footer">
               <button className="pagination-btn" onClick={handleClosePeriodModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {dialog && (
+        <div className="tx-modal" onClick={() => setDialog(null)}>
+          <div className="tx-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="tx-modal-header">
+              <h2>
+                {dialog.type === "error"
+                  ? "Thông báo lỗi"
+                  : dialog.type === "success"
+                  ? "Thành công"
+                  : dialog.type === "confirm"
+                  ? "Xác nhận"
+                  : "Thông báo"}
+              </h2>
+              <button className="tx-modal-close" onClick={() => setDialog(null)}>
+                ×
+              </button>
+            </div>
+            <div className="tx-modal-body">
+              <p>{dialog.message}</p>
+            </div>
+            <div className="tx-modal-footer">
+              {dialog.confirmLabel ? (
+                <>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => {
+                      const fn = dialog.onConfirm;
+                      setDialog(null);
+                      if (typeof fn === "function") fn();
+                    }}
+                  >
+                    {dialog.confirmLabel}
+                  </button>
+                  <button className="pagination-btn" onClick={() => setDialog(null)}>
+                    {dialog.cancelLabel || "Hủy"}
+                  </button>
+                </>
+              ) : (
+                <button className="pagination-btn" onClick={() => setDialog(null)}>
+                  Đóng
+                </button>
+              )}
             </div>
           </div>
         </div>
