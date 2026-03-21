@@ -1,32 +1,86 @@
-import React, { useMemo, useRef, useState } from "react";
-import { memberPurchasePackage } from "../../../../services/memberPackageService";
-import { memberCreateBooking, memberAutoBookWeeks } from "../../../../services/memberBookingService";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  CalendarDays,
+  Clock3,
+  ArrowLeft,
+  CheckCircle2,
+  CreditCard,
+  Dumbbell,
+  MapPin,
+  UserRound,
+} from "lucide-react";
+import {
+  memberConfirmFixedPlan,
+  memberGetFixedPlanOptions,
+} from "../../../../services/memberBookingService";
 import "./bookingWizard.css";
 
 const fmtVND = (n) => Number(n || 0).toLocaleString("vi-VN");
-const slotLabel = (s) => (s ? `${s.start}–${s.end}` : "—");
 
-function toJsDowPattern(pattern = []) {
-  const arr = (pattern || []).map((x) => Number(x)).filter(Number.isFinite);
-  if (!arr.length) return [];
-  const isJs = arr.every((x) => x >= 0 && x <= 6);
-  if (isJs) return arr;
+const DOW_LABEL = {
+  0: "CN",
+  1: "T2",
+  2: "T3",
+  3: "T4",
+  4: "T5",
+  5: "T6",
+  6: "T7",
+};
 
-  return arr
-    .map((x) => {
-      if (x === 8) return 0;
-      if (x >= 2 && x <= 7) return x - 1;
-      return null;
-    })
-    .filter((x) => x !== null);
+function Chip({ active, disabled, onClick, children }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`bw-chip ${active ? "isActive" : ""} ${disabled ? "isDisabled" : ""}`}
+    >
+      {children}
+    </button>
+  );
 }
 
 function patternTextHuman(pattern = []) {
-  return (pattern || []).join(", ");
+  return (pattern || []).map((d) => DOW_LABEL[d]).join(", ");
 }
 
 function toLocalISODate(d) {
-  return d.toLocaleDateString("en-CA"); // YYYY-MM-DD local
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatPreviewDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return `${DOW_LABEL[d.getDay()]}, ${String(d.getDate()).padStart(2, "0")}/${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}`;
+}
+
+function buildPreviewSessions({ startDate, pattern = [], totalSessions = 0, slot }) {
+  if (!startDate || !slot?.start || !slot?.end || totalSessions <= 0) return [];
+  if (!Array.isArray(pattern) || !pattern.length) return [];
+
+  const out = [];
+  const d = new Date(`${startDate}T00:00:00`);
+  let safe = 0;
+
+  while (out.length < totalSessions && safe < 500) {
+    safe += 1;
+
+    if (pattern.includes(d.getDay())) {
+      out.push({
+        idx: out.length + 1,
+        dateISO: toLocalISODate(d),
+        label: `${slot.start}–${slot.end}`,
+      });
+    }
+
+    d.setDate(d.getDate() + 1);
+  }
+
+  return out;
 }
 
 export default function Step5PreviewConfirm({
@@ -34,175 +88,277 @@ export default function Step5PreviewConfirm({
   pkg,
   trainer,
   pattern,
-  slot,
   startDate,
-  repeatWeeks,
-  setRepeatWeeks,
   onBack,
   onDone,
 }) {
-  const [showPreview, setShowPreview] = useState(true);
   const [payMethod, setPayMethod] = useState("cash");
   const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState("");
-  const [result, setResult] = useState(null);
 
-  // chống double click tạo 2 lần
-  const inFlightRef = useRef(false);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [optionsErr, setOptionsErr] = useState("");
+  const [options, setOptions] = useState(null);
+
+  const [slot, setSlot] = useState(null);
+  const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+
+  const totalSessions = Number(pkg?.sessions || pkg?.totalSessions || 0) || 0;
+  const patternKey = useMemo(
+    () => (Array.isArray(pattern) ? pattern.join(",") : ""),
+    [pattern]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    if (!pkg?.id || !trainer?.id || !startDate || !patternKey) {
+      setOptions(null);
+      setSlot(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    (async () => {
+      try {
+        setLoadingOptions(true);
+        setOptionsErr("");
+        setOptions(null);
+        setSlot(null);
+        setConfirmDuplicate(false);
+
+        const res = await memberGetFixedPlanOptions({
+          packageId: pkg.id,
+          trainerId: trainer.id,
+          pattern,
+          startDate,
+        });
+
+        if (!active) return;
+
+        const data = res?.data?.data || null;
+        setOptions(data);
+
+        const firstSlot =
+          Array.isArray(data?.slots) && data.slots.length ? data.slots[0] : null;
+
+        setSlot(firstSlot || null);
+      } catch (e) {
+        if (!active) return;
+
+        setOptionsErr(
+          e?.response?.data?.message ||
+            e?.response?.data?.EM ||
+            e?.message ||
+            "Không thể kiểm tra lịch hợp lệ"
+        );
+      } finally {
+        if (active) setLoadingOptions(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [pkg?.id, trainer?.id, startDate, patternKey]);
 
   const preview = useMemo(() => {
-    const total = Number(pkg?.sessions || 0);
-    if (!total || !slot || !startDate) return [];
+    return buildPreviewSessions({
+      startDate,
+      pattern,
+      totalSessions,
+      slot,
+    });
+  }, [startDate, pattern, totalSessions, slot]);
 
-    const jsPattern = toJsDowPattern(pattern);
-    if (!jsPattern.length) return [];
+  const duplicateWarning = options?.warning || null;
+  const slots = Array.isArray(options?.slots) ? options.slots : [];
 
-    const out = [];
-    let d = new Date(startDate + "T00:00:00");
-
-    while (!jsPattern.includes(d.getDay())) d.setDate(d.getDate() + 1);
-
-    while (out.length < total) {
-      if (jsPattern.includes(d.getDay())) {
-        out.push({
-          idx: out.length + 1,
-          dateISO: toLocalISODate(d),
-          label: slotLabel(slot),
-        });
-      }
-      d.setDate(d.getDate() + 1);
-    }
-    return out;
-  }, [pkg?.sessions, pattern, slot, startDate]);
-
-  const canSubmit = !!(pkg?.id && trainer?.id && (pattern?.length || 0) > 0 && slot?.start && startDate);
+  const canSubmit = !!(
+    pkg?.id &&
+    trainer?.id &&
+    startDate &&
+    patternKey &&
+    slot?.start &&
+    slot?.end &&
+    preview.length > 0 &&
+    (!duplicateWarning?.hasActiveSamePackage || confirmDuplicate)
+  );
 
   const handleConfirm = async () => {
     if (!canSubmit || submitting) return;
-    if (inFlightRef.current) return; // ✅ chặn double submit
 
     try {
-      inFlightRef.current = true;
       setSubmitting(true);
-      setErr("");
-      setResult(null);
+      setOptionsErr("");
 
-      // 0) ngày hợp lệ đầu tiên theo pattern
-      const firstDate = preview?.[0]?.dateISO;
-      if (!firstDate) throw new Error("Không tạo được lịch preview từ pattern/startDate.");
-
-      // 1) mua gói
-      const buyRes = await memberPurchasePackage(pkg.id, {
-        paymentMethod: payMethod,
-        gymId: gym?.id || pkg.gymId,
-      });
-
-      const activationId = buyRes?.data?.data?.activation?.id;
-      if (!activationId) throw new Error("Không lấy được activationId.");
-
-      // 2) tạo booking buổi đầu tiên
-      await memberCreateBooking({
-        activationId,
+      const res = await memberConfirmFixedPlan({
+        packageId: pkg.id,
         trainerId: trainer.id,
-        date: firstDate,
-        startTime: `${slot.start}:00`,
+        pattern,
+        startDate,
+        startTime: slot.start,
+        paymentMethod: payMethod,
+        confirmDuplicate: !!confirmDuplicate,
       });
 
-      // ✅ 3) Redirect NGAY LẬP TỨC (không chờ auto book) -> hết kẹt UI
-      onDone?.();
-
-      // ✅ 4) auto-book chạy nền, không block UI
-      const jsPattern = toJsDowPattern(pattern);
-      memberAutoBookWeeks({
-        activationId,
-        startDate: firstDate,
-        trainerId: trainer.id, // ✅ ADD
-        pattern: jsPattern.map((dow) => ({ dow, startTime: slot.start })),
-        repeatWeeks,
-      })
-        .then((autoRes) => {
-          const dt = autoRes?.data?.data || { createdCount: 0, skippedCount: 0 };
-          setResult(dt);
-        })
-        .catch((e) => {
-          // không chặn user, chỉ log / có thể show toast nếu bạn có
-          console.error("AutoBookWeeks failed:", e);
-        });
+      onDone?.(res?.data?.data || null);
     } catch (e) {
-      setErr(e.response?.data?.EM || e.response?.data?.message || e.message || "Xác nhận thất bại");
+      setOptionsErr(
+        e?.response?.data?.message ||
+          e?.response?.data?.EM ||
+          e?.message ||
+          "Xác nhận thất bại"
+      );
     } finally {
       setSubmitting(false);
-      inFlightRef.current = false;
     }
   };
 
   return (
     <div className="bw-section">
-      <div className="bw-topRow">
-        <div>
-          <p className="bw-note">Xác nhận thông tin đặt lịch</p>
-          <h2 className="bw-h2">{pkg?.name || "—"}</h2>
+      <header className="bw-sectionHeader">
+        <span className="bw-sectionTag">Bước 5</span>
+        <h2 className="bw-sectionTitle">Xác nhận đặt lịch</h2>
+        <p className="bw-hint">
+          Kiểm tra lại thông tin gói tập, PT, lịch học và thanh toán trước khi hoàn tất.
+        </p>
+      </header>
+
+      <div className="bw-summaryHero">
+        <div className="bw-summaryHeroLeft">
+          <div className="bw-summaryHeroKicker">Gói đã chọn</div>
+          <h3 className="bw-summaryHeroTitle">{pkg?.name || "—"}</h3>
         </div>
 
-        <div className="bw-rightInfo">
-          <div>
-            <span className="bw-muted">PT:&nbsp;</span>
-            <b>{trainer?.User?.username || "—"}</b>
+        <div className="bw-summaryHeroRight">
+          <div className="bw-summaryBadge">
+            <UserRound size={15} />
+            {trainer?.User?.username || trainer?.username || "—"}
           </div>
-          <div>
-            <span className="bw-muted">Gym:&nbsp;</span>
-            <b>{gym?.name || "—"}</b>
+          <div className="bw-summaryBadge">
+            <MapPin size={15} />
+            {gym?.name || pkg?.Gym?.name || "—"}
           </div>
         </div>
       </div>
 
       <div className="bw-summaryCard">
         <div className="bw-summaryGrid">
-          <div>
-            <div className="bw-label">Lịch học</div>
-            <ul className="bw-list">
-              <li>Pattern: <b>{patternTextHuman(pattern)}</b></li>
-              <li>Khung giờ: <b>{slotLabel(slot)}</b></li>
-              <li>Ngày bắt đầu: <b>{startDate}</b></li>
-              <li>Số buổi: <b>{pkg?.sessions}</b></li>
-            </ul>
+          <div className="bw-summaryBlock">
+            <div className="bw-label">Thông tin lịch tập</div>
+
+            <div className="bw-detailList">
+              <div className="bw-detailRow">
+                <CalendarDays size={15} />
+                <span>Pattern:</span>
+                <b>{patternTextHuman(pattern) || "—"}</b>
+              </div>
+
+              <div className="bw-detailRow">
+                <CheckCircle2 size={15} />
+                <span>Ngày bắt đầu:</span>
+                <b>{startDate || "—"}</b>
+              </div>
+
+              <div className="bw-detailRow">
+                <Dumbbell size={15} />
+                <span>Số buổi:</span>
+                <b>{totalSessions}</b>
+              </div>
+
+              <div className="bw-detailRow">
+                <UserRound size={15} />
+                <span>PT:</span>
+                <b>{trainer?.User?.username || trainer?.username || "—"}</b>
+              </div>
+            </div>
           </div>
 
-          <div>
+          <div className="bw-summaryBlock">
             <div className="bw-label">Chi phí dự kiến</div>
+
             <div className="bw-miniGrid">
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Giá gói</div>
                 <div className="bw-miniValue">{fmtVND(pkg?.price)} VND</div>
               </div>
+
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Tổng tạm tính</div>
-                <div className="bw-miniValue bw-miniValueAccent">{fmtVND(pkg?.price)} VND</div>
+                <div className="bw-miniValue bw-miniValueAccent">
+                  {fmtVND(pkg?.price)} VND
+                </div>
               </div>
             </div>
+
             <div className="bw-footnote">
-              * Đây là ước tính phía client. Tổng tiền sẽ được xác nhận ở bước thanh toán.
+              Hệ thống sẽ kiểm tra toàn bộ chuỗi lịch trước khi cho phép bạn hoàn tất đặt lịch.
             </div>
           </div>
         </div>
       </div>
 
-      {err && <div className="bw-inlineError">{err}</div>}
+      {duplicateWarning?.hasActiveSamePackage && (
+        <div className="bw-alert bw-alertWarn">
+          Bạn đang có cùng gói này còn <b>{duplicateWarning.remainingSessions}</b> buổi chưa dùng.
+          Nếu vẫn muốn mua thêm, hãy xác nhận bên dưới.
+        </div>
+      )}
 
-      <div className="bw-actions bw-actionsBetween">
-        <button
-          type="button"
-          onClick={() => setShowPreview((v) => !v)}
-          className="bw-btn bw-btnGhost"
-          disabled={submitting}
-        >
-          {showPreview ? "Ẩn lịch dự kiến" : `Xem lịch dự kiến (${preview.length} buổi)`}
-        </button>
+      {loadingOptions ? (
+        <div className="bw-loadingBox">Đang kiểm tra toàn bộ lịch hợp lệ…</div>
+      ) : optionsErr ? (
+        <div className="bw-alert bw-alertError">{optionsErr}</div>
+      ) : (
+        <>
+          <div className="bw-blockTitle" style={{ marginTop: 8 }}>
+            Chọn khung giờ hợp lệ
+          </div>
 
-        <div className="bw-actionsRightGroup">
-          <button type="button" onClick={onBack} disabled={submitting} className="bw-btn bw-btnGhost">
-            Quay lại
-          </button>
+          <div className="bw-chipRow" style={{ marginTop: 10 }}>
+            {slots.map((s) => {
+              const active = slot?.start === s.start && slot?.end === s.end;
+              return (
+                <Chip
+                  key={`${s.start}-${s.end}`}
+                  active={active}
+                  onClick={() => setSlot(s)}
+                >
+                  <Clock3 size={14} />
+                  <span>{s.start}–{s.end}</span>
+                </Chip>
+              );
+            })}
+
+            {!slots.length && (
+              <div className="bw-alert bw-alertWarn">
+                Không có khung giờ nào hợp lệ cho toàn bộ lịch cố định này. Hãy quay lại chọn ngày bắt đầu hoặc pattern khác.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {duplicateWarning?.hasActiveSamePackage && (
+        <label className="bw-checkRow" style={{ marginTop: 16 }}>
+          <input
+            type="checkbox"
+            checked={confirmDuplicate}
+            onChange={(e) => setConfirmDuplicate(e.target.checked)}
+          />
+          <span>
+            Tôi hiểu rằng mình đang còn gói này chưa dùng hết và vẫn muốn mua thêm.
+          </span>
+        </label>
+      )}
+
+      <div className="bw-confirmBar">
+        <div className="bw-paymentSelectWrap">
+          <div className="bw-paymentLabel">
+            <CreditCard size={16} />
+            <span>Phương thức thanh toán</span>
+          </div>
 
           <select
             value={payMethod}
@@ -213,46 +369,43 @@ export default function Step5PreviewConfirm({
             <option value="cash">Tiền mặt</option>
             <option value="momo">MoMo</option>
             <option value="vnpay">VNPay</option>
-            <option value="payos">PayOS</option>
+            <option value="payos">PayOS (tạm khóa)</option>
           </select>
+        </div>
+
+        <div className="bw-actionsRightGroup">
+          <button type="button" onClick={onBack} className="bw-btn bw-btnGhost">
+            <ArrowLeft size={16} />
+            <span>Quay lại</span>
+          </button>
 
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={!canSubmit || submitting}
+            disabled={!canSubmit || submitting || loadingOptions}
             className="bw-btn bw-btnPrimary"
           >
-            {submitting ? "Đang xử lý..." : "Tiếp tục thanh toán"}
+            {submitting ? "Đang xử lý..." : "Hoàn tất đặt lịch"}
           </button>
         </div>
       </div>
 
-      {showPreview && (
-        <div className="bw-previewGrid">
-          {preview.map((it) => (
-            <div key={it.idx} className="bw-previewItem">
-              <div className="bw-smallMuted">
-                #{it.idx} •{" "}
-                {new Date(it.dateISO + "T00:00:00").toLocaleDateString("vi-VN", {
-                  weekday: "short",
-                  day: "2-digit",
-                  month: "2-digit",
-                })}
-              </div>
-              <div className="bw-previewTitle">{it.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      {!!slot && !!preview.length && (
+        <>
+          <div className="bw-blockTitle">Lịch dự kiến</div>
 
-      {/* result có thể hiện nếu user chưa bị navigate đi (tuỳ router), vẫn để đây */}
-      {result && (
-        <div className="bw-resultBox">
-          <div className="bw-resultTitle">✅ Hoàn tất</div>
-          <div className="bw-resultDesc">
-            Đã tạo: <b>{result.createdCount ?? 0}</b> • Bỏ qua: <b>{result.skippedCount ?? 0}</b>
+          <div className="bw-previewGrid">
+            {preview.map((it) => (
+              <div key={it.idx} className="bw-previewItem">
+                <div className="bw-previewMeta">
+                  <span>#{it.idx}</span>
+                  <span>{formatPreviewDate(it.dateISO)}</span>
+                </div>
+                <div className="bw-previewTitle">{it.label}</div>
+              </div>
+            ))}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

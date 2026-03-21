@@ -1,79 +1,57 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { mpGetSlotsPublic } from "../../../../services/marketplaceService";
+import React, { useMemo } from "react";
+import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import "./bookingWizard.css";
 
 const DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
-function Chip({ active, disabled, onClick, children }) {
+function Chip({ active, onClick, children }) {
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onClick}
-      className={`bw-chip ${active ? "isActive" : ""} ${disabled ? "isDisabled" : ""}`}
+      className={`bw-patternCard ${active ? "isActive" : ""}`}
     >
-      {children}
+      <div className="bw-patternCardIcon">
+        <CalendarDays size={18} />
+      </div>
+      <div className="bw-patternCardContent">
+        <div className="bw-patternCardLabel">Lịch cố định</div>
+        <div className="bw-patternCardValue">{children}</div>
+      </div>
     </button>
   );
 }
 
 export default function Step3FixedSchedule({
-  pkg,
-  trainer,
   pattern,
   setPattern,
-  slot,
-  setSlot,
   onBack,
   onNext,
 }) {
-  const [loading, setLoading] = useState(false);
-  const [blocks, setBlocks] = useState([]);
-  const [err, setErr] = useState("");
-
-  // 2 pattern như bạn đang dùng
   const patterns = useMemo(
     () => [
-      [1, 3, 5], // T2 T4 T6
-      [2, 4, 6], // T3 T5 T7
+      [1, 3, 5],
+      [2, 4, 6],
     ],
     []
   );
 
-  useEffect(() => {
-    setBlocks([]);
-    setErr("");
-    setSlot(null);
-
-    if (!trainer?.id || !pkg?.id) return;
-
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await mpGetSlotsPublic({
-          trainerId: trainer.id,
-          packageId: pkg.id,
-          // ✅ không gửi date nữa
-        });
-        setBlocks(res.data?.DT || []);
-      } catch (e) {
-        setErr(e.response?.data?.EM || e.response?.data?.message || "Không tải được khung giờ");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [trainer?.id, pkg?.id, setSlot]);
-
-  const canNext = pattern?.length && slot;
+  const patternKey = useMemo(() => (pattern || []).join(","), [pattern]);
+  const canNext = !!patternKey;
 
   return (
     <div className="bw-section">
-      <div className="bw-hint">Chọn pattern & khung giờ cố định.</div>
+      <header className="bw-sectionHeader">
+        <span className="bw-sectionTag">Bước 3</span>
+        <h2 className="bw-sectionTitle">Chọn lịch tập cố định</h2>
+        <p className="bw-hint">
+          Chọn pattern ngày trong tuần. Khung giờ hợp lệ sẽ được kiểm tra ở bước xác nhận.
+        </p>
+      </header>
 
-      <div className="bw-label">Pattern</div>
-      <div className="bw-chipRow">
+      <div className="bw-patternGrid">
         {patterns.map((arr, i) => {
-          const active = (pattern || []).join(",") === arr.join(",");
+          const active = patternKey === arr.join(",");
           return (
             <Chip key={i} active={active} onClick={() => setPattern(arr)}>
               {arr.map((d) => DOW[d]).join(" • ")}
@@ -82,46 +60,25 @@ export default function Step3FixedSchedule({
         })}
       </div>
 
-      <div className="bw-label" style={{ marginTop: 10 }}>
-        Khung giờ
+      <div className="bw-infoPanel">
+        Sau khi chọn ngày bắt đầu, hệ thống sẽ tự lọc ra các khung giờ thật sự hợp lệ
+        cho toàn bộ chuỗi buổi tập của bạn.
       </div>
 
-      {loading ? (
-        <div className="bw-smallMuted">Đang tải…</div>
-      ) : err ? (
-        <div className="bw-inlineError">{err}</div>
-      ) : (
-        <div className="bw-chipRow" style={{ marginTop: 6 }}>
-          {blocks.map((b) => {
-            const active = slot?.start === b.start && slot?.end === b.end;
-            return (
-              <Chip
-                key={`${b.start}-${b.end}`}
-                active={active}
-                disabled={!b.ok}
-                onClick={() => b.ok && setSlot({ start: b.start, end: b.end })}
-              >
-                {b.start}–{b.end}
-              </Chip>
-            );
-          })}
-          {!blocks.length && (
-            <div className="bw-inlineWarn">Không có khung giờ khả dụng.</div>
-          )}
-        </div>
-      )}
-
-      <div className="bw-actions bw-actionsBetween" style={{ marginTop: 14 }}>
+      <div className="bw-actions bw-actionsBetween">
         <button type="button" onClick={onBack} className="bw-btn bw-btnGhost">
-          Quay lại
+          <ArrowLeft size={16} />
+          <span>Quay lại</span>
         </button>
+
         <button
           type="button"
           onClick={onNext}
           disabled={!canNext}
           className="bw-btn bw-btnPrimary"
         >
-          Tiếp tục
+          <span>Tiếp tục</span>
+          <ArrowRight size={16} />
         </button>
       </div>
     </div>

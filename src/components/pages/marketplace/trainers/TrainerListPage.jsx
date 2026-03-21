@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Search,
+  MapPin,
+  Star,
+  ArrowRight,
+  Dumbbell,
+  Users,
+  Package as PackageIcon,
+} from "lucide-react";
 import { mpGetTrainers, mpGetGymDetail } from "../../../../services/marketplaceService";
 import ImageWithFallback from "../../../common/ImageWithFallback";
 import "./Trainer.css";
@@ -18,24 +27,6 @@ const getTrainerGymId = (t) => t?.Gym?.id || t?.gymId || null;
 
 const getTrainerGymName = (t, fallbackName = "") =>
   t?.Gym?.name || fallbackName || `Gym #${getTrainerGymId(t) || "N/A"}`;
-
-const SearchIcon = () => (
-  <svg className="pt-search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      opacity="0.9"
-    />
-    <path
-      d="M21 21l-4.3-4.3"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      opacity="0.9"
-    />
-  </svg>
-);
 
 export default function TrainerListPage() {
   const navigate = useNavigate();
@@ -98,47 +89,47 @@ export default function TrainerListPage() {
   }, [trainers]);
 
   const gyms = useMemo(() => {
-  const map = new Map();
+    const map = new Map();
 
-  trainers.forEach((t) => {
-    const id = getTrainerGymId(t);
-    if (!id) return;
+    trainers.forEach((t) => {
+      const id = getTrainerGymId(t);
+      if (!id) return;
 
-    const label =
-      String(id) === String(presetGymId)
-        ? getTrainerGymName(t, presetGymName)
-        : getTrainerGymName(t);
+      const label =
+        String(id) === String(presetGymId)
+          ? getTrainerGymName(t, presetGymName)
+          : getTrainerGymName(t);
 
-    map.set(String(id), label);
-  });
+      map.set(String(id), label);
+    });
 
-  if (presetGymId && !map.has(String(presetGymId))) {
-    map.set(String(presetGymId), presetGymName || `Gym #${presetGymId}`);
-  }
+    if (presetGymId && !map.has(String(presetGymId))) {
+      map.set(String(presetGymId), presetGymName || `Gym #${presetGymId}`);
+    }
 
-  return [
-    { value: "all", label: "Tất cả gym" },
-    ...Array.from(map.entries())
-      .map(([value, label]) => ({ value, label }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
-  ];
-}, [trainers, presetGymId, presetGymName]);
+    return [
+      { value: "all", label: "Tất cả gym" },
+      ...Array.from(map.entries())
+        .map(([value, label]) => ({ value, label }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [trainers, presetGymId, presetGymName]);
 
   const filteredSorted = useMemo(() => {
     const text = q.trim().toLowerCase();
 
     let list = trainers
-  .map((t) => ({
-    ...t,
-    _active: isActiveTrainer(t),
-    _area: getAreaFromTrainer(t),
-    _avatar: getTrainerAvatar(t),
-    _gymId: getTrainerGymId(t),
-    _gymName:
-      String(getTrainerGymId(t)) === String(presetGymId)
-        ? getTrainerGymName(t, presetGymName)
-        : getTrainerGymName(t),
-  }))
+      .map((t) => ({
+        ...t,
+        _active: isActiveTrainer(t),
+        _area: getAreaFromTrainer(t),
+        _avatar: getTrainerAvatar(t),
+        _gymId: getTrainerGymId(t),
+        _gymName:
+          String(getTrainerGymId(t)) === String(presetGymId)
+            ? getTrainerGymName(t, presetGymName)
+            : getTrainerGymName(t),
+      }))
       .filter((t) => {
         const matchText =
           !text ||
@@ -174,7 +165,7 @@ export default function TrainerListPage() {
     }
 
     return list;
-  }, [trainers, q, status, area, gymFilter, sortKey]);
+  }, [trainers, q, status, area, gymFilter, sortKey, presetGymId, presetGymName]);
 
   const activeCount = useMemo(
     () => trainers.filter((t) => isActiveTrainer(t)).length,
@@ -185,76 +176,89 @@ export default function TrainerListPage() {
     <div className="pt-page">
       <section className="pt-hero">
         <div className="pt-hero-inner">
-          <div className="pt-hero-head">
-            <div>
-              <span className="pt-section-label">DANH SÁCH HUẤN LUYỆN VIÊN</span>
-              <h1 className="pt-title">Personal Trainers GFMS</h1>
-              <p className="pt-subtitle">
-                Tìm PT phù hợp theo từ khóa, khu vực, gym, trạng thái và sắp xếp theo đánh giá/học viên.
-              </p>
+          <div className="pt-hero-copy">
+            <span className="pt-section-label">HUẤN LUYỆN VIÊN GFMS</span>
 
-              {presetGymId && (
-                <p className="pt-subtitle" style={{ marginTop: 8 }}>
-                  Đang xem PT của gym: <b>{presetGymName || `#${presetGymId}`}</b>
-                </p>
-              )}
-            </div>
+            <h1 className="pt-title">
+              FIND YOUR <br />
+              <span className="pt-title-accent">TRAINER</span>
+            </h1>
+
+            <p className="pt-subtitle">
+              Tìm PT phù hợp theo chuyên môn, khu vực, gym và đánh giá để bắt đầu
+              hành trình tập luyện đúng mục tiêu.
+            </p>
+
+            {presetGymId && (
+              <p className="pt-subtitle pt-subtitle--small">
+                Đang xem PT của gym: <b>{presetGymName || `#${presetGymId}`}</b>
+              </p>
+            )}
 
             <div className="pt-hero-stats">
-              <span className="pt-pill">Tổng: <b>{trainers.length}</b></span>
-              <span className="pt-pill">Đang hoạt động: <b>{activeCount}</b></span>
-              <span className="pt-pill">Kết quả: <b>{filteredSorted.length}</b></span>
-            </div>
-          </div>
-
-          <div className="pt-toolbar" role="search">
-            <div className="pt-search">
-              <SearchIcon />
-              <input
-                placeholder="Tìm theo tên PT, chuyên môn, gym..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              {q && (
-                <button className="pt-clear" onClick={() => setQ("")} aria-label="Clear">
-                  ✕
-                </button>
-              )}
+              <span className="pt-pill">
+                Tổng PT <b>{trainers.length}</b>
+              </span>
+              <span className="pt-pill">
+                Đang hoạt động <b>{activeCount}</b>
+              </span>
+              <span className="pt-pill">
+                Kết quả <b>{filteredSorted.length}</b>
+              </span>
             </div>
 
-            <div className="pt-toolbar-row">
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="all">Tất cả trạng thái</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Tạm offline</option>
-              </select>
+            <div className="pt-toolbar" role="search">
+              <div className="pt-search">
+                <Search size={18} className="pt-search-icon" />
+                <input
+                  placeholder="Tìm theo tên PT, chuyên môn, gym..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+                {q && (
+                  <button type="button" className="pt-clear" onClick={() => setQ("")} aria-label="Clear">
+                    ✕
+                  </button>
+                )}
+              </div>
 
-              <select value={area} onChange={(e) => setArea(e.target.value)}>
-                {areas.map((a) => (
-                  <option key={a} value={a}>
-                    {a === "all" ? "Tất cả khu vực" : a}
-                  </option>
-                ))}
-              </select>
+              <div className="pt-toolbar-row">
+                <select value={area} onChange={(e) => setArea(e.target.value)}>
+                  {areas.map((a) => (
+                    <option key={a} value={a}>
+                      {a === "all" ? "KHU VỰC" : a}
+                    </option>
+                  ))}
+                </select>
 
-              <select value={gymFilter} onChange={(e) => setGymFilter(e.target.value)}>
-                {gyms.map((g) => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="all">TRẠNG THÁI</option>
+                  <option value="active">Đang hoạt động</option>
+                  <option value="inactive">Tạm offline</option>
+                </select>
 
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                <option value="rating_desc">Sắp xếp: Rating cao → thấp</option>
-                <option value="rating_asc">Sắp xếp: Rating thấp → cao</option>
-                <option value="clients_desc">Sắp xếp: Học viên nhiều</option>
-                <option value="name_asc">Sắp xếp: Tên (A → Z)</option>
-                <option value="status">Sắp xếp: Active trước</option>
-              </select>
+                <select value={gymFilter} onChange={(e) => setGymFilter(e.target.value)}>
+                  {gyms.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.value === "all" ? "GYM" : g.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+                  <option value="rating_desc">SẮP XẾP</option>
+                  <option value="rating_desc">Rating cao → thấp</option>
+                  <option value="rating_asc">Rating thấp → cao</option>
+                  <option value="clients_desc">Học viên nhiều</option>
+                  <option value="name_asc">Tên (A → Z)</option>
+                  <option value="status">Active trước</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
+
+        <div className="pt-bg-text">PT</div>
       </section>
 
       <section className="pt-result">
@@ -266,6 +270,7 @@ export default function TrainerListPage() {
         <div className="pt-chips">
           {["all", "active", "inactive"].map((s) => (
             <button
+              type="button"
               key={s}
               className={`pt-chip ${status === s ? "active" : ""}`}
               onClick={() => setStatus(s)}
@@ -291,7 +296,7 @@ export default function TrainerListPage() {
               const active = t._active;
 
               return (
-                <div
+                <article
                   key={t.id}
                   className="pt-card"
                   onClick={() => navigate(`/marketplace/trainers/${t.id}`)}
@@ -308,34 +313,78 @@ export default function TrainerListPage() {
                       fallback="/placeholder-pt.jpg"
                     />
                     <div className="pt-img-overlay" />
+
                     <span className={`pt-badge ${active ? "active" : "inactive"}`}>
                       {active ? "ACTIVE" : "OFFLINE"}
                     </span>
                   </div>
 
                   <div className="pt-card__body">
-                    <div className="pt-card__top">
-                      <h3 title={name}>{name}</h3>
+                    <div className="pt-card__header">
+                      <div className="pt-card__title-wrap">
+                        <h3 title={name}>{name}</h3>
+
+                        <div className="pt-card__subtitle" title={t.specialization || ""}>
+                          <span>{t.specialization || "Personal Trainer"}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-card__rating">
+                        <Star size={16} fill="currentColor" />
+                        <span>{Number(t.rating || 0).toFixed(1)}</span>
+                      </div>
                     </div>
 
-                    <p className="pt-card__sub" title={t.specialization || ""}>
-                      {t.specialization || "Personal Trainer"}
-                    </p>
-
                     <div className="pt-meta">
-                      <span className="pt-tag">⭐ {Number(t.rating || 0).toFixed(1)}</span>
-                      <span className="pt-tag">👥 {t.clientsCount || 0} học viên</span>
-                      <span className="pt-tag">📦 {t.packageCount || 0} gói</span>
-                      <span className="pt-tag">🏋️ {t._gymName}</span>
-                      <span className="pt-tag">📍 {t._area}</span>
+                      <span className="pt-tag">
+                        <span className="pt-tag-icon">
+                          <Users size={16} />
+                        </span>
+                        <span className="pt-tag-label">{t.clientsCount || 0} học viên</span>
+                      </span>
+
+                      <span className="pt-tag">
+                        <span className="pt-tag-icon">
+                          <PackageIcon size={16} />
+                        </span>
+                        <span className="pt-tag-label">{t.packageCount || 0} gói</span>
+                      </span>
+
+                      <span className="pt-tag">
+                        <span className="pt-tag-icon">
+                          <Dumbbell size={16} />
+                        </span>
+                        <span className="pt-tag-label">{t._gymName}</span>
+                      </span>
+
+                      <span className="pt-tag">
+                        <span className="pt-tag-icon">
+                          <MapPin size={16} />
+                        </span>
+                        <span className="pt-tag-label">{t._area}</span>
+                      </span>
                     </div>
 
                     <div className="pt-card__footer">
-                      <span>Xem chi tiết</span>
-                      <span className="pt-view">Xem →</span>
+                      <div className="pt-card__footer-text">
+                        <span className="pt-card__footer-label">KHÁM PHÁ NGAY</span>
+                        <div className="pt-card__footer-value">Xem hồ sơ PT</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="pt-arrow-btn"
+                        aria-label={`Xem chi tiết ${name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/marketplace/trainers/${t.id}`);
+                        }}
+                      >
+                        <ArrowRight size={20} />
+                      </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
         </div>

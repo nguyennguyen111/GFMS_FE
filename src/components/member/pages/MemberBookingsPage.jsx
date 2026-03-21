@@ -1,52 +1,70 @@
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  CircleX,
+  Clock3,
+  Dumbbell,
+} from "lucide-react";
 import "./MemberBookingPage.css";
 import { memberGetMyBookings } from "../../../services/memberBookingService";
 import BookingDetailModal from "./BookingDetailModal";
 
-const DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-const monthLabel = (d) => `Tháng ${d.getMonth() + 1} / ${d.getFullYear()}`;
-
-const normalizeStatus = (s) => {
-  if (s === "in_progress") return "completed";
-  return s;
-};
-
-const statusLabel = (s) => {
-  const normalized = normalizeStatus(s);
-  if (normalized === "confirmed") return "Đã xác nhận";
-  if (normalized === "completed") return "Hoàn thành";
-  if (normalized === "cancelled") return "Đã huỷ";
-  return "—";
-};
+const DAY_NAMES = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
-const toLocalDateKey = (dateObj) => {
-  const y = dateObj.getFullYear();
-  const m = pad2(dateObj.getMonth() + 1);
-  const d = pad2(dateObj.getDate());
+const toISO = (date) => {
+  const y = date.getFullYear();
+  const m = pad2(date.getMonth() + 1);
+  const d = pad2(date.getDate());
   return `${y}-${m}-${d}`;
 };
 
-const bookingDateKey = (bookingDate) => {
-  if (!bookingDate) return "";
-  const s = String(bookingDate);
-  return s.length >= 10 ? s.slice(0, 10) : s;
+const startOfWeekMonday = (input) => {
+  const d = new Date(input);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
 };
 
-const fmtTime = (t) => {
-  if (!t) return "";
-  return String(t).slice(0, 5);
+const addDays = (date, n) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+};
+
+const fmtRange = (start) => {
+  const end = addDays(start, 6);
+  return `${pad2(start.getDate())}/${pad2(start.getMonth() + 1)}/${start.getFullYear()} - ${pad2(
+    end.getDate()
+  )}/${pad2(end.getMonth() + 1)}/${end.getFullYear()}`;
+};
+
+const fmtTime = (value) => String(value || "").slice(0, 5);
+
+const normalizeStatus = (s) => {
+  if (s === "in_progress" || s === "completed") return "attended";
+  if (s === "cancelled") return "cancelled";
+  return "scheduled";
+};
+
+const statusLabel = (s) => {
+  const x = normalizeStatus(s);
+  if (x === "attended") return "Đã điểm danh";
+  if (x === "cancelled") return "Đã huỷ";
+  return "Chưa điểm danh";
 };
 
 export default function MemberBookingsCalendarPage() {
   const [bookings, setBookings] = useState([]);
   const [selected, setSelected] = useState(null);
-
-  const [cursor, setCursor] = useState(() => new Date());
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("all");
-  const [selectedDay, setSelectedDay] = useState(() => toLocalDateKey(new Date()));
+  const [weekCursor, setWeekCursor] = useState(() => startOfWeekMonday(new Date()));
 
   useEffect(() => {
     memberGetMyBookings()
@@ -60,332 +78,212 @@ export default function MemberBookingsCalendarPage() {
       });
   }, []);
 
-  const filtered = useMemo(() => {
-    const text = q.trim().toLowerCase();
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDays(weekCursor, i));
+  }, [weekCursor]);
 
+  const weekStartISO = toISO(weekDays[0]);
+  const weekEndISO = toISO(weekDays[6]);
+
+  const weekBookings = useMemo(() => {
     return bookings.filter((b) => {
-      const trainerName = b?.Trainer?.User?.username || "";
-      const gymName = b?.Gym?.name || "";
-      const packageName = b?.Package?.name || "";
-
-      const matchText =
-        !text ||
-        `${trainerName} ${gymName} ${packageName}`.toLowerCase().includes(text);
-
-      const normalizedStatus = normalizeStatus(b.status);
-      const matchStatus = status === "all" ? true : normalizedStatus === status;
-
-      return matchText && matchStatus;
+      const key = String(b?.bookingDate || "").slice(0, 10);
+      return key >= weekStartISO && key <= weekEndISO;
     });
-  }, [bookings, q, status]);
+  }, [bookings, weekStartISO, weekEndISO]);
 
-  const byDate = useMemo(() => {
-    return filtered.reduce((acc, b) => {
-      const date = bookingDateKey(b.bookingDate);
-      if (!date) return acc;
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(b);
-      return acc;
-    }, {});
-  }, [filtered]);
+  const grouped = useMemo(() => {
+    const map = {};
+    weekDays.forEach((d) => {
+      map[toISO(d)] = [];
+    });
 
-  const year = cursor.getFullYear();
-  const month = cursor.getMonth();
+    weekBookings.forEach((b) => {
+      const key = String(b?.bookingDate || "").slice(0, 10);
+      if (!map[key]) map[key] = [];
+      map[key].push(b);
+    });
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const offset = (firstDay.getDay() + 6) % 7;
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) =>
+        String(a?.startTime || "").localeCompare(String(b?.startTime || ""))
+      );
+    });
 
-  const todayISO = toLocalDateKey(new Date());
-
-  const cells = [];
-  for (let i = 0; i < offset; i++) cells.push(null);
-  for (let d = 1; d <= lastDay.getDate(); d++) cells.push(new Date(year, month, d));
+    return map;
+  }, [weekBookings, weekDays]);
 
   const counts = useMemo(() => {
-    const c = { all: filtered.length, confirmed: 0, completed: 0, cancelled: 0 };
+    const c = {
+      total: weekBookings.length,
+      scheduled: 0,
+      attended: 0,
+      cancelled: 0,
+    };
 
-    filtered.forEach((b) => {
-      const normalizedStatus = normalizeStatus(b.status);
-
-      if (normalizedStatus === "confirmed") c.confirmed += 1;
-      else if (normalizedStatus === "completed") c.completed += 1;
-      else if (normalizedStatus === "cancelled") c.cancelled += 1;
+    weekBookings.forEach((b) => {
+      const s = normalizeStatus(b.status);
+      c[s] += 1;
     });
 
     return c;
-  }, [filtered]);
+  }, [weekBookings]);
 
-  const jumpToday = () => {
-    const now = new Date();
-    setCursor(now);
-    setSelectedDay(toLocalDateKey(now));
-  };
-
-  const dayList = useMemo(() => {
-    const list = (byDate[selectedDay] || []).slice();
-    list.sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")));
-    return list;
-  }, [byDate, selectedDay]);
-
-  const selectedDayText = useMemo(() => {
-    if (!selectedDay) return "Chọn ngày";
-    const [y, m, d] = selectedDay.split("-");
-    return `Ngày ${d}/${m}/${y}`;
-  }, [selectedDay]);
+  const todayISO = toISO(new Date());
 
   return (
-    <div className="cal-shell">
-      <div className="cal-page">
-        <div className="cal-hero">
-          <div className="cal-heroTop">
-            <div className="cal-titleBox">
-              <div className="cal-kicker">LỊCH BUỔI TẬP</div>
-              <h2 className="cal-title">Calendar Booking</h2>
-              <p className="cal-sub">
-                Theo dõi lịch booking của bạn theo ngày, lọc nhanh và xem chi tiết từng buổi tập.
-              </p>
-            </div>
+    <div className="mb-page">
+      <div className="mb-pageGlow mb-pageGlow--left" />
+      <div className="mb-pageGlow mb-pageGlow--right" />
 
-            <div className="cal-monthNav">
-              <button
-                className="cal-navBtn"
-                onClick={() => setCursor(new Date(year, month - 1, 1))}
-                type="button"
-                aria-label="Tháng trước"
-              >
-                ‹
-              </button>
-
-              <div className="cal-monthText">{monthLabel(cursor)}</div>
-
-              <button
-                className="cal-navBtn"
-                onClick={() => setCursor(new Date(year, month + 1, 1))}
-                type="button"
-                aria-label="Tháng sau"
-              >
-                ›
-              </button>
-
-              <button className="cal-todayBtn" onClick={jumpToday} type="button">
-                Hôm nay
-              </button>
-            </div>
+      <div className="mb-shell">
+        <section className="mb-header">
+          <div className="mb-titleGroup">
+            <span className="mb-kicker">Training Schedule</span>
+            <h1 className="mb-title">Lịch tập trong tuần</h1>
+            <p className="mb-subtitle">
+              Theo dõi booking theo từng tuần, dễ xem và dễ quản lý lịch tập hơn.
+            </p>
           </div>
 
-          <div className="cal-summaryRow">
-            <div className="cal-stats">
-              <span className="cal-pill">
-                Tổng <b>{counts.all}</b>
-              </span>
-              <span className="cal-pill">
-                Confirmed <b>{counts.confirmed}</b>
-              </span>
-              <span className="cal-pill">
-                Completed <b>{counts.completed}</b>
-              </span>
-              <span className="cal-pill">
-                Cancelled <b>{counts.cancelled}</b>
-              </span>
-            </div>
+          <div className="mb-weekNav">
+            <button
+              type="button"
+              className="mb-navBtn"
+              onClick={() => setWeekCursor(addDays(weekCursor, -7))}
+            >
+              <ChevronLeft size={16} />
+              <span>Tuần trước</span>
+            </button>
+
+            <button
+              type="button"
+              className="mb-navBtn active"
+              onClick={() => setWeekCursor(startOfWeekMonday(new Date()))}
+            >
+              Tuần này
+            </button>
+
+            <button
+              type="button"
+              className="mb-navBtn"
+              onClick={() => setWeekCursor(addDays(weekCursor, 7))}
+            >
+              <span>Tuần tới</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </section>
+
+        <section className="mb-summaryGrid">
+          <div className="mb-summaryCard">
+            <span className="mb-summaryLabel">Tổng số buổi</span>
+            <span className="mb-summaryValue">{pad2(counts.total)}</span>
           </div>
 
-          <div className="cal-toolbar" role="search">
-            <div className="cal-search">
-              <span className="cal-searchIcon">🔎</span>
-              <input
-                placeholder="Tìm theo PT / Gym / Gói..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              {q && (
-                <button className="cal-clear" onClick={() => setQ("")} type="button">
-                  ✕
-                </button>
-              )}
-            </div>
+          <div className="mb-summaryCard border-secondary">
+            <span className="mb-summaryLabel">Chưa điểm danh</span>
+            <span className="mb-summaryValue">{pad2(counts.scheduled)}</span>
+          </div>
 
-            <div className="cal-filtersWrap">
-              <div className="cal-filters">
-                <button
-                  className={`cal-chip ${status === "all" ? "active" : ""}`}
-                  onClick={() => setStatus("all")}
-                  type="button"
-                >
-                  <span className="chip-label">Tất cả</span>
-                  <span className="chip-count">{counts.all}</span>
-                </button>
+          <div className="mb-summaryCard border-primary">
+            <span className="mb-summaryLabel">Đã điểm danh</span>
+            <span className="mb-summaryValue text-primary">{pad2(counts.attended)}</span>
+          </div>
 
-                <button
-                  className={`cal-chip ${status === "confirmed" ? "active confirmed" : ""}`}
-                  onClick={() => setStatus("confirmed")}
-                  type="button"
-                >
-                  <span className="chip-dot confirmed" />
-                  <span className="chip-label">Đã xác nhận</span>
-                  <span className="chip-count">{counts.confirmed}</span>
-                </button>
+          <div className="mb-summaryCard border-error">
+            <span className="mb-summaryLabel">Đã huỷ</span>
+            <span className="mb-summaryValue text-error">{pad2(counts.cancelled)}</span>
+          </div>
+        </section>
 
-                <button
-                  className={`cal-chip ${status === "completed" ? "active completed" : ""}`}
-                  onClick={() => setStatus("completed")}
-                  type="button"
-                >
-                  <span className="chip-dot completed" />
-                  <span className="chip-label">Hoàn thành</span>
-                  <span className="chip-count">{counts.completed}</span>
-                </button>
+        <div className="mb-rangeBar">
+          <div className="mb-dateIndicator">
+            <CalendarDays size={18} />
+            <span>{fmtRange(weekCursor)}</span>
+          </div>
 
-                <button
-                  className={`cal-chip ${status === "cancelled" ? "active cancelled" : ""}`}
-                  onClick={() => setStatus("cancelled")}
-                  type="button"
-                >
-                  <span className="chip-dot cancelled" />
-                  <span className="chip-label">Đã huỷ</span>
-                  <span className="chip-count">{counts.cancelled}</span>
-                </button>
-              </div>
-            </div>
+          <div className="mb-pillGroup">
+            <span className="mb-pill">Tổng: {counts.total}</span>
+            <span className="mb-pill is-muted">Chưa điểm danh: {counts.scheduled}</span>
+            <span className="mb-pill is-green">Đã điểm danh: {counts.attended}</span>
+            <span className="mb-pill is-red">Đã huỷ: {counts.cancelled}</span>
           </div>
         </div>
 
-        <div className="cal-board">
-          <div className="cal-grid">
-            {DAYS.map((d) => (
-              <div key={d} className="cal-head">
-                {d}
-              </div>
-            ))}
+        <section className="mb-calendarGrid">
+          {weekDays.map((day, idx) => {
+            const iso = toISO(day);
+            const dayBookings = grouped[iso] || [];
+            const isToday = iso === todayISO;
+            const isWeekend = idx >= 5;
 
-            {cells.map((d, i) => {
-              if (!d) return <div key={i} className="cal-cell empty" />;
-
-              const iso = toLocalDateKey(d);
-              const dayBookings = (byDate[iso] || []).slice();
-              const isToday = iso === todayISO;
-              const isSelected = iso === selectedDay;
-
-              dayBookings.sort((a, b) =>
-                String(a.startTime || "").localeCompare(String(b.startTime || ""))
-              );
-
-              return (
-                <div
-                  key={i}
-                  className={`cal-cell ${isToday ? "today" : ""} ${
-                    dayBookings.length ? "has" : ""
-                  } ${isSelected ? "selected" : ""}`}
-                  onClick={() => setSelectedDay(iso)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedDay(iso);
-                    }
-                  }}
-                >
-                  <div className="cal-cellTop">
-                    <div className={`cal-date ${isToday ? "today" : ""}`}>{d.getDate()}</div>
-                    {dayBookings.length > 0 && <div className="cal-dot" />}
-                  </div>
-
-                  <div className="cal-events">
-                    {dayBookings.slice(0, 3).map((b) => (
-                      <button
-                        key={b.id}
-                        className={`cal-event ${normalizeStatus(b.status)}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(b);
-                        }}
-                        type="button"
-                        title={`${fmtTime(b.startTime)}-${fmtTime(b.endTime)} • ${
-                          b?.Trainer?.User?.username || "PT"
-                        }`}
-                      >
-                        <div className="ev-time">
-                          {fmtTime(b.startTime)}–{fmtTime(b.endTime)}
-                        </div>
-                        <div className="ev-pt">{b?.Trainer?.User?.username || "PT"}</div>
-                        <div className="ev-status">{statusLabel(b.status)}</div>
-                      </button>
-                    ))}
-
-                    {dayBookings.length > 3 && (
-                      <div className="cal-more">+{dayBookings.length - 3} buổi</div>
-                    )}
-
-                    {dayBookings.length === 0 && <div className="cal-emptyHint">—</div>}
-                  </div>
+            return (
+              <div
+                key={iso}
+                className={`mb-dayCol ${isToday ? "isToday" : ""}`}
+              >
+                <div className={`mb-dayHead ${isToday ? "active" : ""} ${isWeekend ? "weekend" : ""}`}>
+                  <span className="mb-dayName">{DAY_NAMES[idx]}</span>
+                  <span className="mb-dayShort">{DAY_SHORT[idx]}</span>
+                  <span className="mb-dayDate">{pad2(day.getDate())}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />}
+                <div className="mb-dayBody">
+                  {dayBookings.length === 0 ? (
+                    <div className="mb-emptyCell">Trống</div>
+                  ) : (
+                    dayBookings.map((b) => {
+                      const displayStatus = normalizeStatus(b.status);
+                      const isActive = isToday && displayStatus === "scheduled";
+
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          className={`mb-sessionCard ${displayStatus} ${isActive ? "active" : ""}`}
+                          onClick={() => setSelected(b)}
+                        >
+                          <div className="mb-sessionHead">
+                            <span className="mb-sessionTime">
+                              {fmtTime(b.startTime)} - {fmtTime(b.endTime)}
+                            </span>
+
+                            {isActive ? (
+                              <Clock3 size={16} className="mb-sessionPulse" />
+                            ) : displayStatus === "attended" ? (
+                              <ClipboardCheck size={16} className="mb-sessionIcon ok" />
+                            ) : displayStatus === "cancelled" ? (
+                              <CircleX size={16} className="mb-sessionIcon error" />
+                            ) : (
+                              <Dumbbell size={16} className="mb-sessionIcon" />
+                            )}
+                          </div>
+
+                          <div className="mb-sessionInfo">
+                            <h4 className="mb-sessionTrainer">
+                              {b?.Trainer?.User?.username || "PT"}
+                            </h4>
+                            <p className="mb-sessionPackage">
+                              {b?.Package?.name || "Gói tập"}
+                            </p>
+                          </div>
+
+                          <div className={`mb-sessionBtn ${displayStatus}`}>
+                            {statusLabel(b.status)}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </section>
       </div>
 
-      <aside className="cal-side">
-        <div className="cal-sideHead">
-          <div>
-            <div className="cal-sideKicker">BOOKING TRONG NGÀY</div>
-            <div className="cal-sideTitle">{selectedDayText}</div>
-          </div>
-          <button className="cal-sideBtn" onClick={() => setSelectedDay(todayISO)} type="button">
-            Hôm nay
-          </button>
-        </div>
-
-        <div className="cal-sideBody">
-          {dayList.length === 0 ? (
-            <div className="cal-sideEmpty">
-              <div className="cal-sideEmptyIcon">🗓️</div>
-              <div className="cal-sideEmptyText">Không có booking trong ngày này.</div>
-              <div className="cal-sideEmptyHint">Chọn ngày khác trên lịch để xem.</div>
-            </div>
-          ) : (
-            <div className="cal-sideList">
-              {dayList.map((b) => (
-                <button
-                  key={b.id}
-                  className={`cal-sideItem ${normalizeStatus(b.status)}`}
-                  type="button"
-                  onClick={() => setSelected(b)}
-                >
-                  <div className="si-top">
-                    <div className="si-timeBlock">
-                      <div className="si-time">
-                        {fmtTime(b.startTime)}–{fmtTime(b.endTime)}
-                      </div>
-                      <div className="si-duration">Buổi tập cá nhân</div>
-                    </div>
-
-                    <div className={`si-badge ${normalizeStatus(b.status)}`}>
-                      {statusLabel(b.status)}
-                    </div>
-                  </div>
-
-                  <div className="si-main">
-                    <div className="si-name">🧑‍🏫 {b?.Trainer?.User?.username || "PT"}</div>
-                    <div className="si-row">🏋️ {b?.Gym?.name || "—"}</div>
-                    <div className="si-row">📦 {b?.Package?.name || "—"}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="cal-sideFoot">
-          <div className="cal-sideHint">
-            Click ngày để xem danh sách • Click booking để mở chi tiết
-          </div>
-        </div>
-      </aside>
+      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

@@ -1,6 +1,17 @@
-// src/components/pages/marketplace/gyms/GymDetailsPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Clock3,
+  ArrowLeft,
+  ArrowRight,
+  Star,
+  Dumbbell,
+  Package,
+  Users,
+} from "lucide-react";
 import {
   mpGetGymDetail,
   mpGetTrainers,
@@ -10,10 +21,13 @@ import ImageWithFallback from "../../../common/ImageWithFallback";
 import { getCurrentUser } from "../../../../utils/auth";
 import "./GymDetailsPage.css";
 
-const Stat = ({ label, value }) => (
+const Stat = ({ icon, label, value }) => (
   <div className="gd-stat">
-    <span>{label}</span>
-    <b>{value}</b>
+    <div className="gd-statIcon">{icon}</div>
+    <div className="gd-statBody">
+      <span>{label}</span>
+      <b>{value}</b>
+    </div>
   </div>
 );
 
@@ -94,14 +108,18 @@ export default function GymDetailsPage() {
   if (loading)
     return (
       <div className="gd-page">
-        <div className="gd-container">Đang tải gym...</div>
+        <div className="gd-container">
+          <div className="gd-loading">Đang tải gym...</div>
+        </div>
       </div>
     );
 
   if (!gym)
     return (
       <div className="gd-page">
-        <div className="gd-container">Không tìm thấy gym</div>
+        <div className="gd-container">
+          <div className="gd-empty">Không tìm thấy gym</div>
+        </div>
       </div>
     );
 
@@ -120,22 +138,36 @@ export default function GymDetailsPage() {
               window.history.length > 1 ? navigate(-1) : navigate("/marketplace/gyms")
             }
           >
-            ← Quay lại
+            <ArrowLeft size={18} />
+            <span>Quay lại</span>
           </button>
 
           <div className="gd-heroContent">
             <div className="gd-heroLeft">
               <div className="gd-breadcrumb">DANH SÁCH CƠ SỞ</div>
-              <h1 className="gd-title">{gym.name}</h1>
+              <h1 className="gd-title">
+                {gym.name}
+              </h1>
+
               <div className="gd-sub">
-                <span className="material-symbols-outlined">location_on</span>
-                {gym.address || "—"}
+                <MapPin size={16} />
+                <span>{gym.address || "—"}</span>
               </div>
 
               <div className="gd-badges">
                 <span className={`gd-status ${status || "unknown"}`}>{statusLabel}</span>
-                {gym.operatingHours && <span className="gd-chip">🕒 {gym.operatingHours}</span>}
-                {gym.phone && <span className="gd-chip">📞 {gym.phone}</span>}
+                {gym.operatingHours && (
+                  <span className="gd-chip">
+                    <Clock3 size={14} />
+                    <span>{gym.operatingHours}</span>
+                  </span>
+                )}
+                {gym.phone && (
+                  <span className="gd-chip">
+                    <Phone size={14} />
+                    <span>{gym.phone}</span>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -148,17 +180,23 @@ export default function GymDetailsPage() {
                 className="gd-cta ghost"
                 onClick={() => navigate(`/marketplace/trainers?gymId=${gym.id}`)}
               >
-                Xem PT của gym →
+                Xem PT của gym
               </button>
             </div>
           </div>
+
+          <div className="gd-bgText">GFMS</div>
         </section>
 
         <section className="gd-stats">
-          <Stat label="Huấn luyện viên" value={trainers.length} />
-          <Stat label="Gói tập" value={packages.length} />
-          <Stat label="Giờ mở cửa" value={gym.operatingHours || "—"} />
-          <Stat label="Liên hệ" value={gym.phone || "—"} />
+          <Stat icon={<Users size={18} />} label="Huấn luyện viên" value={trainers.length} />
+          <Stat icon={<Package size={18} />} label="Gói tập" value={packages.length} />
+          <Stat
+            icon={<Clock3 size={18} />}
+            label="Giờ mở cửa"
+            value={gym.operatingHours || "—"}
+          />
+          <Stat icon={<Phone size={18} />} label="Liên hệ" value={gym.phone || "—"} />
         </section>
 
         <section className="gd-grid">
@@ -180,6 +218,9 @@ export default function GymDetailsPage() {
                       onClick={() => navigate(`/marketplace/trainers/${t.id}`)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && navigate(`/marketplace/trainers/${t.id}`)
+                      }
                     >
                       <div className="gd-ava">
                         <ImageWithFallback
@@ -188,14 +229,20 @@ export default function GymDetailsPage() {
                           fallback="/placeholder-pt.jpg"
                         />
                       </div>
+
                       <div className="gd-itemInfo">
                         <div className="gd-itemTitle">{t.User?.username || "PT"}</div>
                         <div className="gd-itemMeta">
-                          ⭐ {Number(t.rating || 0).toFixed(1)} •{" "}
-                          {t.specialization || "Personal Trainer"}
+                          <Star size={14} fill="currentColor" />
+                          <span>{Number(t.rating || 0).toFixed(1)}</span>
+                          <span>•</span>
+                          <span>{t.specialization || "Personal Trainer"}</span>
                         </div>
                       </div>
-                      <span className="gd-itemGo">Xem →</span>
+
+                      <span className="gd-itemGo">
+                        <ArrowRight size={18} />
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -217,6 +264,9 @@ export default function GymDetailsPage() {
                       onClick={() => navigate(`/marketplace/packages/${p.id}`)}
                       role="button"
                       tabIndex={0}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && navigate(`/marketplace/packages/${p.id}`)
+                      }
                     >
                       <div className="gd-pkgTop">
                         <div className="gd-pkgName">{p.name}</div>
@@ -224,10 +274,23 @@ export default function GymDetailsPage() {
                           {Number(p.price || 0).toLocaleString("vi-VN")}đ
                         </div>
                       </div>
+
                       <div className="gd-pkgMeta">
-                        📦 {p.sessions} buổi • ⏱ {p.durationDays} ngày • {p.type || "basic"}
+                        <span className="gd-miniTag">
+                          <Dumbbell size={14} />
+                          <span>{p.sessions} buổi</span>
+                        </span>
+                        <span className="gd-miniTag">
+                          <Clock3 size={14} />
+                          <span>{p.durationDays} ngày</span>
+                        </span>
+                        <span className="gd-miniTag">
+                          <Package size={14} />
+                          <span>{p.type || "basic"}</span>
+                        </span>
                       </div>
-                      <span className="gd-pill">Xem chi tiết →</span>
+
+                      <div className="gd-pkgAction">Xem chi tiết</div>
                     </div>
                   ))}
                 </div>
@@ -239,10 +302,27 @@ export default function GymDetailsPage() {
 
           <div className="gd-right">
             <Card title="Thông tin liên hệ">
-              <div className="gd-text" style={{ lineHeight: 1.7 }}>
-                <div>📞 {gym.phone || "—"}</div>
-                <div>✉️ {gym.email || "—"}</div>
-                <div>📍 {gym.address || "—"}</div>
+              <div className="gd-contactList">
+                <div className="gd-contactItem">
+                  <span className="gd-contactIcon">
+                    <Phone size={16} />
+                  </span>
+                  <span>{gym.phone || "—"}</span>
+                </div>
+
+                <div className="gd-contactItem">
+                  <span className="gd-contactIcon">
+                    <Mail size={16} />
+                  </span>
+                  <span>{gym.email || "—"}</span>
+                </div>
+
+                <div className="gd-contactItem">
+                  <span className="gd-contactIcon">
+                    <MapPin size={16} />
+                  </span>
+                  <span>{gym.address || "—"}</span>
+                </div>
               </div>
             </Card>
 
@@ -257,7 +337,9 @@ export default function GymDetailsPage() {
               {Array.isArray(gym.images) && gym.images.length ? (
                 <div className="gd-gallery">
                   {gym.images.slice(0, 6).map((url, i) => (
-                    <img key={i} src={url} alt={`Gym photo ${i + 1}`} />
+                    <div className="gd-galleryItem" key={i}>
+                      <img src={url} alt={`Gym photo ${i + 1}`} />
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -267,7 +349,8 @@ export default function GymDetailsPage() {
               <button className="gd-cta2" onClick={requireLoginThenGoBooking}>
                 Đặt lịch PT ngay
               </button>
-              <div className="gd-muted" style={{ fontSize: 12, marginTop: 8 }}>
+
+              <div className="gd-ctaNote">
                 Chọn PT và lịch tập trong bước tiếp theo.
               </div>
             </Card>
