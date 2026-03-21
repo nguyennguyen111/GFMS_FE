@@ -1,379 +1,777 @@
-/* MemberProfilePage.css */
-:root{
-  --m-bg:#070b14;
-  --m-text:#e5e7eb;
-  --m-muted:#94a3b8;
-  --m-stroke: rgba(255,255,255,.12);
-  --m-card: rgba(18,28,52,.78);
-  --m-card2: rgba(8,14,30,.52);
-  --m-shadow: 0 25px 60px rgba(0,0,0,.45);
-
-  --m-blue:#38bdf8;
-  --m-blue2:#2563eb;
-
-  --m-gold:#ffb100;
-  --m-gold2:#ff8c00;
-
-  --m-ok:#22c55e;
-  --m-bad:#ff4d4f;
-}
-
-.mprof-empty{
-  padding: 26px 16px;
-  border-radius: 22px;
-  border: 1px dashed rgba(255,255,255,.12);
-  background: rgba(8,14,30,.45);
-  color: rgba(148,163,184,.92);
-}
-
-.mprof-page{
+.mprof-page {
   min-height: 100vh;
-  color: var(--m-text);
+  background: #0e0e0e;
+  color: #ffffff;
+  padding: 40px 24px 72px;
 }
 
-/* HERO */
-.mprof-hero{
-  background: radial-gradient(900px 520px at 10% 0%, rgba(56,189,248,.18), transparent 55%),
-              radial-gradient(900px 520px at 90% 20%, rgba(255,177,0,.12), transparent 55%),
-              linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 22px;
-  padding: 18px;
-  box-shadow: var(--m-shadow);
-  display:grid;
-  grid-template-columns: 86px 1fr auto;
-  gap: 14px;
-  align-items:center;
+.mprof-header {
+  margin-bottom: 40px;
 }
 
-@media (max-width: 980px){
-  .mprof-hero{ grid-template-columns: 86px 1fr; }
-  .mprof-heroActions{ grid-column: 1 / -1; justify-content: flex-start; }
+.mprof-eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-family: "Lexend", sans-serif;
+  color: #d6ff00;
+  text-transform: uppercase;
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 0.2em;
 }
 
-/* Avatar */
-.mprof-avatarWrap{
-  width: 86px;
-  height: 86px;
-  border-radius: 22px;
+.mprof-pageTitle {
+  margin: 0 0 12px;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.mprof-pageTitle span {
+  color: #d6ff00;
+  font-style: italic;
+}
+
+.mprof-pageSub {
+  margin: 0;
+  max-width: 760px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  text-transform: uppercase;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  line-height: 1.7;
+}
+
+.mprof-hero {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 255, 0, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(38, 38, 38, 0.9), rgba(19, 19, 19, 0.95));
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.06);
+  margin-bottom: 18px;
+}
+
+.mprof-avatarSection {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.mprof-avatarWrap {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(8,14,30,.52);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  background: #262626;
+  border: 4px solid #202020;
 }
 
-.mprof-avatarImg{
+.mprof-avatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display:block;
 }
 
-.mprof-avatarFallback{
+.mprof-avatarFallback {
   width: 100%;
   height: 100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size: 30px;
-  font-weight: 950;
-  background: linear-gradient(135deg, var(--m-gold), var(--m-gold2));
-  color: #121212;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #d6ff00 0%, #b8dc00 100%);
+  color: #0e0e0e;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 44px;
+  font-weight: 900;
 }
 
-/* Hero info */
-.mprof-nameRow{
-  display:flex;
-  align-items:center;
-  gap: 10px;
+.mprof-avatarEdit {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #d6ff00;
+  color: #546600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.mprof-avatarEdit:hover {
+  transform: scale(1.06);
+}
+
+.mprof-avatarEdit.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mprof-avatarEdit input {
+  display: none;
+}
+
+.mprof-heroInfo {
+  min-width: 0;
+}
+
+.mprof-nameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
-.mprof-name{
-  font-size: 26px;
-  font-weight: 950;
-  letter-spacing: -.01em;
+
+.mprof-name {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 1.05;
 }
 
-.mprof-role{
-  padding: 7px 10px;
+.mprof-role {
+  padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(56,189,248,.25);
-  background: rgba(56,189,248,.10);
-  color: rgba(56,189,248,.95);
+  border: 1px solid rgba(214, 255, 0, 0.2);
+  background: rgba(214, 255, 0, 0.08);
+  color: #d6ff00;
+  font-family: "Lexend", sans-serif;
   font-size: 11px;
-  font-weight: 950;
-  letter-spacing: .10em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
-.mprof-meta{
-  margin-top: 6px;
-  display:flex;
+.mprof-meta {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #d5d5d5;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 14px;
+}
+
+.mprof-badges {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mprof-badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.mprof-badge.active {
+  color: #d6ff00;
+  border-color: rgba(214, 255, 0, 0.28);
+  background: rgba(214, 255, 0, 0.08);
+}
+
+.mprof-badge.inactive {
+  color: #adaaaa;
+}
+
+.mprof-badge.suspended {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.28);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.mprof-badge.ok {
+  color: #d6ff00;
+  border-color: rgba(214, 255, 0, 0.28);
+  background: rgba(214, 255, 0, 0.08);
+}
+
+.mprof-badge.warn {
+  color: #ffd86b;
+  border-color: rgba(255, 216, 107, 0.22);
+  background: rgba(255, 216, 107, 0.08);
+}
+
+.mprof-heroActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.mprof-btn {
+  min-height: 52px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  font-family: "Lexend", sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
+
+.mprof-btn.primary {
+  background: #d6ff00;
+  color: #546600;
+}
+
+.mprof-btn.primary:hover {
+  transform: scale(0.985);
+  box-shadow: 0 10px 30px rgba(214, 255, 0, 0.18);
+}
+
+.mprof-btn.ghost {
+  background: #202020;
+  color: #ffffff;
+  border: 1px solid #2f2f2f;
+}
+
+.mprof-btn.ghost:hover {
+  background: #262626;
+}
+
+.mprof-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mprof-tabs {
+  display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  color: rgba(226,232,240,.82);
-  font-size: 13px;
+  margin-bottom: 22px;
 }
 
-.mprof-badges{
-  margin-top: 10px;
-  display:flex;
-  flex-wrap: wrap;
+.mprof-tab {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: #171717;
+  color: #d0d0d0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mprof-tab:hover {
+  color: #ffffff;
+  background: #1f1f1f;
+}
+
+.mprof-tab.active {
+  color: #d6ff00;
+  border-color: rgba(214, 255, 0, 0.28);
+  background: rgba(214, 255, 0, 0.08);
+}
+
+.mprof-bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}
+
+.mprof-card,
+.mprof-statusCard,
+.mprof-activityCard,
+.mprof-systemCard,
+.mprof-securityCard {
+  border-radius: 16px;
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.06);
+}
+
+.mprof-card,
+.mprof-activityCard,
+.mprof-systemCard,
+.mprof-securityCard {
+  background: rgba(38, 38, 38, 0.8);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 28px;
+}
+
+.mprof-card-main {
+  grid-column: span 8;
+}
+
+.mprof-statusCard {
+  grid-column: span 4;
+  background: #d6ff00;
+  color: #546600;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mprof-activityCard {
+  grid-column: span 5;
+}
+
+.mprof-systemCard {
+  grid-column: span 7;
+}
+
+.mprof-cardHead {
+  margin-bottom: 24px;
+}
+
+.mprof-cardLabel,
+.mprof-statusLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.12em;
+}
+
+.mprof-cardTitle,
+.mprof-statusTitle {
+  margin: 0;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.mprof-statusLabel {
+  color: rgba(84, 102, 0, 0.72);
+}
+
+.mprof-statusTitle {
+  font-size: 36px;
+  font-weight: 900;
+  color: #546600;
+}
+
+.mprof-statusFooter {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mprof-statusInfo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.mprof-statusInfoLabel,
+.mprof-planName {
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mprof-statusInfoLabel {
+  color: rgba(84, 102, 0, 0.72);
+}
+
+.mprof-statusInfoValue {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #546600;
+}
+
+.mprof-progressTrack {
+  width: 100%;
+  height: 8px;
+  background: rgba(84, 102, 0, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mprof-progressBar {
+  height: 100%;
+  background: #546600;
+  border-radius: inherit;
+}
+
+.mprof-planName {
+  margin: 0;
+  text-align: right;
+  color: rgba(84, 102, 0, 0.85);
+  letter-spacing: 0.06em;
+}
+
+.mprof-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mprof-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.mprof-field {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.mprof-badge{
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.18);
+.mprof-field.full {
+  grid-column: 1 / -1;
+}
+
+.mprof-label {
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
   font-size: 11px;
-  font-weight: 950;
-  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.08em;
 }
 
-.mprof-badge.active{ color: rgba(34,197,94,.95); border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.08); }
-.mprof-badge.inactive{ color: rgba(148,163,184,.95); }
-.mprof-badge.suspended{ color: rgba(255,77,79,.95); border-color: rgba(255,77,79,.25); background: rgba(255,77,79,.08); }
-
-.mprof-badge.ok{ color: rgba(34,197,94,.95); border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.08); }
-.mprof-badge.warn{ color: rgba(255,177,0,.95); border-color: rgba(255,177,0,.25); background: rgba(255,177,0,.08); }
-
-/* Actions */
-.mprof-heroActions{
-  display:flex;
-  gap: 10px;
-  justify-content:flex-end;
-  flex-wrap: wrap;
-}
-.mprof-btn{
-  border: 0;
-  cursor:pointer;
-  padding: 11px 14px;
-  border-radius: 14px;
-  font-weight: 950;
-  color: #fff;
-}
-.mprof-btn.primary{
-  background: linear-gradient(135deg, var(--m-blue2), #1d4ed8);
-  box-shadow: 0 12px 30px rgba(37,99,235,.22);
-}
-.mprof-btn.primary:hover{ filter: brightness(1.06); transform: translateY(-1px); }
-.mprof-btn.primary:active{ transform: translateY(0); }
-
-.mprof-btn.ghost{
-  background: rgba(8,14,30,.55);
-  border: 1px solid rgba(255,255,255,.12);
-}
-.mprof-btn.ghost:hover{ background: rgba(255,255,255,.08); }
-
-/* Tabs */
-.mprof-tabs{
-  margin-top: 14px;
-  display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.mprof-tab{
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(8,14,30,.52);
-  color: rgba(226,232,240,.92);
-  padding: 10px 12px;
-  border-radius: 999px;
-  cursor:pointer;
-  font-weight: 950;
-}
-.mprof-tab:hover{ background: rgba(255,255,255,.08); }
-.mprof-tab.active{
-  border-color: rgba(56,189,248,.45);
-  background: rgba(56,189,248,.14);
-  color: #e0f2fe;
-}
-
-/* Grid */
-.mprof-grid{
-  margin-top: 14px;
-  display:grid;
-  grid-template-columns: 1.4fr .9fr;
-  gap: 14px;
-}
-.mprof-grid.one{ grid-template-columns: 1fr; }
-
-@media (max-width: 980px){
-  .mprof-grid{ grid-template-columns: 1fr; }
-}
-
-/* Card */
-.mprof-card{
-  background: var(--m-card);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.22);
-}
-
-.mprof-cardHead{
-  display:flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.mprof-cardHead h3{
-  margin: 0;
-  font-size: 16px;
-  font-weight: 950;
-}
-
-.mprof-muted{
-  color: rgba(148,163,184,.92);
-  font-size: 12px;
-}
-
-/* Form */
-.mprof-form{
-  display:flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mprof-field{
-  display:flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mprof-label{
-  font-size: 12px;
-  color: rgba(148,163,184,.92);
-  font-weight: 900;
-  letter-spacing: .02em;
-}
-
-.mprof-input, .mprof-textarea{
+.mprof-input,
+.mprof-textarea {
   width: 100%;
-  padding: 11px 12px;
-  border-radius: 14px;
-  background: rgba(8,14,30,.55);
-  border: 1px solid rgba(255,255,255,.12);
-  color: #fff;
-  outline:none;
+  border: none;
+  outline: none;
+  border-radius: 16px;
+  background: #262626;
+  color: #ffffff;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.mprof-input {
+  min-height: 52px;
+  padding: 0 16px;
+}
+
+.mprof-textarea {
+  min-height: 120px;
+  padding: 14px 16px;
+  resize: vertical;
+}
+
+.mprof-input:focus,
+.mprof-textarea:focus {
+  box-shadow: 0 0 0 2px rgba(214, 255, 0, 0.28);
+  background: #2d2d2d;
 }
 
 .mprof-input:read-only,
-.mprof-textarea:read-only{
-  opacity: .78;
+.mprof-textarea:read-only,
+.mprof-input:disabled {
+  opacity: 0.82;
+  cursor: default;
 }
 
-.mprof-row2{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 560px){
-  .mprof-row2{ grid-template-columns: 1fr; }
-}
-
-/* Avatar block */
-.mprof-avatarBlock{
-  display:flex;
-  gap: 12px;
-  align-items:center;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(8,14,30,.32);
-  border-radius: 18px;
-  padding: 12px;
-}
-
-.mprof-avatarSmall{
-  width: 56px;
-  height: 56px;
+.mprof-uploadBox {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
   border-radius: 16px;
-  overflow:hidden;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(8,14,30,.52);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
-.mprof-avatarSmall img{ width:100%; height:100%; object-fit: cover; }
 
-.mprof-avatarSmallFallback{
+.mprof-uploadPreview {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #262626;
+  flex-shrink: 0;
+}
+
+.mprof-uploadPreview img {
   width: 100%;
   height: 100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 950;
-  background: linear-gradient(135deg, var(--m-gold), var(--m-gold2));
-  color: #111;
+  object-fit: cover;
 }
 
-.mprof-upload{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(8,14,30,.55);
-  color: rgba(226,232,240,.92);
-  font-weight: 950;
-  cursor: pointer;
-  width: fit-content;
-  margin-top: 8px;
+.mprof-uploadFallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #d6ff00 0%, #b8dc00 100%);
+  color: #0e0e0e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 22px;
+  font-weight: 900;
 }
-.mprof-upload input{ display:none; }
-.mprof-upload:hover{ background: rgba(255,255,255,.08); }
-.mprof-upload.disabled{
-  opacity: .55;
+
+.mprof-uploadInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mprof-uploadTitle {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mprof-uploadText {
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.mprof-uploadBtn {
+  width: fit-content;
+  margin-top: 4px;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #262626;
+  color: #ffffff;
+  border: 1px solid #303030;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.mprof-uploadBtn:hover {
+  background: #2f2f2f;
+}
+
+.mprof-uploadBtn.disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
-.mprof-upload.disabled:hover{ background: rgba(8,14,30,.55); }
 
-/* Save row */
-.mprof-saveRow{
-  display:flex;
-  gap: 10px;
-  justify-content:flex-end;
+.mprof-uploadBtn input {
+  display: none;
+}
+
+.mprof-saveRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
   flex-wrap: wrap;
   margin-top: 4px;
 }
 
-/* Info list */
-.mprof-infoList{
-  display:flex;
-  flex-direction: column;
-  gap: 8px;
+.mprof-saveRow.end {
+  justify-content: flex-end;
 }
 
-.mprof-infoRow{
-  display:flex;
+.mprof-activityHead {
+  display: flex;
   justify-content: space-between;
-  align-items:center;
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(8,14,30,.45);
-  color: rgba(226,232,240,.92);
+  align-items: center;
+  margin-bottom: 24px;
 }
-.mprof-infoRow span{ color: rgba(148,163,184,.92); font-weight: 900; }
-.mprof-infoRow b{ font-weight: 950; }
 
-.mprof-note{
-  margin-top: 12px;
-  font-size: 12px;
-  color: rgba(148,163,184,.92);
+.mprof-analyticsIcon {
+  color: #d6ff00;
 }
-/* ===== BMI CARD MODERN ===== */
+
+.mprof-activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mprof-activityItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mprof-activityIconWrap {
+  width: 48px;
+  height: 48px;
+  background: #131313;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d6ff00;
+  transition: all 0.2s ease;
+}
+
+.mprof-activityItem:hover .mprof-activityIconWrap {
+  background: #d6ff00;
+  color: #546600;
+}
+
+.mprof-activityDetails {
+  min-width: 0;
+}
+
+.mprof-activityTitle {
+  margin: 0 0 4px;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mprof-activityTime {
+  margin: 0;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mprof-infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mprof-infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mprof-infoRow span {
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+.mprof-infoRow b {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 14px;
+  text-align: right;
+}
+
+.mprof-note {
+  margin-top: 14px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  line-height: 1.7;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mprof-metricsGrid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.mprof-metricCard {
+  background: #131313;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.06);
+}
+
+.mprof-metricValue {
+  margin: 0;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.mprof-metricCard:first-child .mprof-metricValue {
+  color: #d6ff00;
+}
+
+.mprof-metricLabel {
+  margin: 8px 0 0;
+  color: #d6ff00;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
+
+.mprof-singleGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.mprof-securityForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.mprof-empty {
+  padding: 24px;
+  border-radius: 16px;
+  background: #131313;
+  color: #adaaaa;
+  font-family: "Be Vietnam Pro", sans-serif;
+}
+
 .bmi-card-modern,
 .chart-card-modern {
-  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: linear-gradient(180deg, #111111 0%, #161616 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.35);
-  color: #e5eefb;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  color: #f4f4f4;
 }
 
 .bmi-head {
@@ -393,29 +791,33 @@
 }
 
 .bmi-badge.neutral {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
-  border-color: rgba(148, 163, 184, 0.25);
+  background: rgba(173, 170, 170, 0.12);
+  color: #d8d8d8;
+  border-color: rgba(173, 170, 170, 0.2);
 }
+
 .bmi-badge.low {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.25);
+  background: rgba(255, 184, 0, 0.12);
+  color: #ffcf57;
+  border-color: rgba(255, 184, 0, 0.22);
 }
+
 .bmi-badge.good {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(214, 255, 0, 0.12);
+  color: #d6ff00;
+  border-color: rgba(214, 255, 0, 0.22);
 }
+
 .bmi-badge.warn {
-  background: rgba(250, 204, 21, 0.15);
-  color: #fde047;
-  border-color: rgba(250, 204, 21, 0.25);
+  background: rgba(255, 214, 107, 0.12);
+  color: #ffe28c;
+  border-color: rgba(255, 214, 107, 0.22);
 }
+
 .bmi-badge.danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(255, 107, 107, 0.12);
+  color: #ff8c8c;
+  border-color: rgba(255, 107, 107, 0.22);
 }
 
 .bmi-layout {
@@ -427,8 +829,8 @@
 
 .bmi-formPanel,
 .bmi-summaryPanel {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(19, 19, 19, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 20px;
   padding: 18px;
 }
@@ -436,21 +838,21 @@
 .bmi-panelTitle {
   font-size: 15px;
   font-weight: 700;
-  color: #f8fafc;
+  color: #ffffff;
   margin-bottom: 14px;
 }
 
 .bmi-livePreview {
   margin-top: 14px;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.08));
-  border: 1px solid rgba(56, 189, 248, 0.16);
+  background: linear-gradient(135deg, rgba(214, 255, 0, 0.08), rgba(214, 255, 0, 0.03));
+  border: 1px solid rgba(214, 255, 0, 0.12);
   border-radius: 18px;
   padding: 16px;
 }
 
 .bmi-liveLabel {
   font-size: 13px;
-  color: #94a3b8;
+  color: #adaaaa;
   margin-bottom: 6px;
 }
 
@@ -458,7 +860,7 @@
   font-size: 32px;
   line-height: 1;
   font-weight: 800;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .bmi-liveStatus {
@@ -466,11 +868,22 @@
   font-size: 14px;
   font-weight: 700;
 }
-.bmi-liveStatus.neutral { color: #cbd5e1; }
-.bmi-liveStatus.low { color: #fbbf24; }
-.bmi-liveStatus.good { color: #4ade80; }
-.bmi-liveStatus.warn { color: #fde047; }
-.bmi-liveStatus.danger { color: #f87171; }
+
+.bmi-liveStatus.neutral {
+  color: #d8d8d8;
+}
+.bmi-liveStatus.low {
+  color: #ffcf57;
+}
+.bmi-liveStatus.good {
+  color: #d6ff00;
+}
+.bmi-liveStatus.warn {
+  color: #ffe28c;
+}
+.bmi-liveStatus.danger {
+  color: #ff8c8c;
+}
 
 .bmi-actions {
   margin-top: 16px;
@@ -493,11 +906,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(30, 41, 59, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 14px;
   padding: 10px 12px;
-  color: #dbe7f5;
+  color: #f4f4f4;
   font-size: 13px;
 }
 
@@ -507,34 +920,36 @@
   border-radius: 50%;
   flex: 0 0 10px;
 }
-.dot.low { background: #f59e0b; }
-.dot.good { background: #22c55e; }
-.dot.warn { background: #facc15; }
-.dot.danger { background: #ef4444; }
+.dot.low {
+  background: #ffb800;
+}
+.dot.good {
+  background: #d6ff00;
+}
+.dot.warn {
+  background: #ffd66b;
+}
+.dot.danger {
+  background: #ff6b6b;
+}
 
 .bmi-hero {
   border-radius: 20px;
   padding: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, #1b1b1b, #101010);
 }
-
-.bmi-hero.neutral { box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08); }
-.bmi-hero.low { box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2); }
-.bmi-hero.good { box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.2); }
-.bmi-hero.warn { box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.2); }
-.bmi-hero.danger { box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.2); }
 
 .bmi-heroLabel {
   font-size: 13px;
-  color: #94a3b8;
+  color: #adaaaa;
 }
 
 .bmi-heroValue {
   font-size: 48px;
   line-height: 1;
   font-weight: 900;
-  color: #f8fafc;
+  color: #ffffff;
   margin-top: 8px;
 }
 
@@ -542,7 +957,7 @@
   margin-top: 10px;
   font-size: 15px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: #d5d5d5;
 }
 
 .bmi-statsGrid {
@@ -553,8 +968,8 @@
 }
 
 .bmi-statCard {
-  background: rgba(30, 41, 59, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 16px;
   padding: 14px;
 }
@@ -562,30 +977,29 @@
 .bmi-statCard span {
   display: block;
   font-size: 12px;
-  color: #94a3b8;
+  color: #adaaaa;
   margin-bottom: 8px;
 }
 
 .bmi-statCard strong {
   font-size: 16px;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .bmi-compareBox {
   margin-top: 16px;
-  background: rgba(15, 23, 42, 0.74);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 18px;
   padding: 16px;
 }
 
-/* ===== CHART ===== */
 .modern-chart-wrap {
   margin-top: 16px;
   overflow-x: auto;
   border-radius: 20px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   padding: 10px;
 }
 
@@ -597,62 +1011,58 @@
 }
 
 .chart-bg {
-  fill: rgba(15, 23, 42, 0.9);
+  fill: #111111;
 }
 
 .chart-grid-line {
-  stroke: rgba(148, 163, 184, 0.14);
+  stroke: rgba(255, 255, 255, 0.08);
   stroke-width: 1;
   stroke-dasharray: 4 6;
 }
 
 .chart-axis-line {
-  stroke: rgba(148, 163, 184, 0.22);
+  stroke: rgba(255, 255, 255, 0.14);
   stroke-width: 1.2;
 }
 
-.chart-axis-text {
-  fill: #94a3b8;
+.chart-axis-text,
+.chart-date-text {
+  fill: #adaaaa;
   font-size: 12px;
 }
 
-.chart-date-text {
-  fill: #94a3b8;
-  font-size: 11px;
-}
-
 .chart-point-outer {
-  fill: rgba(56, 189, 248, 0.2);
+  fill: rgba(214, 255, 0, 0.18);
 }
 
 .chart-point-inner {
-  fill: #38bdf8;
-  stroke: #e0f2fe;
+  fill: #d6ff00;
+  stroke: #ffffff;
   stroke-width: 2;
   transition: all 0.2s ease;
 }
 
 .chart-hover-line {
-  stroke: rgba(56, 189, 248, 0.35);
+  stroke: rgba(214, 255, 0, 0.35);
   stroke-width: 1.5;
   stroke-dasharray: 4 5;
 }
 
 .chart-tooltip-box {
-  fill: rgba(15, 23, 42, 0.96);
-  stroke: rgba(56, 189, 248, 0.26);
+  fill: rgba(19, 19, 19, 0.96);
+  stroke: rgba(214, 255, 0, 0.2);
   stroke-width: 1;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.3));
 }
 
 .chart-tooltip-title {
-  fill: #f8fafc;
+  fill: #ffffff;
   font-size: 14px;
   font-weight: 800;
 }
 
 .chart-tooltip-text {
-  fill: #cbd5e1;
+  fill: #d5d5d5;
   font-size: 12px;
 }
 
@@ -667,11 +1077,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(30, 41, 59, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 999px;
   padding: 8px 12px;
-  color: #dbe7f5;
+  color: #f4f4f4;
   font-size: 13px;
 }
 
@@ -680,114 +1090,96 @@
   height: 12px;
   border-radius: 4px;
 }
-.legend-box.under { background: rgba(245, 158, 11, 0.8); }
-.legend-box.normal { background: rgba(34, 197, 94, 0.8); }
-.legend-box.over { background: rgba(250, 204, 21, 0.8); }
-.legend-box.obese { background: rgba(239, 68, 68, 0.8); }
-
-/* ===== INPUT polish ===== */
-.mprof-input {
-  width: 100%;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.82);
-  color: #f8fafc;
-  padding: 0 14px;
-  outline: none;
-  transition: 0.2s ease;
+.legend-box.under {
+  background: rgba(255, 184, 0, 0.9);
+}
+.legend-box.normal {
+  background: rgba(214, 255, 0, 0.9);
+}
+.legend-box.over {
+  background: rgba(255, 214, 107, 0.9);
+}
+.legend-box.obese {
+  background: rgba(255, 107, 107, 0.9);
 }
 
-.mprof-input::placeholder {
-  color: #64748b;
+@media (min-width: 768px) {
+  .mprof-pageTitle {
+    font-size: 64px;
+  }
 }
 
-.mprof-input:focus {
-  border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.08);
-}
+@media (max-width: 1024px) {
+  .mprof-hero {
+    grid-template-columns: 140px 1fr;
+  }
 
-.mprof-label {
-  display: block;
-  font-size: 13px;
-  color: #cbd5e1;
-  margin-bottom: 8px;
-}
+  .mprof-heroActions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
 
-.mprof-row2 {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
+  .mprof-bento {
+    grid-template-columns: 1fr;
+  }
 
-.mprof-saveRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+  .mprof-card-main,
+  .mprof-statusCard,
+  .mprof-activityCard,
+  .mprof-systemCard {
+    grid-column: auto;
+  }
 
-.mprof-btn.primary {
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
-  color: #fff;
-  border: 0;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
-}
+  .mprof-metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-.mprof-btn.primary:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.04);
-}
-
-.mprof-btn.primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.mprof-infoList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mprof-infoRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: rgba(30, 41, 59, 0.55);
-  border-radius: 12px;
-  padding: 12px 14px;
-  color: #cbd5e1;
-}
-
-.mprof-infoRow b {
-  color: #f8fafc;
-}
-
-.mprof-muted {
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-@media (max-width: 980px) {
   .bmi-layout {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  .mprof-page {
+    padding: 28px 16px 56px;
+  }
+
+  .mprof-pageTitle {
+    font-size: 36px;
+  }
+
+  .mprof-hero {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .mprof-avatarSection {
+    width: 120px;
+    height: 120px;
+  }
+
+  .mprof-name {
+    font-size: 28px;
+  }
+
   .mprof-row2,
+  .mprof-securityForm,
+  .mprof-metricsGrid,
   .bmi-guide,
   .bmi-statsGrid {
     grid-template-columns: 1fr;
   }
 
-  .bmi-head {
+  .mprof-uploadBox,
+  .mprof-infoRow,
+  .mprof-statusInfo {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .mprof-metricValue {
+    font-size: 32px;
   }
 
   .bmi-heroValue {

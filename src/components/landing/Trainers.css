@@ -1,0 +1,133 @@
+.trainers {
+  padding: 96px 24px;
+}
+
+.trainers-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.trainers-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.trainers-label {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-primary);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  margin-bottom: 16px;
+}
+
+.trainers-title {
+  font-family: var(--font-headline);
+  font-weight: 900;
+  font-size: 48px;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+}
+
+.trainer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 640px) {
+  .trainer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .trainer-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.trainer-card {
+  background-color: var(--color-surface-low);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.trainer-card:hover {
+  background-color: var(--color-surface-highest);
+}
+
+.trainer-img-wrapper {
+  aspect-ratio: 1/1;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.trainer-card:hover .trainer-img-wrapper {
+  border-color: var(--color-primary);
+}
+
+.trainer-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%);
+  transition: all 0.5s ease;
+}
+
+.trainer-card:hover .trainer-img {
+  filter: grayscale(0%);
+}
+
+.trainer-name {
+  font-family: var(--font-headline);
+  font-weight: 900;
+  font-size: 24px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.trainer-role {
+  font-family: var(--font-label);
+  font-size: 12px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.trainer-desc {
+  color: var(--color-on-surface-variant);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.trainer-socials {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.social-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-surface-variant);
+  transition: all 0.3s ease;
+}
+
+.social-btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}

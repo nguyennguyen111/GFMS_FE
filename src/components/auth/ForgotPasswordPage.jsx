@@ -1,12 +1,19 @@
-// ForgotPasswordPage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  ArrowRight,
+  KeyRound,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from 'lucide-react';
 import './ForgotPasswordPage.css';
 import { forgotPassword, verifyOtp, resetPassword } from '../../services/authService';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Nhập email, 2: Nhập OTP, 3: Đổi mật khẩu
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -16,11 +23,10 @@ const ForgotPasswordPage = () => {
   const [timer, setTimer] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
 
-  // Hàm đếm ngược thời gian
   const startTimer = () => {
-    setTimer(300); // 5 phút = 300 giây
+    setTimer(300);
     const interval = setInterval(() => {
-      setTimer(prev => {
+      setTimer((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           return 0;
@@ -30,27 +36,25 @@ const ForgotPasswordPage = () => {
     }, 1000);
   };
 
-  // Bước 1: Gửi yêu cầu OTP
   const handleSendOTP = async () => {
     const newErrors = {};
-    
+
     if (!email) {
       newErrors.email = 'Email là bắt buộc';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Email không hợp lệ';
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await forgotPassword(email);
-      
-      // NOTE: backend có thể trả EC dạng number hoặc string ("0").
+
       if (Number(response.data.EC) === 0) {
         alert('✅ OTP đã được gửi đến email của bạn!');
         setStep(2);
@@ -67,23 +71,22 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  // Bước 2: Xác thực OTP
   const handleVerifyOTP = async () => {
     if (!otp) {
       setErrors({ otp: 'Vui lòng nhập OTP' });
       return;
     }
-    
+
     if (otp.length !== 6) {
       setErrors({ otp: 'OTP phải có 6 chữ số' });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await verifyOtp(email, otp);
-      
+
       if (Number(response.data.EC) === 0) {
         alert('✅ OTP hợp lệ! Vui lòng đặt mật khẩu mới.');
         setStep(3);
@@ -98,10 +101,9 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  // Bước 3: Đặt mật khẩu mới
   const handleResetPassword = async () => {
     const newErrors = {};
-    
+
     if (!newPassword) {
       newErrors.newPassword = 'Mật khẩu mới là bắt buộc';
     } else if (newPassword.length < 8) {
@@ -109,23 +111,23 @@ const ForgotPasswordPage = () => {
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
       newErrors.newPassword = 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số';
     }
-    
+
     if (!confirmPassword) {
       newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (newPassword !== confirmPassword) {
       newErrors.confirmPassword = 'Mật khẩu không khớp';
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const response = await resetPassword(email, otp, newPassword);
-      
+
       if (Number(response.data.EC) === 0) {
         alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
         navigate('/login');
@@ -140,13 +142,12 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  // Gửi lại OTP
   const handleResendOTP = async () => {
     setIsLoading(true);
-    
+
     try {
       const response = await forgotPassword(email);
-      
+
       if (Number(response.data.EC) === 0) {
         alert('✅ Đã gửi lại OTP mới!');
         startTimer();
@@ -161,7 +162,6 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  // Định dạng thời gian
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -169,105 +169,137 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="forgot-password-page">
-      <div className="gym-background"></div>
-      <div className="forgot-overlay"></div>
-      
-      <div className="forgot-container">
+    <div className="forgot-page">
+      <div className="forgot-page__glow forgot-page__glow--left" />
+      <div className="forgot-page__glow forgot-page__glow--right" />
+
+      <div className="forgot-shell">
+        <div className="forgot-branding">
+          <div className="forgot-kicker">Security Access</div>
+
+          <h1 className="forgot-branding__title">
+            QUÊN <br />
+            <span>MẬT KHẨU?</span>
+          </h1>
+
+          <p className="forgot-branding__desc">
+            Khôi phục quyền truy cập vào hệ thống GFMS qua 3 bước xác thực đơn giản và an toàn.
+          </p>
+
+          <div className="forgot-branding__info">
+            <div className="forgot-branding__infoItem">
+              <ShieldCheck size={18} />
+              <span>Xác thực qua email đăng ký</span>
+            </div>
+            <div className="forgot-branding__infoItem">
+              <KeyRound size={18} />
+              <span>OTP có thời hạn bảo mật</span>
+            </div>
+            <div className="forgot-branding__infoItem">
+              <Lock size={18} />
+              <span>Thiết lập lại mật khẩu mới</span>
+            </div>
+          </div>
+        </div>
+
         <div className="forgot-card">
-          <div className="forgot-header">
-            <h2>Quên mật khẩu</h2>
-            <p>Thiết lập lại mật khẩu của bạn</p>
+          <div className="forgot-card__header">
+            <p className="forgot-card__eyebrow">Recovery Flow</p>
+            <h2>Thiết lập lại mật khẩu</h2>
+            <p>Hoàn tất quy trình để lấy lại quyền truy cập tài khoản của bạn.</p>
           </div>
-          
-          <div className="progress-steps">
-            <div className={`step ${step >= 1 ? 'active' : ''}`}>
-              <span className="step-number">1</span>
-              <span className="step-label">Nhập email</span>
+
+          <div className="forgot-steps">
+            <div className={`forgot-step ${step >= 1 ? 'is-active' : ''}`}>
+              <span className="forgot-step__dot">1</span>
+              <span className="forgot-step__label">Email</span>
             </div>
-            <div className={`step ${step >= 2 ? 'active' : ''}`}>
-              <span className="step-number">2</span>
-              <span className="step-label">Xác thực OTP</span>
+            <div className={`forgot-step ${step >= 2 ? 'is-active' : ''}`}>
+              <span className="forgot-step__dot">2</span>
+              <span className="forgot-step__label">OTP</span>
             </div>
-            <div className={`step ${step >= 3 ? 'active' : ''}`}>
-              <span className="step-number">3</span>
-              <span className="step-label">Mật khẩu mới</span>
+            <div className={`forgot-step ${step >= 3 ? 'is-active' : ''}`}>
+              <span className="forgot-step__dot">3</span>
+              <span className="forgot-step__label">Mật khẩu mới</span>
             </div>
           </div>
-          
+
           {step === 1 && (
-            <div className="step-content">
-              <div className="form-group">
-                <label>Email đăng ký</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: '' });
-                  }}
-                  placeholder="Nhập email của bạn"
-                  className={errors.email ? 'error' : ''}
-                />
-                {errors.email && <span className="error-message">{errors.email}</span>}
+            <div className="forgot-content">
+              <div className="forgot-formGroup">
+                <label className="forgot-label">Email đăng ký</label>
+                <div className="forgot-inputWrap">
+                  <Mail size={18} className="forgot-inputIcon" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors({ ...errors, email: '' });
+                    }}
+                    placeholder="name@company.com"
+                    className={`forgot-input ${errors.email ? 'is-error' : ''}`}
+                  />
+                </div>
+                {errors.email && <span className="forgot-error">{errors.email}</span>}
               </div>
-              
-              <button 
-                className="submit-btn"
-                onClick={handleSendOTP}
-                disabled={isLoading}
-              >
+
+              <button className="forgot-submit" onClick={handleSendOTP} disabled={isLoading}>
                 {isLoading ? 'Đang gửi...' : 'Gửi mã OTP'}
+                {!isLoading && <ArrowRight size={18} />}
               </button>
             </div>
           )}
-          
+
           {step === 2 && (
-            <div className="step-content">
-              <div className="otp-info">
+            <div className="forgot-content">
+              <div className="forgot-note">
                 <p>Mã OTP đã được gửi đến: <strong>{email}</strong></p>
-                <p>Vui lòng kiểm tra email (cả hộp thư rác) và nhập mã 6 số:</p>
-                
+                <p>Vui lòng kiểm tra email và nhập mã xác thực 6 số.</p>
+
                 {timer > 0 && (
-                  <div className="timer">
+                  <div className="forgot-timer">
                     ⏳ Thời gian còn lại: <strong>{formatTime(timer)}</strong>
                   </div>
                 )}
-                
+
                 {timer === 0 && otpSent && (
-                  <div className="timer-expired">
+                  <div className="forgot-expired">
                     ⚠️ Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.
                   </div>
                 )}
               </div>
-              
-              <div className="form-group">
-                <label>Mã OTP (6 số)</label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setOtp(value);
-                    if (errors.otp) setErrors({ ...errors, otp: '' });
-                  }}
-                  placeholder="Nhập mã OTP"
-                  className={errors.otp ? 'error' : ''}
-                />
-                {errors.otp && <span className="error-message">{errors.otp}</span>}
+
+              <div className="forgot-formGroup">
+                <label className="forgot-label">Mã OTP</label>
+                <div className="forgot-inputWrap">
+                  <KeyRound size={18} className="forgot-inputIcon" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtp(value);
+                      if (errors.otp) setErrors({ ...errors, otp: '' });
+                    }}
+                    placeholder="Nhập mã OTP"
+                    className={`forgot-input ${errors.otp ? 'is-error' : ''}`}
+                  />
+                </div>
+                {errors.otp && <span className="forgot-error">{errors.otp}</span>}
               </div>
-              
-              <div className="button-group">
-                <button 
-                  className="submit-btn"
+
+              <div className="forgot-buttonRow">
+                <button
+                  className="forgot-submit"
                   onClick={handleVerifyOTP}
                   disabled={isLoading || timer === 0}
                 >
                   {isLoading ? 'Đang xác thực...' : 'Xác thực OTP'}
                 </button>
-                
-                <button 
-                  className="resend-btn"
+
+                <button
+                  className="forgot-secondary"
                   onClick={handleResendOTP}
                   disabled={isLoading || timer > 0}
                 >
@@ -276,55 +308,58 @@ const ForgotPasswordPage = () => {
               </div>
             </div>
           )}
-          
+
           {step === 3 && (
-            <div className="step-content">
-              <div className="form-group">
-                <label>Mật khẩu mới</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => {
-                    setNewPassword(e.target.value);
-                    if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
-                  }}
-                  placeholder="Nhập mật khẩu mới"
-                  className={errors.newPassword ? 'error' : ''}
-                />
-                {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+            <div className="forgot-content">
+              <div className="forgot-formGroup">
+                <label className="forgot-label">Mật khẩu mới</label>
+                <div className="forgot-inputWrap">
+                  <Lock size={18} className="forgot-inputIcon" />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (errors.newPassword) setErrors({ ...errors, newPassword: '' });
+                    }}
+                    placeholder="Nhập mật khẩu mới"
+                    className={`forgot-input ${errors.newPassword ? 'is-error' : ''}`}
+                  />
+                </div>
+                {errors.newPassword && <span className="forgot-error">{errors.newPassword}</span>}
               </div>
-              
-              <div className="form-group">
-                <label>Xác nhận mật khẩu mới</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
-                  }}
-                  placeholder="Nhập lại mật khẩu mới"
-                  className={errors.confirmPassword ? 'error' : ''}
-                />
-                {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+
+              <div className="forgot-formGroup">
+                <label className="forgot-label">Xác nhận mật khẩu mới</label>
+                <div className="forgot-inputWrap">
+                  <Lock size={18} className="forgot-inputIcon" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+                    }}
+                    placeholder="Nhập lại mật khẩu mới"
+                    className={`forgot-input ${errors.confirmPassword ? 'is-error' : ''}`}
+                  />
+                </div>
+                {errors.confirmPassword && (
+                  <span className="forgot-error">{errors.confirmPassword}</span>
+                )}
               </div>
-              
-              <button 
-                className="submit-btn"
-                onClick={handleResetPassword}
-                disabled={isLoading}
-              >
+
+              <button className="forgot-submit" onClick={handleResetPassword} disabled={isLoading}>
                 {isLoading ? 'Đang xử lý...' : 'Đặt lại mật khẩu'}
+                {!isLoading && <ArrowRight size={18} />}
               </button>
             </div>
           )}
-          
-          <div className="back-to-login">
-            <button 
-              className="back-btn"
-              onClick={() => navigate('/login')}
-            >
-              ← Quay lại đăng nhập
+
+          <div className="forgot-back">
+            <button className="forgot-backBtn" onClick={() => navigate('/login')}>
+              <ArrowLeft size={16} />
+              Quay lại đăng nhập
             </button>
           </div>
         </div>

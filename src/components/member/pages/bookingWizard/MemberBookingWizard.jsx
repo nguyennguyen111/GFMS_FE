@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, MapPin } from "lucide-react";
 import Stepper from "./Stepper";
 
 import Step1SelectPackage from "./Step1SelectPackage";
@@ -16,7 +17,13 @@ import {
 
 import "./bookingWizard.css";
 
-const STEPS = ["Chọn gói", "Chọn PT", "Lịch cố định", "Ngày bắt đầu", "Preview & Xác nhận"];
+const STEPS = [
+  "Chọn gói",
+  "Chọn PT",
+  "Lịch cố định",
+  "Ngày bắt đầu",
+  "Xác nhận",
+];
 
 export default function MemberBookingWizard() {
   const [sp] = useSearchParams();
@@ -34,9 +41,7 @@ export default function MemberBookingWizard() {
   const [pkg, setPkg] = useState(null);
   const [trainer, setTrainer] = useState(null);
   const [pattern, setPattern] = useState([]);
-  const [slot, setSlot] = useState(null);
   const [startDate, setStartDate] = useState("");
-  const [repeatWeeks, setRepeatWeeks] = useState(8);
 
   useEffect(() => {
     if (!gymId) {
@@ -48,22 +53,26 @@ export default function MemberBookingWizard() {
     (async () => {
       try {
         setLoading(true);
+        setErr("");
+
         const [gRes, pRes, tRes] = await Promise.all([
           mpGetGymDetail(gymId),
           mpGetPackages({ gymId }),
           mpGetTrainers({ gymId }),
         ]);
 
-        const gymData = gRes.data?.DT || null;
-        const packageData = pRes.data?.DT || [];
-        const trainerData = tRes.data?.DT || [];
+        const gymData = gRes?.data?.DT || null;
+        const packageData = Array.isArray(pRes?.data?.DT) ? pRes.data.DT : [];
+        const trainerData = Array.isArray(tRes?.data?.DT) ? tRes.data.DT : [];
 
         setGym(gymData);
         setPackages(packageData);
         setTrainers(trainerData);
 
         if (preselectedPackageId) {
-          const foundPkg = packageData.find((p) => Number(p.id) === preselectedPackageId);
+          const foundPkg = packageData.find(
+            (p) => Number(p.id) === Number(preselectedPackageId)
+          );
 
           if (!foundPkg) {
             setErr("Gói tập không tồn tại trong gym này.");
@@ -71,12 +80,16 @@ export default function MemberBookingWizard() {
           }
 
           setPkg(foundPkg);
-          setStep(1); // bỏ qua step 1
+          setStep(1);
         } else {
           setStep(0);
         }
       } catch (e) {
-        setErr(e.response?.data?.message || "Không tải được dữ liệu");
+        setErr(
+          e?.response?.data?.EM ||
+            e?.response?.data?.message ||
+            "Không tải được dữ liệu"
+        );
       } finally {
         setLoading(false);
       }
@@ -85,13 +98,16 @@ export default function MemberBookingWizard() {
 
   const matchedTrainers = useMemo(() => {
     if (!pkg) return trainers;
-    const type = String(pkg.type || "").toLowerCase();
+
+    const type = String(pkg.type || "").trim().toLowerCase();
     if (!type || type === "basic") return trainers;
 
     return trainers.filter((t) => {
       const specs = String(t.specialization || "")
         .split(",")
-        .map((s) => s.trim().toLowerCase());
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+
       return specs.includes(type);
     });
   }, [trainers, pkg]);
@@ -99,7 +115,7 @@ export default function MemberBookingWizard() {
   const canNext = (s) => {
     if (s === 0) return !!pkg;
     if (s === 1) return !!trainer;
-    if (s === 2) return pattern.length > 0 && !!slot;
+    if (s === 2) return Array.isArray(pattern) && pattern.length > 0;
     if (s === 3) return !!startDate;
     return true;
   };
@@ -107,7 +123,9 @@ export default function MemberBookingWizard() {
   if (loading) {
     return (
       <div className="bw-page bw-center">
-        <div className="bw-stateText">Đang tải…</div>
+        <div className="bw-stateCard">
+          <div className="bw-stateText">Đang tải dữ liệu đặt lịch…</div>
+        </div>
       </div>
     );
   }
@@ -115,100 +133,123 @@ export default function MemberBookingWizard() {
   if (err) {
     return (
       <div className="bw-page bw-center">
-        <div className="bw-stateText bw-stateError">{err}</div>
+        <div className="bw-stateCard bw-stateCardError">
+          <div className="bw-stateText bw-stateError">{err}</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="bw-page">
+      <div className="bw-pageGlow bw-pageGlow--1" />
+      <div className="bw-pageGlow bw-pageGlow--2" />
+
       <div className="bw-container">
-        <header className="bw-header">
-          <div className="bw-headerLeft">
-            <h1 className="bw-title">Đặt lịch PT</h1>
-            <p className="bw-subtitle">Hoàn tất 5 bước đơn giản để bắt đầu tập luyện.</p>
-            {gym?.name && (
-              <p className="bw-gymline">
-                Gym: <b className="bw-gymname">{gym.name}</b>
-              </p>
-            )}
-            {pkg?.name && preselectedPackageId ? (
-              <p className="bw-gymline">
-                Gói đã chọn sẵn: <b className="bw-gymname">{pkg.name}</b>
-              </p>
-            ) : null}
+        <header className="bw-hero">
+          <div className="bw-heroContent">
+            <h1 className="bw-title">Đặt lịch tại hệ thống</h1>
+            <p className="bw-subtitle">
+              Hoàn tất 5 bước đơn giản để bắt đầu hành trình tập luyện của bạn.
+            </p>
+
+            <div className="bw-heroMeta">
+              {gym?.name && (
+                <div className="bw-infoPill">
+                  <MapPin size={16} />
+                  <span>{gym.name}</span>
+                </div>
+              )}
+
+              {pkg?.name && preselectedPackageId ? (
+                <div className="bw-infoPill bw-infoPill--accent">
+                  <span>Gói chọn sẵn:</span>
+                  <b>{pkg.name}</b>
+                </div>
+              ) : null}
+            </div>
           </div>
 
-          <button onClick={() => navigate(-1)} className="bw-btn bw-btnGhost">
-            ← Quay lại
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="bw-btn bw-btnGhost bw-btnBack"
+          >
+            <ArrowLeft size={16} />
+            <span>Quay lại</span>
           </button>
         </header>
 
-        <Stepper steps={STEPS} current={step} />
+        <div className="bw-shell">
+          <Stepper steps={STEPS} current={step} />
 
-        <div className="bw-card">
-          {step === 0 && !preselectedPackageId && (
-            <Step1SelectPackage
-              packages={packages}
-              value={pkg?.id || null}
-              onPick={(p) => setPkg(p)}
-              onNext={() => canNext(0) && setStep(1)}
-            />
-          )}
+          <div className="bw-card">
+            {step === 0 && !preselectedPackageId && (
+              <Step1SelectPackage
+                packages={packages}
+                value={pkg?.id || null}
+                onPick={(p) => {
+                  setPkg(p);
+                  setTrainer(null);
+                  setPattern([]);
+                  setStartDate("");
+                }}
+                onNext={() => canNext(0) && setStep(1)}
+              />
+            )}
 
-          {step === 1 && (
-            <Step2PickTrainer
-              trainers={matchedTrainers}
-              value={trainer?.id || null}
-              onPick={(t) => setTrainer(t)}
-              onBack={() => {
-                if (preselectedPackageId) navigate(-1);
-                else setStep(0);
-              }}
-              onNext={() => canNext(1) && setStep(2)}
-            />
-          )}
+            {step === 1 && (
+              <Step2PickTrainer
+                trainers={matchedTrainers}
+                value={trainer?.id || null}
+                onPick={(t) => {
+                  setTrainer(t);
+                  setPattern([]);
+                  setStartDate("");
+                }}
+                onBack={() => {
+                  if (preselectedPackageId) navigate(-1);
+                  else setStep(0);
+                }}
+                onNext={() => canNext(1) && setStep(2)}
+              />
+            )}
 
-          {step === 2 && (
-            <Step3FixedSchedule
-              pkg={pkg}
-              trainer={trainer}
-              pattern={pattern}
-              setPattern={setPattern}
-              slot={slot}
-              setSlot={setSlot}
-              onBack={() => setStep(1)}
-              onNext={() => canNext(2) && setStep(3)}
-            />
-          )}
+            {step === 2 && (
+              <Step3FixedSchedule
+                pattern={pattern}
+                setPattern={(val) => {
+                  setPattern(val);
+                  setStartDate("");
+                }}
+                onBack={() => setStep(1)}
+                onNext={() => canNext(2) && setStep(3)}
+              />
+            )}
 
-          {step === 3 && (
-            <Step4StartDate
-              pattern={pattern}
-              value={startDate}
-              onPick={setStartDate}
-              onBack={() => setStep(2)}
-              onNext={() => canNext(3) && setStep(4)}
-            />
-          )}
+            {step === 3 && (
+              <Step4StartDate
+                pattern={pattern}
+                value={startDate}
+                onPick={setStartDate}
+                onBack={() => setStep(2)}
+                onNext={() => canNext(3) && setStep(4)}
+              />
+            )}
 
-          {step === 4 && (
-            <Step5PreviewConfirm
-              gym={gym}
-              pkg={pkg}
-              trainer={trainer}
-              pattern={pattern}
-              slot={slot}
-              startDate={startDate}
-              repeatWeeks={repeatWeeks}
-              setRepeatWeeks={setRepeatWeeks}
-              onBack={() => setStep(3)}
-              onDone={() => navigate("/member/bookings")}
-            />
-          )}
+            {step === 4 && (
+              <Step5PreviewConfirm
+                gym={gym}
+                pkg={pkg}
+                trainer={trainer}
+                pattern={pattern}
+                startDate={startDate}
+                onBack={() => setStep(3)}
+                onDone={() => navigate("/member/bookings")}
+              />
+            )}
+          </div>
         </div>
-
-        <div style={{ height: 8 }} />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from "react";
+import { ArrowRight, CalendarRange, Layers3, WalletCards } from "lucide-react";
 import "./bookingWizard.css";
 
 export default function Step1SelectPackage({ packages = [], value, onPick, onNext }) {
@@ -7,7 +8,11 @@ export default function Step1SelectPackage({ packages = [], value, onPick, onNex
   return (
     <section className="bw-section">
       <header className="bw-sectionHeader">
-        <p className="bw-hint">Chọn một gói để bắt đầu.</p>
+        <span className="bw-sectionTag">Bước 1</span>
+        <h2 className="bw-sectionTitle">Chọn gói tập phù hợp</h2>
+        <p className="bw-hint">
+          Chọn một gói để bắt đầu. Hệ thống sẽ lọc PT và lịch phù hợp ở các bước tiếp theo.
+        </p>
       </header>
 
       {packages.length ? (
@@ -24,16 +29,24 @@ export default function Step1SelectPackage({ packages = [], value, onPick, onNex
                 onClick={() => onPick?.(p)}
                 className={`bw-pkgCard ${active ? "isActive" : ""}`}
               >
+                <div className="bw-cardGlow" />
                 <div className="bw-cardTop">
                   <div className="bw-cardLeft">
+                    <div className="bw-cardBadge">
+                      {p.type || "Gói tập"}
+                    </div>
                     <h3 className="bw-cardTitle">{p.name}</h3>
-                    <p className="bw-cardDesc">{p.description || "—"}</p>
+                    <p className="bw-cardDesc">{p.description || "Chưa có mô tả cho gói này."}</p>
                   </div>
 
                   <div className="bw-cardRight">
-                    <div className="bw-price">
-                      {formatVND(Number(p.price || 0))} <span className="bw-priceUnit">VND</span>
+                    <div className="bw-priceWrap">
+                      <div className="bw-price">
+                        {formatVND(Number(p.price || 0))}
+                      </div>
+                      <div className="bw-priceUnit">VND</div>
                     </div>
+
                     {perSession && (
                       <div className="bw-perSession">
                         ≈ {formatVND(perSession)} / buổi
@@ -42,10 +55,19 @@ export default function Step1SelectPackage({ packages = [], value, onPick, onNex
                   </div>
                 </div>
 
-                <div className="bw-badges">
-                  <span className="bw-badge">{p.sessions} buổi</span>
-                  <span className="bw-badge">{p.durationDays} ngày</span>
-                  {p.type && <span className="bw-badge bw-badgeSoft">{p.type}</span>}
+                <div className="bw-featureRow">
+                  <span className="bw-featurePill">
+                    <WalletCards size={14} />
+                    {formatVND(Number(p.price || 0))} đ
+                  </span>
+                  <span className="bw-featurePill">
+                    <Layers3 size={14} />
+                    {p.sessions} buổi
+                  </span>
+                  <span className="bw-featurePill">
+                    <CalendarRange size={14} />
+                    {p.durationDays} ngày
+                  </span>
                 </div>
 
                 {active && <div className="bw-activeBar" />}
@@ -64,7 +86,8 @@ export default function Step1SelectPackage({ packages = [], value, onPick, onNex
           disabled={!value}
           className="bw-btn bw-btnPrimary"
         >
-          Tiếp tục
+          <span>Tiếp tục</span>
+          <ArrowRight size={16} />
         </button>
       </div>
     </section>

@@ -1,233 +1,351 @@
-/* MemberPackageDetailPage.css */
-:root{
-  --m-bg:#070b14;
-  --m-text:#e5e7eb;
-  --m-muted:#94a3b8;
-  --m-stroke: rgba(255,255,255,.12);
-  --m-card: rgba(18,28,52,.78);
-  --m-card2: rgba(8,14,30,.52);
-  --m-shadow: 0 25px 60px rgba(0,0,0,.45);
-  --m-blue:#38bdf8;
-  --m-blue2:#2563eb;
-  --m-gold:#ffb100;
-  --m-gold2:#ff8c00;
-  --m-ok:#22c55e;
-  --m-bad:#ff4d4f;
+:root {
+  --mpd2-bg: #050505;
+  --mpd2-bg-soft: #0b0b0b;
+  --mpd2-surface: #111111;
+  --mpd2-surface-2: #171717;
+  --mpd2-surface-3: #202020;
+  --mpd2-stroke: rgba(255, 255, 255, 0.07);
+  --mpd2-stroke-strong: rgba(255, 255, 255, 0.12);
+  --mpd2-text: #f5f5f5;
+  --mpd2-text-muted: rgba(255, 255, 255, 0.62);
+  --mpd2-primary: #d6ff00;
+  --mpd2-on-primary: #0b0b0b;
+  --mpd2-shadow: 0 28px 60px rgba(0, 0, 0, 0.38);
 }
 
-.mpd-page{
+* {
+  box-sizing: border-box;
+}
+
+.mpd2-page {
   min-height: 100vh;
-  color: var(--m-text);
+  color: var(--mpd2-text);
 }
 
-.mpd-empty{
+.mpd2-empty {
   padding: 26px 16px;
   border-radius: 22px;
   border: 1px dashed rgba(255,255,255,.12);
-  background: rgba(8,14,30,.45);
-  color: rgba(148,163,184,.92);
+  background: rgba(255,255,255,.02);
+  color: var(--mpd2-text-muted);
 }
 
-/* HERO */
-.mpd-hero{
-  background: radial-gradient(900px 520px at 10% 0%, rgba(56,189,248,.18), transparent 55%),
-              radial-gradient(900px 520px at 90% 20%, rgba(255,177,0,.12), transparent 55%),
-              linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 22px;
-  padding: 18px;
-  box-shadow: var(--m-shadow);
-  display:grid;
-  grid-template-columns: 1fr 320px;
-  gap: 14px;
-  position: relative;
+.mpd2-topbar {
+  margin-bottom: 14px;
 }
 
-@media (max-width: 980px){
-  .mpd-hero{ grid-template-columns: 1fr; }
-}
-
-.mpd-back{
-  position:absolute;
-  top: 14px;
-  left: 14px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(8,14,30,.55);
-  color: #fff;
-  padding: 10px 12px;
+.mpd2-back {
+  min-height: 42px;
+  padding: 0 14px;
   border-radius: 999px;
-  cursor:pointer;
-  font-weight: 950;
-}
-.mpd-back:hover{ background: rgba(255,255,255,.08); }
-
-.mpd-heroMain{
-  padding-top: 34px;
-}
-
-.mpd-kicker{
-  font-size: 11px;
-  font-weight: 950;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: rgba(56,189,248,.95);
-}
-
-.mpd-title{
-  margin: 8px 0 6px;
-  font-size: 34px;
-  font-weight: 950;
-  letter-spacing: -.02em;
-  line-height: 1.1;
-}
-
-.mpd-sub{
-  color: rgba(226,232,240,.86);
-}
-
-.mpd-sub b{ color: #fff; }
-
-.mpd-progress{
-  margin-top: 14px;
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.10);
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.10);
-}
-
-.mpd-progressBar{
-  height: 100%;
-  background: linear-gradient(90deg, var(--m-gold), var(--m-gold2));
-}
-
-.mpd-progressText{
-  margin-top: 10px;
-  font-size: 12px;
-  color: rgba(148,163,184,.92);
-}
-
-.mpd-heroSide{
-  display:flex;
-  flex-direction: column;
-  gap: 10px;
-  justify-content: center;
-}
-
-.mpd-status{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.18);
-  font-weight: 950;
-  letter-spacing: .10em;
-  font-size: 12px;
-}
-.mpd-status.on{ color: rgba(34,197,94,.95); border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.08); }
-.mpd-status.off{ color: rgba(148,163,184,.95); }
-
-.mpd-btn{
-  border: 0;
-  cursor:pointer;
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-weight: 950;
+  border: 1px solid var(--mpd2-stroke);
+  background: var(--mpd2-surface-2);
   color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
-.mpd-btn.primary{
-  background: linear-gradient(135deg, var(--m-blue2), #1d4ed8);
-  box-shadow: 0 12px 30px rgba(37,99,235,.22);
-}
-.mpd-btn.primary:disabled{
-  opacity: .5;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-.mpd-btn.primary:hover{ filter: brightness(1.06); transform: translateY(-1px); }
-.mpd-btn.primary:active{ transform: translateY(0); }
-
-.mpd-btn.ghost{
-  background: rgba(8,14,30,.55);
-  border: 1px solid rgba(255,255,255,.12);
-}
-.mpd-btn.ghost:hover{ background: rgba(255,255,255,.08); }
-
-/* GRID */
-.mpd-grid{
-  margin-top: 14px;
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.mpd-card{
-  background: var(--m-card);
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.22);
-}
-
-.mpd-cardHead{
-  display:flex;
-  align-items:center;
+.mpd2-hero {
+  display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.mpd2-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--mpd2-primary);
   margin-bottom: 10px;
 }
 
-.mpd-cardHead h3{
+.mpd2-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 950;
+  font-size: 52px;
+  line-height: 0.92;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  max-width: 680px;
 }
 
-.mpd-cardBody{
-  color: rgba(226,232,240,.90);
+.mpd2-heroActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.mpd-link{
-  cursor:pointer;
-  color: rgba(56,189,248,.95);
-  font-weight: 950;
-}
-.mpd-link:hover{ text-decoration: underline; }
-
-.mpd-muted{
-  margin-top: 6px;
-  color: rgba(148,163,184,.92);
+.mpd2-btn {
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: none;
   font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
-.mpd-specs{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
+.mpd2-btn.primary {
+  background: var(--mpd2-primary);
+  color: var(--mpd2-on-primary);
+}
+
+.mpd2-btn.ghost {
+  background: var(--mpd2-surface-2);
+  color: #fff;
+  border: 1px solid var(--mpd2-stroke);
+}
+
+.mpd2-overview {
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 0.7fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.mpd2-investmentCard,
+.mpd2-statCard,
+.mpd2-infoCard {
+  background:
+    radial-gradient(circle at top right, rgba(214,255,0,.05), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.02) 0%, rgba(255,255,255,.01) 100%),
+    var(--mpd2-surface);
+  border: 1px solid var(--mpd2-stroke);
+  border-radius: 26px;
+  box-shadow: var(--mpd2-shadow);
+}
+
+.mpd2-investmentCard {
+  padding: 24px;
+}
+
+.mpd2-statCard {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mpd2-statCard.highlight {
+  border-color: rgba(214,255,0,.22);
+}
+
+.mpd2-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,.42);
+}
+
+.mpd2-investmentValue {
+  margin-top: 8px;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 900;
+  color: #fff;
+}
+
+.mpd2-progressWrap {
+  margin-top: 24px;
+}
+
+.mpd2-progressMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--mpd2-text-muted);
+}
+
+.mpd2-progressMeta b {
+  color: #fff;
+}
+
+.mpd2-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+
+.mpd2-progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--mpd2-primary);
+}
+
+.mpd2-statValue {
+  margin-top: 10px;
+  font-size: 52px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--mpd2-primary);
+}
+
+.mpd2-statValue.small {
+  font-size: 34px;
+  color: #fff;
+}
+
+.mpd2-statSub {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--mpd2-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mpd2-detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.mpd2-infoCard {
+  padding: 20px;
+}
+
+.mpd2-infoHead {
+  margin-bottom: 14px;
+}
+
+.mpd2-infoHead h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.mpd2-infoRows {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
-@media (max-width: 560px){
-  .mpd-specs{ grid-template-columns: 1fr; }
+
+.mpd2-row {
+  min-height: 58px;
+  border-radius: 16px;
+  border: 1px solid var(--mpd2-stroke);
+  background: var(--mpd2-surface-2);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.mpd-spec{
-  background: rgba(8,14,30,.52);
-  border: 1px solid rgba(255,255,255,.10);
+.mpd2-rowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mpd2-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mpd2-rowLabel svg {
+  color: var(--mpd2-primary);
+}
+
+.mpd2-row b {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.mpd2-link {
+  color: var(--mpd2-primary) !important;
+  cursor: pointer;
+}
+
+.mpd2-link:hover {
+  text-decoration: underline;
+}
+
+.mpd2-muted {
+  color: var(--mpd2-text-muted) !important;
+}
+
+.mpd2-miniGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mpd2-miniBox {
   border-radius: 16px;
-  padding: 12px;
+  border: 1px solid var(--mpd2-stroke);
+  background: var(--mpd2-surface-2);
+  padding: 16px;
 }
-.mpd-spec span{
-  display:block;
-  font-size: 11px;
-  letter-spacing: .10em;
+
+.mpd2-miniBox span {
+  display: block;
+  font-size: 10px;
   text-transform: uppercase;
-  color: rgba(148,163,184,.92);
-  font-weight: 950;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,.42);
+  font-weight: 800;
 }
-.mpd-spec b{
-  display:block;
-  margin-top: 6px;
-  font-weight: 950;
+
+.mpd2-miniBox b {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .mpd2-overview,
+  .mpd2-detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .mpd2-title {
+    font-size: 38px;
+  }
+
+  .mpd2-hero {
+    flex-direction: column;
+  }
+
+  .mpd2-heroActions {
+    width: 100%;
+  }
+
+  .mpd2-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .mpd2-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mpd2-row b {
+    text-align: left;
+  }
 }

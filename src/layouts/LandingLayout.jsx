@@ -4,9 +4,9 @@ import Footer from "../components/footer/Footer";
 
 export default function LandingLayout() {
   return (
-    <div className="site landing-app">
+    <div className="site">
       <Header />
-      <main>
+      <main className="site-main">
         <Outlet />
       </main>
       <Footer />

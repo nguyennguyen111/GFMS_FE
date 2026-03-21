@@ -1,6 +1,13 @@
-// src/components/pages/marketplace/gyms/GymListPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  MapPin,
+  Star,
+  ArrowRight,
+  Dumbbell,
+  Phone,
+  Clock3,
+} from "lucide-react";
 import { mpGetGyms } from "../../../../services/marketplaceService";
 import ImageWithFallback from "../../../common/ImageWithFallback";
 import { getFirstImage } from "../../../../utils/image";
@@ -37,6 +44,20 @@ const SearchIcon = () => (
     />
   </svg>
 );
+
+const statusLabel = (s) => {
+  if (s === "active") return "Đang hoạt động";
+  if (s === "inactive") return "Ngừng hoạt động";
+  if (s === "suspended") return "Tạm khóa";
+  return "N/A";
+};
+
+const statusBadgeClass = (s) => {
+  if (s === "active") return "premium";
+  if (s === "inactive") return "elite";
+  if (s === "suspended") return "suspended";
+  return "unknown";
+};
 
 export default function GymListPage() {
   const navigate = useNavigate();
@@ -148,20 +169,30 @@ export default function GymListPage() {
     <div className="gym-page">
       <section className="gym-hero">
         <div className="gym-hero-inner">
-          <div className="gym-hero-head">
-            <div>
-              <span className="gym-section-label">DANH SÁCH CƠ SỞ</span>
-              <h1 className="gym-title">Hệ Thống Phòng Gym GFMS</h1>
-              <p className="gym-subtitle">
-                Tìm kiếm nhanh theo từ khóa, lọc theo trạng thái/khu vực và sắp xếp gọn gàng.
-              </p>
-            </div>
+          <div className="gym-hero-copy">
+            <span className="gym-section-label">HỆ THỐNG PHÒNG TẬP</span>
 
-            <div className="gym-hero-stats">
-              <span className="gym-pill">Tổng: <b>{gyms.length}</b></span>
-              <span className="gym-pill">Đang hoạt động: <b>{activeCount}</b></span>
-              <span className="gym-pill">Kết quả: <b>{filteredSorted.length}</b></span>
-            </div>
+            <h1 className="gym-title">
+              FIND YOUR <br />
+              <span className="gym-title-accent">GYM</span>
+            </h1>
+
+            <p className="gym-subtitle">
+              Khám phá hệ thống phòng gym GFMS với không gian hiện đại, dịch vụ cao cấp
+              và trải nghiệm tập luyện đồng bộ trên toàn hệ thống.
+            </p>
+          </div>
+
+          <div className="gym-hero-stats">
+            <span className="gym-pill">
+              Tổng cơ sở <b>{gyms.length}</b>
+            </span>
+            <span className="gym-pill">
+              Đang hoạt động <b>{activeCount}</b>
+            </span>
+            <span className="gym-pill">
+              Kết quả <b>{filteredSorted.length}</b>
+            </span>
           </div>
 
           <div className="gym-toolbar" role="search">
@@ -173,50 +204,60 @@ export default function GymListPage() {
                 onChange={(e) => setQ(e.target.value)}
               />
               {q && (
-                <button className="gym-clear" onClick={() => setQ("")} aria-label="Clear">
+                <button
+                  type="button"
+                  className="gym-clear"
+                  onClick={() => setQ("")}
+                  aria-label="Clear"
+                >
                   ✕
                 </button>
               )}
             </div>
 
             <div className="gym-toolbar-row">
+              <select value={area} onChange={(e) => setArea(e.target.value)}>
+                {areas.map((a) => (
+                  <option key={a} value={a}>
+                    {a === "all" ? "KHU VỰC" : a}
+                  </option>
+                ))}
+              </select>
+
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="all">Tất cả trạng thái</option>
+                <option value="all">TRẠNG THÁI</option>
                 <option value="active">Đang hoạt động</option>
                 <option value="inactive">Ngừng hoạt động</option>
                 <option value="suspended">Tạm khóa</option>
               </select>
 
-              <select value={area} onChange={(e) => setArea(e.target.value)}>
-                {areas.map((a) => (
-                  <option key={a} value={a}>
-                    {a === "all" ? "Tất cả khu vực" : a}
-                  </option>
-                ))}
-              </select>
-
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                <option value="nearest">Sắp xếp: Gần nhất</option>
+                <option value="nearest">SẮP XẾP</option>
                 <option value="name_asc">Tên (A → Z)</option>
                 <option value="name_desc">Tên (Z → A)</option>
                 <option value="status">Trạng thái (Active trước)</option>
               </select>
+
+              <button type="button" className="gym-btn">
+                TÌM KIẾM
+              </button>
             </div>
           </div>
         </div>
+
+        <div className="gym-bg-text">GYM</div>
       </section>
 
       <section className="gym-result">
         <div className="gym-result-header">
-          <span>
-            {loading ? "Đang tải..." : `${filteredSorted.length} kết quả được tìm thấy`}
-          </span>
+          <span>{loading ? "Đang tải..." : `${filteredSorted.length} kết quả được tìm thấy`}</span>
           <span className="gym-tip">Tip: click vào card để xem chi tiết</span>
         </div>
 
         <div className="gym-chips">
           {["all", "active", "inactive", "suspended"].map((s) => (
             <button
+              type="button"
               key={s}
               className={`gym-chip ${status === s ? "active" : ""}`}
               onClick={() => setStatus(s)}
@@ -255,7 +296,7 @@ export default function GymListPage() {
               }
 
               return (
-                <div
+                <article
                   key={gym.id}
                   className="gym-card"
                   onClick={() => navigate(`/marketplace/gyms/${gym.id}`)}
@@ -270,34 +311,85 @@ export default function GymListPage() {
                       fallback="/placeholder-gym.jpg"
                     />
                     <div className="gym-img-overlay" />
-                    <span className={`gym-badge ${badgeStatus}`}>
-                      {badgeStatus === "unknown" ? "N/A" : badgeStatus}
+
+                    <span className={`gym-badge ${statusBadgeClass(badgeStatus)}`}>
+                      {statusLabel(badgeStatus)}
                     </span>
                   </div>
 
                   <div className="gym-card__body">
-                    <div className="gym-card__top">
-                      <h3 title={gym.name}>{gym.name}</h3>
+                    <div className="gym-card__header">
+                      <div className="gym-card__title-wrap">
+                        <h3 title={gym.name}>{gym.name}</h3>
+
+                        <div className="gym-card__location" title={gym.address}>
+                          <MapPin size={14} />
+                          <span>{gym.address || "Chưa có địa chỉ"}</span>
+                        </div>
+                      </div>
+
+                      {!!gym.rating && (
+                        <div className="gym-card__rating">
+                          <Star size={16} fill="currentColor" />
+                          <span>{gym.rating}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <p className="gym-card__sub" title={gym.address}>
-                      {gym.address || "Chưa có địa chỉ"}
-                    </p>
-
                     <div className="gym-meta">
-                      <span className="gym-tag">🏋️ Gym</span>
-                      <span className="gym-tag">📍 {gym._area}</span>
-                      {gym.phone && <span className="gym-tag">📞 {gym.phone}</span>}
-                      {gym.openingHours && <span className="gym-tag">🕒 {gym.openingHours}</span>}
-                      {gym.rating && <span className="gym-tag">⭐ {gym.rating}</span>}
+                      <span className="gym-tag">
+                        <span className="gym-tag-icon">
+                          <Dumbbell size={16} />
+                        </span>
+                        <span className="gym-tag-label">GYM</span>
+                      </span>
+
+                      <span className="gym-tag">
+                        <span className="gym-tag-icon">
+                          <MapPin size={16} />
+                        </span>
+                        <span className="gym-tag-label">{gym._area}</span>
+                      </span>
+
+                      {gym.phone && (
+                        <span className="gym-tag">
+                          <span className="gym-tag-icon">
+                            <Phone size={16} />
+                          </span>
+                          <span className="gym-tag-label">{gym.phone}</span>
+                        </span>
+                      )}
+
+                      {gym.openingHours && (
+                        <span className="gym-tag">
+                          <span className="gym-tag-icon">
+                            <Clock3 size={16} />
+                          </span>
+                          <span className="gym-tag-label">{gym.openingHours}</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="gym-card__footer">
-                      <span>Nhấn để xem chi tiết</span>
-                      <span className="gym-view">Xem →</span>
+                      <div className="gym-card__footer-text">
+                        <span className="gym-card__footer-label">KHÁM PHÁ NGAY</span>
+                        <div className="gym-card__footer-value">Nhấn để xem chi tiết</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="gym-arrow-btn"
+                        aria-label={`Xem chi tiết ${gym.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/marketplace/gyms/${gym.id}`);
+                        }}
+                      >
+                        <ArrowRight size={20} />
+                      </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
         </div>

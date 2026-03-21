@@ -1,9 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import "./App.css";
 
 import LandingPage from "./components/pages/LandingPage";
-import "./styles/memberUI.css";
 
 import LoginPage from "./components/auth/LoginPage";
 import RegisterPage from "./components/auth/RegisterPage";
@@ -14,7 +12,6 @@ import OwnerDashboard from "./components/owner/OwnerDashboard";
 
 /* ================= MEMBER ================= */
 import MemberHomePage from "./components/member/pages/MemberHomePage";
-import MemberPackagesPage from "./components/member/pages/MemberPackagesPage";
 import MemberBookingCreatePage from "./components/member/pages/MemberBookingCreatePage";
 import MemberBookingsPage from "./components/member/pages/MemberBookingsPage";
 import MemberCheckinPage from "./components/member/pages/MemberCheckinPage";
@@ -119,7 +116,6 @@ function App() {
         <Route path="/member" element={<WebsiteLayout />}>
           <Route index element={<Navigate to="home" replace />} />
           <Route path="home" element={<MemberHomePage />} />
-          <Route path="packages" element={<MemberPackagesPage />} />
           <Route path="my-packages" element={<MemberMyPackagesPage />} />
           <Route path="my-packages/:activationId" element={<MemberPackageDetailPage />} />
           <Route path="bookings" element={<MemberBookingsPage />} />

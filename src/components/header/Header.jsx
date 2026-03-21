@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { User, LogOut, Menu, X, ChevronDown, CalendarDays, Package, Bell, MessageCircle, Activity, Star } from "lucide-react";
 import "./Header.css";
 import logo from "../../assets/logo.jpg";
+import logoWordmark from "../../assets/logo-wordmark.png";
 
 const readAuth = () => ({
   token: localStorage.getItem("accessToken"),
@@ -23,7 +25,6 @@ export default function Header() {
   const { token, role, username } = readAuth();
   const isMember = token && role === "member";
 
-  /* ===== set --header-h for whole website (auto offset) ===== */
   useEffect(() => {
     const setVar = () => {
       const h = headerRef.current?.offsetHeight || 72;
@@ -34,20 +35,17 @@ export default function Header() {
     return () => window.removeEventListener("resize", setVar);
   }, []);
 
-  /* scroll glass */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* route change */
   useEffect(() => {
     setMenuOpened(false);
     setAccountOpen(false);
   }, [location.pathname]);
 
-  /* outside click (account) */
   useEffect(() => {
     const onClick = (e) => {
       if (accountRef.current && !accountRef.current.contains(e.target)) {
@@ -58,10 +56,11 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  /* lock scroll when mobile menu open */
   useEffect(() => {
     document.body.style.overflow = menuOpened ? "hidden" : "";
-    return () => (document.body.style.overflow = "");
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [menuOpened]);
 
   const go = (path) => {
@@ -80,90 +79,117 @@ export default function Header() {
     <NavLink
       to={to}
       onClick={() => setMenuOpened(false)}
-      className={({ isActive }) => (isActive ? "h-link is-active" : "h-link")}
+      className={({ isActive }) =>
+        isActive ? "nav-link modern-nav-link active" : "nav-link modern-nav-link"
+      }
     >
       {label}
     </NavLink>
   );
 
   const MemberDropdown = () => (
-    <div className="h-account" ref={accountRef}>
+    <div className="profile-dropdown-wrap" ref={accountRef}>
       <button
-        className={`h-accountBtn ${accountOpen ? "open" : ""}`}
+        className={`profile-btn ${accountOpen ? "open" : ""}`}
         onClick={() => setAccountOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={accountOpen}
+        type="button"
       >
-        <span className="material-symbols-outlined">account_circle</span>
-        <span className="h-name">{username}</span>
-        <span className="h-caret">▾</span>
+        <User size={16} />
+        <span>{username}</span>
+        <ChevronDown size={16} className="profile-caret" />
       </button>
 
       {accountOpen && (
-        <div className="h-menu" role="menu">
-          <div className="h-group">Của tôi</div>
-          <button onClick={() => go("/member/bookings")}>Lịch đã đặt</button>
-          <button onClick={() => go("/member/my-packages")}>Gói của tôi</button>
-          <button onClick={() => go("/member/profile")}>Hồ sơ</button>
+        <div className="profile-dropdown-menu" role="menu">
+          <button onClick={() => go("/member/bookings")}>
+            <CalendarDays size={16} />
+            <span>Lịch đã đặt</span>
+          </button>
 
-          <div className="h-sep" />
-          <div className="h-group">Tương tác</div>
-          <button onClick={() => go("/member/notifications")}>Thông báo</button>
-          <button onClick={() => go("/member/messages")}>Tin nhắn</button>
-          <button onClick={() => go("/member/progress")}>Tiến độ</button>
-          <button onClick={() => go("/member/reviews")}>Đánh giá</button>
+          <button onClick={() => go("/member/my-packages")}>
+            <Package size={16} />
+            <span>Gói của tôi</span>
+          </button>
 
-          <div className="h-sep" />
-          <button className="danger" onClick={logout}>
-            Đăng xuất
+          <button onClick={() => go("/member/profile")}>
+            <User size={16} />
+            <span>Hồ sơ</span>
+          </button>
+
+          <button onClick={() => go("/member/notifications")}>
+            <Bell size={16} />
+            <span>Thông báo</span>
+          </button>
+
+          <button onClick={() => go("/member/messages")}>
+            <MessageCircle size={16} />
+            <span>Tin nhắn</span>
+          </button>
+
+          <button onClick={() => go("/member/progress")}>
+            <Activity size={16} />
+            <span>Tiến độ</span>
+          </button>
+
+          <button onClick={() => go("/member/reviews")}>
+            <Star size={16} />
+            <span>Đánh giá</span>
+          </button>
+
+          <div className="dropdown-divider" />
+
+          <button className="logout-btn" onClick={logout}>
+            <LogOut size={16} />
+            <span>Đăng xuất</span>
           </button>
         </div>
       )}
     </div>
   );
 
-  // ===== Mobile Drawer (chỉ render khi menuOpened) =====
   const MobileDrawer = () => (
-    <div className="h-mobile" aria-hidden={!menuOpened}>
-      <div className="h-backdrop" onClick={() => setMenuOpened(false)} />
-      <aside className="h-drawer" role="dialog" aria-modal="true">
-        <div className="h-drawerTop">
-          <div className="h-drawerTitle">Menu</div>
-          <button className="h-x" onClick={() => setMenuOpened(false)} aria-label="Close menu">
-            <span className="material-symbols-outlined">close</span>
+    <div className="mobile-menu-wrap" aria-hidden={!menuOpened}>
+      <div className="mobile-menu-backdrop" onClick={() => setMenuOpened(false)} />
+      <aside className="mobile-menu-panel" role="dialog" aria-modal="true">
+        <div className="mobile-menu-header">
+          <div className="mobile-menu-brand">GFMS</div>
+          <button
+            className="mobile-menu-close"
+            onClick={() => setMenuOpened(false)}
+            aria-label="Đóng menu"
+            type="button"
+          >
+            <X size={20} />
           </button>
         </div>
 
-        <nav className="h-drawerNav" aria-label="Mobile">
-          <NavItem to="/" label="Home" />
-          <NavItem to="/marketplace/gyms" label="Gyms" />
-          <NavItem to="/marketplace/trainers" label="PT / Trainer" />
-          <NavItem to="/franchise" label="Nhượng quyền" />
+        <nav className="mobile-nav-links" aria-label="Mobile">
+          <NavItem to="/marketplace/gyms" label="Gym" />
+          <NavItem to="/marketplace/trainers" label="PT" />
+          <NavItem to="/support" label="Hỗ trợ" />
           <NavItem to="/faq" label="FAQ" />
+          
         </nav>
 
-        <div className="h-drawerBottom">
+        <div className="mobile-auth-actions">
           {!token ? (
-            <button className="h-btn primary full" onClick={() => go("/login")}>
+            <button className="profile-btn full-width-btn" onClick={() => go("/login")} type="button">
+              <User size={16} />
               Đăng nhập
             </button>
           ) : isMember ? (
-            <div className="h-drawerAccount">
-              <div className="h-group">Tài khoản</div>
-              <button className="h-drawerItem" onClick={() => go("/member/bookings")}>
-                Lịch đã đặt
-              </button>
-              <button className="h-drawerItem" onClick={() => go("/member/my-packages")}>
-                Gói của tôi
-              </button>
-              <button className="h-drawerItem" onClick={() => go("/member/profile")}>
+            <>
+              <button className="profile-btn full-width-btn" onClick={() => go("/member/profile")} type="button">
+                <User size={16} />
                 Hồ sơ
               </button>
-              <div className="h-sep" />
-              <button className="h-drawerItem danger" onClick={logout}>
+              <button className="logout-btn full-width-btn" onClick={logout} type="button">
+                <LogOut size={16} />
                 Đăng xuất
               </button>
-            </div>
+            </>
           ) : null}
         </div>
       </aside>
@@ -172,39 +198,41 @@ export default function Header() {
 
   return (
     <>
-      <header ref={headerRef} className={`site-header h ${scrolled ? "is-scrolled" : ""}`}>
-        <div className="h-inner">
-          <button className="h-left" onClick={() => go("/")} aria-label="Go home">
-            <span className="h-logoWrap">
-              <span className="h-logoGlow" />
-              <img src={logo} alt="Logo" className="h-logo" />
-            </span>
+      <header
+        ref={headerRef}
+        className={`header modern-header ${scrolled ? "scrolled" : ""}`}
+      >
+        <div className="header-container">
+          <button className="logo-wrap" onClick={() => go("/")} aria-label="Go home" type="button">
+            <img src={logo} alt="GFMS Logo" className="header-logo-img" />
+            <img src={logoWordmark} alt="GFMS" className="logo-wordmark" />
           </button>
 
-          <nav className="h-nav" aria-label="Primary">
-            <NavItem to="/" label="Home" />
-            <NavItem to="/marketplace/gyms" label="Gyms" />
-            <NavItem to="/marketplace/trainers" label="PT / Trainer" />
+          <div className="nav-links desktop-nav">
+            <NavItem to="/marketplace/gyms" label="Gym" />
+            <NavItem to="/marketplace/trainers" label="PT" />
+            <NavItem to="/support" label="Hỗ trợ" />
             <NavItem to="/faq" label="FAQ" />
-          </nav>
+          </div>
 
-          <div className="h-actions">
+          <div className="auth-actions">
             {!token && (
-              <button className="h-btn primary" onClick={() => go("/login")}>
+              <button className="profile-btn" onClick={() => go("/login")} type="button">
+                <User size={16} />
                 Đăng nhập
               </button>
             )}
 
             {isMember && <MemberDropdown />}
 
-            {/* Burger: chỉ hiện trên mobile nhờ CSS */}
             <button
-              className="h-burger"
+              className="mobile-menu-btn"
               onClick={() => setMenuOpened(true)}
               aria-label="Open menu"
               aria-expanded={menuOpened}
+              type="button"
             >
-              <span className="material-symbols-outlined">menu</span>
+              <Menu size={20} />
             </button>
           </div>
         </div>
