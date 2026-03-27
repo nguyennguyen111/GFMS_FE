@@ -92,7 +92,7 @@ export default function Step5PreviewConfirm({
   onBack,
   onDone,
 }) {
-  const [payMethod, setPayMethod] = useState("cash");
+  const [payMethod, setPayMethod] = useState("payos");
   const [submitting, setSubmitting] = useState(false);
 
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -202,7 +202,13 @@ export default function Step5PreviewConfirm({
         confirmDuplicate: !!confirmDuplicate,
       });
 
-      onDone?.(res?.data?.data || null);
+      const data = res?.data?.data || null;
+      if (data?.paymentProvider === "payos" && data?.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
+      onDone?.(data);
     } catch (e) {
       setOptionsErr(
         e?.response?.data?.message ||
@@ -366,10 +372,7 @@ export default function Step5PreviewConfirm({
             className="bw-input bw-inputCompact"
             disabled={submitting}
           >
-            <option value="cash">Tiền mặt</option>
-            <option value="momo">MoMo</option>
-            <option value="vnpay">VNPay</option>
-            <option value="payos">PayOS (tạm khóa)</option>
+            <option value="payos">PayOS</option>
           </select>
         </div>
 
