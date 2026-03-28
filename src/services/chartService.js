@@ -4,6 +4,8 @@ export const makeLineChartData = ({
   labels = [],
   label = "Doanh thu",
   data = [],
+  borderColor = "rgba(244,137,21,0.95)",
+  backgroundColor = "rgba(244,137,21,0.12)",
 } = {}) => {
   return {
     labels,
@@ -13,9 +15,8 @@ export const makeLineChartData = ({
         data,
         tension: 0.35,
         fill: true,
-        // KHÔNG set màu cứng cũng được, nhưng mình để tạm cho đẹp theo theme
-        borderColor: "rgba(244,137,21,0.95)",
-        backgroundColor: "rgba(244,137,21,0.12)",
+        borderColor,
+        backgroundColor,
         pointRadius: 3,
         pointHoverRadius: 4,
       },

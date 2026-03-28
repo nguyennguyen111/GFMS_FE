@@ -37,6 +37,7 @@ import PTProfile from "./components/pt-portal/PTProfile";
 import PTSkills from "./components/pt-portal/PTSkills";
 import PTClients from "./components/pt-portal/PTClients";
 import PTFeedback from "./components/pt-portal/PTFeedback";
+import PTDemoVideos from "./components/pt-portal/PTDemoVideos";
 import PTPayrollPage from "./components/pt-portal/PTPayrollPage";
 import PTWalletPage from "./components/pt-portal/PTWalletPage";
 import PTRequests from "./components/pt-portal/PTRequests";
@@ -146,6 +147,7 @@ function App() {
           <Route path="profile/create" element={<PTCreateProfile />} />
           <Route path="clients" element={<PTClients />} />
           <Route path="feedback" element={<PTFeedback />} />
+          <Route path="demo-videos" element={<PTDemoVideos />} />
           <Route path="payroll" element={<PTPayrollPage />} />
           <Route path="wallet" element={<PTWalletPage />} />
           <Route path="requests" element={<PTRequests />} />
