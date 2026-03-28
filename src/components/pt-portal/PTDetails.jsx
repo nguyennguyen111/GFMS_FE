@@ -77,11 +77,45 @@ const PTDetails = () => {
 
   // ✅ cover: ưu tiên DB -> fallback localStorage
   const cachedCover = useMemo(() => readCoverCache(ptId), [ptId]);
-  const coverUrl = pt?.coverImageUrl || cachedCover?.coverImageUrl || "";
+  const profileImages = pt?.socialLinks?.profileImages || {};
+  const coverUrl = profileImages?.coverImageUrl || pt?.coverImageUrl || cachedCover?.coverImageUrl || "";
   const coverPosX =
-    Number.isFinite(pt?.coverPosX) ? pt.coverPosX : (cachedCover?.coverPosX ?? 50);
+    Number.isFinite(profileImages?.coverPosX)
+      ? profileImages.coverPosX
+      : Number.isFinite(pt?.coverPosX)
+        ? pt.coverPosX
+        : (cachedCover?.coverPosX ?? 50);
   const coverPosY =
-    Number.isFinite(pt?.coverPosY) ? pt.coverPosY : (cachedCover?.coverPosY ?? 50);
+    Number.isFinite(profileImages?.coverPosY)
+      ? profileImages.coverPosY
+      : Number.isFinite(pt?.coverPosY)
+        ? pt.coverPosY
+        : (cachedCover?.coverPosY ?? 50);
+  const avatarUrl = profileImages?.avatarUrl || pt?.avatarUrl || "";
+  const certificateItems = useMemo(() => {
+    const fromList = Array.isArray(pt?.socialLinks?.certificates)
+      ? pt.socialLinks.certificates
+          .map((c) => ({
+            id: c?.id || `cert_${Math.random().toString(36).slice(2, 9)}`,
+            name: String(c?.name || "").trim(),
+            url: String(c?.url || "").trim(),
+          }))
+          .filter((c) => c.name || c.url)
+      : [];
+
+    if (fromList.length > 0) return fromList;
+
+    const fallbackUrl = String(profileImages?.certificateUrl || "").trim();
+    const fallbackName = String(pt?.certification || "Certificate").trim();
+    if (!fallbackUrl && !fallbackName) return [];
+    return [
+      {
+        id: "cert_main",
+        name: fallbackName || "Certificate",
+        url: fallbackUrl,
+      },
+    ];
+  }, [pt, profileImages]);
 
   return (
     <div className="pt-details-page">
@@ -134,7 +168,11 @@ const PTDetails = () => {
               <section className="pt-card pt-card--summary">
                 <div className="pt-summary">
                   <div className="pt-avatar">
-                    {name?.slice(0, 1)?.toUpperCase()}
+                    {avatarUrl ? (
+                      <img className="pt-avatar__img" src={avatarUrl} alt={name} />
+                    ) : (
+                      name?.slice(0, 1)?.toUpperCase()
+                    )}
                   </div>
 
                   <div className="pt-summary__info">
@@ -149,7 +187,15 @@ const PTDetails = () => {
                       </span>
                     </div>
 
-                    <p className="pt-mini">{pt?.certification || "—"}</p>
+                    <p className="pt-mini">
+                      {pt?.certification || "—"}
+                      {certificateItems.length > 0 ? (
+                        <>
+                          {" "}•{" "}
+                          {certificateItems.length} ảnh chứng chỉ
+                        </>
+                      ) : null}
+                    </p>
                   </div>
                 </div>
 
@@ -188,7 +234,31 @@ const PTDetails = () => {
 
                   <div className="pt-row">
                     <div className="pt-label">Chứng chỉ</div>
-                    <div className="pt-value">{pt.certification || "—"}</div>
+                    <div className="pt-value">
+                      {certificateItems.length === 0 ? (
+                        pt.certification || "—"
+                      ) : (
+                        <div className="pt-cert-list">
+                          {certificateItems.map((cert) => (
+                            <div className="pt-cert-item" key={cert.id}>
+                              <span>{cert.name || "Certificate"}</span>
+                              {cert.url ? (
+                                <a
+                                  href={cert.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="pt-cert-link"
+                                >
+                                  Mở ảnh
+                                </a>
+                              ) : (
+                                <span className="pt-muted">Chưa có link</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-row">

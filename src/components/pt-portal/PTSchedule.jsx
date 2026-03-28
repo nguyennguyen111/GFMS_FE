@@ -174,9 +174,9 @@ const PTSchedule = () => {
 
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
-  const getStudentNameColor = (status) => {
-    if (status === 'present') return '#2ecc71';
-    if (status === 'absent') return '#e74c3c';
+  const getStudentNameColor = (attendanceStatus) => {
+    if (attendanceStatus === 'present') return '#2ecc71';
+    if (attendanceStatus === 'absent') return '#e74c3c';
     return '#3498db';
   };
 
@@ -245,10 +245,11 @@ const PTSchedule = () => {
                       
                       const booking=(attCache[toYMD(d.date)]||[]).find(b=>String(b.startTime||"").slice(0,5)===String(s.start||"").slice(0,5));
                       
-                      let statusClass = ""; 
+                      let statusClass = "";
+                      const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       if (booking) {
-                        if (booking.status === 'present') statusClass = "is-present";
-                        else if (booking.status === 'absent') statusClass = "is-absent";
+                        if (attendanceStatus === "present") statusClass = "is-present";
+                        else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else statusClass = "is-pending";
                       }
 
@@ -266,11 +267,11 @@ const PTSchedule = () => {
                           onClick={()=>openAttendance(d.date,s)}
                         >
                           <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(booking.status) }}>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus) }}>
                             👤 {booking.Member?.User?.username || "Học viên"}
-                            {booking.status && (
+                            {attendanceStatus && (
                               <div className="mini-status">
-                                  {booking.status === 'present' ? '✓ Có mặt' : booking.status === 'absent' ? '✗ Vắng mặt' : ''}
+                                  {attendanceStatus === 'present' ? '✓ Có mặt' : attendanceStatus === 'absent' ? '✗ Vắng mặt' : ''}
                               </div>
                             )}
                           </div>}
