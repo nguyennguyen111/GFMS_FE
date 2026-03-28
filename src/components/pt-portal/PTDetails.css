@@ -136,6 +136,13 @@
   color: rgba(255,255,255,0.9);
 }
 
+.pt-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
 .pt-summary__info {
   flex: 1;
   min-width: 0;
@@ -262,6 +269,25 @@
   color: rgba(255,255,255,0.85);
 }
 
+.pt-cert-link {
+  color: var(--orange);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.pt-cert-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.pt-cert-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
 /* bio */
 .pt-bio {
   margin: 0;
@@ -318,4 +344,37 @@
 .pt-coverEmpty{
   font-weight: 900;
   color: rgba(255,255,255,0.75);
+}
+
+/* Fix collision with marketplace trainer styles (.pt-grid/.pt-card) */
+.pt-details-page .pt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 14px;
+}
+
+.pt-details-page .pt-card {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  cursor: default;
+  transition: none;
+  position: static;
+}
+
+.pt-details-page .pt-card:hover {
+  transform: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.pt-details-page .pt-card--summary {
+  padding: 0;
+  overflow: hidden;
+}
+
+.pt-details-page .pt-card--span2 {
+  grid-column: 1 / -1;
 }
