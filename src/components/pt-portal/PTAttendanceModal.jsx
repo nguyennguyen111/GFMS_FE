@@ -1,6 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import "./PTAttendanceModal.css";
+
+export const PT_ATTENDANCE_LOCK_MSG =
+  "Buổi tập này đã được chốt kỳ lương hoặc chủ gym đã chi trả hoa hồng. Không thể điểm danh hay chỉnh sửa trạng thái có mặt / vắng mặt.";
 
 const fmtDT = (v) => {
   if (!v) return "—";
@@ -31,8 +33,11 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
 
   const ta = booking?.trainerAttendance || null;
   const currentStatus = (ta?.status || booking?.status || "").toLowerCase();
+  const comm = String(booking?.commissionStatus || "").toLowerCase();
+  const commissionLocked = comm === "calculated" || comm === "paid";
 
   const handleAction = async (type) => {
+    if (commissionLocked) return;
     try {
       if (type === "present") {
         await onCheckIn({ status: "present" });
@@ -89,45 +94,57 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
               )}
             </div>
 
-            {/* Căn giữa nút chỉnh sửa hoặc hiển thị 2 nút xanh đỏ */}
-            <div className="ptAttModal__actions" style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
-              {ta && !isEditing ? (
-                <button 
-                  className="ptAttModal__btn" 
-                  style={{ 
-                    backgroundColor: '#f0f0f0', 
-                    color: '#333', 
-                    width: '200px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }} 
-                  onClick={() => setIsEditing(true)}
-                >
-                  ✎ Chỉnh sửa điểm danh
+            {commissionLocked ? (
+              <div className="ptAttModal__lockPanel">
+                <div className="ptAttModal__lockTitle">Đã chi trả / đã chốt kỳ</div>
+                <p className="ptAttModal__lockText">{PT_ATTENDANCE_LOCK_MSG}</p>
+                <button type="button" className="ptAttModal__lockBtn" onClick={onClose}>
+                  Đã hiểu
                 </button>
-              ) : (
-                <>
-                  <button 
-                    className="ptAttModal__btn" 
-                    style={{ backgroundColor: '#064433', color: '#2ecc71', border: '1px solid #2ecc71', flex: 1 }} 
-                    disabled={loading} 
-                    onClick={() => handleAction("present")}
+              </div>
+            ) : (
+              <div className="ptAttModal__actions" style={{ display: "flex", justifyContent: "center", gap: "15px", marginTop: "20px" }}>
+                {ta && !isEditing ? (
+                  <button
+                    type="button"
+                    className="ptAttModal__btn"
+                    style={{
+                      backgroundColor: "#f0f0f0",
+                      color: "#333",
+                      width: "200px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                    onClick={() => setIsEditing(true)}
                   >
-                    {loading ? "..." : "✓ Có mặt"}
+                    ✎ Chỉnh sửa điểm danh
                   </button>
-                  <button 
-                    className="ptAttModal__btn" 
-                    style={{ backgroundColor: '#2d1a1a', color: '#e74c3c', border: '1px solid #e74c3c', flex: 1 }} 
-                    disabled={loading} 
-                    onClick={() => handleAction("absent")}
-                  >
-                    {loading ? "..." : "✗ Vắng mặt"}
-                  </button>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="ptAttModal__btn"
+                      style={{ backgroundColor: "#064433", color: "#2ecc71", border: "1px solid #2ecc71", flex: 1 }}
+                      disabled={loading}
+                      onClick={() => handleAction("present")}
+                    >
+                      {loading ? "..." : "✓ Có mặt"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ptAttModal__btn"
+                      style={{ backgroundColor: "#2d1a1a", color: "#e74c3c", border: "1px solid #e74c3c", flex: 1 }}
+                      disabled={loading}
+                      onClick={() => handleAction("absent")}
+                    >
+                      {loading ? "..." : "✗ Vắng mặt"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

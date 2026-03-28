@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
@@ -7,9 +7,11 @@ import {
   getMyPTPayrollPeriodCommissions,
   exportMyPTCommissions,
   requestPTWithdrawal,
+  getMyPTWalletSummary,
   getMyPTWithdrawals,
 } from "../../services/ptService";
 import { connectSocket } from "../../services/socketClient";
+import NiceModal from "../common/NiceModal";
 import "./PTPortalPages.css";
 import "./PTPayrollPage.css";
 
@@ -23,6 +25,43 @@ const formatDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString("vi-VN");
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString("vi-VN");
+};
+
+const parseWithdrawalAccountInfo = (raw) => {
+  if (!raw) return {};
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+};
+
+const withdrawalStatusLabel = {
+  pending: "Chờ duyệt",
+  completed: "Đã chi trả",
+  rejected: "Từ chối",
+};
+
+const withdrawalMethodLabel = {
+  bank_transfer: "Chuyển khoản NH",
+};
+
+/** Bỏ tiền tố cũ khi hiển thị (dữ liệu đã lưu trước đây). */
+const displayWithdrawalNotes = (raw) => {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  return s
+    .replace(/\[Chủ gym khi duyệt\]\s*/g, "")
+    .replace(/\[Ghi chú chủ gym khi duyệt\]\s*/g, "")
+    .trim();
 };
 
 const toDateValue = (value) => {
@@ -41,21 +80,17 @@ const toDateString = (date) => {
 
 const statusLabel = {
   pending: "Chờ chốt kỳ",
-  calculated: "Đã chốt",
+  calculated: "Đã trả",
   paid: "Đã chi trả",
-};
-
-const withdrawalStatusLabel = {
-  pending: "Chờ duyệt",
-  completed: "Đã chi trả",
-  rejected: "Từ chối",
 };
 
 const PTPayrollPage = () => {
   const [commissions, setCommissions] = useState([]);
   const [periodItems, setPeriodItems] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
-  const [notice, setNotice] = useState("");
+  const [walletSummary, setWalletSummary] = useState({
+    availableBalance: 0,
+    totalWithdrawn: 0,
+  });
   const [withdrawForm, setWithdrawForm] = useState({
     amount: "",
     withdrawalMethod: "bank_transfer",
@@ -64,11 +99,16 @@ const PTPayrollPage = () => {
     accountHolder: "",
     notes: "",
   });
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [periodCommissions, setPeriodCommissions] = useState([]);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [filters, setFilters] = useState({ status: "", fromDate: "", toDate: "" });
   const [loading, setLoading] = useState(false);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState(null);
 
   const loadCommissions = async () => {
     try {
@@ -93,20 +133,33 @@ const PTPayrollPage = () => {
     }
   };
 
+  const loadWalletSummary = async () => {
+    try {
+      const res = await getMyPTWalletSummary();
+      setWalletSummary(res?.data || { availableBalance: 0, totalWithdrawn: 0 });
+    } catch (e) {
+      console.error("Lỗi khi tải tổng quan ví PT:", e);
+      setWalletSummary({ availableBalance: 0, totalWithdrawn: 0 });
+    }
+  };
+
   const loadWithdrawals = async () => {
     try {
+      setWithdrawalsLoading(true);
       const res = await getMyPTWithdrawals();
-      const list = Array.isArray(res.data) ? res.data : [];
-      setWithdrawals(list);
+      setWithdrawals(Array.isArray(res?.data) ? res.data : []);
     } catch (e) {
-      console.error("Lỗi khi tải yêu cầu chi trả:", e);
+      console.error("Lỗi khi tải lịch sử rút tiền:", e);
       setWithdrawals([]);
+    } finally {
+      setWithdrawalsLoading(false);
     }
   };
 
   useEffect(() => {
     loadCommissions();
     loadPayrollPeriods();
+    loadWalletSummary();
     loadWithdrawals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -114,7 +167,8 @@ const PTPayrollPage = () => {
   useEffect(() => {
     const socket = connectSocket();
     const handleUpdate = () => {
-      setNotice("Có cập nhật mới về yêu cầu chi trả.");
+      loadWalletSummary();
+      loadCommissions();
       loadWithdrawals();
     };
     socket.on("withdrawal:created", handleUpdate);
@@ -130,15 +184,12 @@ const PTPayrollPage = () => {
   const summary = useMemo(() => {
     const pending = commissions.filter((c) => c.status === "pending");
     const calculated = commissions.filter((c) => c.status === "calculated");
-    const paid = commissions.filter((c) => c.status === "paid");
     const sum = (arr) => arr.reduce((acc, c) => acc + Number(c.commissionAmount || 0), 0);
     return {
       pendingCount: pending.length,
       pendingAmount: sum(pending),
       calculatedCount: calculated.length,
       calculatedAmount: sum(calculated),
-      paidCount: paid.length,
-      paidAmount: sum(paid),
     };
   }, [commissions]);
 
@@ -157,28 +208,102 @@ const PTPayrollPage = () => {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Lỗi khi xuất file:", e);
-      alert("Không thể xuất file");
+      setFeedbackModal({
+        title: "Không xuất được file",
+        message: "Đã có lỗi khi tải Excel. Vui lòng thử lại.",
+        tone: "danger",
+      });
     }
   };
+
+  const availableBalance = Number(walletSummary.availableBalance || 0);
+
+  const fillWithdrawAll = () => {
+    if (availableBalance <= 0) return;
+    setWithdrawForm((f) => ({ ...f, amount: String(Math.floor(availableBalance)) }));
+  };
+
+  const openWithdrawModal = () => {
+    if (availableBalance <= 0) return;
+    setShowWithdrawModal(true);
+  };
+
+  const closeWithdrawModal = useCallback(() => {
+    if (withdrawSubmitting) return;
+    setShowWithdrawModal(false);
+    setWithdrawForm({
+      amount: "",
+      withdrawalMethod: "bank_transfer",
+      bankName: "",
+      accountNumber: "",
+      accountHolder: "",
+      notes: "",
+    });
+  }, [withdrawSubmitting]);
 
   const handleRequestWithdrawal = async () => {
     const amount = Number(withdrawForm.amount || 0);
     if (!amount || Number.isNaN(amount) || amount <= 0) {
-      alert("Vui lòng nhập số tiền hợp lệ");
+      setFeedbackModal({
+        title: "Thiếu thông tin",
+        message: "Vui lòng nhập số tiền hợp lệ.",
+        tone: "info",
+      });
       return;
     }
+    if (availableBalance <= 0) {
+      setFeedbackModal({
+        title: "Chưa có số dư",
+        message: "Chưa có số dư khả dụng. Chủ gym cần chi trả hoa hồng trước khi bạn có thể rút.",
+        tone: "info",
+      });
+      return;
+    }
+    if (amount > availableBalance) {
+      setFeedbackModal({
+        title: "Số tiền không hợp lệ",
+        message: `Số tiền rút không được vượt số dư khả dụng (${formatMoney(availableBalance)}).`,
+        tone: "danger",
+      });
+      return;
+    }
+    const bankName = withdrawForm.bankName?.trim();
+    if (!bankName) {
+      setFeedbackModal({
+        title: "Thiếu thông tin",
+        message: "Vui lòng nhập tên ngân hàng.",
+        tone: "info",
+      });
+      return;
+    }
+    if (!withdrawForm.accountNumber?.trim() || !withdrawForm.accountHolder?.trim()) {
+      setFeedbackModal({
+        title: "Thiếu thông tin",
+        message: "Vui lòng nhập số tài khoản và tên chủ tài khoản.",
+        tone: "info",
+      });
+      return;
+    }
+    setWithdrawSubmitting(true);
     try {
       await requestPTWithdrawal({
         amount,
         withdrawalMethod: withdrawForm.withdrawalMethod,
         accountInfo: {
-          bankName: withdrawForm.bankName,
-          accountNumber: withdrawForm.accountNumber,
-          accountHolder: withdrawForm.accountHolder,
+          bankName,
+          bankFullName: bankName,
+          bankCode: "",
+          accountNumber: withdrawForm.accountNumber.trim(),
+          accountHolder: withdrawForm.accountHolder.trim(),
         },
-        notes: withdrawForm.notes,
+        notes: withdrawForm.notes || "",
       });
-      alert("Đã gửi yêu cầu chi trả");
+      setFeedbackModal({
+        title: "Đã gửi yêu cầu",
+        message: "Đã gửi yêu cầu rút tiền.",
+        tone: "success",
+      });
+      setShowWithdrawModal(false);
       setWithdrawForm({
         amount: "",
         withdrawalMethod: "bank_transfer",
@@ -187,12 +312,28 @@ const PTPayrollPage = () => {
         accountHolder: "",
         notes: "",
       });
+      loadWalletSummary();
       loadWithdrawals();
     } catch (e) {
-      console.error("Lỗi khi yêu cầu chi trả:", e);
-      alert(e.response?.data?.message || "Không thể gửi yêu cầu");
+      console.error("Lỗi khi yêu cầu rút tiền:", e);
+      setFeedbackModal({
+        title: "Không gửi được yêu cầu",
+        message: e.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        tone: "danger",
+      });
+    } finally {
+      setWithdrawSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!showWithdrawModal) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !withdrawSubmitting) closeWithdrawModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showWithdrawModal, withdrawSubmitting, closeWithdrawModal]);
 
   const handleOpenPeriod = async (item) => {
     try {
@@ -218,27 +359,199 @@ const PTPayrollPage = () => {
       <div className="ptp-head">
         <div>
           <h2 className="ptp-title">Bảng lương & hoa hồng</h2>
-          <div className="ptp-sub">Theo dõi hoa hồng theo buổi và các kỳ lương đã chốt</div>
         </div>
       </div>
 
       <div className="ptpay-cards">
         <div className="ptpay-card">
+          <div className="ptpay-label">Số dư khả dụng</div>
+          <div className="ptpay-value">{formatMoney(walletSummary.availableBalance)}</div>
+        </div>
+        <div className="ptpay-card">
+          <div className="ptpay-label">Tổng đã rút</div>
+          <div className="ptpay-value">{formatMoney(walletSummary.totalWithdrawn)}</div>
+        </div>
+        <div className="ptpay-card">
           <div className="ptpay-label">Chờ chốt kỳ</div>
           <div className="ptpay-value">{formatMoney(summary.pendingAmount)}</div>
-          <div className="ptpay-meta">{summary.pendingCount} buổi</div>
         </div>
         <div className="ptpay-card">
-          <div className="ptpay-label">Đã chốt</div>
+          <div className="ptpay-label">Đã chốt kỳ</div>
           <div className="ptpay-value">{formatMoney(summary.calculatedAmount)}</div>
-          <div className="ptpay-meta">{summary.calculatedCount} buổi</div>
-        </div>
-        <div className="ptpay-card">
-          <div className="ptpay-label">Đã chi trả</div>
-          <div className="ptpay-value">{formatMoney(summary.paidAmount)}</div>
-          <div className="ptpay-meta">{summary.paidCount} buổi</div>
         </div>
       </div>
+
+      <div className="ptpay-section">
+        <div className="ptpay-section-title">Rút tiền về ngân hàng</div>
+        <div className="ptw-withdraw-card">
+          <div className="ptw-withdraw-card-row">
+            <div>
+              <div className="ptw-withdraw-balance-label">Số dư khả dụng</div>
+              <div className="ptw-withdraw-balance-value">{formatMoney(availableBalance)}</div>
+            </div>
+            <button
+              type="button"
+              className="ptw-withdraw-open-btn"
+              onClick={openWithdrawModal}
+              disabled={availableBalance <= 0}
+            >
+              Gửi yêu cầu rút tiền
+            </button>
+          </div>
+          {availableBalance <= 0 && (
+            <p className="ptw-withdraw-disabled-hint">Khi có số dư, bấm nút trên để mở biểu mẫu rút tiền.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="ptpay-section">
+        <div className="ptpay-section-title">Lịch sử rút tiền về ngân hàng</div>
+        <div className="ptpay-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Ngày gửi</th>
+                <th>Số tiền</th>
+                <th>Phương thức</th>
+                <th>Ngân hàng</th>
+                <th>Số TK</th>
+                <th>Trạng thái</th>
+                <th>Ngày xử lý</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {withdrawalsLoading ? (
+                <tr>
+                  <td colSpan="8" className="ptpay-empty">
+                    Đang tải lịch sử...
+                  </td>
+                </tr>
+              ) : withdrawals.length > 0 ? (
+                withdrawals.map((w) => {
+                  const acc = parseWithdrawalAccountInfo(w.accountInfo);
+                  const bank = acc.bankName || acc.bankFullName || "—";
+                  const acct = acc.accountNumber || "—";
+                  const st = w.status || "pending";
+                  const noteShown = displayWithdrawalNotes(w.notes);
+                  return (
+                    <tr key={w.id}>
+                      <td>{formatDateTime(w.createdAt)}</td>
+                      <td className="ptpay-money">{formatMoney(w.amount)}</td>
+                      <td>{withdrawalMethodLabel[w.withdrawalMethod] || w.withdrawalMethod || "—"}</td>
+                      <td>{bank}</td>
+                      <td>{acct}</td>
+                      <td>
+                        <span className={`ptpay-badge ptpay-badge-withdraw-${st}`}>
+                          {withdrawalStatusLabel[st] || st}
+                        </span>
+                      </td>
+                      <td>{formatDateTime(w.processedDate)}</td>
+                      <td className="ptpay-withdraw-notes">{noteShown || "—"}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="8" className="ptpay-empty">
+                    Chưa có yêu cầu rút tiền nào.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showWithdrawModal && (
+        <div className="ptw-modal-overlay" role="presentation" onClick={withdrawSubmitting ? undefined : closeWithdrawModal}>
+          <div
+            className="ptw-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ptw-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="ptw-modal-title" className="ptw-modal-title">
+              Gửi yêu cầu rút tiền
+            </h2>
+            <p className="ptw-modal-balance">
+              Số dư khả dụng: <strong>{formatMoney(availableBalance)}</strong>
+              <button type="button" className="ptw-modal-fill" onClick={fillWithdrawAll} disabled={withdrawSubmitting}>
+                Điền toàn bộ
+              </button>
+            </p>
+            <div className="ptw-modal-fields">
+              <label className="ptw-field">
+                <span className="ptw-field-label">Ngân hàng</span>
+                <input
+                  className="ptw-input"
+                  type="text"
+                  placeholder="VD: Vietcombank"
+                  value={withdrawForm.bankName}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, bankName: e.target.value })}
+                  disabled={withdrawSubmitting}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="ptw-field">
+                <span className="ptw-field-label">Số tài khoản</span>
+                <input
+                  className="ptw-input"
+                  type="text"
+                  placeholder="0123456789"
+                  value={withdrawForm.accountNumber}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, accountNumber: e.target.value })}
+                  disabled={withdrawSubmitting}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="ptw-field">
+                <span className="ptw-field-label">Tên chủ tài khoản</span>
+                <input
+                  className="ptw-input"
+                  type="text"
+                  placeholder="Nguyen Van A"
+                  value={withdrawForm.accountHolder}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, accountHolder: e.target.value })}
+                  disabled={withdrawSubmitting}
+                  autoComplete="name"
+                />
+              </label>
+              <label className="ptw-field">
+                <span className="ptw-field-label">Số tiền muốn rút (VND)</span>
+                <input
+                  className="ptw-input"
+                  type="number"
+                  min={1}
+                  placeholder=""
+                  value={withdrawForm.amount}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
+                  disabled={withdrawSubmitting}
+                />
+              </label>
+            </div>
+            <div className="ptw-modal-actions">
+              <button
+                type="button"
+                className="ptw-btn ptw-btn-ghost"
+                onClick={closeWithdrawModal}
+                disabled={withdrawSubmitting}
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                className="ptw-btn ptw-btn-submit"
+                onClick={handleRequestWithdrawal}
+                disabled={withdrawSubmitting}
+              >
+                {withdrawSubmitting ? "Đang gửi…" : "Gửi yêu cầu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="ptp-toolbar">
         <select
@@ -272,103 +585,6 @@ const PTPayrollPage = () => {
       </div>
 
       <div className="ptpay-section">
-        <div className="ptpay-section-title">Yêu cầu chi trả</div>
-        {notice && (
-          <div className="ptpay-notice" onClick={() => setNotice("")}>
-            {notice}
-          </div>
-        )}
-        <div className="ptpay-request">
-          <input
-            className="ptp-input"
-            type="number"
-            placeholder="Số tiền muốn rút"
-            value={withdrawForm.amount}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
-          />
-          <select
-            className="ptp-select"
-            value={withdrawForm.withdrawalMethod}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, withdrawalMethod: e.target.value })}
-          >
-            <option value="bank_transfer">Chuyển khoản</option>
-          </select>
-          <input
-            className="ptp-input"
-            type="text"
-            placeholder="Tên ngân hàng"
-            value={withdrawForm.bankName}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, bankName: e.target.value })}
-          />
-          <input
-            className="ptp-input"
-            type="text"
-            placeholder="Số tài khoản"
-            value={withdrawForm.accountNumber}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, accountNumber: e.target.value })}
-          />
-          <input
-            className="ptp-input"
-            type="text"
-            placeholder="Tên chủ tài khoản"
-            value={withdrawForm.accountHolder}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, accountHolder: e.target.value })}
-          />
-          <input
-            className="ptp-input"
-            type="text"
-            placeholder="Ghi chú (tùy chọn)"
-            value={withdrawForm.notes}
-            onChange={(e) => setWithdrawForm({ ...withdrawForm, notes: e.target.value })}
-          />
-          <button className="ptp-btn" onClick={handleRequestWithdrawal}>Gửi yêu cầu</button>
-        </div>
-
-        <div className="ptpay-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Ngày yêu cầu</th>
-                <th>Số tiền</th>
-                <th>Phương thức</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {withdrawals.length > 0 ? (
-                withdrawals.map((w) => {
-                  let account = {};
-                  try {
-                    account = w.accountInfo ? JSON.parse(w.accountInfo) : {};
-                  } catch {
-                    account = {};
-                  }
-                  return (
-                  <tr key={w.id}>
-                    <td>{formatDate(w.createdAt)}</td>
-                    <td className="ptpay-money">{formatMoney(w.amount)}</td>
-                    <td>
-                      {w.withdrawalMethod === "bank_transfer"
-                        ? `${account.bankName || ""} ${account.accountNumber || ""} ${account.accountHolder || ""}`.trim()
-                        : w.withdrawalMethod || "N/A"}
-                    </td>
-                    <td>
-                      <span className={`ptpay-badge ptpay-badge-${w.status || "pending"}`}>
-                        {withdrawalStatusLabel[w.status] || w.status || "pending"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-                })
-              ) : (
-                <tr><td colSpan="4" className="ptpay-empty">Chưa có yêu cầu</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="ptpay-section">
         <div className="ptpay-section-title">Hoa hồng theo buổi</div>
         <div className="ptpay-table">
           <table>
@@ -394,7 +610,13 @@ const PTPayrollPage = () => {
                     <td className="ptpay-money">{formatMoney(c.sessionValue)}</td>
                     <td className="ptpay-money">{formatMoney(c.commissionAmount)}</td>
                     <td>
-                      <span className={`ptpay-badge ptpay-badge-${c.status || "pending"}`}>
+                      <span
+                        className={`ptpay-badge ${
+                          (c.status || "pending") === "pending"
+                            ? "ptpay-badge-pending"
+                            : "ptpay-badge-paid"
+                        }`}
+                      >
                         {statusLabel[c.status] || c.status}
                       </span>
                     </td>
@@ -423,7 +645,12 @@ const PTPayrollPage = () => {
             </thead>
             <tbody>
               {periodItems.length > 0 ? (
-                periodItems.map((item) => (
+                periodItems.map((item) => {
+                  const ps = item.PayrollPeriod?.status;
+                  const periodPaidOut = ps === "paid" || ps === "closed";
+                  const periodStatusLabel =
+                    ps === "paid" ? "Đã chi trả" : ps === "closed" ? "Đã trả" : "—";
+                  return (
                   <tr key={item.id} className="ptpay-row" onClick={() => handleOpenPeriod(item)}>
                     <td>
                       {formatDate(item.PayrollPeriod?.startDate)} - {formatDate(item.PayrollPeriod?.endDate)}
@@ -432,12 +659,17 @@ const PTPayrollPage = () => {
                     <td>{item.totalSessions || 0}</td>
                     <td className="ptpay-money">{formatMoney(item.totalAmount)}</td>
                     <td>
-                      <span className={`ptpay-badge ptpay-badge-${item.PayrollPeriod?.status || "calculated"}`}>
-                        {item.PayrollPeriod?.status === "paid" ? "Đã chi trả" : "Đã chốt"}
+                      <span
+                        className={`ptpay-badge ${
+                          periodPaidOut ? "ptpay-badge-paid" : "ptpay-badge-calculated"
+                        }`}
+                      >
+                        {periodStatusLabel}
                       </span>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               ) : (
                 <tr><td colSpan="5" className="ptpay-empty">Chưa có kỳ lương</td></tr>
               )}
@@ -490,6 +722,21 @@ const PTPayrollPage = () => {
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(feedbackModal)}
+        onClose={() => setFeedbackModal(null)}
+        zIndex={1200}
+        tone={feedbackModal?.tone || "info"}
+        title={feedbackModal?.title || "Thông báo"}
+        footer={
+          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setFeedbackModal(null)}>
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{feedbackModal?.message}</p>
+      </NiceModal>
     </div>
   );
 };
