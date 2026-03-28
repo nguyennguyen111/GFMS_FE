@@ -8,8 +8,8 @@ export const ownerGetWithdrawals = (params = {}) =>
 export const ownerExportWithdrawals = (params = {}) =>
   axios.get(`${API_URL}/export`, { params, responseType: "blob" });
 
-export const ownerApproveWithdrawal = (id) =>
-  axios.post(`${API_URL}/${id}/approve`);
+export const ownerApproveWithdrawal = (id, body = {}) =>
+  axios.post(`${API_URL}/${id}/approve`, body);
 
 export const ownerRejectWithdrawal = (id, reason) =>
   axios.post(`${API_URL}/${id}/reject`, { reason });

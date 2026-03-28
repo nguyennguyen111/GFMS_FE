@@ -1,0 +1,230 @@
+.nice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  animation: nice-modal-fade-in 0.2s ease;
+}
+
+@keyframes nice-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nice-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+  padding: 22px 22px 18px;
+  background: linear-gradient(145deg, rgba(22, 32, 48, 0.98), rgba(12, 18, 28, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 24px 48px rgba(0, 0, 0, 0.55),
+    0 0 80px rgba(255, 138, 0, 0.06);
+  color: #eef2ff;
+  animation: nice-modal-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nice-modal--wide {
+  max-width: 480px;
+}
+
+@keyframes nice-modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.nice-modal__glow {
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(255, 138, 0, 0.18), transparent 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.nice-modal--success .nice-modal__glow {
+  background: radial-gradient(ellipse, rgba(0, 255, 170, 0.14), transparent 70%);
+}
+
+.nice-modal--danger .nice-modal__glow {
+  background: radial-gradient(ellipse, rgba(255, 90, 110, 0.16), transparent 70%);
+}
+
+.nice-modal--info .nice-modal__glow {
+  background: radial-gradient(ellipse, rgba(0, 180, 255, 0.14), transparent 70%);
+}
+
+.nice-modal__title {
+  position: relative;
+  margin: 0 28px 10px 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.nice-modal__body {
+  position: relative;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(238, 242, 255, 0.88);
+}
+
+.nice-modal__body p {
+  margin: 0 0 10px;
+}
+
+.nice-modal__body p:last-child {
+  margin-bottom: 0;
+}
+
+.nice-modal__footer {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.nice-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(238, 242, 255, 0.75);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nice-modal__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.nice-modal__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(238, 242, 255, 0.55);
+  margin-bottom: 8px;
+}
+
+.nice-modal__textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.45);
+  color: #eef2ff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.nice-modal__textarea:focus {
+  outline: none;
+  border-color: rgba(255, 138, 0, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.12);
+}
+
+.nice-modal__hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.5);
+}
+
+.nice-modal__btn {
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.nice-modal__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nice-modal__btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.nice-modal__btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(238, 242, 255, 0.9);
+}
+
+.nice-modal__btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nice-modal__btn--primary {
+  background: linear-gradient(135deg, rgba(0, 255, 170, 0.35), rgba(0, 200, 140, 0.22));
+  border-color: rgba(0, 255, 170, 0.45);
+  color: #b8ffe8;
+  box-shadow: 0 4px 16px rgba(0, 255, 170, 0.12);
+}
+
+.nice-modal__btn--primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(0, 255, 170, 0.2);
+}
+
+.nice-modal__btn--danger {
+  background: linear-gradient(135deg, rgba(255, 90, 110, 0.35), rgba(200, 50, 70, 0.22));
+  border-color: rgba(255, 90, 110, 0.45);
+  color: #ffc8cf;
+  box-shadow: 0 4px 16px rgba(255, 60, 90, 0.12);
+}
+
+.nice-modal__btn--danger:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(255, 60, 90, 0.2);
+}
+
+.nice-modal__meta {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+}
+
+.nice-modal__meta strong {
+  color: #00ffaa;
+  font-weight: 800;
+}
