@@ -114,6 +114,46 @@
   padding: 18px 22px 28px;
 }
 
+.ptd-bannerErr {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  background: rgba(231, 76, 60, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ptd-loadingBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 137, 21, 0.25);
+  background: rgba(244, 137, 21, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ptd-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--orange);
+  animation: ptd-spin 0.7s linear infinite;
+}
+
+@keyframes ptd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Topbar like sample */
 .ptd-topbar {
   height: 56px;
@@ -232,6 +272,33 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
+/* Quick links under KPI */
+.ptd-quickRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ptd-quickItem {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  transition: 0.15s;
+}
+
+.ptd-quickItem:hover {
+  border-color: rgba(244, 137, 21, 0.45);
+  background: rgba(244, 137, 21, 0.1);
+}
+
 /* Content grid */
 .ptd-contentGrid {
   display: grid;
@@ -319,6 +386,17 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+.ptd-miniDay--busy {
+  border-color: rgba(244, 137, 21, 0.45);
+  background: rgba(244, 137, 21, 0.08);
+}
+
+.ptd-tableCellMuted {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+}
+
 /* Recent sessions table (simple) */
 .ptd-table {
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -354,6 +432,26 @@
   padding: 10px;
   background: rgba(0, 0, 0, 0.14);
   transition: all 0.3s ease;
+}
+
+.ptd-chartHint {
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.ptd-chartEmpty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .ptd-chartBox:hover {
@@ -462,6 +560,14 @@
 
 .ptd-upgradeBtn:hover {
   filter: brightness(1.06);
+}
+
+a.ptd-upgradeBtn--link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  width: fit-content;
 }
 
 /* user footer card */
