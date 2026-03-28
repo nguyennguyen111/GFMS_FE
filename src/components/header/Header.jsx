@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { User, LogOut, Menu, X, ChevronDown, CalendarDays, Package, Bell, MessageCircle, Activity, Star } from "lucide-react";
+import { User, LogOut, Menu, X, ChevronDown, CalendarDays, Package, Bell, MessageCircle, Activity, Star, LayoutDashboard } from "lucide-react";
 import "./Header.css";
 import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
+import { getCurrentUser } from "../../utils/auth";
 
-const readAuth = () => ({
-  token: localStorage.getItem("accessToken"),
-  role: localStorage.getItem("role"),
-  username: localStorage.getItem("username") || "Tài khoản",
-});
+/** Đồng bộ với LoginPage: accessToken + user (JSON), không dùng localStorage.role/username riêng */
+const readAuth = () => {
+  const token = localStorage.getItem("accessToken");
+  const user = getCurrentUser();
+  const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
+  const username = user?.username || user?.email || "Tài khoản";
+  const portalPath =
+    groupId === 1 ? "/admin" : groupId === 2 ? "/owner" : groupId === 3 ? "/pt/dashboard" : null;
+  const isMember = Boolean(token && user && groupId === 4);
+  const isLoggedInNonMember = Boolean(token && user && !isMember);
+  return { token: Boolean(token && user), username, isMember, isLoggedInNonMember, portalPath, groupId };
+};
 
 export default function Header() {
   const navigate = useNavigate();
@@ -17,13 +25,16 @@ export default function Header() {
 
   const headerRef = useRef(null);
   const accountRef = useRef(null);
+  const staffAccountRef = useRef(null);
 
   const [menuOpened, setMenuOpened] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [staffAccountOpen, setStaffAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [authTick, setAuthTick] = useState(0);
 
-  const { token, role, username } = readAuth();
-  const isMember = token && role === "member";
+  void authTick;
+  const { token, username, isMember, isLoggedInNonMember, portalPath } = readAuth();
 
   useEffect(() => {
     const setVar = () => {
@@ -44,12 +55,26 @@ export default function Header() {
   useEffect(() => {
     setMenuOpened(false);
     setAccountOpen(false);
+    setStaffAccountOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const bump = () => setAuthTick((n) => n + 1);
+    window.addEventListener("authChanged", bump);
+    window.addEventListener("storage", bump);
+    return () => {
+      window.removeEventListener("authChanged", bump);
+      window.removeEventListener("storage", bump);
+    };
+  }, []);
 
   useEffect(() => {
     const onClick = (e) => {
       if (accountRef.current && !accountRef.current.contains(e.target)) {
         setAccountOpen(false);
+      }
+      if (staffAccountRef.current && !staffAccountRef.current.contains(e.target)) {
+        setStaffAccountOpen(false);
       }
     };
     document.addEventListener("mousedown", onClick);
@@ -149,6 +174,40 @@ export default function Header() {
     </div>
   );
 
+  const StaffAccountDropdown = () => (
+    <div className="profile-dropdown-wrap" ref={staffAccountRef}>
+      <button
+        className={`profile-btn ${staffAccountOpen ? "open" : ""}`}
+        onClick={() => setStaffAccountOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={staffAccountOpen}
+        type="button"
+      >
+        <User size={16} />
+        <span>{username}</span>
+        <ChevronDown size={16} className="profile-caret" />
+      </button>
+
+      {staffAccountOpen && (
+        <div className="profile-dropdown-menu" role="menu">
+          {portalPath ? (
+            <button onClick={() => go(portalPath)} type="button">
+              <LayoutDashboard size={16} />
+              <span>Bảng điều khiển</span>
+            </button>
+          ) : null}
+
+          {portalPath ? <div className="dropdown-divider" /> : null}
+
+          <button className="logout-btn" onClick={logout} type="button">
+            <LogOut size={16} />
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   const MobileDrawer = () => (
     <div className="mobile-menu-wrap" aria-hidden={!menuOpened}>
       <div className="mobile-menu-backdrop" onClick={() => setMenuOpened(false)} />
@@ -190,7 +249,20 @@ export default function Header() {
                 Đăng xuất
               </button>
             </>
-          ) : null}
+          ) : (
+            <>
+              {portalPath ? (
+                <button className="profile-btn full-width-btn" onClick={() => go(portalPath)} type="button">
+                  <LayoutDashboard size={16} />
+                  Bảng điều khiển
+                </button>
+              ) : null}
+              <button className="logout-btn full-width-btn" onClick={logout} type="button">
+                <LogOut size={16} />
+                Đăng xuất
+              </button>
+            </>
+          )}
         </div>
       </aside>
     </div>
@@ -224,6 +296,8 @@ export default function Header() {
             )}
 
             {isMember && <MemberDropdown />}
+
+            {isLoggedInNonMember && <StaffAccountDropdown />}
 
             <button
               className="mobile-menu-btn"

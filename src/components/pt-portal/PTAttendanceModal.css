@@ -67,6 +67,52 @@
 }
 .btn-absent:hover { background: #ff4d4d; color: #fff; }
 
+.ptAttModal__lockPanel {
+    margin-top: 20px;
+    padding: 18px 16px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(30, 40, 58, 0.95), rgba(18, 24, 36, 0.98));
+    border: 1px solid rgba(0, 180, 255, 0.35);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    text-align: center;
+}
+
+.ptAttModal__lockTitle {
+    font-size: 15px;
+    font-weight: 800;
+    color: #00b4ff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.ptAttModal__lockText {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(238, 242, 255, 0.85);
+}
+
+.ptAttModal__lockBtn {
+    padding: 10px 28px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 180, 255, 0.45);
+    background: rgba(0, 180, 255, 0.15);
+    color: #7fdcff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.ptAttModal__lockBtn:hover {
+    background: rgba(0, 180, 255, 0.28);
+}
+
+.ptAttModal__lockBtn:active {
+    transform: scale(0.98);
+}
+
 .ptAttModal__err {
     background: rgba(255, 77, 77, 0.1); color: #ff4d4d;
     padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px;

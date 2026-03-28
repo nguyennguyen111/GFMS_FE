@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
 import { getPTAttendanceSchedule, ptCheckIn } from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
-import PTAttendanceModal from "./PTAttendanceModal";
+import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
+import NiceModal from "../common/NiceModal";
 
 const VI_DAY = {
   monday: "Thứ 2",
@@ -58,6 +59,7 @@ const PTSchedule = () => {
   const [attLoading, setAttLoading] = useState(false);
   const [attBooking, setAttBooking] = useState(null);
   const [attCache, setAttCache] = useState({});
+  const [attendanceBlockModal, setAttendanceBlockModal] = useState(null);
 
   const START_HOUR = 6;
   const END_HOUR = 22;
@@ -158,6 +160,13 @@ const PTSchedule = () => {
       const res = await getPTAttendanceSchedule({ date: ymd });
       setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
       setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+    } catch (e) {
+      const data = e?.response?.data;
+      const msg = data?.DT || data?.message || data?.EM || e?.message || "";
+      const locked = /chốt kỳ|chi trả|điểm danh|không thể thay đổi/i.test(String(msg));
+      setAttendanceBlockModal(
+        locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể cập nhật điểm danh. Vui lòng thử lại."
+      );
     } finally {
       setAttLoading(false);
     }
@@ -339,6 +348,25 @@ const PTSchedule = () => {
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}
       />
+
+      <NiceModal
+        open={Boolean(attendanceBlockModal)}
+        onClose={() => setAttendanceBlockModal(null)}
+        zIndex={1300}
+        tone="info"
+        title="Không thể điểm danh"
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setAttendanceBlockModal(null)}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{attendanceBlockModal}</p>
+      </NiceModal>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import {
   ownerRejectWithdrawal,
 } from "../../../services/ownerWithdrawalService";
 import { connectSocket } from "../../../services/socketClient";
+import NiceModal from "../../common/NiceModal";
 import "./OwnerWithdrawalsPage.css";
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -16,6 +17,9 @@ const OwnerWithdrawalsPage = () => {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [actionModal, setActionModal] = useState(null);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [alertModal, setAlertModal] = useState(null);
 
   const loadWithdrawals = useCallback(async () => {
     try {
@@ -51,25 +55,49 @@ const OwnerWithdrawalsPage = () => {
     };
   }, [loadWithdrawals]);
 
-  const handleApprove = async (id) => {
-    if (!window.confirm("Duyệt chi trả yêu cầu này?")) return;
-    try {
-      await ownerApproveWithdrawal(id);
-      loadWithdrawals();
-    } catch (e) {
-      console.error("Lỗi khi duyệt:", e);
-      alert(e.response?.data?.message || "Không thể duyệt yêu cầu");
-    }
+  const fillActionContext = (id) => {
+    const w = withdrawals.find((x) => Number(x.id) === Number(id));
+    return {
+      id,
+      ptName: w?.Trainer?.User?.username || "N/A",
+      amountLabel: w ? formatMoney(w.amount) : "",
+    };
   };
 
-  const handleReject = async (id) => {
-    const reason = window.prompt("Nhập lý do từ chối (tùy chọn):");
+  const openApproveDialog = (id) => {
+    setActionModal({ type: "approve", note: "", ...fillActionContext(id) });
+  };
+
+  const openRejectDialog = (id) => {
+    setActionModal({ type: "reject", note: "", ...fillActionContext(id) });
+  };
+
+  const closeActionModal = () => {
+    if (actionSubmitting) return;
+    setActionModal(null);
+  };
+
+  const submitAction = async () => {
+    if (!actionModal) return;
+    setActionSubmitting(true);
     try {
-      await ownerRejectWithdrawal(id, reason || "");
-      loadWithdrawals();
+      if (actionModal.type === "approve") {
+        await ownerApproveWithdrawal(actionModal.id, { notes: actionModal.note.trim() });
+      } else {
+        await ownerRejectWithdrawal(actionModal.id, actionModal.note.trim());
+      }
+      setActionModal(null);
+      setSelectedRequest(null);
+      await loadWithdrawals();
     } catch (e) {
-      console.error("Lỗi khi từ chối:", e);
-      alert(e.response?.data?.message || "Không thể từ chối yêu cầu");
+      console.error("Lỗi xử lý yêu cầu:", e);
+      setAlertModal({
+        title: actionModal.type === "approve" ? "Không duyệt được" : "Không từ chối được",
+        message: e.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        tone: "danger",
+      });
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
@@ -88,7 +116,11 @@ const OwnerWithdrawalsPage = () => {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Lỗi khi export:", e);
-      alert("Không thể xuất file");
+      setAlertModal({
+        title: "Xuất file thất bại",
+        message: "Không thể tải file Excel. Vui lòng thử lại.",
+        tone: "danger",
+      });
     }
   };
 
@@ -183,7 +215,9 @@ const OwnerWithdrawalsPage = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" className="empty-cell">Đang tải...</td>
+                <td colSpan="5" className="empty-cell">
+                  Đang tải...
+                </td>
               </tr>
             ) : withdrawals.length > 0 ? (
               withdrawals.map((w) => {
@@ -210,8 +244,12 @@ const OwnerWithdrawalsPage = () => {
                     <td>
                       {w.status === "pending" ? (
                         <>
-                          <button className="btn-approve" onClick={() => handleApprove(w.id)}>Duyệt</button>
-                          <button className="btn-reject" onClick={() => handleReject(w.id)}>Từ chối</button>
+                          <button type="button" className="btn-approve" onClick={() => openApproveDialog(w.id)}>
+                            Duyệt
+                          </button>
+                          <button type="button" className="btn-reject" onClick={() => openRejectDialog(w.id)}>
+                            Từ chối
+                          </button>
                         </>
                       ) : (
                         <span className="paid-text">Đã xử lý</span>
@@ -222,7 +260,9 @@ const OwnerWithdrawalsPage = () => {
               })
             ) : (
               <tr>
-                <td colSpan="5" className="empty-cell">Không có yêu cầu</td>
+                <td colSpan="5" className="empty-cell">
+                  Không có yêu cầu
+                </td>
               </tr>
             )}
           </tbody>
@@ -234,41 +274,134 @@ const OwnerWithdrawalsPage = () => {
           <div className="withdrawals-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="withdrawals-modal-header">
               <h3>Chi tiết yêu cầu</h3>
-              <button onClick={handleCloseDetail}>×</button>
+              <button type="button" onClick={handleCloseDetail}>
+                ×
+              </button>
             </div>
             {(() => {
               const info = parseAccountInfo(selectedRequest.accountInfo);
               return (
                 <div className="withdrawals-modal-body">
-                  <div><strong>PT:</strong> {selectedRequest.Trainer?.User?.username || "N/A"}</div>
-                  <div><strong>Email:</strong> {selectedRequest.Trainer?.User?.email || "N/A"}</div>
-                  <div><strong>Số tiền:</strong> {formatMoney(selectedRequest.amount)}</div>
-                  <div><strong>Phương thức:</strong> {selectedRequest.withdrawalMethod || "N/A"}</div>
-                  <div><strong>Ngân hàng:</strong> {info.bankName || "N/A"}</div>
-                  <div><strong>Số tài khoản:</strong> {info.accountNumber || "N/A"}</div>
-                  <div><strong>Tên chủ TK:</strong> {info.accountHolder || "N/A"}</div>
-                  <div><strong>Ghi chú:</strong> {selectedRequest.notes || "N/A"}</div>
-                  <div><strong>Trạng thái:</strong> {selectedRequest.status || "pending"}</div>
+                  <div>
+                    <strong>PT:</strong> {selectedRequest.Trainer?.User?.username || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Email:</strong> {selectedRequest.Trainer?.User?.email || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Số tiền:</strong> {formatMoney(selectedRequest.amount)}
+                  </div>
+                  <div>
+                    <strong>Phương thức:</strong> {selectedRequest.withdrawalMethod || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Ngân hàng:</strong> {info.bankName || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Số tài khoản:</strong> {info.accountNumber || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Tên chủ TK:</strong> {info.accountHolder || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Ghi chú:</strong> {selectedRequest.notes || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Trạng thái:</strong> {selectedRequest.status || "pending"}
+                  </div>
                 </div>
               );
             })()}
             <div className="withdrawals-modal-actions">
               {selectedRequest.status === "pending" ? (
                 <>
-                  <button className="btn-approve" onClick={() => { handleApprove(selectedRequest.id); handleCloseDetail(); }}>
+                  <button type="button" className="btn-approve" onClick={() => openApproveDialog(selectedRequest.id)}>
                     Duyệt
                   </button>
-                  <button className="btn-reject" onClick={() => { handleReject(selectedRequest.id); handleCloseDetail(); }}>
+                  <button type="button" className="btn-reject" onClick={() => openRejectDialog(selectedRequest.id)}>
                     Từ chối
                   </button>
                 </>
               ) : (
-                <button className="search-button" onClick={handleCloseDetail}>Đóng</button>
+                <button type="button" className="search-button" onClick={handleCloseDetail}>
+                  Đóng
+                </button>
               )}
             </div>
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(actionModal)}
+        onClose={closeActionModal}
+        zIndex={1100}
+        wide
+        tone={actionModal?.type === "reject" ? "danger" : "default"}
+        title={actionModal?.type === "approve" ? "Duyệt chi trả" : "Từ chối yêu cầu"}
+        closeOnOverlay={!actionSubmitting}
+        footer={
+          <>
+            <button type="button" className="nice-modal__btn nice-modal__btn--ghost" onClick={closeActionModal} disabled={actionSubmitting}>
+              Huỷ
+            </button>
+            <button
+              type="button"
+              className={`nice-modal__btn ${actionModal?.type === "reject" ? "nice-modal__btn--danger" : "nice-modal__btn--primary"}`}
+              onClick={submitAction}
+              disabled={actionSubmitting}
+            >
+              {actionSubmitting ? "Đang xử lý…" : actionModal?.type === "approve" ? "Xác nhận duyệt" : "Xác nhận từ chối"}
+            </button>
+          </>
+        }
+      >
+        {actionModal ? (
+          <>
+            <div className="nice-modal__meta">
+              <div>
+                <strong>PT:</strong> {actionModal.ptName}
+              </div>
+              {actionModal.amountLabel ? (
+                <div style={{ marginTop: 6 }}>
+                  <strong>Số tiền:</strong> {actionModal.amountLabel}
+                </div>
+              ) : null}
+            </div>
+            <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.5 }}>
+              {actionModal.type === "approve"
+                ? "Xác nhận đã chuyển khoản / chi trả theo thông tin tài khoản PT. Bạn có thể thêm ghi chú nội bộ (PT cũng sẽ thấy trong lịch sử rút tiền)."
+                : "Từ chối sẽ hoàn số dư cho PT (nếu đã giữ tiền lúc gửi yêu cầu). Nhập lý do để PT nắm được."}
+            </p>
+            <label className="nice-modal__label" htmlFor="owner-withdrawal-note">
+              {actionModal.type === "approve" ? "Ghi chú khi duyệt (tuỳ chọn)" : "Lý do từ chối (tuỳ chọn)"}
+            </label>
+            <textarea
+              id="owner-withdrawal-note"
+              className="nice-modal__textarea"
+              value={actionModal.note}
+              onChange={(e) => setActionModal((m) => (m ? { ...m, note: e.target.value } : m))}
+              disabled={actionSubmitting}
+              placeholder={actionModal.type === "approve" ? "VD: Đã CK lúc 15h, mã GD…" : "VD: Sai số tài khoản, vui lòng gửi lại…"}
+            />
+          </>
+        ) : null}
+      </NiceModal>
+
+      <NiceModal
+        open={Boolean(alertModal)}
+        onClose={() => setAlertModal(null)}
+        zIndex={1200}
+        tone={alertModal?.tone || "danger"}
+        title={alertModal?.title || "Thông báo"}
+        footer={
+          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setAlertModal(null)}>
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{alertModal?.message}</p>
+      </NiceModal>
     </div>
   );
 };
