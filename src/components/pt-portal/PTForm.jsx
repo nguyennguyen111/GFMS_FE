@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { createPT, updatePT, getPTDetails } from "../../services/ptService";
+import { createPT, updatePT, getPTDetails, uploadMyPTProfileImage } from "../../services/ptService";
 import "./PTForm.css";
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const makeCertId = () => `cert_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 const PTForm = () => {
   const { id } = useParams();
@@ -18,6 +19,8 @@ const PTForm = () => {
     experienceYears: 0,
     status: "active",
     bio: "",
+    avatarUrl: "",
+    certificates: [],
 
     // UI-only (tuỳ backend)
     coverImageUrl: "",
@@ -26,6 +29,11 @@ const PTForm = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingCertificate, setUploadingCertificate] = useState(false);
+  const [certDraftName, setCertDraftName] = useState("");
+  const [certDraftUrl, setCertDraftUrl] = useState("");
 
   // drag state
   const previewRef = useRef(null);
@@ -45,6 +53,30 @@ const PTForm = () => {
         setLoading(true);
         const data = await getPTDetails(ptId);
         const t = data?.DT || data;
+        const profileImages = t?.socialLinks?.profileImages || {};
+        const oldCertificateUrl = profileImages?.certificateUrl || "";
+        const certsFromDB = Array.isArray(t?.socialLinks?.certificates)
+          ? t.socialLinks.certificates
+              .filter((c) => c && (String(c?.name || "").trim() || String(c?.url || "").trim()))
+              .map((c) => ({
+                id: c.id || makeCertId(),
+                name: String(c.name || "").trim(),
+                url: String(c.url || "").trim(),
+              }))
+          : [];
+
+        const fallbackCerts =
+          certsFromDB.length > 0
+            ? certsFromDB
+            : (t?.certification || oldCertificateUrl)
+              ? [
+                  {
+                    id: makeCertId(),
+                    name: String(t?.certification || "Certificate").trim(),
+                    url: String(oldCertificateUrl || "").trim(),
+                  },
+                ]
+              : [];
 
         // Nếu backend CHƯA có cover fields, vẫn load UI từ localStorage (theo ptId)
         const cached = (() => {
@@ -63,11 +95,21 @@ const PTForm = () => {
           experienceYears: t?.experienceYears ?? 0,
           status: t?.status || "active",
           bio: t?.bio || "",
+          avatarUrl: profileImages?.avatarUrl || t?.avatarUrl || "",
+          certificates: fallbackCerts,
 
           // cover fields: ưu tiên backend -> fallback local
-          coverImageUrl: t?.coverImageUrl || cached?.coverImageUrl || "",
-          coverPosX: Number.isFinite(t?.coverPosX) ? t.coverPosX : (cached?.coverPosX ?? 50),
-          coverPosY: Number.isFinite(t?.coverPosY) ? t.coverPosY : (cached?.coverPosY ?? 50),
+          coverImageUrl: profileImages?.coverImageUrl || t?.coverImageUrl || cached?.coverImageUrl || "",
+          coverPosX: Number.isFinite(profileImages?.coverPosX)
+            ? profileImages.coverPosX
+            : Number.isFinite(t?.coverPosX)
+              ? t.coverPosX
+              : (cached?.coverPosX ?? 50),
+          coverPosY: Number.isFinite(profileImages?.coverPosY)
+            ? profileImages.coverPosY
+            : Number.isFinite(t?.coverPosY)
+              ? t.coverPosY
+              : (cached?.coverPosY ?? 50),
         });
       } catch (error) {
         console.error("Error fetching PT details:", error);
@@ -135,23 +177,134 @@ const PTForm = () => {
     };
   }, [pt.coverPosX, pt.coverPosY]);
 
+  const onUploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingAvatar(true);
+      const res = await uploadMyPTProfileImage({ file, imageType: "avatar" });
+      const url = res?.data?.url || "";
+      if (url) setPT((prev) => ({ ...prev, avatarUrl: url }));
+    } catch (error) {
+      console.error("Upload avatar failed:", error);
+      alert(error?.response?.data?.message || "Upload avatar thất bại");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  const onUploadCover = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingCover(true);
+      const res = await uploadMyPTProfileImage({ file, imageType: "cover" });
+      const url = res?.data?.url || "";
+      if (url) setPT((prev) => ({ ...prev, coverImageUrl: url }));
+    } catch (error) {
+      console.error("Upload cover failed:", error);
+      alert(error?.response?.data?.message || "Upload ảnh cover thất bại");
+    } finally {
+      setUploadingCover(false);
+      e.target.value = "";
+    }
+  };
+
+  const onUploadCertificate = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingCertificate(true);
+      const res = await uploadMyPTProfileImage({
+        file,
+        imageType: "certificate",
+        certificateName: certDraftName.trim(),
+      });
+      const url = res?.data?.url || "";
+      if (url) {
+        setPT((prev) => ({
+          ...prev,
+          certificates: [
+            {
+              id: makeCertId(),
+              name: certDraftName.trim() || file.name || "Certificate",
+              url,
+            },
+            ...(Array.isArray(prev.certificates) ? prev.certificates : []),
+          ],
+        }));
+        setCertDraftName("");
+        setCertDraftUrl("");
+      }
+    } catch (error) {
+      console.error("Upload certificate failed:", error);
+      alert(error?.response?.data?.message || "Upload chứng chỉ thất bại");
+    } finally {
+      setUploadingCertificate(false);
+      e.target.value = "";
+    }
+  };
+
+  const addCertificateByLink = () => {
+    const name = certDraftName.trim();
+    const url = certDraftUrl.trim();
+    if (!name && !url) return;
+    setPT((prev) => ({
+      ...prev,
+      certificates: [
+        {
+          id: makeCertId(),
+          name: name || "Certificate",
+          url,
+        },
+        ...(Array.isArray(prev.certificates) ? prev.certificates : []),
+      ],
+    }));
+    setCertDraftName("");
+    setCertDraftUrl("");
+  };
+
+  const removeCertificate = (certId) => {
+    setPT((prev) => ({
+      ...prev,
+      certificates: (Array.isArray(prev.certificates) ? prev.certificates : []).filter(
+        (c) => String(c?.id) !== String(certId)
+      ),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+      const normalizedCertificates = (Array.isArray(pt.certificates) ? pt.certificates : [])
+        .map((c) => ({
+          id: c?.id || makeCertId(),
+          name: String(c?.name || "").trim(),
+          url: String(c?.url || "").trim(),
+        }))
+        .filter((c) => c.name || c.url);
+
       const payload = {
         userId: pt.userId === "" ? undefined : Number(pt.userId),
         specialization: pt.specialization,
-        certification: pt.certification,
+        certification:
+          normalizedCertificates.map((c) => c.name).filter(Boolean).join(", ") || "",
         hourlyRate: Number(pt.hourlyRate),
         experienceYears: Number(pt.experienceYears),
         status: pt.status,
         bio: pt.bio,
-
-        // ✅ Nếu backend bạn có field lưu cover thì mở comment:
-        // coverImageUrl: pt.coverImageUrl,
-        // coverPosX: pt.coverPosX,
-        // coverPosY: pt.coverPosY,
+        socialLinks: {
+          profileImages: {
+            avatarUrl: pt.avatarUrl || "",
+            coverImageUrl: pt.coverImageUrl || "",
+            certificateUrl: normalizedCertificates[0]?.url || "",
+            coverPosX: Number(pt.coverPosX ?? 50),
+            coverPosY: Number(pt.coverPosY ?? 50),
+          },
+          certificates: normalizedCertificates,
+        },
       };
 
       if (!payload.userId || Number.isNaN(payload.userId)) {
@@ -223,6 +376,17 @@ const PTForm = () => {
                 </span>
               </div>
 
+              <label className="ptf-label">Avatar</label>
+              <div className="ptf-uploadRow">
+                <div className="ptf-avatarPreview">
+                  {pt.avatarUrl ? <img src={pt.avatarUrl} alt="avatar" /> : <span>Avatar</span>}
+                </div>
+                <label className="ptf-uploadBtn">
+                  {uploadingAvatar ? "Đang upload..." : "Upload avatar"}
+                  <input type="file" accept="image/*" onChange={onUploadAvatar} hidden />
+                </label>
+              </div>
+
               <label className="ptf-label">Cover Image URL</label>
               <input
                 className="ptf-input"
@@ -233,6 +397,13 @@ const PTForm = () => {
                 }
                 placeholder="https://..."
               />
+
+              <div className="ptf-uploadRow ptf-uploadRow--cover">
+                <label className="ptf-uploadBtn">
+                  {uploadingCover ? "Đang upload..." : "Upload ảnh cover"}
+                  <input type="file" accept="image/*" onChange={onUploadCover} hidden />
+                </label>
+              </div>
 
               <div className="ptf-coverHelp">
                 Tip: Kéo ảnh trong khung preview để chỉnh vị trí (tránh bị cắt mặt).
@@ -260,29 +431,6 @@ const PTForm = () => {
                 title="Giữ chuột và kéo để chỉnh vị trí ảnh"
               >
                 {!pt.coverImageUrl && <div className="ptf-coverEmpty">Cover preview</div>}
-              </div>
-
-              <div className="ptf-posRow">
-                <div className="ptf-posItem">
-                  <span>X</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={pt.coverPosX}
-                    onChange={(e) => setPT((p) => ({ ...p, coverPosX: Number(e.target.value) }))}
-                  />
-                </div>
-                <div className="ptf-posItem">
-                  <span>Y</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={pt.coverPosY}
-                    onChange={(e) => setPT((p) => ({ ...p, coverPosY: Number(e.target.value) }))}
-                  />
-                </div>
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
@@ -349,19 +497,63 @@ const PTForm = () => {
                 placeholder="Weight Loss, Strength Training"
               />
 
-              <label className="ptf-label">Certificates</label>
+              <label className="ptf-label">Tên chứng chỉ</label>
               <input
                 className="ptf-input"
                 type="text"
-                name="certification"
-                value={pt.certification}
-                onChange={handleChange}
-                placeholder="ACE Certified Personal Trainer"
+                value={certDraftName}
+                onChange={(e) => setCertDraftName(e.target.value)}
+                placeholder="Ví dụ: ACE Certified Personal Trainer"
+              />
+              <label className="ptf-label">Link ảnh chứng chỉ</label>
+              <input
+                className="ptf-input"
+                type="text"
+                value={certDraftUrl}
+                onChange={(e) => setCertDraftUrl(e.target.value)}
+                placeholder="https://..."
               />
 
+              <div className="ptf-uploadRow ptf-uploadRow--cover">
+                <button type="button" className="ptf-uploadBtn" onClick={addCertificateByLink}>
+                  Thêm chứng chỉ bằng link
+                </button>
+                <label className="ptf-uploadBtn">
+                  {uploadingCertificate ? "Đang upload..." : "Upload ảnh chứng chỉ"}
+                  <input type="file" accept="image/*" onChange={onUploadCertificate} hidden />
+                </label>
+              </div>
+
               <div className="ptf-hint">
-                (Hiện backend của bạn đang dùng 1 field certification đơn. Nếu muốn giống
-                mẫu “+ Add certificate” thì cần đổi schema/BE thành mảng.)
+                Bạn có thể thêm nhiều chứng chỉ: nhập tên + link rồi bấm thêm, hoặc upload ảnh.
+              </div>
+
+              <div className="ptf-certList">
+                {(Array.isArray(pt.certificates) ? pt.certificates : []).length === 0 ? (
+                  <div className="ptf-hint">Chưa có chứng chỉ nào.</div>
+                ) : (
+                  (Array.isArray(pt.certificates) ? pt.certificates : []).map((cert) => (
+                    <div className="ptf-certItem" key={cert.id}>
+                      <div className="ptf-certText">
+                        <strong>{cert.name || "Certificate"}</strong>
+                        {cert.url ? (
+                          <a href={cert.url} target="_blank" rel="noreferrer" className="ptf-certLink">
+                            Mở ảnh
+                          </a>
+                        ) : (
+                          <span className="ptf-muted">Chưa có link</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="ptf-resetBtn"
+                        onClick={() => removeCertificate(cert.id)}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
