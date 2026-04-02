@@ -24,10 +24,10 @@ export const ownerGetTrainerShareDetail = (id) =>
 export const ownerCreateTrainerShare = (data) => 
   axios.post("/api/owner/trainer-shares", data);
 
-// Cập nhật trainer share (chỉ khi pending)
+// Cập nhật trainer share (chỉ khi waiting_acceptance)
 export const ownerUpdateTrainerShare = (id, data) => 
   axios.put(`/api/owner/trainer-shares/${id}`, data);
 
-// Xóa trainer share (chỉ khi pending)
+// Xóa trainer share (chỉ khi waiting_acceptance)
 export const ownerDeleteTrainerShare = (id) => 
   axios.delete(`/api/owner/trainer-shares/${id}`);
