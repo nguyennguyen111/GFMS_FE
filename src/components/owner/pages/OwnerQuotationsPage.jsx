@@ -447,7 +447,7 @@ export default function OwnerQuotationsPage() {
             <div className="modal-footer">
               <button onClick={handleCloseModal} className="btn-cancel">Hủy</button>
               <button onClick={handleSubmit} className="btn-submit">Tạo đơn mua</button>
-            </div>
+             </div>
           </div>
         </div>
       )}
