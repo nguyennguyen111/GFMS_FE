@@ -35,7 +35,6 @@ const OwnerGymsPage = () => {
       const response = await ownerGetMyGyms();
       const gymsData = Array.isArray(response.data?.data) ? response.data.data : [];
       
-      // Sắp xếp: gym đang hoạt động (active) lên trước
       const sortedGyms = gymsData.sort((a, b) => {
         const aActive = a.status?.toLowerCase() === 'active' ? 0 : 1;
         const bActive = b.status?.toLowerCase() === 'active' ? 0 : 1;
