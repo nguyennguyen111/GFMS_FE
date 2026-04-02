@@ -201,6 +201,29 @@ export const deleteMyPTTrainingPlan = async (planId) => {
   return res.data;
 };
 
+export const getPTEligibleActivations = async () => {
+  const res = await axios.get(`${BASE}/me/eligible-activations`, ptConfig());
+  return res.data;
+};
+
+export const getPTActivationMaterials = async (packageActivationId) => {
+  const res = await axios.get(`${BASE}/me/activation-materials`, {
+    ...ptConfig(),
+    params: { packageActivationId },
+  });
+  return res.data;
+};
+
+export const sendPTActivationMaterial = async (payload) => {
+  const res = await axios.post(`${BASE}/me/activation-materials`, payload, ptConfig());
+  return res.data;
+};
+
+export const deletePTActivationMaterial = async (id) => {
+  const res = await axios.delete(`${BASE}/me/activation-materials/${id}`, ptConfig());
+  return res.data;
+};
+
 // 17) Reviews (UC-TR-011 + UC-TR-012)
 export const getMyPTReviews = async (params = {}) => {
   const res = await axios.get(`${BASE}/me/reviews`, { ...ptConfig(), params });
