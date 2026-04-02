@@ -10,7 +10,6 @@ const fmtDT = (v) => {
 };
 
 const pickMemberLabel = (booking) => {
-  // Lấy username từ include: Member -> User -> username
   const memberName = booking?.Member?.User?.username || booking?.Member?.fullName || booking?.Member?.name;
   return memberName || (booking?.memberId ? `Member #${booking.memberId}` : "—");
 };
@@ -20,7 +19,7 @@ const pickGymLabel = (booking) => {
   return g?.gymName || g?.name || (booking?.gymId ? `Gym #${booking.gymId}` : "—");
 };
 
-export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, refresh }) {
+export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onReset, refresh }) {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -76,9 +75,14 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
               </div>
               <div className="ptAttModal__row">
                 <span className="k">Trạng thái</span>
-                <span className={`v status-tag ${currentStatus}`} style={{fontWeight: 'bold'}}>
-                  {currentStatus === 'present' ? <span style={{color: '#2ecc71'}}>✅ Đã có mặt</span> : 
-                   currentStatus === 'absent' ? <span style={{color: '#e74c3c'}}>❌ Đã vắng mặt</span> : 'Chưa điểm danh'}
+                <span className={`v status-tag ${currentStatus}`}>
+                  {currentStatus === "present" ? (
+                    <span className="ptAttModal__status-text--present">✅ Đã có mặt</span>
+                  ) : currentStatus === "absent" ? (
+                    <span className="ptAttModal__status-text--absent">❌ Đã vắng mặt</span>
+                  ) : (
+                    <span className="ptAttModal__status-text--pending">Chưa điểm danh</span>
+                  )}
                 </span>
               </div>
               {ta?.checkInTime && (
@@ -89,38 +93,50 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
               )}
             </div>
 
-            {/* Căn giữa nút chỉnh sửa hoặc hiển thị 2 nút xanh đỏ */}
-            <div className="ptAttModal__actions" style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
+            <div
+              className={
+                ta && !isEditing
+                  ? "ptAttModal__actions ptAttModal__actions--single"
+                  : "ptAttModal__actions"
+              }
+            >
               {ta && !isEditing ? (
-                <button 
-                  className="ptAttModal__btn" 
-                  style={{ 
-                    backgroundColor: '#f0f0f0', 
-                    color: '#333', 
-                    width: '200px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }} 
+                <button
+                  type="button"
+                  className="ptAttModal__btn ptAttModal__btn--edit"
                   onClick={() => setIsEditing(true)}
                 >
                   ✎ Chỉnh sửa điểm danh
                 </button>
               ) : (
                 <>
-                  <button 
-                    className="ptAttModal__btn" 
-                    style={{ backgroundColor: '#064433', color: '#2ecc71', border: '1px solid #2ecc71', flex: 1 }} 
-                    disabled={loading} 
+                  {ta && (
+                    <button
+                      type="button"
+                      className="ptAttModal__btn ptAttModal__btn--reset"
+                      disabled={loading}
+                      onClick={async () => {
+                        if (!onReset) return;
+                        await onReset();
+                        setIsEditing(false);
+                        if (refresh) await refresh();
+                      }}
+                    >
+                      {loading ? "..." : "↺ Chưa điểm danh"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="ptAttModal__btn ptAttModal__btn--present"
+                    disabled={loading}
                     onClick={() => handleAction("present")}
                   >
                     {loading ? "..." : "✓ Có mặt"}
                   </button>
-                  <button 
-                    className="ptAttModal__btn" 
-                    style={{ backgroundColor: '#2d1a1a', color: '#e74c3c', border: '1px solid #e74c3c', flex: 1 }} 
-                    disabled={loading} 
+                  <button
+                    type="button"
+                    className="ptAttModal__btn ptAttModal__btn--absent"
+                    disabled={loading}
                     onClick={() => handleAction("absent")}
                   >
                     {loading ? "..." : "✗ Vắng mặt"}

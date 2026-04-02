@@ -152,6 +152,7 @@ const PTDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [scheduleSlots, setScheduleSlots] = useState({});
   const [payrollItems, setPayrollItems] = useState([]);
+  const [kpiModal, setKpiModal] = useState(null);
 
   const user = useMemo(() => {
     try {
@@ -210,6 +211,15 @@ const PTDashboard = () => {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (!kpiModal) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setKpiModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [kpiModal]);
 
   const stats = useMemo(() => {
     const memberIds = new Set();
@@ -318,6 +328,44 @@ const PTDashboard = () => {
     });
     return Array.from(seen.values()).slice(0, 5);
   }, [bookings]);
+
+  const allStudentsDetail = useMemo(() => {
+    const seen = new Map();
+    bookings.forEach((b) => {
+      const mid = b.memberId;
+      if (mid == null || seen.has(Number(mid))) return;
+      const name =
+        b.Member?.User?.username || b.Member?.User?.email || `Học viên #${mid}`;
+      const email = b.Member?.User?.email || b.Member?.User?.phone || "";
+      seen.set(Number(mid), { memberId: mid, name, email });
+    });
+    return Array.from(seen.values()).sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), "vi")
+    );
+  }, [bookings]);
+
+  const bookingsDetailRows = useMemo(() => {
+    return [...bookings]
+      .map((b) => ({ ...b, _startMs: getBookingStartMs(b) }))
+      .sort((a, b) => {
+        const da = Number.isNaN(a._startMs) ? 0 : a._startMs;
+        const db = Number.isNaN(b._startMs) ? 0 : b._startMs;
+        return db - da;
+      });
+  }, [bookings]);
+
+  const revenueMeta = useMemo(() => {
+    const totalEarned = Number(trainer?.totalEarned ?? 0);
+    const commissionSum = commissions.reduce(
+      (acc, c) => acc + Number(c?.commissionAmount ?? 0),
+      0
+    );
+    return {
+      usesProfile: totalEarned > 0,
+      totalRevenue: totalEarned > 0 ? totalEarned : commissionSum,
+      commissionSum,
+    };
+  }, [trainer, commissions]);
 
   const revenueChart = useMemo(() => {
     const labels = [];
@@ -430,16 +478,24 @@ const PTDashboard = () => {
       )}
 
       <section className="ptd-kpiGrid">
-        <div className="ptd-kpiCard">
+        <button
+          type="button"
+          className="ptd-kpiCard ptd-kpiCard--clickable"
+          onClick={() => setKpiModal("students")}
+        >
           <div className="ptd-kpiHead">
             <div className="ptd-kpiTitle">Học viên</div>
             <div className="ptd-kpiIcon">👥</div>
           </div>
           <div className="ptd-kpiValue">{stats.students}</div>
           <div className="ptd-kpiSub">Đã từng đặt lịch với bạn</div>
-        </div>
+        </button>
 
-        <div className="ptd-kpiCard">
+        <button
+          type="button"
+          className="ptd-kpiCard ptd-kpiCard--clickable"
+          onClick={() => setKpiModal("bookings")}
+        >
           <div className="ptd-kpiHead">
             <div className="ptd-kpiTitle">Lịch đặt</div>
             <div className="ptd-kpiIcon">📅</div>
@@ -449,51 +505,228 @@ const PTDashboard = () => {
             Tổng buổi trong hệ thống
             {stats.totalSessions ? ` · Đã ghi nhận ${stats.totalSessions} buổi` : ""}
           </div>
-        </div>
+        </button>
 
-        <div className="ptd-kpiCard">
+        <button
+          type="button"
+          className="ptd-kpiCard ptd-kpiCard--clickable"
+          onClick={() => setKpiModal("revenue")}
+        >
           <div className="ptd-kpiHead">
             <div className="ptd-kpiTitle">Tổng doanh thu</div>
             <div className="ptd-kpiIcon">🪙</div>
           </div>
           <div className="ptd-kpiValue">{stats.totalRevenue.toLocaleString("vi-VN")}đ</div>
           <div className="ptd-kpiSub">Theo hồ sơ PT / tổng hoa hồng</div>
-        </div>
+        </button>
 
-        <div className="ptd-kpiCard">
+        <button
+          type="button"
+          className="ptd-kpiCard ptd-kpiCard--clickable"
+          onClick={() => setKpiModal("wallet")}
+        >
           <div className="ptd-kpiHead">
             <div className="ptd-kpiTitle">Số dư ví</div>
             <div className="ptd-kpiIcon">💳</div>
           </div>
           <div className="ptd-kpiValue">{stats.wallet.toLocaleString("vi-VN")}đ</div>
           <div className="ptd-kpiSub">
-            Đã rút {stats.totalWithdrawn.toLocaleString("vi-VN")}đ ·{" "}
-            <Link className="ptd-link" to="/pt/wallet">
-              ví
-            </Link>
+            Đã rút {stats.totalWithdrawn.toLocaleString("vi-VN")}đ
           </div>
-        </div>
+        </button>
       </section>
 
-      <section className="ptd-quickRow" aria-label="Lối tắt">
-        <Link className="ptd-quickItem" to="/pt/feedback">
-          Feedback
-        </Link>
-        <Link className="ptd-quickItem" to="/pt/demo-videos">
-          Video demo
-        </Link>
-        <Link className="ptd-quickItem" to="/pt/wallet">
-          Ví PT
-        </Link>
-        <Link className="ptd-quickItem" to="/pt/payroll">
-          Payroll
-        </Link>
-        {ptId ? (
-          <Link className="ptd-quickItem" to={`/pt/${ptId}/details`}>
-            Hồ sơ
-          </Link>
-        ) : null}
-      </section>
+      {kpiModal ? (
+        <div
+          className="ptd-kpiModalOverlay"
+          role="presentation"
+          onClick={() => setKpiModal(null)}
+        >
+          <div
+            className="ptd-kpiModal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ptd-kpiModalHead">
+              <h2 className="ptd-kpiModalTitle">
+                {kpiModal === "students" && "Chi tiết học viên"}
+                {kpiModal === "bookings" && "Chi tiết lịch đặt"}
+                {kpiModal === "revenue" && "Chi tiết doanh thu / hoa hồng"}
+                {kpiModal === "wallet" && "Chi tiết ví PT"}
+              </h2>
+              <button type="button" className="ptd-kpiModalClose" onClick={() => setKpiModal(null)}>
+                ×
+              </button>
+            </div>
+            <div className="ptd-kpiModalBody">
+              {kpiModal === "students" && (
+                <>
+                  <p className="ptd-kpiModalHint">
+                    {allStudentsDetail.length} học viên đã từng đặt lịch với bạn.
+                  </p>
+                  <div className="ptd-kpiModalTable">
+                    <div className="ptd-kpiModalRow ptd-kpiModalRow--head">
+                      <span>Học viên</span>
+                      <span>Liên hệ</span>
+                    </div>
+                    {allStudentsDetail.length === 0 ? (
+                      <div className="ptd-kpiModalEmpty">Chưa có dữ liệu.</div>
+                    ) : (
+                      allStudentsDetail.map((s) => (
+                        <div key={String(s.memberId)} className="ptd-kpiModalRow">
+                          <span>{s.name}</span>
+                          <span className="ptd-kpiModalMuted">{s.email || "—"}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <Link className="ptd-kpiModalFooterLink" to="/pt/clients" onClick={() => setKpiModal(null)}>
+                    Mở trang quản lý học viên
+                  </Link>
+                </>
+              )}
+
+              {kpiModal === "bookings" && (
+                <>
+                  <p className="ptd-kpiModalHint">
+                    {bookingsDetailRows.length} buổi (mới nhất trước).
+                  </p>
+                  <div className="ptd-kpiModalTable ptd-kpiModalTable--wide">
+                    <div className="ptd-kpiModalRow ptd-kpiModalRow--head ptd-kpiModalRow--4">
+                      <span>Ngày</span>
+                      <span>Giờ</span>
+                      <span>Học viên</span>
+                      <span>Trạng thái</span>
+                    </div>
+                    {bookingsDetailRows.length === 0 ? (
+                      <div className="ptd-kpiModalEmpty">Chưa có lịch đặt.</div>
+                    ) : (
+                      bookingsDetailRows.map((b) => {
+                        const name =
+                          b.Member?.User?.username ||
+                          b.Member?.User?.email ||
+                          `Học viên #${b.memberId}`;
+                        const ymd = bookingToYMD(b.bookingDate);
+                        let dateStr = ymd || "—";
+                        if (ymd) {
+                          const [yy, mm, dd] = ymd.split("-").map(Number);
+                          const d = new Date(yy, mm - 1, dd);
+                          if (!Number.isNaN(d.getTime())) dateStr = d.toLocaleDateString("vi-VN");
+                        }
+                        const time =
+                          b.startTime && b.endTime
+                            ? `${String(b.startTime).slice(0, 5)}–${String(b.endTime).slice(0, 5)}`
+                            : "—";
+                        return (
+                          <div key={String(b.id)} className="ptd-kpiModalRow ptd-kpiModalRow--4">
+                            <span>{dateStr}</span>
+                            <span className="ptd-kpiModalMuted">{time}</span>
+                            <span>{name}</span>
+                            <span>{getSessionStatusLabel(b)}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  {ptId ? (
+                    <Link
+                      className="ptd-kpiModalFooterLink"
+                      to={`/pt/${ptId}/schedule`}
+                      onClick={() => setKpiModal(null)}
+                    >
+                      Mở lịch đầy đủ
+                    </Link>
+                  ) : null}
+                </>
+              )}
+
+              {kpiModal === "revenue" && (
+                <>
+                  <div className="ptd-kpiModalStats">
+                    <div>
+                      <div className="ptd-kpiModalStatLabel">Tổng hiển thị</div>
+                      <div className="ptd-kpiModalStatValue">
+                        {revenueMeta.totalRevenue.toLocaleString("vi-VN")}đ
+                      </div>
+                    </div>
+                    <div>
+                      <div className="ptd-kpiModalStatLabel">Nguồn</div>
+                      <div className="ptd-kpiModalStatValue ptd-kpiModalStatValue--sm">
+                        {revenueMeta.usesProfile
+                          ? "Theo totalEarned trên hồ sơ PT"
+                          : "Tổng các khoản hoa hồng đã tải"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="ptd-kpiModalStatLabel">Tổng hoa hồng (danh sách)</div>
+                      <div className="ptd-kpiModalStatValue ptd-kpiModalStatValue--sm">
+                        {revenueMeta.commissionSum.toLocaleString("vi-VN")}đ
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ptd-kpiModalTable">
+                    <div className="ptd-kpiModalRow ptd-kpiModalRow--head">
+                      <span>Ngày buổi</span>
+                      <span>Số tiền</span>
+                    </div>
+                    {commissions.length === 0 ? (
+                      <div className="ptd-kpiModalEmpty">Chưa có bản ghi hoa hồng.</div>
+                    ) : (
+                      [...commissions]
+                        .sort((a, b) => {
+                          const da = a.sessionDate ? new Date(a.sessionDate).getTime() : 0;
+                          const db = b.sessionDate ? new Date(b.sessionDate).getTime() : 0;
+                          return db - da;
+                        })
+                        .map((c) => (
+                          <div key={String(c.id ?? `${c.sessionDate}-${c.commissionAmount}`)} className="ptd-kpiModalRow">
+                            <span>
+                              {c.sessionDate
+                                ? new Date(c.sessionDate).toLocaleDateString("vi-VN")
+                                : "—"}
+                            </span>
+                            <span>
+                              {Number(c.commissionAmount ?? 0).toLocaleString("vi-VN")}đ
+                            </span>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                  <Link className="ptd-kpiModalFooterLink" to="/pt/payroll" onClick={() => setKpiModal(null)}>
+                    Mở Payroll đầy đủ
+                  </Link>
+                </>
+              )}
+
+              {kpiModal === "wallet" && (
+                <>
+                  <div className="ptd-kpiModalStats">
+                    <div>
+                      <div className="ptd-kpiModalStatLabel">Số dư khả dụng</div>
+                      <div className="ptd-kpiModalStatValue">
+                        {stats.wallet.toLocaleString("vi-VN")}đ
+                      </div>
+                    </div>
+                    <div>
+                      <div className="ptd-kpiModalStatLabel">Đã rút</div>
+                      <div className="ptd-kpiModalStatValue">
+                        {stats.totalWithdrawn.toLocaleString("vi-VN")}đ
+                      </div>
+                    </div>
+                  </div>
+                  <p className="ptd-kpiModalHint">
+                    Chi tiết giao dịch, yêu cầu chi trả nằm tại trang ví.
+                  </p>
+                  <Link className="ptd-kpiModalFooterLink" to="/pt/wallet" onClick={() => setKpiModal(null)}>
+                    Mở trang ví PT
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="ptd-contentGrid">
         <div className="ptd-leftCol">
@@ -564,9 +797,6 @@ const PTDashboard = () => {
           <div className="ptd-card2">
             <div className="ptd-card2Head">
               <div className="ptd-card2Title">Biểu đồ lương</div>
-              <Link className="ptd-link" to="/pt/payroll">
-                Chi tiết payroll
-              </Link>
             </div>
             <div className="ptd-chartHint">
               Tổng tiền theo từng kỳ lương đã chốt (Payroll). Màu teal phân biệt với hoa hồng theo tuần.
@@ -611,9 +841,6 @@ const PTDashboard = () => {
           <div className="ptd-card2">
             <div className="ptd-card2Head">
               <div className="ptd-card2Title">Đánh giá</div>
-              <Link className="ptd-link" to="/pt/feedback">
-                Feedback
-              </Link>
             </div>
             <div className="ptd-ratingRow">
               <div className="ptd-ratingValue">{stats.rating || "—"}</div>
@@ -625,13 +852,6 @@ const PTDashboard = () => {
           <div className="ptd-card2">
             <div className="ptd-card2Head">
               <div className="ptd-card2Title">Hoa hồng &amp; lương</div>
-            </div>
-            <div className="ptd-planText">
-              Xem chi tiết hoa hồng theo kỳ, xuất Excel và yêu cầu chi trả tại trang{" "}
-              <Link className="ptd-link" to="/pt/payroll">
-                Payroll
-              </Link>
-              .
             </div>
             <Link className="ptd-upgradeBtn ptd-upgradeBtn--link" to="/pt/payroll">
               Mở Payroll

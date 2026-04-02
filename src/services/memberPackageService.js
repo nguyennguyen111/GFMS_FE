@@ -13,3 +13,6 @@ export const memberGetMyPackages = () =>
 
 export const memberGetMyPackageDetail = (activationId) =>
   axios.get(`/api/member/my-packages/${activationId}`);
+
+export const memberGetActivationMaterials = (activationId) =>
+  axios.get(`/api/member/my-packages/${activationId}/materials`);
