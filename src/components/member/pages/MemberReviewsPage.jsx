@@ -1,48 +1,37 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./MemberReviewsPage.css";
+import {
+  memberCreateReview,
+  memberGetEligibleReviewCourses,
+  memberGetMyReviews,
+} from "../../../services/memberReviewService";
 
-const mockReviews = [
-  {
-    id: 1,
-    title: "PT NGUYỄN MINH ANH",
-    date: "20 THÁNG 10, 2023",
-    rating: 5,
-    content:
-      "Huấn luyện viên rất tận tâm, chỉnh form kỹ và xây dựng giáo án rõ ràng. Sau vài buổi tập tôi cảm nhận được tiến bộ rất rõ về sức bền và kỹ thuật.",
-    avatar: "https://picsum.photos/seed/pt-review-1/100/100",
-  },
-  {
-    id: 2,
-    title: "GFMS THẢO ĐIỀN",
-    date: "12 THÁNG 09, 2023",
-    rating: 4,
-    content:
-      "Không gian sạch sẽ, máy móc hiện đại và nhân viên hỗ trợ nhiệt tình. Khu functional training khá ấn tượng, phù hợp cho cả tập sức mạnh lẫn cardio.",
-    avatar: "https://picsum.photos/seed/gym-review-1/100/100",
-  },
-  {
-    id: 3,
-    title: "PT TRẦN GIA BẢO",
-    date: "28 THÁNG 08, 2023",
-    rating: 5,
-    content:
-      "Cách hướng dẫn rất dễ hiểu, theo sát từng buổi và giúp tôi duy trì động lực tốt hơn. Lịch tập được điều chỉnh hợp lý theo thể trạng thực tế.",
-    avatar: "https://picsum.photos/seed/pt-review-2/100/100",
-  },
-];
+const fmtDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+};
 
 function ReviewCard({ review }) {
+  const trainerName = review?.Trainer?.User?.username || "PT";
+  const packageName = review?.Booking?.Package?.name || "Gói tập";
+  const createdAt = fmtDate(review?.createdAt);
   return (
     <article className="member-reviews-item">
       <div className="member-reviews-item-header">
         <div className="member-reviews-author">
           <div className="member-reviews-avatar">
-            <img src={review.avatar} alt={review.title} />
+            <img src={`https://picsum.photos/seed/review-${review.id}/100/100`} alt={trainerName} />
           </div>
 
           <div className="member-reviews-author-info">
-            <h3 className="member-reviews-author-name">{review.title}</h3>
-            <p className="member-reviews-date">{review.date}</p>
+            <h3 className="member-reviews-author-name">{trainerName}</h3>
+            <p className="member-reviews-date">{createdAt} · {packageName}</p>
           </div>
         </div>
 
@@ -50,7 +39,7 @@ function ReviewCard({ review }) {
           {[...Array(5)].map((_, i) => (
             <span
               key={i}
-              className={`material-symbols-outlined ${i < review.rating ? "active" : ""}`}
+              className={`material-symbols-outlined ${i < Number(review.rating || 0) ? "active" : ""}`}
             >
               star
             </span>
@@ -58,12 +47,95 @@ function ReviewCard({ review }) {
         </div>
       </div>
 
-      <p className="member-reviews-content">{review.content}</p>
+      <p className="member-reviews-content">{review.comment}</p>
     </article>
   );
 }
 
 export default function MemberReviewsPage() {
+  const [eligibleCourses, setEligibleCourses] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
+  const [selectedActivationId, setSelectedActivationId] = useState("");
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const loadData = async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const [eligibleRes, reviewsRes] = await Promise.all([
+        memberGetEligibleReviewCourses(),
+        memberGetMyReviews(),
+      ]);
+      const eligible = Array.isArray(eligibleRes?.data?.data) ? eligibleRes.data.data : [];
+      const reviews = Array.isArray(reviewsRes?.data?.data) ? reviewsRes.data.data : [];
+      setEligibleCourses(eligible);
+      setMyReviews(reviews);
+
+      const notReviewed = eligible.filter((x) => !x.reviewed);
+      setSelectedActivationId(notReviewed[0]?.activationId ? String(notReviewed[0].activationId) : "");
+    } catch (e) {
+      setMessage(e?.response?.data?.message || "Không tải được dữ liệu đánh giá.");
+      setEligibleCourses([]);
+      setMyReviews([]);
+      setSelectedActivationId("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const currentSelectedCourse = useMemo(() => {
+    return eligibleCourses.find((x) => String(x.activationId) === String(selectedActivationId)) || null;
+  }, [eligibleCourses, selectedActivationId]);
+
+  const pendingReviewCourses = useMemo(() => {
+    return eligibleCourses.filter((x) => !x.reviewed);
+  }, [eligibleCourses]);
+
+  const avgRating = useMemo(() => {
+    if (!myReviews.length) return "0.0";
+    const sum = myReviews.reduce((acc, x) => acc + Number(x.rating || 0), 0);
+    return (sum / myReviews.length).toFixed(1);
+  }, [myReviews]);
+
+  const progressPct = Math.min(100, Math.round((comment.length / 300) * 100));
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedActivationId) {
+      setMessage("Hiện chưa có khóa học đủ điều kiện để đánh giá.");
+      return;
+    }
+    if (!comment.trim()) {
+      setMessage("Vui lòng nhập nội dung đánh giá.");
+      return;
+    }
+    setSubmitting(true);
+    setMessage("");
+    try {
+      await memberCreateReview({
+        activationId: Number(selectedActivationId),
+        rating: Number(rating),
+        comment: comment.trim(),
+      });
+      setComment("");
+      setRating(5);
+      setMessage("Gửi đánh giá thành công.");
+      await loadData();
+    } catch (err) {
+      setMessage(err?.response?.data?.message || "Gửi đánh giá thất bại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="member-reviews-page">
       <div className="member-reviews-hero">
@@ -72,7 +144,7 @@ export default function MemberReviewsPage() {
             ĐÁNH GIÁ <span>HỘI VIÊN</span>
           </h1>
           <p className="member-reviews-sub">
-            Gửi cảm nhận sau buổi tập để nâng tầm trải nghiệm và chất lượng dịch vụ tại GFMS.
+            Sau khi hoàn thành đủ số buổi của khóa học, bạn có thể đánh giá PT để cải thiện chất lượng huấn luyện.
           </p>
         </div>
 
@@ -81,29 +153,45 @@ export default function MemberReviewsPage() {
             <div className="member-reviews-form-card">
               <h2 className="member-reviews-section-title">VIẾT ĐÁNH GIÁ</h2>
 
-              <form className="member-reviews-form">
+              <form className="member-reviews-form" onSubmit={onSubmit}>
                 <div className="member-reviews-group">
-                  <label className="member-reviews-label">Chọn đối tượng</label>
-                  <div className="member-reviews-targets">
-                    <button type="button" className="member-reviews-target active">
-                      <span className="material-symbols-outlined">fitness_center</span>
-                      PHÒNG TẬP
-                    </button>
-                    <button type="button" className="member-reviews-target">
-                      <span className="material-symbols-outlined">person</span>
-                      HUẤN LUYỆN VIÊN
-                    </button>
-                  </div>
+                  <label className="member-reviews-label">Khóa học đủ điều kiện đánh giá</label>
+                  <select
+                    className="member-reviews-textarea"
+                    style={{ minHeight: 52 }}
+                    value={selectedActivationId}
+                    onChange={(e) => setSelectedActivationId(e.target.value)}
+                    disabled={pendingReviewCourses.length === 0 || submitting || loading}
+                  >
+                    {pendingReviewCourses.length === 0 ? (
+                      <option value="">Chưa có khóa học hoàn thành để đánh giá</option>
+                    ) : (
+                      pendingReviewCourses.map((x) => (
+                        <option key={x.activationId} value={x.activationId}>
+                          {x.packageName} - PT {x.trainerName} ({x.completedSessions}/{x.totalSessions} buổi)
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </div>
 
                 <div className="member-reviews-group">
                   <label className="member-reviews-label">Xếp hạng của bạn</label>
                   <div className="member-reviews-stars">
-                    <span className="material-symbols-outlined active">star</span>
-                    <span className="material-symbols-outlined active">star</span>
-                    <span className="material-symbols-outlined active">star</span>
-                    <span className="material-symbols-outlined active">star</span>
-                    <span className="material-symbols-outlined">star</span>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span
+                        key={n}
+                        className={`material-symbols-outlined ${n <= rating ? "active" : ""}`}
+                        onClick={() => setRating(n)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter" || ev.key === " ") setRating(n);
+                        }}
+                      >
+                        star
+                      </span>
+                    ))}
                   </div>
                 </div>
 
@@ -112,16 +200,34 @@ export default function MemberReviewsPage() {
                   <textarea
                     className="member-reviews-textarea"
                     rows="5"
-                    placeholder="Chia sẻ trải nghiệm tập luyện của bạn..."
+                    placeholder="Chia sẻ trải nghiệm tập luyện với PT..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    maxLength={2000}
                   />
                   <div className="member-reviews-progress-track">
-                    <div className="member-reviews-progress-fill" style={{ width: "36%" }} />
+                    <div className="member-reviews-progress-fill" style={{ width: `${progressPct}%` }} />
                   </div>
                 </div>
 
-                <button type="submit" className="member-reviews-submit">
-                  GỬI ĐÁNH GIÁ NGAY
+                <button
+                  type="submit"
+                  className="member-reviews-submit"
+                  disabled={pendingReviewCourses.length === 0 || submitting || loading}
+                  style={{ opacity: pendingReviewCourses.length === 0 || submitting ? 0.65 : 1 }}
+                >
+                  {submitting ? "ĐANG GỬI..." : "GỬI ĐÁNH GIÁ NGAY"}
                 </button>
+                {currentSelectedCourse && (
+                  <p className="member-reviews-sub" style={{ marginTop: 8 }}>
+                    Bạn đang đánh giá PT {currentSelectedCourse.trainerName} cho khóa {currentSelectedCourse.packageName}.
+                  </p>
+                )}
+                {!!message && (
+                  <p className="member-reviews-sub" style={{ marginTop: 4 }}>
+                    {message}
+                  </p>
+                )}
               </form>
             </div>
           </section>
@@ -134,36 +240,34 @@ export default function MemberReviewsPage() {
                 <button className="member-reviews-filter active" type="button">
                   Tất cả
                 </button>
-                <button className="member-reviews-filter" type="button">
-                  Gần đây
-                </button>
               </div>
             </div>
 
             <div className="member-reviews-list">
-              {mockReviews.map((review) => (
+              {myReviews.map((review) => (
                 <ReviewCard key={review.id} review={review} />
               ))}
+              {!myReviews.length && (
+                <article className="member-reviews-item">
+                  <p className="member-reviews-content">Bạn chưa có đánh giá nào.</p>
+                </article>
+              )}
             </div>
-
-            <button className="member-reviews-load-more" type="button">
-              TẢI THÊM ĐÁNH GIÁ
-            </button>
           </section>
         </div>
 
         <section className="member-reviews-metrics">
           <div className="member-reviews-metric-card">
-            <span className="member-reviews-metric-value">4.9/5</span>
+            <span className="member-reviews-metric-value">{avgRating}/5</span>
             <span className="member-reviews-metric-label">ĐIỂM TRUNG BÌNH HỘI VIÊN</span>
           </div>
           <div className="member-reviews-metric-card">
-            <span className="member-reviews-metric-value">328+</span>
+            <span className="member-reviews-metric-value">{myReviews.length}</span>
             <span className="member-reviews-metric-label">ĐÁNH GIÁ ĐÃ GỬI</span>
           </div>
           <div className="member-reviews-metric-card">
-            <span className="member-reviews-metric-value">97%</span>
-            <span className="member-reviews-metric-label">TỶ LỆ HÀI LÒNG DỊCH VỤ</span>
+            <span className="member-reviews-metric-value">{pendingReviewCourses.length}</span>
+            <span className="member-reviews-metric-label">KHÓA HỌC CHỜ ĐÁNH GIÁ</span>
           </div>
         </section>
       </div>

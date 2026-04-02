@@ -131,6 +131,18 @@
   border: 1px solid rgba(214, 255, 0, 0.15);
 }
 
+.bd-status.present {
+  background: rgba(46, 204, 113, 0.14);
+  color: #8fefb0;
+  border: 1px solid rgba(46, 204, 113, 0.28);
+}
+
+.bd-status.absent {
+  background: rgba(255, 115, 81, 0.14);
+  color: #ff9a84;
+  border: 1px solid rgba(255, 115, 81, 0.22);
+}
+
 .bd-status.cancelled {
   background: rgba(255, 115, 81, 0.12);
   color: #ff9a84;

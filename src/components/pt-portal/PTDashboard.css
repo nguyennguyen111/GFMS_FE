@@ -272,6 +272,178 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
+button.ptd-kpiCard--clickable {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button.ptd-kpiCard--clickable:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.ptd-kpiModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.ptd-kpiModal {
+  width: min(720px, 100%);
+  max-height: min(86vh, 900px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 18, 28, 0.98);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.ptd-kpiModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ptd-kpiModalTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.ptd-kpiModalClose {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ptd-kpiModalClose:hover {
+  background: rgba(244, 137, 21, 0.2);
+}
+
+.ptd-kpiModalBody {
+  padding: 14px 18px 18px;
+  overflow: auto;
+}
+
+.ptd-kpiModalHint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.ptd-kpiModalStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ptd-kpiModalStatLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 800;
+}
+
+.ptd-kpiModalStatValue {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--orange);
+}
+
+.ptd-kpiModalStatValue--sm {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ptd-kpiModalTable {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ptd-kpiModalTable--wide {
+  overflow-x: auto;
+}
+
+.ptd-kpiModalRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ptd-kpiModalRow:last-child {
+  border-bottom: none;
+}
+
+.ptd-kpiModalRow--head {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ptd-kpiModalRow--4 {
+  grid-template-columns: minmax(100px, 1fr) minmax(72px, 0.8fr) minmax(120px, 1.2fr) minmax(100px, 1fr);
+}
+
+.ptd-kpiModalMuted {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ptd-kpiModalEmpty {
+  padding: 18px 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+.ptd-kpiModalFooterLink {
+  display: inline-flex;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--orange);
+  text-decoration: none;
+}
+
+.ptd-kpiModalFooterLink:hover {
+  text-decoration: underline;
+}
+
 /* Quick links under KPI */
 .ptd-quickRow {
   display: flex;
