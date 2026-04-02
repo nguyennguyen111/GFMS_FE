@@ -50,17 +50,22 @@ const fmtRange = (start) => {
 
 const fmtTime = (value) => String(value || "").slice(0, 5);
 
-const normalizeStatus = (s) => {
-  if (s === "in_progress" || s === "completed") return "attended";
-  if (s === "cancelled") return "cancelled";
-  return "scheduled";
-};
+const getMemberSessionDisplay = (booking) => {
+  const st = String(booking?.status || "").toLowerCase();
+  if (st === "cancelled") return { key: "cancelled", label: "Đã huỷ" };
 
-const statusLabel = (s) => {
-  const x = normalizeStatus(s);
-  if (x === "attended") return "Đã điểm danh";
-  if (x === "cancelled") return "Đã huỷ";
-  return "Chưa điểm danh";
+  const taStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
+  if (taStatus === "present" || taStatus === "completed") {
+    return { key: "present", label: "Có mặt" };
+  }
+  if (taStatus === "absent") {
+    return { key: "absent", label: "Vắng mặt" };
+  }
+
+  if (st === "in_progress" || st === "completed") {
+    return { key: "attended", label: "Đã điểm danh" };
+  }
+  return { key: "scheduled", label: "Chưa điểm danh" };
 };
 
 export default function MemberBookingsCalendarPage() {
@@ -146,14 +151,22 @@ export default function MemberBookingsCalendarPage() {
   const counts = useMemo(() => {
     const c = {
       total: weekBookings.length,
-      scheduled: 0,
-      attended: 0,
+      pending: 0,
+      present: 0,
+      absent: 0,
       cancelled: 0,
     };
 
     weekBookings.forEach((b) => {
-      const s = normalizeStatus(b.status);
-      c[s] += 1;
+      const st = String(b?.status || "").toLowerCase();
+      if (st === "cancelled") {
+        c.cancelled += 1;
+        return;
+      }
+      const ta = String(b?.trainerAttendance?.status || "").toLowerCase();
+      if (ta === "present" || ta === "completed") c.present += 1;
+      else if (ta === "absent") c.absent += 1;
+      else c.pending += 1;
     });
 
     return c;
@@ -213,12 +226,17 @@ export default function MemberBookingsCalendarPage() {
 
           <div className="mb-summaryCard border-secondary">
             <span className="mb-summaryLabel">Chưa điểm danh</span>
-            <span className="mb-summaryValue">{pad2(counts.scheduled)}</span>
+            <span className="mb-summaryValue">{pad2(counts.pending)}</span>
           </div>
 
           <div className="mb-summaryCard border-primary">
-            <span className="mb-summaryLabel">Đã điểm danh</span>
-            <span className="mb-summaryValue text-primary">{pad2(counts.attended)}</span>
+            <span className="mb-summaryLabel">Có mặt</span>
+            <span className="mb-summaryValue text-primary">{pad2(counts.present)}</span>
+          </div>
+
+          <div className="mb-summaryCard border-absent">
+            <span className="mb-summaryLabel">Vắng mặt</span>
+            <span className="mb-summaryValue text-absent">{pad2(counts.absent)}</span>
           </div>
 
           <div className="mb-summaryCard border-error">
@@ -235,8 +253,9 @@ export default function MemberBookingsCalendarPage() {
 
           <div className="mb-pillGroup">
             <span className="mb-pill">Tổng: {counts.total}</span>
-            <span className="mb-pill is-muted">Chưa điểm danh: {counts.scheduled}</span>
-            <span className="mb-pill is-green">Đã điểm danh: {counts.attended}</span>
+            <span className="mb-pill is-muted">Chưa điểm danh: {counts.pending}</span>
+            <span className="mb-pill is-green">Có mặt: {counts.present}</span>
+            <span className="mb-pill is-absent">Vắng: {counts.absent}</span>
             <span className="mb-pill is-red">Đã huỷ: {counts.cancelled}</span>
           </div>
         </div>
@@ -264,14 +283,15 @@ export default function MemberBookingsCalendarPage() {
                     <div className="mb-emptyCell">Trống</div>
                   ) : (
                     dayBookings.map((b) => {
-                      const displayStatus = normalizeStatus(b.status);
-                      const isActive = isToday && displayStatus === "scheduled";
+                      const disp = getMemberSessionDisplay(b);
+                      const displayKey = disp.key;
+                      const isActive = isToday && displayKey === "scheduled";
 
                       return (
                         <button
                           key={b.id}
                           type="button"
-                          className={`mb-sessionCard ${displayStatus} ${isActive ? "active" : ""}`}
+                          className={`mb-sessionCard ${displayKey} ${isActive ? "active" : ""}`}
                           onClick={() => setSelected(b)}
                         >
                           <div className="mb-sessionHead">
@@ -281,9 +301,11 @@ export default function MemberBookingsCalendarPage() {
 
                             {isActive ? (
                               <Clock3 size={16} className="mb-sessionPulse" />
-                            ) : displayStatus === "attended" ? (
+                            ) : displayKey === "present" || displayKey === "attended" ? (
                               <ClipboardCheck size={16} className="mb-sessionIcon ok" />
-                            ) : displayStatus === "cancelled" ? (
+                            ) : displayKey === "absent" ? (
+                              <CircleX size={16} className="mb-sessionIcon absent" />
+                            ) : displayKey === "cancelled" ? (
                               <CircleX size={16} className="mb-sessionIcon error" />
                             ) : (
                               <Dumbbell size={16} className="mb-sessionIcon" />
@@ -299,8 +321,8 @@ export default function MemberBookingsCalendarPage() {
                             </p>
                           </div>
 
-                          <div className={`mb-sessionBtn ${displayStatus}`}>
-                            {statusLabel(b.status)}
+                          <div className={`mb-sessionBtn ${displayKey}`}>
+                            {disp.label}
                           </div>
                         </button>
                       );
