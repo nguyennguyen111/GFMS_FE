@@ -1,0 +1,326 @@
+.ptf-page{
+  min-height:100vh;
+  width:100%;
+  padding:22px 0 48px;
+  background: radial-gradient(circle at top, #18202b, #0f1113 62%);
+  box-sizing:border-box;
+  color:#fff;
+}
+
+.ptf-shell{
+  width:min(1120px,92vw);
+  margin:0 auto;
+}
+
+.ptf-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.ptf-title{
+  margin:0;
+  font-size:34px;
+  font-weight:900;
+  color:var(--orange);
+}
+
+.ptf-subtitle{
+  margin:6px 0 0;
+  color:rgba(255,255,255,0.65);
+  font-size:13px;
+}
+
+.ptf-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.ptf-btnGhost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  height:36px;
+  padding:0 14px;
+  border-radius:10px;
+  font-weight:900;
+  text-decoration:none;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(244,137,21,0.35);
+  color:rgba(255,255,255,0.9);
+  transition:.2s;
+}
+.ptf-btnGhost:hover{ transform:translateY(-1px); filter:brightness(1.06); }
+
+.ptf-btnPrimary{
+  height:36px;
+  padding:0 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:900;
+  background:var(--orange);
+  color:#111;
+  transition:.2s;
+}
+.ptf-btnPrimary:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+
+.ptf-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:14px;
+}
+
+.ptf-card{
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.ptf-card--span2{ grid-column:1 / -1; }
+
+.ptf-cardHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.ptf-cardTitle{
+  margin:0;
+  font-size:16px;
+  font-weight:900;
+  color:rgba(255,255,255,0.92);
+}
+
+.ptf-pill{
+  font-size:12px;
+  font-weight:900;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.06);
+  color:rgba(255,255,255,0.85);
+}
+.ptf-pill.is-active{
+  background: rgba(46, 204, 113, 0.12);
+  border-color: rgba(46, 204, 113, 0.25);
+}
+.ptf-pill.is-inactive{
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.25);
+}
+
+.ptf-label{
+  display:block;
+  font-size:12px;
+  font-weight:900;
+  color:var(--orange);
+  margin:10px 0 6px;
+}
+
+.ptf-input{
+  width:100%;
+  height:38px;
+  padding:0 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.92);
+  outline:none;
+}
+
+.ptf-input:focus{
+  border-color: rgba(244,137,21,0.35);
+  box-shadow: 0 0 0 3px rgba(244,137,21,0.10);
+}
+
+.ptf-textarea{
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.92);
+  outline:none;
+  resize:vertical;
+  min-height:120px;
+}
+
+.ptf-textarea:focus{
+  border-color: rgba(244,137,21,0.35);
+  box-shadow: 0 0 0 3px rgba(244,137,21,0.10);
+}
+
+.ptf-hint{
+  margin-top:8px;
+  font-size:12px;
+  color: rgba(255,255,255,0.60);
+  line-height:1.5;
+}
+
+/* ===== Cover preview + drag ===== */
+.ptf-coverHelp{
+  margin-top:8px;
+  font-size:12px;
+  color: rgba(255,255,255,0.65);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.ptf-resetBtn{
+  background:transparent;
+  border:1px solid rgba(244,137,21,0.35);
+  color: rgba(255,255,255,0.9);
+  border-radius:10px;
+  padding:6px 10px;
+  cursor:pointer;
+  font-weight:900;
+  transition:.2s;
+}
+.ptf-resetBtn:hover{ transform:translateY(-1px); filter:brightness(1.06); }
+
+.ptf-coverPreview{
+  margin-top:10px;
+  height:170px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(90deg, rgba(244,137,21,0.18), rgba(255,255,255,0.05));
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  /* Drag UX */
+  cursor: grab;
+  user-select:none;
+  position:relative;
+
+  /* Image mode */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+}
+
+.ptf-coverPreview:active{
+  cursor: grabbing;
+}
+
+.ptf-coverPreview.has-img::after{
+  content:"Kéo để chỉnh ảnh";
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  font-size:12px;
+  font-weight:900;
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+}
+
+.ptf-coverEmpty{
+  color: rgba(255,255,255,0.70);
+  font-weight:900;
+}
+
+.ptf-uploadRow{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:4px;
+}
+
+.ptf-uploadRow--cover{
+  margin-top:10px;
+}
+
+.ptf-avatarPreview{
+  width:64px;
+  height:64px;
+  border-radius:999px;
+  border:1px solid rgba(244,137,21,0.35);
+  background: rgba(255,255,255,0.05);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  color: rgba(255,255,255,0.72);
+  font-size:12px;
+  font-weight:900;
+}
+
+.ptf-avatarPreview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.ptf-uploadBtn{
+  height:36px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid rgba(244,137,21,0.35);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-weight:900;
+  transition:.2s;
+}
+
+.ptf-uploadBtn:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.06);
+}
+
+.ptf-certList{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.ptf-certItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:10px;
+  padding:8px 10px;
+  background:rgba(255,255,255,0.03);
+}
+
+.ptf-certText{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.ptf-certLink{
+  color:var(--orange);
+  font-weight:900;
+  text-decoration:underline;
+}
+
+.ptf-muted{ color: rgba(255,255,255,0.65); }
+
+@media (max-width: 980px){
+  .ptf-grid{ grid-template-columns:1fr; }
+}
+@media (max-width: 640px){
+  .ptf-topbar{ flex-direction:column; align-items:flex-start; }
+}

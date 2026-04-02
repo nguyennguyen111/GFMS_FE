@@ -1,28 +1,36 @@
-import React from 'react'
-import './Footer.css'
-import Github from '../../assets/github.png';
-import Instagram from '../../assets/instagram.png';
-import LinkedIn from '../../assets/linkedin.png';
-import Logo from '../../assets/logo.png';
+import React from 'react';
+import './Footer.css';
+import { Instagram, Youtube, Facebook } from 'lucide-react';
+import logoWordmark from "../../assets/logo-wordmark.png";
 
 const Footer = () => {
   return (
-    <div className="Footer-container">
-        <hr/>
-        <div className="footer">
-            <div className="social-links">
-                <img src={Github} alt=""/>
-                <img src={Instagram} alt=""/>
-                <img src={LinkedIn} alt=""/>
-            </div>
-            <div className="logo-f">
-                <img src={Logo} alt=""/>
-            </div>
+    <footer className="footer">
+      <div className="footer-container">
+        <div className="footer-logo">
+          <img src={logoWordmark} alt="GFMS" className="footer-wordmark" />
         </div>
-        <div className="blur blur-f-1"></div>
-        <div className="blur blur-f-2"></div>
-    </div>
-  )
-}
 
-export default Footer
+        <div className="footer-links">
+          {['Điều khoản', 'Bảo mật', 'Liên hệ', 'Cơ sở', 'Tuyển dụng'].map((link) => (
+            <a key={link} href="#" className="footer-link">
+              {link}
+            </a>
+          ))}
+        </div>
+
+        <div className="footer-socials">
+          <button className="footer-social-btn" type="button"><Instagram size={18} /></button>
+          <button className="footer-social-btn" type="button"><Youtube size={18} /></button>
+          <button className="footer-social-btn" type="button"><Facebook size={18} /></button>
+        </div>
+
+        <div className="footer-copyright">
+          <p>© 2026 GFMS KINETIC MONOLITH. ALL RIGHTS RESERVED.</p>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;

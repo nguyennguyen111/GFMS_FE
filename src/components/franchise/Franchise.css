@@ -1,0 +1,31 @@
+.franchise {
+  padding: 120px 24px;
+  display: grid;
+  gap: 60px;
+  grid-template-columns: repeat(auto-fit, minmax(320px,1fr));
+}
+
+.franchise-form {
+  background: rgba(255,255,255,.05);
+  border-radius: 32px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.franchise-form input {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #324d67;
+  background: transparent;
+  color: white;
+}
+
+.franchise-form button {
+  padding: 18px;
+  border-radius: 14px;
+  background: #f97316;
+  border: none;
+  font-weight: 900;
+}

@@ -1,0 +1,77 @@
+/* src/components/landing/PricingSectionModern.css */
+.pricing-modern {
+  width: min(1260px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 84px 0 0;
+}
+
+.pricing-modern__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.price-modern-card {
+  position: relative;
+  padding: 28px 24px 24px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(12,22,38,0.88), rgba(8,16,28,0.98));
+  border: 1px solid rgba(148,163,184,0.14);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+  overflow: hidden;
+}
+
+.price-modern-card.is-popular {
+  transform: translateY(-6px);
+  border-color: rgba(30,167,255,0.28);
+}
+
+.price-ribbon {
+  position: absolute;
+  top: 16px;
+  right: -34px;
+  transform: rotate(35deg);
+  background: linear-gradient(135deg, #22d3ee, #2563eb);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 8px 42px;
+}
+
+.price-modern-card__name {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #f8fbff;
+}
+
+.price-modern-card__price {
+  margin-top: 10px;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #85d7ff;
+}
+
+.price-modern-card__desc {
+  margin-top: 10px;
+  color: #9fb0c5;
+  line-height: 1.7;
+}
+
+.price-modern-card__features {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 24px;
+}
+
+.price-modern-card__feature {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 10px;
+  color: #dce9f7;
+}
+
+@media (max-width: 1000px) {
+  .pricing-modern__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,466 @@
+.member-reviews-page {
+  min-height: 100vh;
+  background: #0e0e0e;
+  color: #ffffff;
+}
+
+.member-reviews-hero {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+}
+
+.member-reviews-head {
+  margin-bottom: 48px;
+}
+
+.member-reviews-title {
+  margin: 0 0 12px;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+.member-reviews-title span {
+  color: #d6ff00;
+  font-style: italic;
+}
+
+.member-reviews-sub {
+  margin: 0;
+  max-width: 720px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  line-height: 1.7;
+}
+
+.member-reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+.member-reviews-form-wrap,
+.member-reviews-list-wrap {
+  min-width: 0;
+}
+
+.member-reviews-form-card {
+  background: rgba(38, 38, 38, 0.8);
+  backdrop-filter: blur(24px);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.06);
+}
+
+.member-reviews-section-title {
+  margin: 0 0 28px;
+  padding-left: 14px;
+  border-left: 4px solid #d6ff00;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.member-reviews-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.member-reviews-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-reviews-label {
+  margin-bottom: 12px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.member-reviews-targets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.member-reviews-target {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: #262626;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-style: italic;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.member-reviews-target.active {
+  background: #131313;
+  border-color: #d6ff00;
+  color: #d6ff00;
+}
+
+.member-reviews-target:hover:not(.active) {
+  background: #2d2d2d;
+  color: #ffffff;
+}
+
+.member-reviews-stars {
+  display: flex;
+  gap: 8px;
+}
+
+.member-reviews-stars .material-symbols-outlined {
+  font-size: 30px;
+  color: #262626;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.member-reviews-stars .material-symbols-outlined.active {
+  color: #d6ff00;
+  font-variation-settings: "FILL" 1;
+}
+
+.member-reviews-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  border-radius: 16px;
+  background: #262626;
+  color: #ffffff;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.member-reviews-textarea::placeholder {
+  color: #555757;
+}
+
+.member-reviews-progress-track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: #131313;
+}
+
+.member-reviews-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: #d6ff00;
+}
+
+.member-reviews-submit {
+  width: 100%;
+  min-height: 54px;
+  border: none;
+  border-radius: 12px;
+  background: #d6ff00;
+  color: #546600;
+  font-family: "Lexend", sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.member-reviews-submit:hover {
+  transform: scale(0.985);
+  box-shadow: 0 10px 30px rgba(214, 255, 0, 0.18);
+}
+
+.member-reviews-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.member-reviews-list-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 8px;
+}
+
+.member-reviews-list-title {
+  margin: 0;
+  color: #d6ff00;
+  font-family: "Lexend", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.2em;
+}
+
+.member-reviews-filters {
+  display: flex;
+  gap: 14px;
+}
+
+.member-reviews-filter {
+  padding: 0 0 4px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.member-reviews-filter.active {
+  color: #d6ff00;
+  border-bottom-color: #d6ff00;
+}
+
+.member-reviews-filter:hover:not(.active) {
+  color: #ffffff;
+}
+
+.member-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.member-reviews-item {
+  padding: 24px;
+  border-radius: 12px;
+  background: #131313;
+  transition: background-color 0.25s ease, transform 0.2s ease;
+}
+
+.member-reviews-item:hover {
+  background: #202020;
+  transform: translateY(-2px);
+}
+
+.member-reviews-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.member-reviews-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.member-reviews-avatar {
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #262626;
+  flex-shrink: 0;
+}
+
+.member-reviews-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%);
+  transition: filter 0.4s ease;
+}
+
+.member-reviews-item:hover .member-reviews-avatar img {
+  filter: grayscale(0%);
+}
+
+.member-reviews-author-info {
+  min-width: 0;
+}
+
+.member-reviews-author-name {
+  margin: 0 0 4px;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.member-reviews-date {
+  margin: 0;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.member-reviews-rating {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.member-reviews-rating .material-symbols-outlined {
+  font-size: 14px;
+  color: #262626;
+}
+
+.member-reviews-rating .material-symbols-outlined.active {
+  color: #d6ff00;
+  font-variation-settings: "FILL" 1;
+}
+
+.member-reviews-content {
+  margin: 0;
+  color: #adaaaa;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.member-reviews-load-more {
+  width: 100%;
+  min-height: 56px;
+  padding: 16px 20px;
+  border: 1px solid #262626;
+  border-radius: 10px;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.member-reviews-load-more:hover {
+  background: #262626;
+  border-color: #3a3a3a;
+}
+
+.member-reviews-metrics {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.member-reviews-metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 180px;
+  padding: 28px;
+  background: #131313;
+  box-shadow: 0 0 32px rgba(255, 255, 255, 0.06);
+}
+
+.member-reviews-metric-value {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.member-reviews-metric-card:first-child .member-reviews-metric-value {
+  color: #d6ff00;
+}
+
+.member-reviews-metric-label {
+  margin-top: 14px;
+  color: #adaaaa;
+  font-family: "Lexend", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+@media (min-width: 768px) {
+  .member-reviews-title {
+    font-size: 64px;
+  }
+
+  .member-reviews-metrics {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .member-reviews-grid {
+    grid-template-columns: repeat(12, 1fr);
+    align-items: start;
+  }
+
+  .member-reviews-form-wrap {
+    grid-column: span 5;
+  }
+
+  .member-reviews-list-wrap {
+    grid-column: span 7;
+  }
+
+  .member-reviews-form-card {
+    position: sticky;
+    top: 96px;
+  }
+}
+
+@media (max-width: 767px) {
+  .member-reviews-hero {
+    padding: 28px 16px 56px;
+  }
+
+  .member-reviews-title {
+    font-size: 36px;
+  }
+
+  .member-reviews-targets {
+    grid-template-columns: 1fr;
+  }
+
+  .member-reviews-list-head,
+  .member-reviews-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .member-reviews-metric-value {
+    font-size: 44px;
+  }
+}

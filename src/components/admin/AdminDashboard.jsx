@@ -1,47 +1,85 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
+import axios from "../../setup/axios";
 
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+
+import InventoryLogsPage from "./pages/InventoryLogsPage";
+import EquipmentPage from "./pages/EquipmentPage";
+import SuppliersPage from "./pages/SuppliersPage";
+import InventoryPage from "./pages/InventoryPage";
+import ReceiptImportPage from "./pages/ReceiptImportPage";
+import ExportPage from "./pages/ExportPage";
+import GymsPage from "./pages/GymsPage";
+
+// ✅ Purchase workflow (1.1–1.4 bạn đã code)
+import PurchaseWorkflowPage from "./pages/PurchaseWorkflowPage";
+
+// ✅ NEW: module 2–6.2 pages (bạn copy thêm bên dưới)
+import MaintenancePage from "./pages/MaintenancePage";
+import FranchiseRequestsPage from "./pages/FranchiseRequestsPage";
+import SharingPoliciesPage from "./pages/SharingPoliciesPage";
+import TrainerShareApprovalsPage from "./pages/TrainerShareApprovalsPage";
+import TrainerShareOverridesPage from "./pages/TrainerShareOverridesPage";
+import AuditLogsPage from "./pages/AuditLogsPage";
+import ReportsPage from "./pages/ReportsPage";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
-  // ===== MENU ADMIN (FULL) =====
-  const menu = useMemo(() => ([
-    { label: "Tổng quan", to: "/admin/dashboard", key: "dashboard" },
+  const menu = useMemo(
+    () => [
+      { label: "Tổng quan", to: "/admin/dashboard", key: "dashboard" },
 
-    { section: "Quản trị hệ thống" },
-    { label: "Người dùng", to: "/admin/users", key: "users" },
-    { label: "Gói dịch vụ", to: "/admin/packages", key: "packages" }, // ✅ THÊM
-    { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
-    { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
+      { section: "Quản trị hệ thống" },
+      { label: "Người dùng", to: "/admin/users", key: "users" },
+    
+      { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
+      { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
-    { section: "Thiết bị & Kỹ thuật" },
-    { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
-    { label: "Bảo trì / Sửa chữa", to: "/admin/maintenance", key: "maintenance" },
+      { section: "Thiết bị & Kho" },
+      { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
+      { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
+      { label: "Mua sắm trang thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
+      { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
+      { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
+      { label: "Nhập kho", to: "/admin/import", key: "import" },
+      { label: "Xuất kho", to: "/admin/export", key: "export" },
 
-    { section: "Chia sẻ PT" },
-    { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
-    { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
+      { section: "Thiết bị & Kỹ thuật" },
+      { label: "Bảo trì / Sửa chữa", to: "/admin/maintenance", key: "maintenance" },
 
-    { section: "Báo cáo & Nhật ký" },
-    { label: "Báo cáo", to: "/admin/reports", key: "reports" },
-    { label: "Audit Logs", to: "/admin/audit-logs", key: "audit" }
-  ]), []);
+      { section: "Chia sẻ PT" },
+      { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
+      { label: "Duyệt chia sẻ PT", to: "/admin/shared-trainer-approvals", key: "ts-approvals" },
+      { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
 
-  const handleLogout = () => {
-    navigate("/login");
+      { section: "Báo cáo & Nhật ký" },
+      { label: "Báo cáo", to: "/admin/reports", key: "reports" },
+      { label: "Audit Logs", to: "/admin/audit-logs", key: "audit" },
+    ],
+    []
+  );
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("/auth/logout");
+    } catch (e) {
+      // ignore
+    } finally {
+      localStorage.removeItem("user");
+      navigate("/login", { replace: true });
+      window.location.replace("/login");
+    }
   };
 
   return (
     <div className="ad-layout">
       <div className="ad-bg" />
 
-      {/* ========== SIDEBAR ========== */}
       <aside className={`ad-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="ad-brand">
           <div className="ad-brand__logo">
@@ -52,10 +90,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <button
-            className="ad-icon-btn"
-            onClick={() => setCollapsed(v => !v)}
-          >
+          <button className="ad-icon-btn" onClick={() => setCollapsed((v) => !v)}>
             {collapsed ? "»" : "«"}
           </button>
         </div>
@@ -74,9 +109,7 @@ export default function AdminDashboard() {
               <NavLink
                 key={item.key}
                 to={item.to}
-                className={({ isActive }) =>
-                  `ad-nav__item ${isActive ? "is-active" : ""}`
-                }
+                className={({ isActive }) => `ad-nav__item ${isActive ? "is-active" : ""}`}
               >
                 <span className="ad-nav__dot" />
                 <span className="ad-nav__label">{item.label}</span>
@@ -88,9 +121,7 @@ export default function AdminDashboard() {
         <div className="ad-sidebar__footer">
           <div className="ad-mini">
             <div className="ad-mini__title">Admin</div>
-            <div className="ad-mini__sub">
-              Gym Franchise Management System
-            </div>
+            <div className="ad-mini__sub">Gym Franchise Management System</div>
           </div>
           <button className="ad-btn ad-btn--ghost" onClick={handleLogout}>
             Đăng xuất
@@ -98,77 +129,50 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ========== MAIN CONTENT ========== */}
       <main className="ad-main">
         <header className="ad-topbar">
           <div>
             <div className="ad-topbar__title">Admin Console</div>
-            <div className="ad-topbar__hint">
-              GFMS • ReactJS • NodeJS • MySQL
-            </div>
+            <div className="ad-topbar__hint">GFMS • ReactJS • NodeJS • MySQL</div>
           </div>
-
-          <div className="ad-pill">Giai đoạn 1</div>
+          <div className="ad-pill">Giai đoạn 2</div>
         </header>
 
         <div className="ad-content">
           <Routes>
-            {/* redirect */}
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
-            {/* dashboard */}
             <Route path="/dashboard" element={<DashboardHome />} />
-
-            {/* ===== QUẢN TRỊ HỆ THỐNG ===== */}
             <Route path="/users" element={<UsersPage />} />
-            <Route
-              path="/packages"
-              element={<PlaceholderPage title="Gói dịch vụ (Catalog)" />}
-            />
-            <Route
-              path="/gyms"
-              element={<PlaceholderPage title="Quản lý phòng gym" />}
-            />
-            <Route
-              path="/franchises"
-              element={<PlaceholderPage title="Yêu cầu nhượng quyền" />}
-            />
 
-            {/* ===== THIẾT BỊ & KỸ THUẬT ===== */}
-            <Route
-              path="/equipment"
-              element={<PlaceholderPage title="Thiết bị" />}
-            />
-            <Route
-              path="/maintenance"
-              element={<PlaceholderPage title="Bảo trì / Sửa chữa" />}
-            />
+            {/* Placeholder: bạn có thể code sau nếu cần */}
+            <Route path="/packages" element={<div style={{ color: "#eef2ff" }}>Gói dịch vụ (Catalog) – TODO</div>} />
 
-            {/* ===== CHIA SẺ PT ===== */}
-            <Route
-              path="/policies/sharing"
-              element={<PlaceholderPage title="Chính sách chia sẻ PT" />}
-            />
-            <Route
-              path="/shared-trainers/overrides"
-              element={<PlaceholderPage title="Ngoại lệ chia sẻ PT" />}
-            />
+            <Route path="/gyms" element={<GymsPage title="Quản lý phòng gym" />} />
+            <Route path="/franchises" element={<FranchiseRequestsPage />} />
 
-            {/* ===== BÁO CÁO ===== */}
-            <Route
-              path="/reports"
-              element={<PlaceholderPage title="Báo cáo" />}
-            />
-            <Route
-              path="/audit-logs"
-              element={<PlaceholderPage title="Audit Logs" />}
-            />
+            <Route path="/equipment" element={<EquipmentPage />} />
+            <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/purchase-workflow" element={<PurchaseWorkflowPage />} />
 
-            {/* fallback */}
-            <Route
-              path="*"
-              element={<PlaceholderPage title="Không tìm thấy trang" />}
-            />
+            <Route path="/stocks" element={<InventoryPage />} />
+            <Route path="/inventory-logs" element={<InventoryLogsPage />} />
+            <Route path="/import" element={<ReceiptImportPage />} />
+            <Route path="/export" element={<ExportPage />} />
+
+            {/* ✅ Module 2 */}
+            <Route path="/maintenance" element={<MaintenancePage />} />
+
+            {/* ✅ Module 4–5 */}
+            <Route path="/policies/sharing" element={<SharingPoliciesPage />} />
+            <Route path="/shared-trainer-approvals" element={<TrainerShareApprovalsPage />} />
+            <Route path="/shared-trainers/overrides" element={<TrainerShareOverridesPage />} />
+
+            {/* ✅ Module 6 */}
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/audit-logs" element={<AuditLogsPage />} />
+
+            <Route path="*" element={<div style={{ color: "#eef2ff" }}>Không tìm thấy trang</div>} />
           </Routes>
         </div>
       </main>

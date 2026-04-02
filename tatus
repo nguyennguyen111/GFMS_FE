@@ -1,0 +1,45 @@
+[33m6886cd4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m)[m HEAD@{0}: commit: kkk
+[33m45dd2b4[m HEAD@{1}: pull: Fast-forward
+[33m81db6e8[m[33m ([m[1;31morigin/feature/owner-dot1[m[33m, [m[1;32mfeature/owner-dot2[m[33m, [m[1;32mfeature/owner-dot1[m[33m)[m HEAD@{2}: checkout: moving from feature/owner-dot2 to dev
+[33m81db6e8[m[33m ([m[1;31morigin/feature/owner-dot1[m[33m, [m[1;32mfeature/owner-dot2[m[33m, [m[1;32mfeature/owner-dot1[m[33m)[m HEAD@{3}: checkout: moving from dev to feature/owner-dot2
+[33m81db6e8[m[33m ([m[1;31morigin/feature/owner-dot1[m[33m, [m[1;32mfeature/owner-dot2[m[33m, [m[1;32mfeature/owner-dot1[m[33m)[m HEAD@{4}: merge feature/owner-dot1: Fast-forward
+[33m72fbae2[m HEAD@{5}: checkout: moving from feature/owner-dot1 to dev
+[33m81db6e8[m[33m ([m[1;31morigin/feature/owner-dot1[m[33m, [m[1;32mfeature/owner-dot2[m[33m, [m[1;32mfeature/owner-dot1[m[33m)[m HEAD@{6}: checkout: moving from dev to feature/owner-dot1
+[33m72fbae2[m HEAD@{7}: checkout: moving from feature/owner-dot1 to dev
+[33m81db6e8[m[33m ([m[1;31morigin/feature/owner-dot1[m[33m, [m[1;32mfeature/owner-dot2[m[33m, [m[1;32mfeature/owner-dot1[m[33m)[m HEAD@{8}: commit: update owner v2
+[33mc90ef81[m HEAD@{9}: merge feature/thienluongchinh: Merge made by the 'ort' strategy.
+[33mbd490f4[m HEAD@{10}: checkout: moving from feature/thienluongchinh to feature/owner-dot1
+[33mdf22297[m[33m ([m[1;31morigin/feature/thienluongchinh[m[33m, [m[1;32mfeature/thienluongchinh[m[33m)[m HEAD@{11}: pull: Fast-forward
+[33mfa82a6b[m HEAD@{12}: checkout: moving from feature/owner-dot1 to feature/thienluongchinh
+[33mbd490f4[m HEAD@{13}: commit: update owner
+[33mfa82a6b[m HEAD@{14}: checkout: moving from feature/thienluongchinh to feature/owner-dot1
+[33mfa82a6b[m HEAD@{15}: reset: moving to HEAD~1
+[33mf4523ea[m HEAD@{16}: commit: update owner
+[33mfa82a6b[m HEAD@{17}: pull: Fast-forward
+[33m167133f[m HEAD@{18}: checkout: moving from dev to feature/thienluongchinh
+[33m72fbae2[m HEAD@{19}: pull: Fast-forward
+[33mae2f1b1[m HEAD@{20}: pull: Fast-forward
+[33m3e0c68b[m HEAD@{21}: checkout: moving from feature/timedone to dev
+[33m30caefb[m[33m ([m[1;31morigin/feature/timedone[m[33m, [m[1;32mfeature/timedone[m[33m)[m HEAD@{22}: commit: done time
+[33m3e0c68b[m HEAD@{23}: checkout: moving from dev to feature/timedone
+[33m3e0c68b[m HEAD@{24}: pull: Fast-forward
+[33m25d2b64[m HEAD@{25}: pull: Fast-forward
+[33mae7def5[m HEAD@{26}: pull: Fast-forward
+[33m0f2f2ae[m HEAD@{27}: pull: Fast-forward
+[33mf548640[m HEAD@{28}: checkout: moving from feature/fixtime-inventory to dev
+[33m9f7b427[m[33m ([m[1;31morigin/feature/fixtime-inventory[m[33m, [m[1;32mfeature/fixtime-inventory[m[33m)[m HEAD@{29}: commit: fixtime-inventory
+[33mf548640[m HEAD@{30}: checkout: moving from dev to feature/fixtime-inventory
+[33mf548640[m HEAD@{31}: pull: Fast-forward
+[33m7c305e6[m HEAD@{32}: checkout: moving from feature/fix-authgyms to dev
+[33m95c64ab[m[33m ([m[1;31morigin/feature/fix-authgyms[m[33m, [m[1;32mfeature/fix-authgyms[m[33m)[m HEAD@{33}: commit: feat: fix auth and select owner
+[33m7c305e6[m HEAD@{34}: checkout: moving from dev to feature/fix-authgyms
+[33m7c305e6[m HEAD@{35}: commit: json
+[33maf42822[m HEAD@{36}: pull: Fast-forward
+[33ma2ec9b4[m HEAD@{37}: pull: Fast-forward
+[33m38b8cc9[m HEAD@{38}: pull: Fast-forward
+[33ma46f645[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{39}: checkout: moving from feature/manage-gyms to dev
+[33mb939334[m[33m ([m[1;31morigin/feature/manage-gyms[m[33m, [m[1;32mfeature/manage-gyms[m[33m)[m HEAD@{40}: commit: feat:complete management gyms
+[33ma46f645[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{41}: checkout: moving from main to feature/manage-gyms
+[33ma46f645[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{42}: checkout: moving from dev to main
+[33ma46f645[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{43}: checkout: moving from main to dev
+[33ma46f645[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{44}: clone: from https://github.com/dthien1811/GFMS_FE.git

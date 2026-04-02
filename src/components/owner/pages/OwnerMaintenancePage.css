@@ -1,0 +1,196 @@
+:root{
+  --oma-bg: rgba(15, 22, 33, 0.72);
+  --oma-bg2: rgba(255,255,255,0.05);
+  --oma-border: rgba(255,255,255,0.12);
+  --oma-border2: rgba(255,255,255,0.18);
+  --oma-text: #eef2ff;
+  --oma-muted: rgba(238,242,255,0.70);
+  --oma-orange: #ff8a00;
+  --oma-orange2: #ffb000;
+  --oma-shadow: 0 18px 60px rgba(0,0,0,0.45);
+  --oma-radius: 18px;
+}
+
+.oma-page{ color:var(--oma-text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+.oma-head{ 
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+  gap:12px; 
+  margin-bottom:12px; 
+}
+.oma-title{ font-weight:900; font-size:18px; letter-spacing:0.02em; }
+.oma-sub{ color:var(--oma-muted); font-size:12px; margin-top:6px; }
+
+.oma-filters{
+  display:flex; gap:12px; flex-wrap:wrap;
+  padding:12px; border-radius:var(--oma-radius);
+  background: var(--oma-bg);
+  border: 1px solid var(--oma-border);
+  box-shadow: var(--oma-shadow);
+  backdrop-filter: blur(10px);
+  margin-bottom:12px;
+}
+
+.oma-field{ display:flex; flex-direction:column; gap:6px; min-width:160px; }
+.oma-field--grow{ flex:1; min-width:240px; }
+.oma-field label{ font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color: var(--oma-muted); }
+.oma-field input, .oma-field select, .oma-field textarea{
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--oma-border2);
+  color: var(--oma-text);
+  border-radius:14px;
+  padding:10px 12px;
+  outline:none;
+  font-family: inherit;
+  font-size: 14px;
+}
+.oma-field select{
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23eef2ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+  padding-right: 36px;
+}
+.oma-field select option{
+  background: rgba(15, 22, 33, 1);
+  color: var(--oma-text);
+  padding: 8px 12px;
+}
+.oma-field textarea{ min-height:88px; resize: vertical; }
+
+.oma-btn{
+  border:1px solid var(--oma-border2);
+  border-radius:14px;
+  padding:10px 12px;
+  cursor:pointer;
+  color: var(--oma-text);
+  background: rgba(0, 0, 0, 0.6);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.oma-btn:hover{ background: rgba(0, 0, 0, 0.7); transform: translateY(-1px); }
+.oma-btn:disabled{ opacity:0.55; cursor:not-allowed; transform:none; }
+.oma-btn--primary{
+  border-color: rgba(255,138,0,0.35);
+  background: linear-gradient(90deg, rgba(255,138,0,0.28), rgba(255,176,0,0.16));
+}
+.oma-btn--danger{
+  border-color: rgba(255,85,85,0.35);
+  background: linear-gradient(90deg, rgba(255,85,85,0.22), rgba(255,85,85,0.10));
+}
+.oma-btn--ghost{ background: transparent; }
+
+.oma-grid{ display:block; }
+
+.oma-card{
+  background: var(--oma-bg);
+  border:1px solid var(--oma-border);
+  border-radius: var(--oma-radius);
+  box-shadow: var(--oma-shadow);
+  backdrop-filter: blur(10px);
+  overflow:hidden;
+}
+
+.oma-card__head{ padding:12px 12px 8px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.oma-card__title{ font-weight:900; }
+.oma-card__meta{ color: var(--oma-muted); font-size:12px; }
+
+.oma-table-wrap{ overflow:auto; }
+.oma-table{ width:100%; border-collapse: collapse; font-size:13px; }
+.oma-table th, .oma-table td{ padding:11px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.oma-table th{ text-align:left; color: rgba(238,242,255,0.80); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
+.oma-table tbody tr{ cursor:pointer; transition: background 120ms ease; }
+.oma-table tbody tr:hover{ background: rgba(0, 0, 0, 0.55); }
+.oma-table tbody tr.is-active{ background: linear-gradient(90deg, rgba(255,138,0,0.14), rgba(255,176,0,0.06)); }
+.oma-empty{ color: var(--oma-muted); text-align:center; padding:18px; }
+.oma-empty-box{ padding:16px; color: var(--oma-muted); }
+
+.oma-pill{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 10px; border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(0, 0, 0, 0.6);
+  font-size:12px;
+}
+.oma-pill--pending{ border-color: rgba(255,176,0,0.35); background: rgba(255,176,0,0.10); }
+.oma-pill--assigned{ border-color: rgba(0,180,255,0.35); background: rgba(0,180,255,0.10); }
+.oma-pill--in_progress{ border-color: rgba(255,138,0,0.35); background: rgba(255,138,0,0.10); }
+.oma-pill--completed{ border-color: rgba(0,255,170,0.35); background: rgba(0,255,170,0.10); }
+.oma-pill--cancelled{ border-color: rgba(255,85,85,0.35); background: rgba(255,85,85,0.10); }
+
+.oma-detail{ padding:12px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+@media (max-width: 520px){ .oma-detail{ grid-template-columns: 1fr; } }
+.oma-kv{ background: rgba(0, 0, 0, 0.5); border:1px solid rgba(255,255,255,0.08); border-radius: 14px; padding:10px; }
+.oma-k{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color: var(--oma-muted); }
+.oma-v{ margin-top:6px; font-weight:700; }
+
+.oma-actions{ padding:12px; display:flex; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.06); }
+
+.oma-paging{ padding:12px; display:flex; align-items:center; justify-content:center; gap:10px; border-top:1px solid rgba(255,255,255,0.06); }
+.oma-paging__text{ color: var(--oma-muted); font-size:12px; }
+
+/* Remove old modal styles */
+.oma-modal__backdrop{ display: none; }
+.oma-modal{ display: none; }
+.oma-modal__head{ display: none; }
+.oma-modal__title{ display: none; }
+.oma-modal__body{ display: none; }
+.oma-modal__actions{ display: none; }
+
+/* Detail Grid for Modal */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.detail-row:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.detail-row--full {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #eef2ff;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Add status pill margin for detail modal */
+.detail-value .oma-pill {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

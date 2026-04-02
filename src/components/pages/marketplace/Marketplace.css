@@ -1,0 +1,406 @@
+/* =========================================
+   MARKETPLACE SHARED STYLES ONLY
+   Dùng chung cho marketplace page/components.
+   Không chứa gym-*, trainer-*, pkg-* generic
+   để tránh đè CSS của từng page riêng.
+========================================= */
+
+:root {
+  --mp-bg: #050505;
+  --mp-surface: #111111;
+  --mp-surface-2: #171717;
+  --mp-text: #f5f5f5;
+  --mp-muted: rgba(255, 255, 255, 0.62);
+  --mp-stroke: rgba(255, 255, 255, 0.06);
+  --mp-stroke-strong: rgba(255, 255, 255, 0.12);
+  --mp-primary: #d6ff00;
+  --mp-on-primary: #050505;
+  --mp-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+  --mp-container: 1440px;
+  --mp-gutter: 32px;
+}
+
+/* ===== Shared page shell ===== */
+.mp-page {
+  min-height: 100vh;
+  color: var(--mp-text);
+}
+
+.mp-section {
+  max-width: var(--mp-container);
+  margin: 0 auto;
+  padding: 60px var(--mp-gutter);
+}
+
+.mp-heading {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.mp-sub {
+  color: var(--mp-muted);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+/* ===== Shared header ===== */
+.mp-header {
+  margin-bottom: 28px;
+}
+
+/* ===== Shared search / toolbar ===== */
+.mp-search {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 14px;
+  margin-bottom: 24px;
+  background: var(--mp-surface);
+  border: 1px solid var(--mp-stroke);
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+}
+
+.mp-search::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.mp-toolbar {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.mp-filter {
+  min-width: 200px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--mp-surface);
+  border: 1px solid var(--mp-stroke);
+  color: #fff;
+  outline: none;
+}
+
+/* ===== Shared searchbar block ===== */
+.mp-searchbar {
+  display: flex;
+  gap: 12px;
+  background: rgba(17, 17, 17, 0.92);
+  border: 1px solid var(--mp-stroke);
+  border-radius: 18px;
+  padding: 14px;
+  align-items: center;
+  backdrop-filter: blur(12px);
+}
+
+.mp-searchbar input,
+.mp-searchbar select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  outline: none;
+  font-size: 14px;
+}
+
+/* ===== Shared hero ===== */
+.mp-hero {
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(214, 255, 0, 0.08), transparent 60%),
+    linear-gradient(to bottom, #0b0b0b, #050505);
+  padding: 120px 0 80px;
+}
+
+.mp-hero-inner {
+  max-width: var(--mp-container);
+  margin: auto;
+  padding: 0 var(--mp-gutter);
+  text-align: center;
+}
+
+.mp-hero h1 {
+  font-size: 56px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+}
+
+.mp-hero p {
+  color: var(--mp-muted);
+  max-width: 720px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+}
+
+/* ===== Shared grid ===== */
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px;
+}
+
+/* ===== Shared generic card ===== */
+.mp-card {
+  background: linear-gradient(180deg, #111111, #0b0b0b);
+  border-radius: 22px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1px solid var(--mp-stroke);
+}
+
+.mp-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--mp-shadow);
+  border-color: rgba(214, 255, 0, 0.18);
+}
+
+.mp-card__img img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+.mp-card__body {
+  padding: 20px;
+}
+
+.mp-card__category {
+  font-size: 12px;
+  color: var(--mp-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.mp-card__title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 8px;
+  color: #fff;
+}
+
+.mp-card__meta {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ===== Shared inline card ===== */
+.mp-card--inline {
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--mp-surface);
+  border: 1px solid var(--mp-stroke);
+  transition: 0.2s ease;
+}
+
+.mp-card--inline:hover {
+  background: var(--mp-surface-2);
+}
+
+/* ===== Shared CTA ===== */
+.mp-buy-btn {
+  margin-top: 40px;
+  width: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  background: var(--mp-primary);
+  border: none;
+  cursor: pointer;
+  color: var(--mp-on-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-style: italic;
+}
+
+.mp-buy-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* ===== Shared detail layout (nếu page nào còn dùng) ===== */
+.pd-page {}
+
+.pd-content {
+  max-width: 1200px;
+  margin: auto;
+  padding: 60px;
+}
+
+.pd-address {
+  color: var(--mp-muted);
+  margin-top: 6px;
+}
+
+.pd-section {
+  margin-top: 50px;
+}
+
+.pd-section h3 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.pd-info li {
+  margin-bottom: 8px;
+}
+
+.pd-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* =========================================
+   GYM HERO COMPONENT
+   Được dùng bởi src/components/pages/marketplace/common/GymHero.jsx
+========================================= */
+.mp-gym-hero {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: 520px;
+  background: #0b0b0b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mp-gym-hero-swiper,
+.mp-gym-hero-swiper .swiper,
+.mp-gym-hero-swiper .swiper-wrapper,
+.mp-gym-hero-swiper .swiper-slide {
+  height: 520px;
+}
+
+.mp-gym-hero-slide {
+  width: 100%;
+  height: 100%;
+}
+
+.mp-gym-hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mp-gym-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.72)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.62), transparent 55%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.mp-gym-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+}
+
+.mp-gym-hero-content {
+  max-width: 760px;
+}
+
+.mp-gym-hero-label {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(214, 255, 0, 0.12);
+  border: 1px solid rgba(214, 255, 0, 0.18);
+  color: #d6ff00;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mp-gym-hero-content h1 {
+  margin: 0 0 12px;
+  color: #fff;
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.95;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+}
+
+.mp-gym-hero-content p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+}
+
+.mp-gym-hero .swiper-pagination {
+  bottom: 20px !important;
+}
+
+.mp-gym-hero .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.35);
+  opacity: 1;
+}
+
+.mp-gym-hero .swiper-pagination-bullet-active {
+  background: #d6ff00;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  :root {
+    --mp-gutter: 18px;
+  }
+
+  .mp-hero {
+    padding: 110px 0 70px;
+  }
+
+  .mp-hero h1 {
+    font-size: 40px;
+  }
+
+  .mp-searchbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pd-content {
+    padding: 28px 18px;
+  }
+
+  .mp-gym-hero,
+  .mp-gym-hero-swiper,
+  .mp-gym-hero-swiper .swiper,
+  .mp-gym-hero-swiper .swiper-wrapper,
+  .mp-gym-hero-swiper .swiper-slide {
+    height: 380px;
+  }
+
+  .mp-gym-hero-overlay {
+    padding: 22px;
+  }
+
+  .mp-gym-hero-content p {
+    font-size: 14px;
+  }
+}

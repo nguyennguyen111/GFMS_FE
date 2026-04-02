@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  ChevronRight,
+  ShieldCheck,
+  Dumbbell,
+  LineChart,
+  Building2,
+} from 'lucide-react';
 import './LoginPage.css';
-// import axios from 'axios';
 import { loginUser } from '../../services/authService';
+import { setCurrentUser } from '../../utils/auth';
 
 const LoginPage = () => {
-  // Sử dụng state riêng cho từng field
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const validateEmail = (email) => {
@@ -19,224 +31,251 @@ const LoginPage = () => {
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
+  const validatePassword = (password) => password.length >= 6;
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
-    console.log(`Changing email to:`, value);
-    
     setEmail(value);
-    
-    // Clear error when user starts typing
-    if (errors.email) {
-      setErrors(prev => ({ ...prev, email: '' }));
-    }
+    if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
   };
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;
-    console.log(`Changing password to:`, value);
-    
     setPassword(value);
-    
-    // Clear error when user starts typing
-    if (errors.password) {
-      setErrors(prev => ({ ...prev, password: '' }));
-    }
+    if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
   };
 
-  // HÀM VALIDATE FORM RIÊNG
   const validateForm = () => {
     const newErrors = {};
-    
-    // Validate email
-    if (!email.trim()) {
-      newErrors.email = 'Email là bắt buộc';
-    } else if (!validateEmail(email)) {
-      newErrors.email = 'Email không hợp lệ. Vui lòng nhập email đúng định dạng';
-    }
-    
-    // Validate password
-    if (!password) {
-      newErrors.password = 'Mật khẩu là bắt buộc';
-    } else if (!validatePassword(password)) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-    
+    if (!email.trim()) newErrors.email = 'Email là bắt buộc';
+    else if (!validateEmail(email)) newErrors.email = 'Email không hợp lệ. Vui lòng nhập email đúng định dạng';
+
+    if (!password) newErrors.password = 'Mật khẩu là bắt buộc';
+    else if (!validatePassword(password)) newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+
     return newErrors;
   };
 
-  // HÀM HANDLE LOGIN RIÊNG (dùng onClick)
+  const getHomePathByGroupId = (groupId) => {
+    const map = {
+      1: '/admin',
+      2: '/owner',
+      3: '/pt',
+      4: '/',
+      5: '/',
+    };
+    return map[groupId] || '/';
+  };
+
+  const isRedirectAllowedForGroup = (groupId, path) => {
+    if (!path || typeof path !== 'string') return false;
+    if (!path.startsWith('/')) return false;
+    if (path.startsWith('//')) return false;
+
+    if (groupId === 1) return path === '/admin' || path.startsWith('/admin/');
+    if (groupId === 2) return path === '/owner' || path.startsWith('/owner/');
+    if (groupId === 3) return path === '/pt' || path.startsWith('/pt/');
+    if (groupId === 4) return path === '/member' || path.startsWith('/member/') || path === '/';
+    if (groupId === 5) return path === '/';
+
+    return false;
+  };
+
   const handleLogin = async () => {
-  // Validate form trước
-  const validationErrors = validateForm();
-  
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors);
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    let response = await loginUser(email, password);
-    
-    console.log('Login response:', response.data);
-    
-    if (response.data.EC === 0) {
-      // Success
-      alert(`✅ ${response.data.EM}`);
-      localStorage.setItem('user', JSON.stringify(response.data.DT));
-      navigate('/admin');
-    } else {
-      // Error từ server
-      const serverError = response.data.EM;
-      let userFriendlyMessage = serverError;
-      
-      // Chuyển đổi thông báo lỗi từ server sang tiếng Việt
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await loginUser(email, password);
+      const data = response?.data;
+
+      console.log('Login response:', data);
+
+      if (data?.EC === 0) {
+        alert(`✅ ${data?.EM || 'Đăng nhập thành công'}`);
+
+        const dt = data?.DT || {};
+        const user = dt?.user || null;
+        const accessToken = dt?.accessToken || dt?.access_Token || '';
+
+        if (!user) {
+          alert('❌ Không lấy được thông tin người dùng');
+          return;
+        }
+
+        const groupIdRaw = user?.groupId ?? user?.group_id;
+        const groupId = Number(groupIdRaw);
+
+        console.log('✅ USER:', user);
+        console.log('✅ accessToken:', accessToken);
+        console.log('✅ groupId:', groupId);
+
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+
+        setCurrentUser(user);
+
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('roles', JSON.stringify(dt?.roles || []));
+
+        const redirect = sessionStorage.getItem('redirectAfterLogin');
+        if (redirect && isRedirectAllowedForGroup(groupId, redirect)) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirect, { replace: true });
+          return;
+        }
+
+        if (redirect) {
+          sessionStorage.removeItem('redirectAfterLogin');
+        }
+
+        const homePath = getHomePathByGroupId(groupId);
+        navigate(homePath, { replace: true });
+        return;
+      }
+
+      const serverError = data?.EM || 'Có lỗi xảy ra';
       const errorMap = {
         'User not found': 'Email không tồn tại trong hệ thống',
         'Wrong password': 'Mật khẩu không đúng',
         'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
-        'The email is already exist': 'Email đã tồn tại',
-        'The phone number is already exist': 'Số điện thoại đã tồn tại',
-        'The username is already exist': 'Tên người dùng đã tồn tại',
-        'Create new user success': 'Đăng ký thành công',
-        'Login success': 'Đăng nhập thành công'
+        'Account inactive': 'Tài khoản đã bị vô hiệu hoá',
+        'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ',
       };
-      
-      if (errorMap[serverError]) {
-        userFriendlyMessage = errorMap[serverError];
-      }
-      
-      alert(`❌ ${userFriendlyMessage}`);
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    
-    let errorMessage = "Có lỗi xảy ra khi đăng nhập";
-    
-    if (error.response) {
-      // Lỗi từ server response
-      if (error.response.data && error.response.data.EM) {
+
+      alert(`❌ ${errorMap[serverError] || serverError}`);
+    } catch (error) {
+      console.error('Login error:', error);
+
+      let errorMessage = 'Có lỗi xảy ra khi đăng nhập';
+      if (error.response?.data?.EM) {
         errorMessage = error.response.data.EM;
-      } else {
-        errorMessage = `Lỗi ${error.response.status}: ${error.response.statusText}`;
+      } else if (error.request) {
+        errorMessage = 'Không thể kết nối đến server';
       }
-    } else if (error.request) {
-      errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra lại";
+
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
     }
-    
-    alert(`❌ ${errorMessage}`);
-  } finally {
-    setIsLoading(false);
-  }
-};
-  const handleForgotPassword = () => {
-  navigate('/forgot-password');
   };
 
-  const handleRegister = () => {
-    navigate('/register');
-  };
+  const handleForgotPassword = () => navigate('/forgot-password');
+  const handleRegister = () => navigate('/register');
 
-  // HÀM HANDLE SUBMIT CHO FORM (để ngăn reload page)
   const handleSubmit = (e) => {
-    e.preventDefault(); // Ngăn reload trang
-    handleLogin(); // Gọi hàm login
+    e.preventDefault();
+    handleLogin();
   };
 
   const handleEmailBlur = (e) => {
     const value = e.target.value;
-    
-    if (value.trim()) {
-      if (!validateEmail(value)) {
-        setErrors(prev => ({ 
-          ...prev, 
-          email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng' 
-        }));
-      }
+    if (value.trim() && !validateEmail(value)) {
+      setErrors((prev) => ({
+        ...prev,
+        email: 'Email không hợp lệ. Vui lòng nhập email đúng định dạng',
+      }));
     }
   };
 
   const handlePasswordBlur = (e) => {
     const value = e.target.value;
-    
-    if (value) {
-      if (!validatePassword(value)) {
-        setErrors(prev => ({ 
-          ...prev, 
-          password: 'Mật khẩu phải có ít nhất 6 ký tự' 
-        }));
-      }
+    if (value && !validatePassword(value)) {
+      setErrors((prev) => ({
+        ...prev,
+        password: 'Mật khẩu phải có ít nhất 6 ký tự',
+      }));
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
     <div className="login-page">
-      {/* Background Gym Image */}
-      <div className="gym-background"></div>
-      
-      <div className="login-overlay"></div>
-      
-      <div className="login-container">
-        <div className="login-left">
-          <div className="brand-section">
-            <h1 className="logo">GFMS</h1>
-            <p className="slogan">GYM Franchise Management System</p>
-            <h2 className="tagline">Smart Management<br/><span className="highlight">Professional Fitness</span></h2>
-            
-            <div className="features">
-              <div className="feature">
-                <span className="feature-icon">✓</span>
-                <div className="feature-content">
-                  <h3>Quản lý đa phòng gym</h3>
-                  <p>Quản lý nhiều chi nhánh một cách hiệu quả</p>
-                </div>
+      <div className="login-page__glow login-page__glow--left" />
+      <div className="login-page__glow login-page__glow--right" />
+
+      <div className="login-shell">
+        <div className="login-branding">
+          <div className="login-kicker">Franchise Fitness Platform</div>
+
+          <h1 className="login-branding__title">
+            System <br />
+            <span>GFMS</span>
+          </h1>
+
+          <p className="login-branding__desc">
+            Hệ thống quản lý phòng tập cao cấp dành cho những người dẫn đầu. Hiệu năng vượt
+            trội, vận hành thông minh và trải nghiệm liền mạch cho toàn bộ hệ sinh thái GFMS.
+          </p>
+
+          <div className="login-branding__footer">
+            <div className="login-branding__line" />
+            <span>Phát triển cho hệ thống nhượng quyền gym hiện đại</span>
+          </div>
+
+          <div className="login-featureList">
+            <div className="login-featureItem">
+              <div className="login-featureIcon">
+                <Building2 size={18} />
               </div>
-              <div className="feature">
-                <span className="feature-icon">✓</span>
-                <div className="feature-content">
-                  <h3>Kết nối PT & Hội viên</h3>
-                  <p>Tương tác và quản lý mối quan hệ</p>
-                </div>
+              <div>
+                <h3>Quản lý đa phòng gym</h3>
+                <p>Đồng bộ vận hành cho nhiều chi nhánh trên cùng một nền tảng.</p>
               </div>
-              <div className="feature">
-                <span className="feature-icon">✓</span>
-                <div className="feature-content">
-                  <h3>Theo dõi hiệu suất</h3>
-                  <p>Phân tích dữ liệu thành viên</p>
-                </div>
+            </div>
+
+            <div className="login-featureItem">
+              <div className="login-featureIcon">
+                <Dumbbell size={18} />
               </div>
-              <div className="feature">
-                <span className="feature-icon">✓</span>
-                <div className="feature-content">
-                  <h3>Hệ thống báo cáo thông minh</h3>
-                  <p>Báo cáo chi tiết và tùy chỉnh</p>
-                </div>
+              <div>
+                <h3>Kết nối PT & hội viên</h3>
+                <p>Tối ưu booking, lịch tập và trải nghiệm cá nhân hóa.</p>
+              </div>
+            </div>
+
+            <div className="login-featureItem">
+              <div className="login-featureIcon">
+                <LineChart size={18} />
+              </div>
+              <div>
+                <h3>Theo dõi hiệu suất</h3>
+                <p>Phân tích dữ liệu, doanh thu và tăng trưởng rõ ràng hơn.</p>
+              </div>
+            </div>
+
+            <div className="login-featureItem">
+              <div className="login-featureIcon">
+                <ShieldCheck size={18} />
+              </div>
+              <div>
+                <h3>Bảo mật và ổn định</h3>
+                <p>Quy trình truy cập an toàn, phù hợp cho vận hành thực tế.</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="login-right">
+        <div className="login-panel">
           <div className="login-card">
-            <div className="login-header">
+            <div className="login-card__header">
               <h2>Chào mừng trở lại</h2>
-              <p>Đăng nhập để tiếp tục quản lý phòng gym</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <div className="input-with-icon">
-                  <span className="input-icon">📧</span>
+              <div className="login-form__group">
+                <label htmlFor="email" className="login-form__label">
+                  Email
+                </label>
+                <div className="login-inputWrap">
+                  <Mail size={18} className="login-inputIcon" />
                   <input
                     type="email"
                     id="email"
@@ -244,90 +283,82 @@ const LoginPage = () => {
                     value={email}
                     onChange={handleEmailChange}
                     onBlur={handleEmailBlur}
-                    placeholder="Nhập email của bạn (ví dụ: admin@gym.com)"
-                    className={errors.email ? 'error' : ''}
+                    placeholder="email@gfms.com"
+                    className={`login-input ${errors.email ? 'is-error' : ''}`}
                   />
                 </div>
-                {errors.email && <span className="error-message">{errors.email}</span>}
+                {errors.email && <span className="login-error">{errors.email}</span>}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="password">Mật khẩu</label>
-                <div className="input-with-icon">
-                  <span className="input-icon">🔒</span>
+              <div className="login-form__group">
+                <div className="login-form__labelRow">
+                  <label htmlFor="password" className="login-form__label">
+                    Mật khẩu
+                  </label>
+                  <button
+                    type="button"
+                    className="login-linkBtn"
+                    onClick={handleForgotPassword}
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+
+                <div className="login-inputWrap">
+                  <Lock size={18} className="login-inputIcon" />
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     id="password"
                     name="password"
                     value={password}
                     onChange={handlePasswordChange}
                     onBlur={handlePasswordBlur}
-                    placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
-                    className={errors.password ? 'error' : ''}
+                    placeholder="••••••••"
+                    className={`login-input ${errors.password ? 'is-error' : ''}`}
                   />
                   <button
                     type="button"
-                    className="password-toggle"
+                    className="login-passwordToggle"
                     onClick={togglePasswordVisibility}
-                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                   >
-                    {showPassword ? '👁️ Ẩn' : '👁️‍🗨️ Hiện'}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                {errors.password && <span className="error-message">{errors.password}</span>}
+                {errors.password && <span className="login-error">{errors.password}</span>}
               </div>
 
-              {errors.api && (
-                <div className="error-message api-error" style={{ textAlign: 'center', marginBottom: '15px' }}>
-                  {errors.api}
-                </div>
-              )}
-
-              <div className="form-options">
-                <button 
-                  type="button" 
-                  className="forgot-password-btn"
-                  onClick={handleForgotPassword}
-                >
-                  Quên mật khẩu?
-                </button>
-              </div>
-
-              {/* DÙNG onClick TRỰC TIẾP */}
-              <button 
-                type="submit" 
-                className="login-button"
-                disabled={isLoading}
-              >
+              <button type="submit" className="login-submit" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <span className="spinner"></span>
+                    <span className="login-spinner" />
                     Đang đăng nhập...
                   </>
                 ) : (
-                  'Đăng nhập'
+                  <>
+                    <span>Đăng nhập</span>
+                    <ArrowRight size={18} />
+                  </>
                 )}
               </button>
 
-              <div className="register-section">
+              <div className="login-registerBox">
                 <p>
-                  Chưa có tài khoản?{' '}
-                  <button 
-                    type="button" 
-                    className="register-btn"
+                  Chưa có tài khoản?
+                  <button
+                    type="button"
+                    className="login-registerBtn"
                     onClick={handleRegister}
                   >
-                    Đăng ký ngay
+                    Đăng ký ngay <ChevronRight size={15} />
                   </button>
                 </p>
               </div>
             </form>
 
-            <div className="copyright">
-              <p>&copy; {new Date().getFullYear()} GFMS. Bản quyền thuộc về GYM Franchise Management System.</p>
-              <p style={{ fontSize: '0.8rem', marginTop: '5px' }}>
-                Demo account: admin@gym.com / mật khẩu: 123456
-              </p>
+            <div className="login-card__footer">
+              <p> Bản quyền thuộc về GYM Franchise Management System.</p>
+              <p className="login-demo">&copy; {new Date().getFullYear()} GFMS.</p>
             </div>
           </div>
         </div>

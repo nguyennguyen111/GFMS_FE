@@ -1,42 +1,63 @@
-// File: frontend/src/setup/axios.js
-import axios from 'axios';
+// src/setup/axios.js
+import axios from "axios";
+
+const resolveBaseURL = () => {
+  // CRA/Vercel: đặt REACT_APP_API_BASE=https://your-backend
+  const envBase = process.env.REACT_APP_API_BASE;
+  const winBase = typeof window !== "undefined" ? window.__API_BASE__ : null;
+  const base = (envBase || winBase || "http://localhost:8080").toString();
+  return base.replace(/\/+$/, "");
+};
 
 const instance = axios.create({
-    baseURL: 'http://localhost:8080', // Đảm bảo đúng
-    timeout: 10000,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: resolveBaseURL(),
+  // Enterprise-friendly: some actions (generate PDF + upload + send email) can take >10s.
+  timeout: 60000,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Thêm logging để debug
+instance.defaults.withCredentials = true;
+
+/**
+ * ✅ CHUẨN HOÁ:
+ * - Token chỉ được lấy từ accessToken
+ * - Không fallback lung tung
+ */
+const getAccessToken = () => {
+  return localStorage.getItem("accessToken");
+};
+
 instance.interceptors.request.use(
-    config => {
-        console.log('📤 Request:', config.method?.toUpperCase(), config.baseURL + config.url);
-        return config;
-    },
-    error => {
-        console.error('📤 Request Error:', error);
-        return Promise.reject(error);
+  (config) => {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // 🔥 CỰC KỲ QUAN TRỌNG
+      delete config.headers.Authorization;
     }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 instance.interceptors.response.use(
-    response => {
-        console.log('📥 Response:', response.status, response.config.url);
-        return response;
-    },
-    error => {
-        console.error('📥 Response Error:', error.message);
-        if (error.response) {
-            console.error('Status:', error.response.status);
-            console.error('Data:', error.response.data);
-            console.error('Headers:', error.response.headers);
-        } else if (error.request) {
-            console.error('No response received:', error.request);
-        }
-        return Promise.reject(error);
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+
+      window.dispatchEvent(new Event("authChanged"));
+      window.location.href = "/login";
     }
+
+    return Promise.reject(error);
+  }
 );
 
 export default instance;

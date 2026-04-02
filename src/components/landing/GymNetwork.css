@@ -1,0 +1,132 @@
+.gfms-gym-network {
+  padding: 96px 24px;
+  background-color: var(--color-surface-low);
+}
+
+.gfms-network-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.gfms-network-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 64px;
+}
+
+.gfms-network-label {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-primary);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  margin-bottom: 16px;
+}
+
+.gfms-network-title {
+  font-family: var(--font-headline);
+  font-weight: 900;
+  font-size: 48px;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+}
+
+.gfms-view-all-btn {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-on-surface-variant);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s ease;
+}
+
+.gfms-view-all-btn:hover {
+  color: var(--color-primary);
+}
+
+.gfms-gym-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 768px) {
+  .gfms-gym-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.gfms-gym-card {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.gfms-gym-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.gfms-gym-card:hover .gfms-gym-img {
+  transform: scale(1.1);
+}
+
+.gfms-gym-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.2), transparent);
+}
+
+.gfms-gym-card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 32px;
+  width: 100%;
+}
+
+.gfms-gym-loc {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--color-primary);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.gfms-gym-name {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 30px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.gfms-gym-features {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.gfms-gym-feature {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gfms-feature-check {
+  color: var(--color-primary);
+}

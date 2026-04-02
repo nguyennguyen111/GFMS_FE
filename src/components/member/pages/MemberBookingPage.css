@@ -1,0 +1,551 @@
+:root {
+  --mb-bg: #050505;
+  --mb-bg-soft: #0b0b0b;
+  --mb-surface: #111111;
+  --mb-surface-2: #171717;
+  --mb-surface-3: #1f1f1f;
+  --mb-stroke: rgba(255, 255, 255, 0.07);
+  --mb-stroke-strong: rgba(255, 255, 255, 0.12);
+  --mb-text: #f5f5f5;
+  --mb-text-muted: rgba(255, 255, 255, 0.62);
+  --mb-primary: #d6ff00;
+  --mb-on-primary: #050505;
+  --mb-error: #ff7351;
+  --mb-shadow: 0 30px 60px rgba(0, 0, 0, 0.38);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.mb-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  color: var(--mb-text);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(214, 255, 0, 0.08) 0%, transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(214, 255, 0, 0.05) 0%, transparent 22%),
+    linear-gradient(180deg, #080808 0%, #050505 100%);
+}
+
+.mb-pageGlow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.mb-pageGlow--left {
+  width: 260px;
+  height: 260px;
+  left: -80px;
+  top: 140px;
+  background: rgba(214, 255, 0, 0.18);
+}
+
+.mb-pageGlow--right {
+  width: 220px;
+  height: 220px;
+  right: -60px;
+  top: 80px;
+  background: rgba(214, 255, 0, 0.12);
+}
+
+.mb-shell {
+  position: relative;
+  z-index: 2;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+}
+
+.mb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.mb-kicker {
+  display: block;
+  margin-bottom: 8px;
+  font-family: 'Lexend', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--mb-primary);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mb-title {
+  margin: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.mb-subtitle {
+  margin: 12px 0 0;
+  color: var(--mb-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+.mb-weekNav {
+  background: var(--mb-surface-2);
+  padding: 6px;
+  border-radius: 16px;
+  display: flex;
+  gap: 6px;
+  border: 1px solid var(--mb-stroke);
+  flex-wrap: wrap;
+}
+
+.mb-navBtn {
+  min-height: 42px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mb-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mb-navBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mb-navBtn.active {
+  background: var(--mb-primary);
+  color: var(--mb-on-primary);
+  font-weight: 900;
+}
+
+.mb-summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mb-summaryCard {
+  background: var(--mb-surface);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--mb-stroke);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--mb-shadow);
+}
+
+.mb-summaryLabel {
+  font-family: 'Lexend', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--mb-text-muted);
+  letter-spacing: 0.14em;
+}
+
+.mb-summaryValue {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+}
+
+.border-primary {
+  border-left: 4px solid var(--mb-primary);
+}
+
+.border-secondary {
+  border-left: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.border-error {
+  border-left: 4px solid var(--mb-error);
+}
+
+.border-absent {
+  border-left: 4px solid rgba(255, 115, 81, 0.55);
+}
+
+.text-primary {
+  color: var(--mb-primary);
+}
+
+.text-error {
+  color: var(--mb-error);
+}
+
+.text-absent {
+  color: #ff9a84;
+}
+
+.mb-rangeBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.mb-dateIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-stroke);
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mb-dateIndicator svg {
+  color: var(--mb-primary);
+}
+
+.mb-pillGroup {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mb-pill {
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--mb-stroke);
+}
+
+.mb-pill.is-muted {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mb-pill.is-green {
+  background: rgba(214, 255, 0, 0.12);
+  color: var(--mb-primary);
+  border-color: rgba(214, 255, 0, 0.18);
+}
+
+.mb-pill.is-red {
+  background: rgba(255, 115, 81, 0.12);
+  color: #ff9a84;
+  border-color: rgba(255, 115, 81, 0.16);
+}
+
+.mb-pill.is-absent {
+  background: rgba(255, 115, 81, 0.1);
+  color: #ffb4a3;
+  border-color: rgba(255, 115, 81, 0.22);
+}
+
+.mb-calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px;
+}
+
+.mb-dayCol {
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-stroke);
+  border-radius: 20px;
+  box-shadow: var(--mb-shadow);
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mb-dayCol.isToday {
+  border-color: rgba(214, 255, 0, 0.22);
+  box-shadow: 0 0 0 1px rgba(214, 255, 0, 0.08), var(--mb-shadow);
+}
+
+.mb-dayHead {
+  background: var(--mb-surface-2);
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid var(--mb-stroke);
+}
+
+.mb-dayHead.active {
+  background: var(--mb-primary);
+}
+
+.mb-dayHead.active .mb-dayName,
+.mb-dayHead.active .mb-dayShort,
+.mb-dayHead.active .mb-dayDate {
+  color: var(--mb-on-primary);
+}
+
+.mb-dayHead.weekend:not(.active) .mb-dayName {
+  color: #ff9a84;
+}
+
+.mb-dayName {
+  font-family: 'Lexend', sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--mb-text-muted);
+}
+
+.mb-dayShort {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.mb-dayDate {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+}
+
+.mb-dayBody {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mb-emptyCell {
+  min-height: 110px;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mb-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mb-sessionCard {
+  text-align: left;
+  background: var(--mb-surface-2);
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--mb-stroke);
+  transition: all 0.28s ease;
+  cursor: pointer;
+}
+
+.mb-sessionCard:hover {
+  transform: translateY(-3px);
+  background: var(--mb-surface-3);
+}
+
+.mb-sessionCard.active {
+  background: linear-gradient(135deg, var(--mb-surface-3) 0%, rgba(214, 255, 0, 0.08) 100%);
+  border-color: rgba(214, 255, 0, 0.25);
+}
+
+.mb-sessionCard.attended {
+  border-color: rgba(214, 255, 0, 0.18);
+}
+
+.mb-sessionCard.present {
+  border-color: rgba(46, 204, 113, 0.35);
+}
+
+.mb-sessionCard.absent {
+  border-color: rgba(255, 115, 81, 0.35);
+}
+
+.mb-sessionCard.cancelled {
+  border-color: rgba(255, 115, 81, 0.18);
+}
+
+.mb-sessionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.mb-sessionTime {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--mb-primary);
+  background: rgba(214, 255, 0, 0.1);
+  padding: 4px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mb-sessionIcon {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mb-sessionIcon.ok {
+  color: var(--mb-primary);
+}
+
+.mb-sessionIcon.error {
+  color: #ff9a84;
+}
+
+.mb-sessionIcon.absent {
+  color: #ff9a84;
+}
+
+.mb-sessionPulse {
+  color: var(--mb-primary);
+  animation: mbPulse 2s infinite;
+}
+
+@keyframes mbPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+
+.mb-sessionTrainer {
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+  color: #fff;
+}
+
+.mb-sessionPackage {
+  font-size: 11px;
+  color: var(--mb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+
+.mb-sessionBtn {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mb-sessionBtn.scheduled {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid var(--mb-stroke);
+}
+
+.mb-sessionBtn.attended {
+  background: rgba(214, 255, 0, 0.12);
+  color: var(--mb-primary);
+  border: 1px solid rgba(214, 255, 0, 0.15);
+}
+
+.mb-sessionBtn.present {
+  background: rgba(46, 204, 113, 0.14);
+  color: #8fefb0;
+  border: 1px solid rgba(46, 204, 113, 0.28);
+}
+
+.mb-sessionBtn.absent {
+  background: rgba(255, 115, 81, 0.14);
+  color: #ff9a84;
+  border: 1px solid rgba(255, 115, 81, 0.22);
+}
+
+.mb-sessionBtn.cancelled {
+  background: rgba(255, 115, 81, 0.12);
+  color: #ff9a84;
+  border: 1px solid rgba(255, 115, 81, 0.15);
+}
+
+@media (max-width: 1300px) {
+  .mb-calendarGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .mb-summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mb-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .mb-calendarGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mb-dayCol {
+    min-height: unset;
+  }
+}
+
+@media (max-width: 640px) {
+  .mb-shell {
+    padding: 24px 16px 80px;
+  }
+
+  .mb-title {
+    font-size: 34px;
+  }
+
+  .mb-summaryGrid,
+  .mb-calendarGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mb-weekNav {
+    width: 100%;
+  }
+
+  .mb-navBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}
