@@ -2,23 +2,29 @@ import React from "react";
 import "./Stats.css";
 import { Dumbbell, Award, Timer } from "lucide-react";
 
-const Stats = () => {
+const fmt = (n) => new Intl.NumberFormat("vi-VN").format(Number(n || 0));
+
+const Stats = ({ stats, loading }) => {
+  const totalMembers = Number(stats?.totalMembers || 0);
+  const totalActiveGyms = Number(stats?.totalActiveGyms || 0);
+  const totalActiveTrainers = Number(stats?.totalActiveTrainers || 0);
+
   return (
     <section className="gfms-stats">
       <div className="gfms-stats-container">
         <div className="gfms-stats-grid">
           <div className="gfms-stat-card-large">
             <Dumbbell className="gfms-stat-icon-bg" />
-            <div className="gfms-stat-value">15.000+</div>
-            <div className="gfms-stat-label">Hội viên tin tưởng</div>
+            <div className="gfms-stat-value">{loading ? "..." : `${fmt(totalMembers)}+`}</div>
+            <div className="gfms-stat-label">Hội viên đang có trong hệ thống</div>
           </div>
 
           <div className="gfms-stat-card">
             <Award className="gfms-stat-icon" />
             <div className="gfms-stat-content">
-              <div className="gfms-stat-title">Chất lượng 5★</div>
+              <div className="gfms-stat-title">{loading ? "..." : `${fmt(totalActiveGyms)} cơ sở hoạt động`}</div>
               <p className="gfms-stat-desc">
-                Tiêu chuẩn quốc tế trong từng thiết bị và dịch vụ.
+                Dữ liệu thật lấy trực tiếp từ hệ thống gym đang mở bán trên GFMS.
               </p>
             </div>
           </div>
@@ -26,9 +32,9 @@ const Stats = () => {
           <div className="gfms-stat-card-accent">
             <Timer className="gfms-stat-icon-dark" />
             <div className="gfms-stat-content">
-              <div className="gfms-stat-title-dark">Mở cửa 24/7</div>
+              <div className="gfms-stat-title-dark">{loading ? "..." : `${fmt(totalActiveTrainers)} PT sẵn sàng`}</div>
               <p className="gfms-stat-desc-dark">
-                Tập luyện bất kể thời gian, không giới hạn bứt phá.
+                Danh sách huấn luyện viên active được đồng bộ realtime theo dữ liệu thật.
               </p>
             </div>
           </div>
