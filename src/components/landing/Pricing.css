@@ -193,3 +193,21 @@
 .price-btn-primary:hover {
   filter: brightness(1.1);
 }
+.pricing-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:24px;
+}
+
+.price-btn-secondary, .price-btn-primary {
+  border:none;
+  cursor:pointer;
+}
+
+@media (max-width: 768px) {
+  .pricing-header {
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}

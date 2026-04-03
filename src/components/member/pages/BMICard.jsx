@@ -1,6 +1,7 @@
 // src/components/member/pages/BMICard.jsx
 import React, { useMemo, useState } from "react";
 import { memberCreateMetric } from "../../../services/memberMetricService";
+import { showAppToast } from "../../../utils/appToast";
 
 const calcBMI = (heightCm, weightKg) => {
   const h = Number(heightCm) / 100;
@@ -38,6 +39,7 @@ export default function BMICard({ latestMetric, metrics = [], onCreated }) {
     note: "",
   });
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
 
   const bmi = useMemo(
     () => calcBMI(form.heightCm, form.weightKg),
@@ -69,17 +71,17 @@ export default function BMICard({ latestMetric, metrics = [], onCreated }) {
     const w = Number(form.weightKg);
 
     if (!h || !w) {
-      alert("Vui lòng nhập đầy đủ chiều cao và cân nặng");
+      setFeedback({ type: "error", message: "Vui lòng nhập đầy đủ chiều cao và cân nặng." });
       return false;
     }
 
     if (h < 50 || h > 260) {
-      alert("Chiều cao không hợp lệ");
+      setFeedback({ type: "error", message: "Chiều cao không hợp lệ. Hãy nhập từ 50 đến 260 cm." });
       return false;
     }
 
     if (w < 10 || w > 500) {
-      alert("Cân nặng không hợp lệ");
+      setFeedback({ type: "error", message: "Cân nặng không hợp lệ. Hãy nhập từ 10 đến 500 kg." });
       return false;
     }
 
@@ -89,6 +91,7 @@ export default function BMICard({ latestMetric, metrics = [], onCreated }) {
   const handleSubmit = async () => {
     if (!validate()) return;
 
+    setFeedback({ type: "", message: "" });
     setSaving(true);
     try {
       await memberCreateMetric({
@@ -97,14 +100,15 @@ export default function BMICard({ latestMetric, metrics = [], onCreated }) {
         note: form.note?.trim() || "",
       });
 
-      alert("✅ Đã lưu chỉ số BMI mới");
+      setFeedback({ type: "success", message: "Đã lưu chỉ số BMI mới." });
+      showAppToast({ type: "success", title: "BMI", message: "Đã lưu chỉ số BMI mới." });
       onCreated?.();
       setForm((prev) => ({
         ...prev,
         note: "",
       }));
     } catch (e) {
-      alert("❌ Không lưu được BMI");
+      setFeedback({ type: "error", message: e?.response?.data?.EM || e?.message || "Không lưu được BMI." });
     } finally {
       setSaving(false);
     }
@@ -165,6 +169,8 @@ export default function BMICard({ latestMetric, metrics = [], onCreated }) {
               placeholder="Ví dụ: sau 2 tuần cardio hoặc bắt đầu siết cân"
             />
           </div>
+
+          {feedback.message ? <div className={`m-inline-note ${feedback.type}`}>{feedback.message}</div> : null}
 
           <div className="bmi-livePreview">
             <div className="bmi-liveLabel">BMI tạm tính</div>

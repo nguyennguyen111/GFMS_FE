@@ -20,6 +20,12 @@
 .mpd2-page {
   min-height: 100vh;
   color: var(--mpd2-text);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .mpd2-empty {
@@ -323,6 +329,10 @@
 }
 
 @media (max-width: 768px) {
+  .mpd2-page {
+    padding: 24px 16px 80px;
+  }
+  
   .mpd2-title {
     font-size: 38px;
   }

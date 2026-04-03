@@ -24,7 +24,6 @@
 }
 
 /* Page header */
-.mh-wrap{ }
 .mh-head{
   display:flex;
   justify-content:space-between;
@@ -222,3 +221,26 @@
   .m-grid{ grid-template-columns: 1fr; }
   .m-input, .m-select{ max-width: 100%; }
 }
+
+.mprog-page{max-width:1360px;margin:0 auto;padding:40px 24px 90px;}
+.mprog-kicker{display:inline-block;margin-bottom:8px;color:var(--color-primary,#d6ff00);font-size:12px;font-style:italic;text-transform:uppercase;letter-spacing:.2em}
+.mprog-title{text-transform:uppercase}
+.mprog-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:26px 0}
+.mprog-stat-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);box-shadow:var(--m-shadow)}
+.mprog-stat-card strong{font-size:28px;color:#fff}.mprog-stat-card span{color:var(--m-muted)}
+.mprog-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}.mprog-card-large{min-height:220px}.mprog-section-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}.mprog-section-head h3{margin:0}
+.mprog-package-name{font-size:28px;font-weight:900;margin-bottom:10px}.mprog-package-sub{color:var(--m-muted);margin-bottom:18px}.mprog-progress-line{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:12px}.mprog-progress-line>div{height:100%;background:linear-gradient(90deg,#d6ff00,rgba(214,255,0,.45));border-radius:inherit}
+.mprog-package-meta{display:flex;justify-content:space-between;gap:12px;color:var(--m-muted);font-size:13px}
+.mprog-list-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-top:1px solid rgba(255,255,255,.08)}
+.mprog-list-item:first-of-type{border-top:none;padding-top:0}.mprog-list-item strong{display:block;margin-bottom:4px}.mprog-list-item p{margin:0;color:var(--m-muted);font-size:13px}
+@media (max-width: 900px){.mprog-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.mprog-grid{grid-template-columns:1fr}}
+@media (max-width: 640px){.mprog-page{padding:24px 14px 70px}.mprog-stats{grid-template-columns:1fr}.mprog-package-meta{flex-direction:column}}
+
+
+.m-inline-note{margin:0 0 14px;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.45;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:rgba(255,255,255,.88)}
+.m-inline-note.success{border-color:rgba(214,255,0,.28);color:#eaff9a}
+.m-inline-note.error{border-color:rgba(255,95,95,.25);color:#ffb3b3}
+
+.mprog-package-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.mprog-package-tab{padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#fff;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:.25s ease}.mprog-package-tab span,.mprog-package-tab small{color:var(--m-muted)}.mprog-package-tab.active{border-color:rgba(214,255,0,.28);background:rgba(214,255,0,.08);box-shadow:0 14px 30px rgba(0,0,0,.22)}
+
+.bmi-progress-grid{margin-top:18px;grid-template-columns:1fr 1fr;align-items:start}.bmi-progress-grid .bmi-card-modern,.bmi-progress-grid .chart-card-modern{height:100%;background:transparent;border:none;box-shadow:none;padding:0}@media (max-width: 900px){.bmi-progress-grid{grid-template-columns:1fr}}

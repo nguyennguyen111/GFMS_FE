@@ -7,8 +7,7 @@ import {
   memberChangeMyPassword,
 } from "../../../services/memberProfileService";
 import { uploadGymImage } from "../../../services/uploadService";
-import BMICard from "./BMICard";
-import BMIProgressChart from "./BMIProgressChart";
+import { showAppToast } from "../../../utils/appToast";
 
 const safeParse = (s) => {
   try {
@@ -110,6 +109,11 @@ const getSexText = (sex) => {
   return "Khác";
 };
 
+
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+const isValidPhone = (value) => !value || /^(\+84|0)\d{9,10}$/.test(String(value || "").replace(/\s+/g, ""));
+const isStrongPassword = (value) => /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/.test(String(value || ""));
+
 const getBMIStatusText = (bmi) => {
   const n = Number(bmi);
   if (!Number.isFinite(n) || n <= 0) return "Chưa có dữ liệu";
@@ -167,6 +171,8 @@ export default function MemberProfilePage() {
 
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
+  const [profileNotice, setProfileNotice] = useState({ type: "", message: "" });
+  const [passwordNotice, setPasswordNotice] = useState({ type: "", message: "" });
 
   const role = localStorage.getItem("role") || "member";
 
@@ -295,6 +301,15 @@ export default function MemberProfilePage() {
 
   const handlePickAvatar = async (file) => {
     if (!file) return;
+    const validType = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type);
+    if (!validType) {
+      setProfileNotice({ type: "error", message: "Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileNotice({ type: "error", message: "Ảnh đại diện tối đa 5MB." });
+      return;
+    }
     const url = URL.createObjectURL(file);
     setForm((prev) => ({ ...prev, avatar: url, _avatarFile: file }));
   };
@@ -308,15 +323,36 @@ export default function MemberProfilePage() {
     if (!form) return;
 
     if (!form.username.trim()) {
-      alert("Vui lòng nhập họ và tên hoặc username.");
+      setProfileNotice({ type: "error", message: "Vui lòng nhập họ và tên hoặc username." });
       return;
     }
 
     if (!form.email.trim()) {
-      alert("Vui lòng nhập email.");
+      setProfileNotice({ type: "error", message: "Vui lòng nhập email." });
       return;
     }
 
+    if (!isValidEmail(form.email)) {
+      setProfileNotice({ type: "error", message: "Email không đúng định dạng." });
+      return;
+    }
+
+    if (!isValidPhone(form.phone)) {
+      setProfileNotice({ type: "error", message: "Số điện thoại không hợp lệ. Hãy nhập số Việt Nam đúng định dạng." });
+      return;
+    }
+
+    if (String(form.username).trim().length < 2) {
+      setProfileNotice({ type: "error", message: "Tên hiển thị phải có ít nhất 2 ký tự." });
+      return;
+    }
+
+    if (String(form.address || "").trim().length > 255) {
+      setProfileNotice({ type: "error", message: "Địa chỉ tối đa 255 ký tự." });
+      return;
+    }
+
+    setProfileNotice({ type: "", message: "" });
     setSaving(true);
     try {
       let avatarUrl = form.avatar || "";
@@ -345,11 +381,12 @@ export default function MemberProfilePage() {
       setUser(nextUser);
       setForm(initFormFromUser(nextUser));
       setEditing(false);
-      alert("✅ Đã cập nhật thông tin thành công.");
+      setProfileNotice({ type: "success", message: "Đã cập nhật thông tin thành công." });
+      showAppToast({ type: "success", title: "Hồ sơ", message: "Đã cập nhật thông tin thành công." });
     } catch (e) {
       console.error(e);
       const message = e?.response?.data?.EM || e?.message || "Không thể cập nhật thông tin. Vui lòng thử lại.";
-      alert(`❌ ${message}`);
+      setPasswordNotice({ type: "error", message });
     } finally {
       setSaving(false);
     }
@@ -357,25 +394,26 @@ export default function MemberProfilePage() {
 
   const handleChangePassword = async () => {
     if (!pw.current || !pw.next || !pw.confirm) {
-      alert("Vui lòng nhập đầy đủ thông tin mật khẩu.");
+      setPasswordNotice({ type: "error", message: "Vui lòng nhập đầy đủ thông tin mật khẩu." });
       return;
     }
 
-    if (pw.next.length < 6) {
-      alert("Mật khẩu mới phải có ít nhất 6 ký tự.");
+    if (!isStrongPassword(pw.next)) {
+      setPasswordNotice({ type: "error", message: "Mật khẩu mới phải từ 8 ký tự, có ít nhất 1 chữ cái và 1 số." });
       return;
     }
 
     if (pw.next !== pw.confirm) {
-      alert("Mật khẩu xác nhận không khớp.");
+      setPasswordNotice({ type: "error", message: "Mật khẩu xác nhận không khớp." });
       return;
     }
 
     if (pw.current === pw.next) {
-      alert("Mật khẩu mới không được trùng mật khẩu hiện tại.");
+      setPasswordNotice({ type: "error", message: "Mật khẩu mới không được trùng mật khẩu hiện tại." });
       return;
     }
 
+    setPasswordNotice({ type: "", message: "" });
     setPwSaving(true);
     try {
       const res = await memberChangeMyPassword({
@@ -390,7 +428,8 @@ export default function MemberProfilePage() {
       }
 
       setPw({ current: "", next: "", confirm: "" });
-      alert("✅ Đổi mật khẩu thành công.");
+      setPasswordNotice({ type: "success", message: "Đổi mật khẩu thành công." });
+      showAppToast({ type: "success", title: "Mật khẩu", message: "Đổi mật khẩu thành công." });
       setTab("profile");
     } catch (e) {
       console.error(e);
@@ -398,7 +437,7 @@ export default function MemberProfilePage() {
         e?.response?.data?.EM ||
         e?.message ||
         "Backend của bạn chưa có endpoint đổi mật khẩu hoặc dữ liệu chưa đúng.";
-      alert(`❌ ${message}`);
+      setPasswordNotice({ type: "error", message });
     } finally {
       setPwSaving(false);
     }
@@ -503,12 +542,6 @@ export default function MemberProfilePage() {
           BẢO MẬT
         </button>
 
-        <button
-          className={`mprof-tab ${tab === "bmi" ? "active" : ""}`}
-          onClick={() => setTab("bmi")}
-        >
-          BMI & TIẾN TRÌNH
-        </button>
       </div>
 
       {tab === "profile" && (
@@ -521,6 +554,7 @@ export default function MemberProfilePage() {
               </div>
 
               <div className="mprof-form">
+                {profileNotice.message ? <div className={`m-inline-note ${profileNotice.type}`}>{profileNotice.message}</div> : null}
                 <div className="mprof-row2">
                   <Field
                     label="HỌ VÀ TÊN"
@@ -690,6 +724,8 @@ export default function MemberProfilePage() {
               <h3 className="mprof-cardTitle">THAY ĐỔI MẬT KHẨU</h3>
             </div>
 
+            {passwordNotice.message ? <div className={`m-inline-note ${passwordNotice.type}`}>{passwordNotice.message}</div> : null}
+
             <div className="mprof-securityForm">
               <div className="mprof-field full">
                 <div className="mprof-label">MẬT KHẨU HIỆN TẠI</div>
@@ -739,13 +775,6 @@ export default function MemberProfilePage() {
               * Phần đổi mật khẩu đã nối API backend thật.
             </div>
           </section>
-        </div>
-      )}
-
-      {tab === "bmi" && (
-        <div className="mprof-singleGrid">
-          <BMICard latestMetric={latestMetric} metrics={metrics} onCreated={loadMetrics} />
-          <BMIProgressChart data={metrics} />
         </div>
       )}
     </div>
