@@ -48,39 +48,6 @@ export const admApproveFranchiseRequest = (id) =>
 export const admRejectFranchiseRequest = (id, body) =>
   axios.patch(`/api/admin/inventory/franchise-requests/${id}/reject`, body);
 
-/* ================= MODULE 4: POLICIES ================= */
-export const admGetPolicies = (params) =>
-  axios.get("/api/admin/inventory/policies", { params });
-
-export const admCreatePolicy = (body) =>
-  axios.post("/api/admin/inventory/policies", body);
-
-export const admUpdatePolicy = (id, body) =>
-  axios.put(`/api/admin/inventory/policies/${id}`, body);
-
-export const admTogglePolicy = (id) =>
-  axios.patch(`/api/admin/inventory/policies/${id}/toggle`);
-
-/* ================= MODULE 5: TRAINER SHARE ================= */
-export const admGetTrainerShares = (params) =>
-  axios.get("/api/admin/inventory/trainer-shares", { params });
-
-export const admGetTrainerShareDetail = (id) =>
-  axios.get(`/api/admin/inventory/trainer-shares/${id}`);
-
-/**
- * ✅ FIX BUG: approve phải gửi body (policyId, commissionSplit, notes...)
- * Nếu không gửi body -> BE sẽ báo "policyId is required"
- */
-export const admApproveTrainerShare = (id, body) =>
-  axios.patch(`/api/admin/inventory/trainer-shares/${id}/approve`, body);
-
-export const admRejectTrainerShare = (id, body) =>
-  axios.patch(`/api/admin/inventory/trainer-shares/${id}/reject`, body);
-
-export const admOverrideTrainerShare = (id, body) =>
-  axios.patch(`/api/admin/inventory/trainer-shares/${id}/override`, body);
-
 /* ================= MODULE 6.1: AUDIT LOGS ================= */
 export const admGetAuditLogs = (params) =>
   axios.get("/api/admin/inventory/audit-logs", { params });
@@ -94,9 +61,6 @@ export const admGetReportRevenue = (params) =>
 
 export const admGetReportInventory = (params) =>
   axios.get("/api/admin/inventory/reports/inventory", { params });
-
-export const admGetReportTrainerShare = (params) =>
-  axios.get("/api/admin/inventory/reports/trainer-share", { params });
 
 /* ================= DASHBOARD ================= */
 export const admGetDashboardOverview = (params) =>
