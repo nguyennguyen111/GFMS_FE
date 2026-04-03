@@ -26,3 +26,4 @@ export const mpGetPackageDetail = (id) =>
  */
 export const mpGetSlotsPublic = (params) =>
   axios.get("/api/marketplace/slots", { params });
+export const mpGetLandingHighlights = () => axios.get("/api/marketplace/highlights");

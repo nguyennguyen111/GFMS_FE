@@ -1,15 +1,29 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { User, LogOut, Menu, X, ChevronDown, CalendarDays, Package, Bell, MessageCircle, Activity, Star } from "lucide-react";
 import "./Header.css";
 import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
+import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
 
-const readAuth = () => ({
-  token: localStorage.getItem("accessToken"),
-  role: localStorage.getItem("role"),
-  username: localStorage.getItem("username") || "Tài khoản",
-});
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const readAuth = () => {
+  const rawUser = safeParse(localStorage.getItem("user"));
+  const nested = rawUser?.user || rawUser || {};
+  return {
+    token: localStorage.getItem("accessToken"),
+    role: localStorage.getItem("role"),
+    username: nested?.username || localStorage.getItem("username") || "Tài khoản",
+    avatar: nested?.avatar || nested?.avatarUrl || "",
+  };
+};
 
 export default function Header() {
   const navigate = useNavigate();
@@ -21,9 +35,21 @@ export default function Header() {
   const [menuOpened, setMenuOpened] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [authState, setAuthState] = useState(readAuth());
 
-  const { token, role, username } = readAuth();
+  const { token, role, username, avatar } = authState;
   const isMember = token && role === "member";
+  const notifications = useRealtimeNotifications();
+
+  useEffect(() => {
+    const syncAuth = () => setAuthState(readAuth());
+    window.addEventListener("authChanged", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("authChanged", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   useEffect(() => {
     const setVar = () => {
@@ -75,6 +101,12 @@ export default function Header() {
     go("/");
   };
 
+  const initials = useMemo(() => {
+    const parts = String(username || "T").trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return String(username || "T").slice(0, 1).toUpperCase();
+  }, [username]);
+
   const NavItem = ({ to, label }) => (
     <NavLink
       to={to}
@@ -87,6 +119,18 @@ export default function Header() {
     </NavLink>
   );
 
+  const NotificationButton = () => (
+    <button
+      type="button"
+      className="header-icon-btn"
+      aria-label="Thông báo"
+      onClick={() => go("/member/notifications")}
+    >
+      <Bell size={18} />
+      {notifications.unreadCount > 0 ? <span className="header-noti-dot" /> : null}
+    </button>
+  );
+
   const MemberDropdown = () => (
     <div className="profile-dropdown-wrap" ref={accountRef}>
       <button
@@ -96,54 +140,25 @@ export default function Header() {
         aria-expanded={accountOpen}
         type="button"
       >
-        <User size={16} />
+        {avatar ? (
+          <img src={avatar} alt={username} className="header-user-avatar" />
+        ) : (
+          <span className="header-user-fallback">{initials}</span>
+        )}
         <span>{username}</span>
         <ChevronDown size={16} className="profile-caret" />
       </button>
 
       {accountOpen && (
         <div className="profile-dropdown-menu" role="menu">
-          <button onClick={() => go("/member/bookings")}>
-            <CalendarDays size={16} />
-            <span>Lịch đã đặt</span>
-          </button>
-
-          <button onClick={() => go("/member/my-packages")}>
-            <Package size={16} />
-            <span>Gói của tôi</span>
-          </button>
-
-          <button onClick={() => go("/member/profile")}>
-            <User size={16} />
-            <span>Hồ sơ</span>
-          </button>
-
-          <button onClick={() => go("/member/notifications")}>
-            <Bell size={16} />
-            <span>Thông báo</span>
-          </button>
-
-          <button onClick={() => go("/member/messages")}>
-            <MessageCircle size={16} />
-            <span>Tin nhắn</span>
-          </button>
-
-          <button onClick={() => go("/member/progress")}>
-            <Activity size={16} />
-            <span>Tiến độ</span>
-          </button>
-
-          <button onClick={() => go("/member/reviews")}>
-            <Star size={16} />
-            <span>Đánh giá</span>
-          </button>
-
+          <button onClick={() => go("/member/bookings")}> <CalendarDays size={16} /> <span>Lịch đã đặt</span> </button>
+          <button onClick={() => go("/member/my-packages")}> <Package size={16} /> <span>Gói của tôi</span> </button>
+          <button onClick={() => go("/member/profile")}> <User size={16} /> <span>Hồ sơ</span> </button>
+          <button onClick={() => go("/member/messages")}> <MessageCircle size={16} /> <span>Tin nhắn</span> </button>
+          <button onClick={() => go("/member/progress")}> <Activity size={16} /> <span>Tiến độ</span> </button>
+          <button onClick={() => go("/member/reviews")}> <Star size={16} /> <span>Đánh giá</span> </button>
           <div className="dropdown-divider" />
-
-          <button className="logout-btn" onClick={logout}>
-            <LogOut size={16} />
-            <span>Đăng xuất</span>
-          </button>
+          <button className="logout-btn" onClick={logout}> <LogOut size={16} /> <span>Đăng xuất</span> </button>
         </div>
       )}
     </div>
@@ -170,7 +185,6 @@ export default function Header() {
           <NavItem to="/marketplace/trainers" label="PT" />
           <NavItem to="/support" label="Hỗ trợ" />
           <NavItem to="/faq" label="FAQ" />
-          
         </nav>
 
         <div className="mobile-auth-actions">
@@ -198,10 +212,7 @@ export default function Header() {
 
   return (
     <>
-      <header
-        ref={headerRef}
-        className={`header modern-header ${scrolled ? "scrolled" : ""}`}
-      >
+      <header ref={headerRef} className={`header modern-header ${scrolled ? "scrolled" : ""}`}>
         <div className="header-container">
           <button className="logo-wrap" onClick={() => go("/")} aria-label="Go home" type="button">
             <img src={logo} alt="GFMS Logo" className="header-logo-img" />
@@ -223,6 +234,7 @@ export default function Header() {
               </button>
             )}
 
+            {isMember ? <NotificationButton /> : null}
             {isMember && <MemberDropdown />}
 
             <button

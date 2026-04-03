@@ -130,3 +130,31 @@
 .gfms-feature-check {
   color: var(--color-primary);
 }
+.gfms-view-all-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gfms-gym-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #0f0f0f;
+  padding: 0;
+  color: #fff;
+  text-align: left;
+}
+
+.gfms-gym-card.skeleton {
+  min-height: 520px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  background-size: 200% 100%;
+  animation: gfmsShimmer 1.4s linear infinite;
+}
+
+.gfms-gym-loc { display:flex; align-items:center; gap:6px; }
+.gfms-gym-features { flex-wrap: wrap; }
+
+@keyframes gfmsShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
