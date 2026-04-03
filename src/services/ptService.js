@@ -134,3 +134,104 @@ export const getPTBookings = async (ptId) => {
   return res.data; // Trả về mảng danh sách học viên
 };
 
+export const uploadMyPTProfileImage = async ({ file, imageType = "avatar", certificateName = "" }) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("imageType", imageType);
+  if (certificateName) formData.append("certificateName", certificateName);
+  const token = getToken();
+  const res = await axios.post(`${BASE}/me/profile-image/upload`, formData, {
+    withCredentials: true,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
+// 16) Demo videos (UC-TR-010)
+export const getMyPTDemoVideos = async () => {
+  const res = await axios.get(`${BASE}/me/demo-videos`, ptConfig());
+  return res.data;
+};
+
+export const uploadMyPTDemoVideo = async ({ file, title }) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (title) formData.append("title", title);
+  const token = getToken();
+  const res = await axios.post(`${BASE}/me/demo-videos/upload`, formData, {
+    withCredentials: true,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
+export const deleteMyPTDemoVideo = async (videoId) => {
+  const res = await axios.delete(`${BASE}/me/demo-videos/${videoId}`, ptConfig());
+  return res.data;
+};
+
+export const getMyPTTrainingPlans = async () => {
+  const res = await axios.get(`${BASE}/me/training-plans`, ptConfig());
+  return res.data;
+};
+
+export const uploadMyPTTrainingPlan = async ({ file, title }) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (title) formData.append("title", title);
+  const token = getToken();
+  const res = await axios.post(`${BASE}/me/training-plans/upload`, formData, {
+    withCredentials: true,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
+export const deleteMyPTTrainingPlan = async (planId) => {
+  const res = await axios.delete(`${BASE}/me/training-plans/${planId}`, ptConfig());
+  return res.data;
+};
+
+export const getPTEligibleActivations = async () => {
+  const res = await axios.get(`${BASE}/me/eligible-activations`, ptConfig());
+  return res.data;
+};
+
+export const getPTActivationMaterials = async (packageActivationId) => {
+  const res = await axios.get(`${BASE}/me/activation-materials`, {
+    ...ptConfig(),
+    params: { packageActivationId },
+  });
+  return res.data;
+};
+
+export const sendPTActivationMaterial = async (payload) => {
+  const res = await axios.post(`${BASE}/me/activation-materials`, payload, ptConfig());
+  return res.data;
+};
+
+export const deletePTActivationMaterial = async (id) => {
+  const res = await axios.delete(`${BASE}/me/activation-materials/${id}`, ptConfig());
+  return res.data;
+};
+
+// 17) Reviews (UC-TR-011 + UC-TR-012)
+export const getMyPTReviews = async (params = {}) => {
+  const res = await axios.get(`${BASE}/me/reviews`, { ...ptConfig(), params });
+  return res.data;
+};
+
+export const replyPTReview = async (reviewId, reply) => {
+  const res = await axios.post(`${BASE}/reviews/${reviewId}/reply`, { reply }, ptConfig());
+  return res.data;
+};
+

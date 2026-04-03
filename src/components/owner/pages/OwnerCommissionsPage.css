@@ -19,6 +19,57 @@
   font-size: 13px;
 }
 
+.owner-flow-card {
+  background: rgba(15, 22, 33, 0.75);
+  border: 1px solid rgba(255, 176, 0, 0.22);
+  border-radius: 18px;
+  padding: 16px 18px 18px;
+  margin-bottom: 22px;
+}
+
+.owner-flow-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 176, 0, 0.95);
+  margin-bottom: 10px;
+}
+
+.owner-flow-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: rgba(238, 242, 255, 0.85);
+  font-size: 13px;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-flow-list li strong {
+  color: #eef2ff;
+}
+
+.owner-section-heading {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(238, 242, 255, 0.95);
+  margin: 8px 0 12px;
+  letter-spacing: 0.02em;
+}
+
+.owner-pay-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.owner-pay-tools .period-card {
+  margin-bottom: 0;
+}
+
 .period-card {
   background: rgba(15, 22, 33, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -37,6 +88,53 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
+}
+
+.owner-rate-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+  padding: 0 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.owner-rate-input {
+  width: 4.5rem;
+  min-width: 0;
+  padding: 10px 4px 10px 0;
+  border: none;
+  background: transparent;
+  color: #eef2ff;
+  font-size: 14px;
+  outline: none;
+}
+
+.owner-rate-input::placeholder {
+  color: rgba(238, 242, 255, 0.35);
+}
+
+.owner-rate-input::-webkit-outer-spin-button,
+.owner-rate-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.owner-rate-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.owner-rate-percent {
+  color: rgba(238, 242, 255, 0.7);
+  font-weight: 700;
+  font-size: 14px;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .period-preview {
@@ -230,16 +328,14 @@
 .tx-badge-pending {
   background: rgba(255, 176, 0, 0.2);
   color: #ffb000;
+  border: 1px solid rgba(255, 176, 0, 0.35);
 }
 
-.tx-badge-calculated {
-  background: rgba(0, 180, 255, 0.2);
-  color: #00b4ff;
-}
-
+.tx-badge-calculated,
 .tx-badge-paid {
-  background: rgba(0, 255, 170, 0.2);
+  background: rgba(0, 255, 170, 0.18);
   color: #00ffaa;
+  border: 1px solid rgba(0, 255, 170, 0.35);
 }
 
 .empty-cell {

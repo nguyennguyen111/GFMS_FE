@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
-import { getPTAttendanceSchedule, ptCheckIn } from "../../services/ptAttendanceService";
+import { getPTAttendanceSchedule, ptCheckIn, ptResetAttendance } from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
-import PTAttendanceModal from "./PTAttendanceModal";
+import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
+import NiceModal from "../common/NiceModal";
 
 const VI_DAY = {
   monday: "Thứ 2",
@@ -58,6 +59,7 @@ const PTSchedule = () => {
   const [attLoading, setAttLoading] = useState(false);
   const [attBooking, setAttBooking] = useState(null);
   const [attCache, setAttCache] = useState({});
+  const [attendanceBlockModal, setAttendanceBlockModal] = useState(null);
 
   const START_HOUR = 6;
   const END_HOUR = 22;
@@ -158,6 +160,35 @@ const PTSchedule = () => {
       const res = await getPTAttendanceSchedule({ date: ymd });
       setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
       setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+    } catch (e) {
+      const data = e?.response?.data;
+      const msg = data?.DT || data?.message || data?.EM || e?.message || "";
+      const locked = /chốt kỳ|chi trả|điểm danh|không thể thay đổi/i.test(String(msg));
+      setAttendanceBlockModal(
+        locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể cập nhật điểm danh. Vui lòng thử lại."
+      );
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const resetStatus = async () => {
+    if (!attBooking) return;
+    setAttLoading(true);
+    try {
+      await ptResetAttendance({ bookingId: attBooking.id });
+      const ymd = toYMD(new Date(attBooking.bookingDate));
+      const res = await getPTAttendanceSchedule({ date: ymd });
+      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không thể hoàn tác điểm danh.";
+      window.alert(msg);
     } finally {
       setAttLoading(false);
     }
@@ -165,9 +196,9 @@ const PTSchedule = () => {
 
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
-  const getStudentNameColor = (status) => {
-    if (status === 'present') return '#2ecc71';
-    if (status === 'absent') return '#e74c3c';
+  const getStudentNameColor = (attendanceStatus) => {
+    if (attendanceStatus === 'present') return '#2ecc71';
+    if (attendanceStatus === 'absent') return '#e74c3c';
     return '#3498db';
   };
 
@@ -236,10 +267,11 @@ const PTSchedule = () => {
                       
                       const booking=(attCache[toYMD(d.date)]||[]).find(b=>String(b.startTime||"").slice(0,5)===String(s.start||"").slice(0,5));
                       
-                      let statusClass = ""; 
+                      let statusClass = "";
+                      const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       if (booking) {
-                        if (booking.status === 'present') statusClass = "is-present";
-                        else if (booking.status === 'absent') statusClass = "is-absent";
+                        if (attendanceStatus === "present") statusClass = "is-present";
+                        else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else statusClass = "is-pending";
                       }
 
@@ -257,11 +289,11 @@ const PTSchedule = () => {
                           onClick={()=>openAttendance(d.date,s)}
                         >
                           <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(booking.status) }}>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus) }}>
                             👤 {booking.Member?.User?.username || "Học viên"}
-                            {booking.status && (
+                            {attendanceStatus && (
                               <div className="mini-status">
-                                  {booking.status === 'present' ? '✓ Có mặt' : booking.status === 'absent' ? '✗ Vắng mặt' : ''}
+                                  {attendanceStatus === 'present' ? '✓ Có mặt' : attendanceStatus === 'absent' ? '✗ Vắng mặt' : ''}
                               </div>
                             )}
                           </div>}
@@ -337,7 +369,27 @@ const PTSchedule = () => {
         onClose={() => setAttOpen(false)}
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}
+        onReset={resetStatus}
       />
+
+      <NiceModal
+        open={Boolean(attendanceBlockModal)}
+        onClose={() => setAttendanceBlockModal(null)}
+        zIndex={1300}
+        tone="info"
+        title="Không thể điểm danh"
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setAttendanceBlockModal(null)}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{attendanceBlockModal}</p>
+      </NiceModal>
     </div>
   );
 };

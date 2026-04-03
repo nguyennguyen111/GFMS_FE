@@ -6,10 +6,15 @@ import {
   CalendarDays,
   CreditCard,
   Dumbbell,
+  FileText,
   MapPin,
   UserRound,
+  Video,
 } from "lucide-react";
-import { memberGetMyPackageDetail } from "../../../services/memberPackageService";
+import {
+  memberGetActivationMaterials,
+  memberGetMyPackageDetail,
+} from "../../../services/memberPackageService";
 import "./MemberPackageDetailPage.css";
 
 const fmtDate = (v) => {
@@ -35,6 +40,8 @@ export default function MemberPackageDetailPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [materials, setMaterials] = useState([]);
+  const [materialsErr, setMaterialsErr] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -47,6 +54,23 @@ export default function MemberPackageDetailPage() {
       } catch (e) {
         if (!mounted) return;
         setErr(e.response?.data?.message || "Không tải được chi tiết gói.");
+      }
+    })();
+    return () => (mounted = false);
+  }, [activationId]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setMaterialsErr("");
+        const res = await memberGetActivationMaterials(activationId);
+        if (!mounted) return;
+        setMaterials(Array.isArray(res.data?.data) ? res.data.data : []);
+      } catch (e) {
+        if (!mounted) return;
+        setMaterials([]);
+        setMaterialsErr(e.response?.data?.message || "");
       }
     })();
     return () => (mounted = false);
@@ -245,6 +269,51 @@ export default function MemberPackageDetailPage() {
               <b>{fmtMoney(data.Package?.price)}</b>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mpd2-overview" style={{ marginTop: 8 }}>
+        <div className="mpd2-infoCard" style={{ gridColumn: "1 / -1" }}>
+          <div className="mpd2-infoHead">
+            <h3>Tài liệu từ PT</h3>
+          </div>
+          {materialsErr ? (
+            <div className="mpd2-empty">{materialsErr}</div>
+          ) : !materials.length ? (
+            <div className="mpd2-muted" style={{ padding: "8px 0" }}>
+              Chưa có tài liệu nào được gửi cho gói này.
+            </div>
+          ) : (
+            <div className="mpd2-materials">
+              {materials.map((m) => (
+                <div key={m.id} className="mpd2-materialRow">
+                  <div className="mpd2-materialIcon">
+                    {m.materialKind === "demo_video" ? <Video size={18} /> : <FileText size={18} />}
+                  </div>
+                  <div className="mpd2-materialBody">
+                    <div className="mpd2-materialTitle">
+                      {m.materialKind === "demo_video" ? "Video demo" : "Kế hoạch tập"}{" "}
+                      {m.title ? `· ${m.title}` : ""}
+                    </div>
+                    <div className="mpd2-materialMeta">
+                      {m.Trainer?.User?.username ? `PT: ${m.Trainer.User.username}` : ""}
+                      {m.createdAt
+                        ? ` · ${new Date(m.createdAt).toLocaleString("vi-VN")}`
+                        : ""}
+                    </div>
+                    <a
+                      className="mpd2-materialLink"
+                      href={m.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Mở / tải
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
