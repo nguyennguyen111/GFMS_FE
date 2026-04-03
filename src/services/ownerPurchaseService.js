@@ -13,8 +13,6 @@ export const ownerGetQuotations = (params = {}) =>
 export const ownerGetQuotationDetail = (id) =>
   axios.get(`${API}/quotations/${id}`);
 
-export const ownerCreateQuotation = (payload) =>
-  axios.post(`${API}/quotations`, payload);
 
 // Purchase Orders
 export const ownerGetPurchaseOrders = (params = {}) =>
@@ -29,3 +27,20 @@ export const ownerGetReceipts = (params = {}) =>
 
 export const ownerGetReceiptDetail = (id) =>
   axios.get(`${API}/receipts/${id}`);
+
+// Purchase requests (owner nhu cầu mua)
+export const ownerPreviewPurchaseStock = (params) =>
+  axios.get(`${API}/purchase-requests/stock-preview`, { params });
+
+export const ownerCreatePurchaseRequest = (payload) =>
+  axios.post(`${API}/purchase-requests`, payload);
+
+export const ownerGetPurchaseRequests = (params = {}) =>
+  axios.get(`${API}/purchase-requests`, { params });
+
+export const ownerGetPurchaseRequestDetail = (id) =>
+  axios.get(`${API}/purchase-requests/${id}`);
+
+// Procurement payments
+export const ownerGetProcurementPayments = (params = {}) =>
+  axios.get(`${API}/procurement-payments`, { params });
