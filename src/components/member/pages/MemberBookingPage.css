@@ -140,7 +140,7 @@
 
 .mb-summaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -185,12 +185,20 @@
   border-left: 4px solid var(--mb-error);
 }
 
+.border-absent {
+  border-left: 4px solid rgba(255, 115, 81, 0.55);
+}
+
 .text-primary {
   color: var(--mb-primary);
 }
 
 .text-error {
   color: var(--mb-error);
+}
+
+.text-absent {
+  color: #ff9a84;
 }
 
 .mb-rangeBar {
@@ -251,6 +259,12 @@
   background: rgba(255, 115, 81, 0.12);
   color: #ff9a84;
   border-color: rgba(255, 115, 81, 0.16);
+}
+
+.mb-pill.is-absent {
+  background: rgba(255, 115, 81, 0.1);
+  color: #ffb4a3;
+  border-color: rgba(255, 115, 81, 0.22);
 }
 
 .mb-calendarGrid {
@@ -369,6 +383,14 @@
   border-color: rgba(214, 255, 0, 0.18);
 }
 
+.mb-sessionCard.present {
+  border-color: rgba(46, 204, 113, 0.35);
+}
+
+.mb-sessionCard.absent {
+  border-color: rgba(255, 115, 81, 0.35);
+}
+
 .mb-sessionCard.cancelled {
   border-color: rgba(255, 115, 81, 0.18);
 }
@@ -400,6 +422,10 @@
 }
 
 .mb-sessionIcon.error {
+  color: #ff9a84;
+}
+
+.mb-sessionIcon.absent {
   color: #ff9a84;
 }
 
@@ -453,6 +479,18 @@
   background: rgba(214, 255, 0, 0.12);
   color: var(--mb-primary);
   border: 1px solid rgba(214, 255, 0, 0.15);
+}
+
+.mb-sessionBtn.present {
+  background: rgba(46, 204, 113, 0.14);
+  color: #8fefb0;
+  border: 1px solid rgba(46, 204, 113, 0.28);
+}
+
+.mb-sessionBtn.absent {
+  background: rgba(255, 115, 81, 0.14);
+  color: #ff9a84;
+  border: 1px solid rgba(255, 115, 81, 0.22);
 }
 
 .mb-sessionBtn.cancelled {

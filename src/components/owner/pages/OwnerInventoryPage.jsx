@@ -86,10 +86,7 @@ export default function OwnerInventoryPage() {
               <th>Mã</th>
               <th>Tổng cộng</th>
               <th>Có sẵn</th>
-              <th>Đặt trước</th>
-              <th>Hư hỏng</th>
               <th>Bảo trì</th>
-              <th>Min</th>
             </tr>
           </thead>
           <tbody>
@@ -100,15 +97,12 @@ export default function OwnerInventoryPage() {
                 <td>{r.equipment?.code || "-"}</td>
                 <td>{r.quantity ?? 0}</td>
                 <td className="oinv-available">{r.availableQuantity ?? 0}</td>
-                <td className="oinv-reserved">{r.reservedQuantity ?? 0}</td>
-                <td className="oinv-damaged">{r.damagedQuantity ?? 0}</td>
                 <td className="oinv-maintenance">{maintenanceMap[r.equipment?.id] ?? 0}</td>
-                <td>{r.equipment?.minStockLevel ?? "-"}</td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={9} className="oinv-empty">
+                <td colSpan={6} className="oinv-empty">
                   Không có dữ liệu
                 </td>
               </tr>

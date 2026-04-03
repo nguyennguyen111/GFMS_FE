@@ -9,7 +9,6 @@ import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
 import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
 import OwnerInventoryPage from "./pages/OwnerInventoryPage";
 import OwnerTransferPage from "./pages/OwnerTransferPage";
-import OwnerSuppliersPage from "./pages/OwnerSuppliersPage";
 import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
@@ -51,7 +50,7 @@ export default function OwnerDashboard() {
         { label: "Phòng tập ", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
         { label: "Gói tập", to: "/owner/packages", key: "packages", icon: "🎫" },
         { label: "Hội viên", to: "/owner/members", key: "members", icon: "👥" },
-         { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
+        { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
         { label: "Đặt lịch / Chia sẻ Huấn luyện viên", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
         { label: "Đánh giá", to: "/owner/reviews", key: "reviews", icon: "⭐" },
       ],
@@ -76,10 +75,9 @@ export default function OwnerDashboard() {
     {
       title: "Mua hàng",
       items: [
-        { label: "Báo giá", to: "/owner/quotations", key: "quotations", icon: "📝" },
+        { label: "Mua thiết bị", to: "/owner/quotations", key: "quotations", icon: "📝" },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", icon: "🧷" },
         { label: "Nhập kho", to: "/owner/receipts", key: "receipts", icon: "📥" },
-        { label: "Nhà cung cấp", to: "/owner/suppliers", key: "suppliers", icon: "🏭" },
       ],
     },
     {
@@ -199,7 +197,6 @@ export default function OwnerDashboard() {
             <Route path="/quotations" element={<OwnerQuotationsPage />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
-            <Route path="/suppliers" element={<OwnerSuppliersPage />} />
 
             {/* Communication */}
             <Route path="/messages" element={<PlaceholderPage title="Tin nhắn (message)" />} />

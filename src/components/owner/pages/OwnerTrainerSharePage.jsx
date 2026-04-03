@@ -19,8 +19,9 @@ import axios from "../../../setup/axios";
 const STATUS_LABELS = {
   // Trainer Share statuses
   waiting_acceptance: { label: "Chờ chấp nhận", color: "info" },
-  pending: { label: "Chờ duyệt", color: "warning" },
+  pending: { label: "Đang xử lý", color: "warning" },
   approved: { label: "Đã duyệt", color: "success" },
+  shared: { label: "Lịch mượn PT", color: "info" },
   rejected: { label: "Từ chối", color: "danger" },
   rejected_by_partner: { label: "Đối tác từ chối", color: "danger" },
   
@@ -184,7 +185,7 @@ function CalendarView({ bookings, currentMonth: propCurrentMonth, onMonthChange,
     const dateStr = date.toISOString().split('T')[0];
     return bookings.filter(b => {
       const bookingDate = b.bookingDate ? b.bookingDate.split('T')[0] : null;
-      return bookingDate === dateStr && b.type !== 'trainer_share';
+      return bookingDate === dateStr;
     });
   };
 
@@ -244,6 +245,7 @@ function CalendarView({ bookings, currentMonth: propCurrentMonth, onMonthChange,
                         className={`ots-calendar-booking ots-calendar-booking--${booking.status || 'confirmed'}`}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (booking.type === 'trainer_share') return;
                           onBookingClick && onBookingClick(booking);
                         }}
                       >
@@ -320,7 +322,6 @@ export default function OwnerTrainerSharePage() {
   // Bookings
   const [bookings, setBookings] = useState([]);
   const [bookingPagination, setBookingPagination] = useState({});
-  const [selectedBookings, setSelectedBookings] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -661,13 +662,13 @@ export default function OwnerTrainerSharePage() {
 
   // Accept trainer share request (Owner B)
   const handleAcceptShare = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn chấp nhận yêu cầu này? Sau khi chấp nhận, yêu cầu sẽ được gửi lên Admin duyệt.")) return;
+    if (!window.confirm("Bạn có chắc muốn chấp nhận yêu cầu này?")) return;
 
     try {
       setError("");
       setSuccess("");
       await ownerAcceptTrainerShare(id);
-      setSuccess("Đã chấp nhận yêu cầu. Đang chờ Admin duyệt.");
+      setSuccess("Đã chấp nhận yêu cầu thành công.");
       loadReceivedShares();
     } catch (err) {
       setError(err.response?.data?.message || "Không thể chấp nhận yêu cầu");
@@ -714,64 +715,102 @@ export default function OwnerTrainerSharePage() {
         isSharedTrainer: sharedTrainerIds.has(booking.trainerId)
       }));
       
-      // Load received trainer shares (approved) to show borrowed trainers
-      try {
-        const sharesRes = await ownerGetReceivedTrainerShares({ status: 'approved', limit: 1000 });
-        let approvedShares = sharesRes.data?.data || [];
-        
-        // Apply filters to trainer shares
-        if (bookingFilters.trainerId) {
-          approvedShares = approvedShares.filter(share => 
-            share.trainerId && share.trainerId.toString() === bookingFilters.trainerId.toString()
-          );
-        }
-        
-        if (bookingFilters.gymId) {
-          approvedShares = approvedShares.filter(share => 
-            share.toGymId && share.toGymId.toString() === bookingFilters.gymId.toString()
-          );
-        }
-        
-        if (bookingFilters.startDate) {
-          approvedShares = approvedShares.filter(share => {
-            if (!share.startDate) return false;
-            const shareStart = new Date(share.startDate);
-            const filterStart = new Date(bookingFilters.startDate);
-            return shareStart >= filterStart;
-          });
-        }
-        
-        if (bookingFilters.endDate) {
-          approvedShares = approvedShares.filter(share => {
-            if (!share.endDate && !share.startDate) return false;
-            const shareEnd = new Date(share.endDate || share.startDate);
-            const filterEnd = new Date(bookingFilters.endDate);
-            return shareEnd <= filterEnd;
-          });
-        }
-        
-        // Convert approved shares to booking-like format for table display
-        const shareBookings = approvedShares.map(share => ({
-          ...share,
-          id: `share-${share.id}`,
-          type: 'trainer_share',
-          status: 'shared',
-          bookingDate: share.startDate,
-          startTime: share.startTime || '00:00:00',
-          endTime: share.endTime || '23:59:59',
-          Member: { User: { username: 'Chia sẻ PT' } },
-          Package: { name: share.shareType === 'temporary' ? 'Tạm thời' : 'Vĩnh viễn' }
-        }));
-        
-        // Combine bookings and shares
-        bookingsData = [...bookingsData, ...shareBookings].sort((a, b) => {
-          const dateA = new Date(a.bookingDate);
-          const dateB = new Date(b.bookingDate);
-          return dateB - dateA; // Newest first
-        });
-      } catch (shareErr) {
-        // Continue with just bookings if shares fail to load
+      // Use approved shares requested by current owner (borrower side)
+      let approvedShares = myApprovedShares;
+
+      // Apply filters to trainer shares
+      if (bookingFilters.trainerId) {
+        approvedShares = approvedShares.filter(share => 
+          share.trainerId && share.trainerId.toString() === bookingFilters.trainerId.toString()
+        );
       }
+
+      if (bookingFilters.gymId) {
+        approvedShares = approvedShares.filter(share => 
+          share.toGymId && share.toGymId.toString() === bookingFilters.gymId.toString()
+        );
+      }
+
+      if (bookingFilters.startDate) {
+        approvedShares = approvedShares.filter(share => {
+          if (!share.startDate) return false;
+          const shareStart = new Date(share.startDate);
+          const filterStart = new Date(bookingFilters.startDate);
+          return shareStart >= filterStart;
+        });
+      }
+
+      if (bookingFilters.endDate) {
+        approvedShares = approvedShares.filter(share => {
+          if (!share.endDate && !share.startDate) return false;
+          const shareEnd = new Date(share.endDate || share.startDate);
+          const filterEnd = new Date(bookingFilters.endDate);
+          return shareEnd <= filterEnd;
+        });
+      }
+
+      // Nếu đã có booking thực tế cho khung giờ mượn PT thì ẩn dòng "Lịch mượn PT"
+      const toDateOnly = (value) => {
+        if (!value) return "";
+        return String(value).split("T")[0];
+      };
+
+      const toMinutes = (timeValue) => {
+        if (!timeValue) return null;
+        const [h, m] = String(timeValue).split(":");
+        const hh = Number(h);
+        const mm = Number(m);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+        return hh * 60 + mm;
+      };
+
+      approvedShares = approvedShares.filter((share) => {
+        const shareDate = toDateOnly(share.startDate);
+        const shareStart = toMinutes(share.startTime || "00:00:00");
+        const shareEnd = toMinutes(share.endTime || "23:59:59");
+
+        const hasRealBooking = bookingsData.some((booking) => {
+          if (booking.type === "trainer_share") return false;
+          if (String(booking.status || "").toLowerCase() === "cancelled") return false;
+
+          const sameTrainer = String(booking.trainerId || "") === String(share.trainerId || "");
+          const sameGym = String(booking.gymId || "") === String(share.toGymId || "");
+          const sameDate = toDateOnly(booking.bookingDate) === shareDate;
+          const sameMember = !share.memberId || String(booking.memberId || "") === String(share.memberId);
+
+          if (!sameTrainer || !sameGym || !sameDate || !sameMember) return false;
+
+          const bookingStart = toMinutes(booking.startTime || "00:00:00");
+          const bookingEnd = toMinutes(booking.endTime || "23:59:59");
+          if (shareStart === null || shareEnd === null || bookingStart === null || bookingEnd === null) {
+            return true;
+          }
+
+          return bookingStart < shareEnd && bookingEnd > shareStart;
+        });
+
+        return !hasRealBooking;
+      });
+
+      // Convert approved shares to booking-like format for table/calendar display
+      const shareBookings = approvedShares.map(share => ({
+        ...share,
+        id: `share-${share.id}`,
+        type: 'trainer_share',
+        status: 'shared',
+        bookingDate: share.startDate,
+        startTime: share.startTime || '00:00:00',
+        endTime: share.endTime || '23:59:59',
+        Member: { User: { username: 'Chia sẻ PT' } },
+        Package: { name: share.shareType === 'temporary' ? 'Tạm thời' : 'Vĩnh viễn' }
+      }));
+
+      // Combine bookings and shares
+      bookingsData = [...bookingsData, ...shareBookings].sort((a, b) => {
+        const dateA = new Date(a.bookingDate);
+        const dateB = new Date(b.bookingDate);
+        return dateB - dateA; // Newest first
+      });
       
       setBookings(bookingsData);
       setBookingPagination(res.pagination || res.data?.pagination || {});
@@ -1105,6 +1144,66 @@ export default function OwnerTrainerSharePage() {
     return `${String(newHours).padStart(2, "0")}:${String(newMinutes).padStart(2, "0")}`;
   };
 
+  const toTimeInputValue = (timeStr, fallback = "") => {
+    if (!timeStr) return fallback;
+    const parts = String(timeStr).split(":");
+    if (parts.length < 2) return fallback;
+    const hh = String(parts[0]).padStart(2, "0");
+    const mm = String(parts[1]).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
+  const handleShareAttendance = async (share, mode) => {
+    if (!share?.memberId) {
+      setError("Phiếu mượn PT chưa gắn hội viên. Vui lòng tạo booking thủ công ở tab Đặt lịch trước khi điểm danh.");
+      return;
+    }
+
+    const statusText = mode === "present" ? "điểm danh có mặt" : "điểm danh vắng";
+    if (!window.confirm(`Bạn có chắc muốn ${statusText} cho lịch mượn PT này?`)) return;
+
+    const normalizedStart = toTimeInputValue(share.startTime, "08:00");
+    const normalizedEnd = toTimeInputValue(share.endTime, addHoursToTime(normalizedStart, 2));
+    const bookingDate = share.startDate ? String(share.startDate).slice(0, 10) : "";
+
+    if (!bookingDate) {
+      setError("Không xác định được ngày của lịch mượn PT");
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+
+      const created = await ownerBookingService.createBooking({
+        memberId: share.memberId,
+        trainerId: share.trainerId,
+        gymId: share.toGymId,
+        bookingDate,
+        startTime: normalizedStart,
+        endTime: normalizedEnd,
+        notes: `Booking từ lịch mượn PT #${share.id}`,
+      });
+
+      const bookingId = created?.data?.id || created?.id;
+      if (!bookingId) {
+        throw new Error("Tạo booking thành công nhưng không nhận được bookingId");
+      }
+
+      if (mode === "present") {
+        await ownerBookingService.updateBookingStatus(bookingId, "in_progress");
+        setSuccess("Đã tạo booking từ lịch mượn PT và điểm danh Có mặt.");
+      } else {
+        await ownerBookingService.updateBookingStatus(bookingId, "no_show");
+        setSuccess("Đã tạo booking từ lịch mượn PT và điểm danh Vắng.");
+      }
+
+      loadBookings();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Không thể điểm danh từ lịch mượn PT");
+    }
+  };
+
   const handleUpdateBookingStatus = async (id, newStatus) => {
     const statusTexts = {
       confirmed: "xác nhận",
@@ -1320,8 +1419,9 @@ export default function OwnerTrainerSharePage() {
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
               <option value="">Tất cả</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="approved">Đã duyệt</option>
+              <option value="waiting_acceptance">Chờ chấp nhận</option>
+              <option value="pending">Đang xử lý</option>
+              <option value="approved">Đã chấp nhận</option>
               <option value="rejected">Từ chối</option>
             </select>
             <button className="btn-primary" onClick={() => { setCurrentPage(1); loadShares(); }}>
@@ -1412,13 +1512,13 @@ export default function OwnerTrainerSharePage() {
                             </>
                           )}
                           {share.status === "pending" && (
-                            <span className="ots-text--info">⏳ Chờ Admin duyệt</span>
+                            <span className="ots-text--info">⏳ Đang xử lý</span>
                           )}
                           {share.status === "approved" && (
-                            <span className="ots-text--success">✓ Đã được duyệt</span>
+                            <span className="ots-text--success">✓ Đã chấp nhận</span>
                           )}
                           {share.status === "rejected" && (
-                            <span className="ots-text--danger">✗ Admin từ chối</span>
+                            <span className="ots-text--danger">✗ Bị từ chối</span>
                           )}
                           {share.status === "rejected_by_partner" && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -1479,7 +1579,7 @@ export default function OwnerTrainerSharePage() {
               </div>
             </div>
             <div className="ots-stat-card ots-stat-card--info">
-              <div className="ots-stat-card__label">Đang chờ Admin</div>
+              <div className="ots-stat-card__label">Đang xử lý</div>
               <div className="ots-stat-card__value">
                 {receivedShares.filter(s => s.status === 'pending').length}
               </div>
@@ -1513,8 +1613,8 @@ export default function OwnerTrainerSharePage() {
             >
               <option value="">Tất cả trạng thái</option>
               <option value="waiting_acceptance">Chờ chấp nhận</option>
-              <option value="pending">Đang chờ Admin</option>
-              <option value="approved">Đã được duyệt</option>
+              <option value="pending">Đang xử lý</option>
+              <option value="approved">Đã chấp nhận</option>
               <option value="rejected_by_partner">Đã từ chối</option>
             </select>
             <button className="ots-btn ots-btn--primary" onClick={() => { setReceivedCurrentPage(1); loadReceivedShares(); }}>
@@ -1628,7 +1728,7 @@ export default function OwnerTrainerSharePage() {
                               >
                                 📅 Lịch
                               </button>
-                              <span className="ots-text--info">⏳ Chờ Admin duyệt</span>
+                              <span className="ots-text--info">⏳ Đang xử lý</span>
                             </>
                           )}
                           {share.status === "approved" && (
@@ -1792,84 +1892,9 @@ export default function OwnerTrainerSharePage() {
             />
           ) : (
             <>
-              {/* Bulk Actions */}
-              {selectedBookings.length > 0 && (
-                <div className="ots-bulk-actions">
-                  <span className="ots-bulk-count">Đã chọn {selectedBookings.length} booking</span>
-                  <button
-                    className="ots-btn ots-btn--sm ots-btn--success"
-                    onClick={() => {
-                      const selectedItems = bookings.filter(b => selectedBookings.includes(b.id));
-                      const eligibleItems = selectedItems.filter(b => String(b.status || '').toLowerCase() === 'pending');
-                      const skippedCount = selectedItems.length - eligibleItems.length;
-                      if (eligibleItems.length === 0) {
-                        setError("Không có booking nào ở trạng thái chờ xác nhận");
-                        return;
-                      }
-                      if (window.confirm(`Xác nhận ${eligibleItems.length} booking?${skippedCount > 0 ? ` (Bỏ qua ${skippedCount} booking không hợp lệ)` : ""}`)) {
-                        Promise.all(eligibleItems.map(item => 
-                          ownerBookingService.updateBookingStatus(item.id, 'confirmed')
-                        )).then(() => {
-                          setSuccess(`Đã xác nhận ${eligibleItems.length} booking`);
-                          setSelectedBookings([]);
-                          loadBookings();
-                        }).catch(() => setError("Có lỗi xảy ra"));
-                      }
-                    }}
-                  >
-                    ✓ Xác nhận tất cả
-                  </button>
-                  <button
-                    className="ots-btn ots-btn--sm ots-btn--danger"
-                    onClick={() => {
-                      const selectedItems = bookings.filter(b => selectedBookings.includes(b.id));
-                      const eligibleItems = selectedItems.filter(b => {
-                        const status = String(b.status || '').toLowerCase();
-                        return ['pending', 'confirmed', 'in_progress'].includes(status);
-                      });
-                      const skippedCount = selectedItems.length - eligibleItems.length;
-                      if (eligibleItems.length === 0) {
-                        setError("Không có booking nào có thể hủy");
-                        return;
-                      }
-                      if (window.confirm(`Hủy ${eligibleItems.length} booking?${skippedCount > 0 ? ` (Bỏ qua ${skippedCount} booking không hợp lệ)` : ""}`)) {
-                        Promise.all(eligibleItems.map(item => 
-                          ownerBookingService.updateBookingStatus(item.id, 'cancelled')
-                        )).then(() => {
-                          setSuccess(`Đã hủy ${eligibleItems.length} booking`);
-                          setSelectedBookings([]);
-                          loadBookings();
-                        }).catch(() => setError("Có lỗi xảy ra"));
-                      }
-                    }}
-                  >
-                    ✕ Hủy tất cả
-                  </button>
-                  <button
-                    className="ots-btn ots-btn--sm ots-btn--secondary"
-                    onClick={() => setSelectedBookings([])}
-                  >
-                    Bỏ chọn
-                  </button>
-                </div>
-              )}
-
               <table className="ots-table">
                 <thead>
                   <tr>
-                    <th style={{width: '40px'}}>
-                      <input
-                        type="checkbox"
-                        checked={selectedBookings.length === bookings.filter(b => b.type !== 'trainer_share').length && bookings.filter(b => b.type !== 'trainer_share').length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedBookings(bookings.filter(b => b.type !== 'trainer_share').map(b => b.id));
-                          } else {
-                            setSelectedBookings([]);
-                          }
-                        }}
-                      />
-                    </th>
                     <th>ID</th>
                     <th>Member</th>
                     <th>PT</th>
@@ -1881,26 +1906,14 @@ export default function OwnerTrainerSharePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.filter(booking => booking.type !== 'trainer_share').map((booking) => {
+                  {bookings.map((booking) => {
                     const isShared = booking.isSharedTrainer;
+                    const isTrainerShare = booking.type === 'trainer_share';
                     return (
                     <tr 
                       key={booking.id} 
-                      className={`${selectedBookings.includes(booking.id) ? 'ots-row-selected' : ''} ${isShared ? 'ots-row-shared' : ''}`}
+                      className={`${isShared ? 'ots-row-shared' : ''}`}
                     >
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedBookings.includes(booking.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedBookings([...selectedBookings, booking.id]);
-                            } else {
-                              setSelectedBookings(selectedBookings.filter(id => id !== booking.id));
-                            }
-                          }}
-                        />
-                      </td>
                       <td>{booking.id}</td>
                       <td>
                         <strong>
@@ -1918,8 +1931,27 @@ export default function OwnerTrainerSharePage() {
                       </td>
                       <td>
                         <div className="ots-actions">
+                          {isTrainerShare && (
+                            <>
+                              <span className="ots-text--info">Lịch mượn PT</span>
+                              <button
+                                className="ots-btn ots-btn--xs ots-btn--warning"
+                                onClick={() => handleShareAttendance(booking, "present")}
+                                title="Điểm danh có mặt"
+                              >
+                                Có mặt
+                              </button>
+                              <button
+                                className="ots-btn ots-btn--xs ots-btn--danger"
+                                onClick={() => handleShareAttendance(booking, "absent")}
+                                title="Điểm danh vắng mặt"
+                              >
+                                Vắng
+                              </button>
+                            </>
+                          )}
                           {/* Quick action buttons */}
-                          {booking.status === "pending" && (
+                          {!isTrainerShare && booking.status === "pending" && (
                             <>
                               <button
                                 className="ots-btn ots-btn--xs ots-btn--success"
@@ -1937,25 +1969,25 @@ export default function OwnerTrainerSharePage() {
                               </button>
                             </>
                           )}
-                          {booking.status === "confirmed" && (
+                          {!isTrainerShare && booking.status === "confirmed" && (
                             <>
                               <button
                                 className="ots-btn ots-btn--xs ots-btn--warning"
                                 onClick={() => handleUpdateBookingStatus(booking.id, 'in_progress')}
-                                title="Bắt đầu"
+                                title="Điểm danh có mặt"
                               >
-                                ▶
+                                Có mặt
                               </button>
                               <button
                                 className="ots-btn ots-btn--xs ots-btn--danger"
                                 onClick={() => handleUpdateBookingStatus(booking.id, 'no_show')}
-                                title="Vắng mặt"
+                                title="Điểm danh vắng mặt"
                               >
-                                ⊗
+                                Vắng
                               </button>
                             </>
                           )}
-                          {booking.status === "in_progress" && (
+                          {!isTrainerShare && booking.status === "in_progress" && (
                             <button
                               className="ots-btn ots-btn--xs ots-btn--success"
                               onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
@@ -1966,7 +1998,7 @@ export default function OwnerTrainerSharePage() {
                           )}
                           
                           {/* Edit button */}
-                          {(booking.status === "pending" || booking.status === "confirmed") && (
+                          {!isTrainerShare && (booking.status === "pending" || booking.status === "confirmed") && (
                             <button
                               className="ots-btn ots-btn--xs ots-btn--secondary"
                               onClick={() => handleEditBooking(booking)}
@@ -2076,7 +2108,7 @@ export default function OwnerTrainerSharePage() {
                 </select>
               </Field>
 
-              <Field label="Hội viên (Tùy chọn - Tự động tạo booking khi duyệt)">
+              <Field label="Hội viên (Tùy chọn - Tự động tạo booking khi chấp nhận)">
                 <select
                   className="ots-select"
                   value={form.memberId}

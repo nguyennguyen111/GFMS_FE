@@ -20,8 +20,6 @@ const emptyForm = {
   price: 0,
   sessions: 0,
   commissionRate: 0.6,
-  validityType: "months",
-  maxSessionsPerWeek: "",
 };
 
 function safeNum(v, fallback = 0) {
@@ -69,6 +67,14 @@ export default function OwnerPackagesPage() {
       return matchText && matchActive;
     });
   }, [items, search, activeFilter]);
+
+  const gymFilteredTrainers = useMemo(() => {
+    if (!form.gymId) return [];
+    return trainers.filter((trainer) => {
+      const trainerGymId = trainer?.gymId ?? trainer?.Gym?.id;
+      return String(trainerGymId || "") === String(form.gymId);
+    });
+  }, [trainers, form.gymId]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -139,8 +145,6 @@ export default function OwnerPackagesPage() {
       price: pkg.price ?? 0,
       sessions: pkg.sessions ?? 0,
       commissionRate: pkg.commissionRate ?? 0.6,
-      validityType: pkg.validityType ?? "months",
-      maxSessionsPerWeek: pkg.maxSessionsPerWeek ?? "",
     });
     setModalOpen(true);
   };
@@ -155,6 +159,11 @@ export default function OwnerPackagesPage() {
       return;
     }
 
+    if (form.packageType === "personal_training" && !form.trainerId) {
+      setErr("Vui lòng chọn PT cho gói Personal Training.");
+      return;
+    }
+
     const payload = {
       gymId: safeNum(form.gymId),
       name: form.name.trim(),
@@ -166,8 +175,6 @@ export default function OwnerPackagesPage() {
       price: safeNum(form.price),
       sessions: safeNum(form.sessions),
       commissionRate: safeNum(form.commissionRate, 0.6),
-      validityType: form.validityType,
-      maxSessionsPerWeek: form.maxSessionsPerWeek === "" ? null : safeNum(form.maxSessionsPerWeek),
     };
 
     try {
@@ -355,7 +362,7 @@ export default function OwnerPackagesPage() {
                 <select
                   className="op-select"
                   value={form.gymId}
-                  onChange={(e) => setForm({ ...form, gymId: e.target.value })}
+                  onChange={(e) => setForm({ ...form, gymId: e.target.value, trainerId: "" })}
                   required
                 >
                   <option value="">-- Chọn gym --</option>
@@ -406,9 +413,10 @@ export default function OwnerPackagesPage() {
                     className="op-select"
                     value={form.trainerId}
                     onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
+                    disabled={!form.gymId}
                   >
-                    <option value="">-- Chọn PT --</option>
-                    {trainers.map((trainer) => (
+                    <option value="">{form.gymId ? "-- Chọn PT --" : "-- Chọn gym trước --"}</option>
+                    {gymFilteredTrainers.map((trainer) => (
                       <option key={trainer.id} value={trainer.id}>
                         {trainer.User?.username || `Trainer #${trainer.id}`}
                       </option>
@@ -484,29 +492,6 @@ export default function OwnerPackagesPage() {
                   </div>
                 )}
 
-                <div className="op-row">
-                  <label>Loại thời hạn</label>
-                  <select
-                    className="op-select"
-                    value={form.validityType}
-                    onChange={(e) => setForm({ ...form, validityType: e.target.value })}
-                  >
-                    <option value="days">Theo ngày</option>
-                    <option value="months">Theo tháng</option>
-                    <option value="sessions">Theo buổi</option>
-                  </select>
-                </div>
-
-                <div className="op-row">
-                  <label>Số buổi tối đa/tuần</label>
-                  <input
-                    className="op-input"
-                    type="number"
-                    value={form.maxSessionsPerWeek}
-                    onChange={(e) => setForm({ ...form, maxSessionsPerWeek: e.target.value })}
-                    placeholder="Không giới hạn"
-                  />
-                </div>
               </div>
 
               {!!err && <div className="op-error">⚠ {err}</div>}

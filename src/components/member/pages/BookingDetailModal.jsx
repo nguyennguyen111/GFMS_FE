@@ -2,17 +2,22 @@ import React, { useEffect } from "react";
 import { CalendarDays, Clock3, Dumbbell, MapPin, UserRound, X } from "lucide-react";
 import "./BookingDetailModal.css";
 
-const normalizeStatus = (s) => {
-  if (s === "in_progress" || s === "completed") return "attended";
-  if (s === "cancelled") return "cancelled";
-  return "scheduled";
-};
+const getMemberSessionDisplay = (booking) => {
+  const st = String(booking?.status || "").toLowerCase();
+  if (st === "cancelled") return { key: "cancelled", label: "Đã huỷ" };
 
-const statusText = (s) => {
-  const x = normalizeStatus(s);
-  if (x === "attended") return "Đã điểm danh";
-  if (x === "cancelled") return "Đã huỷ";
-  return "Chưa điểm danh";
+  const taStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
+  if (taStatus === "present" || taStatus === "completed") {
+    return { key: "present", label: "Có mặt" };
+  }
+  if (taStatus === "absent") {
+    return { key: "absent", label: "Vắng mặt" };
+  }
+
+  if (st === "in_progress" || st === "completed") {
+    return { key: "attended", label: "Đã điểm danh" };
+  }
+  return { key: "scheduled", label: "Chưa điểm danh" };
 };
 
 const fmtDate = (value) => {
@@ -41,7 +46,8 @@ export default function BookingDetailModal({ booking, onClose }) {
 
   if (!booking) return null;
 
-  const displayStatus = normalizeStatus(booking.status);
+  const disp = getMemberSessionDisplay(booking);
+  const displayKey = disp.key;
 
   return (
     <div className="bd-backdrop" onClick={onClose}>
@@ -64,7 +70,7 @@ export default function BookingDetailModal({ booking, onClose }) {
         </div>
 
         <div className="bd-top">
-          <div className={`bd-status ${displayStatus}`}>{statusText(booking.status)}</div>
+          <div className={`bd-status ${displayKey}`}>{disp.label}</div>
           <div className="bd-timeChip">
             <Clock3 size={15} />
             <span>
