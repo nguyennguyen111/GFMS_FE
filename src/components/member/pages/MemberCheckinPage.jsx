@@ -6,6 +6,7 @@ import {
   memberGetMyBookings,
 } from "../../../services/memberBookingService";
 import "../member-pages.css";
+import { showAppToast } from "../../../utils/appToast";
 
 const STATUS_META = {
   pending: { label: "Chờ xác nhận", cls: "is-off" },
@@ -86,7 +87,7 @@ export default function MemberCheckinPage() {
     try {
       await memberCheckinBooking(id, { method: "qr" });
       await loadBooking();
-      alert("✅ Check-in thành công");
+      showAppToast({ type: "success", title: "Check-in", message: "Check-in thành công" });
     } catch (e) {
       setErr(e?.response?.data?.message || "Check-in thất bại");
     } finally {
@@ -105,7 +106,7 @@ export default function MemberCheckinPage() {
     setActionOut(true);
     try {
       await memberCheckoutBooking(id);
-      alert("🎉 Buổi tập hoàn thành");
+      showAppToast({ type: "success", title: "Hoàn thành", message: "Buổi tập đã hoàn thành" });
       navigate("/member/bookings", { replace: true });
     } catch (e) {
       setErr(e?.response?.data?.message || "Checkout thất bại");

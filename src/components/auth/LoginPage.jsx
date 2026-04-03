@@ -15,6 +15,7 @@ import {
 import './LoginPage.css';
 import { loginUser } from '../../services/authService';
 import { setCurrentUser } from '../../utils/auth';
+import { showAppToast } from '../../utils/appToast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -97,14 +98,14 @@ const LoginPage = () => {
       console.log('Login response:', data);
 
       if (data?.EC === 0) {
-        alert(`✅ ${data?.EM || 'Đăng nhập thành công'}`);
+        showAppToast({ type: 'success', title: 'Đăng nhập', message: data?.EM || 'Đăng nhập thành công' });
 
         const dt = data?.DT || {};
         const user = dt?.user || null;
         const accessToken = dt?.accessToken || dt?.access_Token || '';
 
         if (!user) {
-          alert('❌ Không lấy được thông tin người dùng');
+          showAppToast({ type: 'error', title: 'Đăng nhập', message: 'Không lấy được thông tin người dùng' });
           return;
         }
 
@@ -149,7 +150,7 @@ const LoginPage = () => {
         'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ',
       };
 
-      alert(`❌ ${errorMap[serverError] || serverError}`);
+      showAppToast({ type: 'error', title: 'Đăng nhập', message: errorMap[serverError] || serverError });
     } catch (error) {
       console.error('Login error:', error);
 
@@ -160,7 +161,7 @@ const LoginPage = () => {
         errorMessage = 'Không thể kết nối đến server';
       }
 
-      alert(`❌ ${errorMessage}`);
+      showAppToast({ type: 'error', title: 'Đăng nhập', message: errorMessage });
     } finally {
       setIsLoading(false);
     }
