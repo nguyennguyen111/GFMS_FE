@@ -58,10 +58,6 @@ export default function DashboardHome() {
         title: "Bảo trì",
         desc: `Pending: ${c.maintenancePending ?? 0} • In-progress: ${c.maintenanceInProgress ?? 0}`,
       },
-      {
-        title: "Chia sẻ PT",
-        desc: `Pending: ${c.trainerSharePending ?? 0} • Overrides: audit-ready`,
-      },
     ];
   }, [data]);
 
