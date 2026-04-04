@@ -205,7 +205,7 @@ const OwnerWithdrawalsPage = () => {
         <table className="withdrawals-table">
           <thead>
             <tr>
-              <th>PT</th>
+              <th>Huấn luyện viên</th>
               <th>Số tiền</th>
               <th>Tài khoản</th>
               <th>Trạng thái</th>
@@ -283,7 +283,7 @@ const OwnerWithdrawalsPage = () => {
               return (
                 <div className="withdrawals-modal-body">
                   <div>
-                    <strong>PT:</strong> {selectedRequest.Trainer?.User?.username || "N/A"}
+                    <strong>Huấn luyện viên:</strong> {selectedRequest.Trainer?.User?.username || "N/A"}
                   </div>
                   <div>
                     <strong>Email:</strong> {selectedRequest.Trainer?.User?.email || "N/A"}
@@ -360,7 +360,7 @@ const OwnerWithdrawalsPage = () => {
           <>
             <div className="nice-modal__meta">
               <div>
-                <strong>PT:</strong> {actionModal.ptName}
+                <strong>Huấn luyện viên:</strong> {actionModal.ptName}
               </div>
               {actionModal.amountLabel ? (
                 <div style={{ marginTop: 6 }}>
@@ -370,8 +370,8 @@ const OwnerWithdrawalsPage = () => {
             </div>
             <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.5 }}>
               {actionModal.type === "approve"
-                ? "Xác nhận đã chuyển khoản / chi trả theo thông tin tài khoản PT. Bạn có thể thêm ghi chú nội bộ (PT cũng sẽ thấy trong lịch sử rút tiền)."
-                : "Từ chối sẽ hoàn số dư cho PT (nếu đã giữ tiền lúc gửi yêu cầu). Nhập lý do để PT nắm được."}
+                ? "Xác nhận đã chuyển khoản / chi trả theo thông tin tài khoản huấn luyện viên. Bạn có thể thêm ghi chú nội bộ (huấn luyện viên cũng sẽ thấy trong lịch sử rút tiền)."
+                : "Từ chối sẽ hoàn số dư cho huấn luyện viên (nếu đã giữ tiền lúc gửi yêu cầu). Nhập lý do để huấn luyện viên nắm được."}
             </p>
             <label className="nice-modal__label" htmlFor="owner-withdrawal-note">
               {actionModal.type === "approve" ? "Ghi chú khi duyệt (tuỳ chọn)" : "Lý do từ chối (tuỳ chọn)"}

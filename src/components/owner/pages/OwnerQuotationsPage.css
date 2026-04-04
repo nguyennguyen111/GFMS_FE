@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 20px;
   color: #eef2ff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: "Be Vietnam Pro", "Nunito Sans", "Segoe UI", sans-serif;
 }
 
 .oq-head {
@@ -28,7 +28,7 @@
   font-size: 14px;
 }
 
-.btn-primary {
+.oq-page .btn-primary {
   padding: 10px 16px;
   background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
   border: 1px solid rgba(255, 138, 0, 0.35);
@@ -40,14 +40,71 @@
   font-size: 14px;
 }
 
-.btn-primary:hover {
+.oq-page .btn-primary:hover {
   background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
   transform: translateY(-2px);
 }
 
+.oq-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 200px auto auto;
+  gap: 10px;
+  padding: 12px;
+  background: linear-gradient(120deg, rgba(255, 158, 74, 0.12), rgba(15, 22, 33, 0.78));
+  border: 1px solid rgba(255, 176, 87, 0.24);
+  border-radius: 14px;
+}
+
+.oq-search-input,
+.oq-status-select {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 22, 0.75);
+  color: #eef2ff;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.oq-search-input::placeholder {
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.oq-search-input:focus,
+.oq-status-select:focus {
+  outline: none;
+  border-color: rgba(255, 176, 87, 0.75);
+  box-shadow: 0 0 0 3px rgba(255, 176, 87, 0.14);
+}
+
+.oq-filter-btn {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 176, 87, 0.45);
+  background: rgba(255, 176, 87, 0.2);
+  color: #fff7ed;
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.oq-filter-btn:hover {
+  background: rgba(255, 176, 87, 0.28);
+}
+
+.oq-filter-btn-reset {
+  background: rgba(100, 116, 139, 0.25);
+  border-color: rgba(148, 163, 184, 0.42);
+  color: #e2e8f0;
+}
+
+.oq-filter-btn-reset:hover {
+  background: rgba(100, 116, 139, 0.36);
+}
+
 .oq-btn-create {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #00baff 0%, #0080ff 100%);
   color: white;
   border: none;
   border-radius: 6px;
@@ -59,11 +116,14 @@
 
 .oq-btn-create:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 186, 255, 0.3);
 }
 
 .oq-container {
   display: block;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .oq-list {
@@ -345,7 +405,7 @@
 .oq-form-group select:focus,
 .oq-form-group textarea:focus {
   outline: none;
-  border-color: #06b6d4;
+  border-color: #00baff;
 }
 
 .oq-item-row {
@@ -368,7 +428,7 @@
 .oq-item-row select:focus,
 .oq-item-row input:focus {
   outline: none;
-  border-color: #06b6d4;
+  border-color: #00baff;
 }
 
 .oq-item-total {
@@ -432,10 +492,10 @@
 .oq-btn-add-item {
   width: 100%;
   padding: 8px;
-  background: rgba(6, 182, 212, 0.15);
-  border: 1px dashed rgba(6, 182, 212, 0.4);
+  background: rgba(0, 186, 255, 0.15);
+  border: 1px dashed rgba(0, 186, 255, 0.4);
   border-radius: 6px;
-  color: #06b6d4;
+  color: #00baff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -444,7 +504,7 @@
 }
 
 .oq-btn-add-item:hover {
-  background: rgba(6, 182, 212, 0.25);
+  background: rgba(0, 186, 255, 0.25);
 }
 
 .oq-modal-actions {
@@ -476,16 +536,25 @@
 }
 
 .oq-btn-submit {
-  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #00baff 0%, #0080ff 100%);
   color: white;
 }
 
 .oq-btn-submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 186, 255, 0.3);
 }
 
 @media (max-width: 900px) {
+  .oq-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .oq-filter-btn,
+  .oq-filter-btn-reset {
+    width: 100%;
+  }
+
   .oq-item-row {
     grid-template-columns: 1fr;
   }

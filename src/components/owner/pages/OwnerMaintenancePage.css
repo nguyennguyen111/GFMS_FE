@@ -7,6 +7,8 @@
   --oma-muted: rgba(238,242,255,0.70);
   --oma-orange: #ff8a00;
   --oma-orange2: #ffb000;
+  --oma-cyan: #00baff;
+  --oma-ok: #00e3a6;
   --oma-shadow: 0 18px 60px rgba(0,0,0,0.45);
   --oma-radius: 18px;
 }
@@ -28,8 +30,8 @@
   padding:12px; border-radius:var(--oma-radius);
   background: var(--oma-bg);
   border: 1px solid var(--oma-border);
-  box-shadow: var(--oma-shadow);
-  backdrop-filter: blur(10px);
+  box-shadow: none;
+  backdrop-filter: none;
   margin-bottom:12px;
 }
 
@@ -37,14 +39,20 @@
 .oma-field--grow{ flex:1; min-width:240px; }
 .oma-field label{ font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color: var(--oma-muted); }
 .oma-field input, .oma-field select, .oma-field textarea{
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid var(--oma-border2);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255,255,255,0.16);
   color: var(--oma-text);
-  border-radius:14px;
+  border-radius:12px;
   padding:10px 12px;
   outline:none;
   font-family: inherit;
   font-size: 14px;
+}
+.oma-field input:focus,
+.oma-field select:focus,
+.oma-field textarea:focus {
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
 }
 .oma-field select{
   cursor: pointer;
@@ -98,7 +106,12 @@
 .oma-card__title{ font-weight:900; }
 .oma-card__meta{ color: var(--oma-muted); font-size:12px; }
 
-.oma-table-wrap{ overflow:auto; }
+.oma-table-wrap{
+  overflow:auto;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
 .oma-table{ width:100%; border-collapse: collapse; font-size:13px; }
 .oma-table th, .oma-table td{ padding:11px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
 .oma-table th{ text-align:left; color: rgba(238,242,255,0.80); font-size:12px; letter-spacing:0.08em; text-transform:uppercase; }
@@ -116,9 +129,9 @@
   font-size:12px;
 }
 .oma-pill--pending{ border-color: rgba(255,176,0,0.35); background: rgba(255,176,0,0.10); }
-.oma-pill--assigned{ border-color: rgba(0,180,255,0.35); background: rgba(0,180,255,0.10); }
+.oma-pill--assigned{ border-color: rgba(0,186,255,0.35); background: rgba(0,186,255,0.10); }
 .oma-pill--in_progress{ border-color: rgba(255,138,0,0.35); background: rgba(255,138,0,0.10); }
-.oma-pill--completed{ border-color: rgba(0,255,170,0.35); background: rgba(0,255,170,0.10); }
+.oma-pill--completed{ border-color: rgba(0,227,166,0.35); background: rgba(0,227,166,0.10); }
 .oma-pill--cancelled{ border-color: rgba(255,85,85,0.35); background: rgba(255,85,85,0.10); }
 
 .oma-detail{ padding:12px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
@@ -129,8 +142,40 @@
 
 .oma-actions{ padding:12px; display:flex; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.06); }
 
-.oma-paging{ padding:12px; display:flex; align-items:center; justify-content:center; gap:10px; border-top:1px solid rgba(255,255,255,0.06); }
-.oma-paging__text{ color: var(--oma-muted); font-size:12px; }
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  background: rgba(255, 138, 0, 0.18);
+  border: 1px solid rgba(255, 138, 0, 0.3);
+  color: #eef2ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 100ms ease;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: rgba(255, 138, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: rgba(238, 242, 255, 0.7);
+  font-size: 13px;
+}
 
 /* Remove old modal styles */
 .oma-modal__backdrop{ display: none; }
