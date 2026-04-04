@@ -3,6 +3,63 @@
   font-family: system-ui, -apple-system, sans-serif;
 }
 
+.trainer-tabs-wrap {
+  margin-bottom: 18px;
+  padding: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-radius: 0;
+  border: none;
+  background:
+    radial-gradient(120% 220% at 0% 0%, rgba(255, 177, 0, 0.14) 0%, transparent 45%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(0, 186, 255, 0.08));
+  overflow-x: auto;
+}
+
+.trainer-tab-btn {
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 176, 0, 0.34);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 176, 0, 0.16), rgba(255, 138, 0, 0.1));
+  color: rgba(238, 242, 255, 0.9);
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  white-space: nowrap;
+}
+
+.trainer-tab-btn:hover {
+  color: #eef2ff;
+  background: linear-gradient(135deg, rgba(255, 176, 0, 0.24), rgba(255, 138, 0, 0.14));
+}
+
+.trainer-tab-btn.is-active {
+  color: #eef2ff;
+  border-color: rgba(255, 176, 0, 0.58);
+  background: linear-gradient(135deg, rgba(255, 176, 0, 0.3), rgba(255, 138, 0, 0.2));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.trainer-tab-btn.is-active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -9px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffb100, #ff8a00);
+}
+
+.trainer-tab-ico {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
 .page-header {
   margin-bottom: 20px;
   display: flex;
@@ -46,6 +103,8 @@
 .search-input:focus,
 .filter-select:focus {
   outline: none;
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
 }
 
 .filter-select option {
@@ -72,8 +131,8 @@
 
 .btn-add {
   padding: 10px 16px;
-  background: linear-gradient(90deg, rgba(0, 255, 170, 0.28), rgba(0, 200, 150, 0.16));
-  border: 1px solid rgba(0, 255, 170, 0.35);
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(255, 138, 0, 0.35);
   color: #eef2ff;
   border-radius: 14px;
   cursor: pointer;
@@ -84,7 +143,7 @@
 }
 
 .btn-add:hover {
-  background: linear-gradient(90deg, rgba(0, 255, 170, 0.35), rgba(0, 200, 150, 0.2));
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
   transform: translateY(-2px);
 }
 
@@ -139,9 +198,9 @@
 }
 
 .status-confirmed {
-  background: rgba(0, 255, 170, 0.1);
-  border: 1px solid rgba(0, 255, 170, 0.3);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.1);
+  border: 1px solid rgba(0, 227, 166, 0.3);
+  color: #00e3a6;
 }
 
 .status-cancelled {
@@ -151,9 +210,9 @@
 }
 
 .status-completed {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid rgba(255, 176, 0, 0.3);
+  color: #ffb100;
 }
 
 .btn-edit,
@@ -169,24 +228,29 @@
 }
 
 .btn-edit {
-  background: rgba(59, 130, 246, 0.18) !important;
-  border: 1px solid rgba(59, 130, 246, 0.3) !important;
-  color: #3b82f6 !important;
+  background: rgba(255, 176, 0, 0.18) !important;
+  border: 1px solid rgba(255, 176, 0, 0.34) !important;
+  color: #eef2ff !important;
+}
+
+.od2-content .owner-bookings-page .btn-edit,
+.od2-content .owner-bookings-page .btn-edit:hover {
+  color: #eef2ff !important;
 }
 
 .btn-edit:hover {
-  background: rgba(59, 130, 246, 0.28) !important;
+  background: rgba(255, 176, 0, 0.28) !important;
   transform: translateY(-2px);
 }
 
 .btn-detail {
-  background: rgba(0, 255, 170, 0.18) !important;
-  border: 1px solid rgba(0, 255, 170, 0.3) !important;
-  color: #00ffaa !important;
+  background: rgba(0, 227, 166, 0.18) !important;
+  border: 1px solid rgba(0, 227, 166, 0.32) !important;
+  color: #00e3a6 !important;
 }
 
 .btn-detail:hover {
-  background: rgba(0, 255, 170, 0.28) !important;
+  background: rgba(0, 227, 166, 0.28) !important;
   transform: translateY(-2px);
 }
 
@@ -256,6 +320,156 @@
   background: rgba(255, 85, 85, 0.15);
   border: 1px solid rgba(255, 85, 85, 0.4);
   color: #ff5555;
+  font-weight: 600;
+}
+
+/* Approval Tab */
+.owner-bookings-page .owner-request-approval {
+  background: transparent;
+}
+
+.owner-bookings-page .owner-request-approval .od2-main {
+  padding: 0;
+}
+
+.owner-bookings-page .owner-request-approval .od2-topbar {
+  margin: 0 0 10px;
+  padding: 12px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(100% 180% at 0% 0%, rgba(255, 177, 0, 0.12) 0%, transparent 46%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(0, 186, 255, 0.08));
+}
+
+.owner-bookings-page .owner-request-approval .od2-h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffe4aa 0%, #ffb100 52%, #ff8a00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.owner-bookings-page .owner-request-approval .od2-content {
+  margin-top: 0;
+}
+
+.owner-bookings-page .owner-request-approval .loading-text,
+.owner-bookings-page .owner-request-approval .empty-text {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 22, 33, 0.72);
+  color: rgba(238, 242, 255, 0.78);
+}
+
+.owner-bookings-page .owner-request-approval .table-container {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 22, 33, 0.72);
+  overflow: hidden;
+}
+
+.owner-bookings-page .owner-request-approval .approval-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.owner-bookings-page .owner-request-approval .approval-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 138, 0, 0.08);
+  color: rgba(238, 242, 255, 0.82);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.owner-bookings-page .owner-request-approval .approval-table td {
+  padding: 12px;
+  color: #eef2ff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.owner-bookings-page .owner-request-approval .approval-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.owner-bookings-page .owner-request-approval .type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 176, 0, 0.35);
+  background: rgba(255, 176, 0, 0.1);
+  color: #ffcb55;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.owner-bookings-page .owner-request-approval .status-pending,
+.owner-bookings-page .owner-request-approval .status-approved,
+.owner-bookings-page .owner-request-approval .status-rejected {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.owner-bookings-page .owner-request-approval .status-pending {
+  color: #ffb100;
+  border: 1px solid rgba(255, 176, 0, 0.35);
+  background: rgba(255, 176, 0, 0.1);
+}
+
+.owner-bookings-page .owner-request-approval .status-approved {
+  color: #00e3a6;
+  border: 1px solid rgba(0, 227, 166, 0.35);
+  background: rgba(0, 227, 166, 0.1);
+}
+
+.owner-bookings-page .owner-request-approval .status-rejected {
+  color: #ff7676;
+  border: 1px solid rgba(255, 118, 118, 0.35);
+  background: rgba(255, 118, 118, 0.1);
+}
+
+.owner-bookings-page .owner-request-approval .action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-bookings-page .owner-request-approval .btn-approve,
+.owner-bookings-page .owner-request-approval .btn-reject {
+  border-radius: 12px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-bookings-page .owner-request-approval .btn-approve {
+  color: #eef2ff;
+  border-color: rgba(255, 176, 0, 0.35);
+  background: rgba(255, 176, 0, 0.18);
+}
+
+.owner-bookings-page .owner-request-approval .btn-reject {
+  color: #ff9f9f;
+  border-color: rgba(255, 118, 118, 0.32);
+  background: rgba(255, 118, 118, 0.16);
+}
+
+.owner-bookings-page .owner-request-approval .action-done {
+  color: rgba(238, 242, 255, 0.5);
+  font-style: italic;
   font-weight: 600;
 }
 
@@ -572,18 +786,64 @@
 
 /* === Edit Trainer Modal === */
 .edit-trainer-modal {
-  max-width: 600px;
+  max-width: 760px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(13, 22, 39, 0.98), rgba(10, 18, 34, 0.98));
+}
+
+.edit-trainer-modal .modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(90deg, rgba(255, 177, 0, 0.12), rgba(0, 186, 255, 0.08));
+}
+
+.edit-trainer-modal .modal-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.edit-trainer-modal .modal-body {
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.edit-trainer-modal .modal-footer {
+  margin-top: 0;
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.04));
+}
+
+.edit-trainer-modal .btn-cancel,
+.edit-trainer-modal .btn-submit {
+  min-width: 120px;
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.edit-trainer-modal .btn-submit {
+  background: linear-gradient(135deg, rgba(0, 227, 166, 0.28), rgba(0, 186, 138, 0.2));
+  border: 1px solid rgba(0, 227, 166, 0.45);
+  color: #ecfff8;
+}
+
+.edit-trainer-modal .btn-submit:hover {
+  background: linear-gradient(135deg, rgba(0, 227, 166, 0.38), rgba(0, 186, 138, 0.28));
 }
 
 .edit-info-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: rgba(5, 10, 20, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  margin-bottom: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, rgba(5, 10, 20, 0.78), rgba(5, 10, 20, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
 }
 
 .edit-label {
@@ -595,27 +855,27 @@
 }
 
 .edit-value {
-  font-size: 15px;
+  font-size: 16px;
   color: #fff;
-  font-weight: 600;
+  font-weight: 800;
   text-align: right;
 }
 
 .edit-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding: 16px 18px;
-  background: rgba(5, 10, 20, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  margin-bottom: 16px;
+  background: linear-gradient(180deg, rgba(5, 10, 20, 0.78), rgba(5, 10, 20, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   transition: border-color 0.2s ease;
 }
 
 .edit-field:focus-within {
-  border-color: rgba(0, 180, 255, 0.25);
-  background: rgba(5, 10, 20, 0.85);
+  border-color: rgba(0, 186, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
+  background: linear-gradient(180deg, rgba(5, 10, 20, 0.9), rgba(5, 10, 20, 0.72));
 }
 
 .edit-field-label {
@@ -629,14 +889,20 @@
 
 .edit-field-input {
   width: 100%;
-  padding: 0;
-  background: transparent;
-  border: none;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   font-family: inherit;
-  font-weight: 500;
+  font-weight: 600;
   outline: none;
+}
+
+.edit-field-input:focus {
+  border-color: rgba(0, 186, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
 }
 
 /* Trainer Detail Modal */
@@ -659,9 +925,6 @@
   font-size: 16px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.95);
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .detail-grid {
@@ -713,7 +976,6 @@
   border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
   transition: all 0.2s ease;
 }
 
@@ -723,10 +985,6 @@
   transform: translateY(-2px);
 }
 
-.stat-icon {
-  font-size: 28px;
-}
-
 .stat-content {
   flex: 1;
 }
@@ -734,7 +992,7 @@
 .stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #60a5fa;
+  color: #ffd27a;
   line-height: 1.2;
 }
 
@@ -747,9 +1005,9 @@
 
 .btn-close-modal {
   padding: 10px 20px;
-  background: rgba(59, 130, 246, 0.18);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
+  background: rgba(255, 176, 0, 0.18);
+  border: 1px solid rgba(255, 176, 0, 0.34);
+  color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
   font-size: 14px;
@@ -758,7 +1016,7 @@
 }
 
 .btn-close-modal:hover {
-  background: rgba(59, 130, 246, 0.28);
+  background: rgba(255, 176, 0, 0.28);
   transform: translateY(-2px);
 }
 

@@ -51,7 +51,7 @@ const OwnerRequestApprovalPage = () => {
   <div className="owner-request-approval">
     <div className="od2-main">
       <div className="od2-topbar">
-        <h1 className="od2-h1">Duyệt yêu cầu PT</h1>
+        <h1 className="od2-h1">Duyệt yêu cầu Huấn luyện viên</h1>
       </div>
       <div className="od2-content">
         {loading ? (

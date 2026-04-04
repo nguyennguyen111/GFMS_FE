@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./OwnerDashboard.css";
+import "./OwnerThemeOverrides.css";
 
 import OwnerOverviewPage from "./pages/OwnerOverviewPage";
 import OwnerPackagesPage from "./pages/OwnerPackagesPage";
@@ -105,19 +106,6 @@ export default function OwnerDashboard() {
     <div className="od2-layout">
       <aside className={`od2-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="od2-brand">
-          <div className="od2-logo">
-            <div className="od2-mark">G</div>
-            {!collapsed && (
-              <div className="od2-brandText">
-                <div className="od2-title">GFMS</div>
-                <div className="od2-sub">Owner Console</div>
-              </div>
-            )}
-          </div>
-
-          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
-            {collapsed ? "»" : "«"}
-          </button>
         </div>
 
         <div className="od2-profile">
@@ -128,6 +116,9 @@ export default function OwnerDashboard() {
               <div className="od2-email">{user?.email || ""}</div>
             </div>
           )}
+          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
+            {collapsed ? "»" : "«"}
+          </button>
         </div>
 
         <nav className="od2-nav">
@@ -158,21 +149,6 @@ export default function OwnerDashboard() {
       </aside>
 
       <main className="od2-main">
-        <header className="od2-topbar">
-          <div className="od2-topLeft">
-            <div className="od2-h1">Owner Dashboard</div>
-            <div className="od2-h2">Vận hành • Gói tập • Booking • Tài chính • Kho</div>
-          </div>
-
-          <div className="od2-topRight">
-            <div className="od2-search">
-              <span className="od2-searchIco">⌕</span>
-              <input placeholder="Tìm nhanh: member, booking, gói tập..." />
-            </div>
-            <button className="od2-notiBtn" title="Thông báo">🔔</button>
-          </div>
-        </header>
-
         <div className="od2-content">
           <Routes>
             <Route path="/" element={<Navigate to="/owner/overview" replace />} />

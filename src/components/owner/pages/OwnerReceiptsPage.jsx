@@ -12,24 +12,56 @@ const statusBadge = (status) => {
 };
 
 export default function OwnerReceiptsPage() {
+  const PAGE_SIZE = 10;
   const [loading, setLoading] = useState(false);
   const [receipts, setReceipts] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchReceipts = async () => {
+  const fetchReceipts = async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
     setLoading(true);
     try {
-      const res = await ownerGetReceipts({ page, limit: 10 });
+      const params = {
+        page: targetPage,
+        limit: PAGE_SIZE,
+        q: targetSearch || undefined,
+        status: targetStatus !== "all" ? targetStatus : undefined,
+      };
+
+      const res = await ownerGetReceipts(params);
       setReceipts(res?.data?.data ?? []);
-      setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
+      setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySearch = () => {
+    const nextSearch = searchInput.trim();
+    setSearchTerm(nextSearch);
+    if (page === 1) {
+      fetchReceipts(1, nextSearch, statusFilter);
+      return;
+    }
+    setPage(1);
+  };
+
+  const resetSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setStatusFilter("all");
+    if (page === 1) {
+      fetchReceipts(1, "", "all");
+      return;
+    }
+    setPage(1);
   };
 
   const fetchDetail = async (receiptId) => {
@@ -44,7 +76,7 @@ export default function OwnerReceiptsPage() {
   useEffect(() => {
     fetchReceipts();
     // eslint-disable-next-line
-  }, [page]);
+  }, [page, searchTerm, statusFilter]);
 
   return (
     <div className="or-page">
@@ -53,6 +85,39 @@ export default function OwnerReceiptsPage() {
           <h2>Phiếu nhận hàng</h2>
           <p>Theo dõi phiếu nhận hàng từ đơn mua</p>
         </div>
+      </div>
+
+      <div className="or-filters">
+        <input
+          className="or-search-input"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") applySearch();
+          }}
+          placeholder="Tìm theo mã phiếu hoặc mã đơn mua"
+        />
+        <select
+          className="or-status-select"
+          value={statusFilter}
+          onChange={(e) => {
+            const nextStatus = e.target.value;
+            setStatusFilter(nextStatus);
+            if (page === 1) {
+              fetchReceipts(1, searchTerm, nextStatus);
+            } else {
+              setPage(1);
+            }
+          }}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="draft">Nháp</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="approved">Đã duyệt</option>
+          <option value="rejected">Bị từ chối</option>
+        </select>
+        <button className="or-filter-btn" onClick={applySearch}>Tìm kiếm</button>
+        <button className="or-filter-btn or-filter-btn-reset" onClick={resetSearch}>Đặt lại</button>
       </div>
 
       <div className="or-container">
@@ -66,7 +131,7 @@ export default function OwnerReceiptsPage() {
                 <tr>
                   <th>Mã phiếu</th>
                   <th>Đơn mua</th>
-                  <th>Gym</th>
+                  <th>Phòng tập</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
                 </tr>
@@ -80,8 +145,8 @@ export default function OwnerReceiptsPage() {
                       setShowDetailModal(true);
                     }}
                   >
-                    <td>#{receipt.id}</td>
-                    <td>#{receipt.purchaseOrder?.id || "-"}</td>
+                    <td>{receipt.code || `#${receipt.id}`}</td>
+                    <td>{receipt.purchaseOrder?.code || (receipt.purchaseOrder?.id ? `#${receipt.purchaseOrder.id}` : "-")}</td>
                     <td>{receipt.gym?.name || "-"}</td>
                     <td>
                       <span className={`or-badge or-badge-${receipt.status}`}>
@@ -102,27 +167,25 @@ export default function OwnerReceiptsPage() {
             </table>
           </div>
 
-          {meta.totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="pagination-btn"
-              >
-                Trước
-              </button>
-              <span className="pagination-info">
-                Trang {meta.page} / {meta.totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
-                disabled={page === meta.totalPages}
-                className="pagination-btn"
-              >
-                Sau
-              </button>
-            </div>
-          )}
+          <div className="pagination">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={meta.page <= 1}
+              className="pagination-btn"
+            >
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(meta.totalPages || 1, page + 1))}
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              className="pagination-btn"
+            >
+              Sau
+            </button>
+          </div>
         </div>
 
         {/* Detail Modal */}
@@ -136,15 +199,15 @@ export default function OwnerReceiptsPage() {
               <div className="modal-body">
                 <div className="detail-grid">
                   <div className="detail-row">
-                    <span className="detail-label">ID</span>
-                    <span className="detail-value">#{detail.id}</span>
+                    <span className="detail-label">Mã phiếu</span>
+                    <span className="detail-value">{detail.code || `#${detail.id}`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Đơn mua</span>
-                    <span className="detail-value">#{detail.purchaseOrder?.id || "-"}</span>
+                    <span className="detail-value">{detail.purchaseOrder?.code || (detail.purchaseOrder?.id ? `#${detail.purchaseOrder.id}` : "-")}</span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Gym</span>
+                    <span className="detail-label">Phòng tập</span>
                     <span className="detail-value">{detail.gym?.name || "-"}</span>
                   </div>
                   <div className="detail-row">
