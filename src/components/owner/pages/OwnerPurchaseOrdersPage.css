@@ -29,24 +29,25 @@
 }
 
 .opo-filters {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 200px auto auto;
-  gap: 10px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 12px;
-  background: linear-gradient(120deg, rgba(255, 158, 74, 0.12), rgba(15, 22, 33, 0.78));
-  border: 1px solid rgba(255, 176, 87, 0.24);
-  border-radius: 14px;
+  margin-bottom: 6px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
 }
 
 .opo-search-input,
 .opo-status-select {
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(10, 14, 22, 0.75);
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.6);
   color: #eef2ff;
-  padding: 0 12px;
-  font-size: 13px;
+  font-size: 14px;
+  min-width: 200px;
 }
 
 .opo-search-input::placeholder {
@@ -56,33 +57,25 @@
 .opo-search-input:focus,
 .opo-status-select:focus {
   outline: none;
-  border-color: rgba(255, 176, 87, 0.75);
-  box-shadow: 0 0 0 3px rgba(255, 176, 87, 0.14);
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
 }
 
 .opo-filter-btn {
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 176, 87, 0.45);
-  background: rgba(255, 176, 87, 0.2);
-  color: #fff7ed;
-  font-weight: 700;
-  padding: 0 16px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
+  color: #eef2ff;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 120ms ease;
 }
 
 .opo-filter-btn:hover {
-  background: rgba(255, 176, 87, 0.28);
-}
-
-.opo-filter-btn-reset {
-  background: rgba(100, 116, 139, 0.25);
-  border-color: rgba(148, 163, 184, 0.42);
-  color: #e2e8f0;
-}
-
-.opo-filter-btn-reset:hover {
-  background: rgba(100, 116, 139, 0.36);
+  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  transform: translateY(-2px);
 }
 
 .opo-container {
@@ -279,11 +272,10 @@
 
 @media (max-width: 768px) {
   .opo-filters {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
-  .opo-filter-btn,
-  .opo-filter-btn-reset {
+  .opo-filter-btn {
     width: 100%;
   }
 
