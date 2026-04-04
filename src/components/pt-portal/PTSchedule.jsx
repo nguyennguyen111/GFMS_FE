@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
-import { getPTAttendanceSchedule, ptCheckIn } from "../../services/ptAttendanceService";
+import { getPTAttendanceSchedule, ptCheckIn, ptResetAttendance } from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
 import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
 import NiceModal from "../common/NiceModal";
@@ -167,6 +167,28 @@ const PTSchedule = () => {
       setAttendanceBlockModal(
         locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể cập nhật điểm danh. Vui lòng thử lại."
       );
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const resetStatus = async () => {
+    if (!attBooking) return;
+    setAttLoading(true);
+    try {
+      await ptResetAttendance({ bookingId: attBooking.id });
+      const ymd = toYMD(new Date(attBooking.bookingDate));
+      const res = await getPTAttendanceSchedule({ date: ymd });
+      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không thể hoàn tác điểm danh.";
+      window.alert(msg);
     } finally {
       setAttLoading(false);
     }
@@ -347,6 +369,7 @@ const PTSchedule = () => {
         onClose={() => setAttOpen(false)}
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}
+        onReset={resetStatus}
       />
 
       <NiceModal

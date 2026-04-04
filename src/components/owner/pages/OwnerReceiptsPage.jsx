@@ -4,10 +4,9 @@ import { ownerGetReceipts, ownerGetReceiptDetail } from "../../../services/owner
 
 const statusBadge = (status) => {
   const map = {
-    draft: "Nháp",
-    pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    rejected: "Bị từ chối",
+    pending: "Chờ xác nhận",
+    completed: "Đã hoàn tất",
+    cancelled: "Đã hủy",
   };
   return map[status] || status;
 };
@@ -83,8 +82,8 @@ export default function OwnerReceiptsPage() {
     <div className="or-page">
       <div className="or-head">
         <div>
-          <h2>Phiếu nhập kho</h2>
-          <p>Quản lý phiếu nhập kho thiết bị</p>
+          <h2>Phiếu nhận hàng</h2>
+          <p>Theo dõi phiếu nhận hàng từ đơn mua</p>
         </div>
       </div>
 
@@ -160,7 +159,7 @@ export default function OwnerReceiptsPage() {
                 {receipts.length === 0 && (
                   <tr>
                     <td colSpan={5} className="or-empty">
-                      Không có phiếu nhập
+                      Không có phiếu nhận hàng
                     </td>
                   </tr>
                 )}
@@ -194,7 +193,7 @@ export default function OwnerReceiptsPage() {
           <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Chi tiết phiếu nhập #{detail.id}</h3>
+                <h3>Chi tiết phiếu nhận hàng #{detail.id}</h3>
                 <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
               </div>
               <div className="modal-body">
@@ -210,6 +209,10 @@ export default function OwnerReceiptsPage() {
                   <div className="detail-row">
                     <span className="detail-label">Phòng tập</span>
                     <span className="detail-value">{detail.gym?.name || "-"}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Nhà cung cấp</span>
+                    <span className="detail-value">{detail.supplier?.name || detail.purchaseOrder?.supplier?.name || "-"}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Trạng thái</span>

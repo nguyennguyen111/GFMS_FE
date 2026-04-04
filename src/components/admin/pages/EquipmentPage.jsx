@@ -206,7 +206,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Danh mục thiết bị dùng cho nhập kho / tồn kho / xuất kho (theo chi nhánh gym)
+            Master data thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
           </div>
         </div>
 

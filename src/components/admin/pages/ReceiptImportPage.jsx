@@ -82,7 +82,7 @@ export default function ReceiptImportPage() {
         }))
         .filter((it) => it.equipmentId && it.quantity > 0);
 
-      if (!cleanItems.length) throw new Error("Danh sách thiết bị nhập không hợp lệ");
+      if (!cleanItems.length) throw new Error("Danh sách thiết bị nhận không hợp lệ");
 
       const payload = {
         code: `REC-${Date.now()}`,
@@ -95,7 +95,7 @@ export default function ReceiptImportPage() {
       };
 
       await createReceipt(payload);
-      alert("Tạo phiếu nhập thành công!");
+      alert("Tạo phiếu nhận hàng thành công!");
       setNotes("");
       setPurchaseOrderId("");
       setItems([{ equipmentId: "", quantity: 1, unitPrice: "", notes: "" }]);
@@ -110,8 +110,8 @@ export default function ReceiptImportPage() {
     <div className="rip-wrap">
       <div className="rip-head">
         <div>
-          <h2 className="rip-title">Nhập kho</h2>
-          <div className="rip-sub">Tạo phiếu nhập (Receipt) + cập nhật tồn kho + ghi nhật ký kho</div>
+          <h2 className="rip-title">Nhận hàng</h2>
+          <div className="rip-sub">Tạo phiếu nhận hàng (Goods Receipt) gắn với đơn mua và cập nhật tồn kho sau xác nhận</div>
         </div>
       </div>
 
@@ -144,7 +144,7 @@ export default function ReceiptImportPage() {
           </div>
 
           <div className="rip-field">
-            <label>Ngày nhập</label>
+            <label>Ngày nhận</label>
             <input type="date" value={receiptDate} onChange={(e) => setReceiptDate(e.target.value)} />
           </div>
 
@@ -162,7 +162,7 @@ export default function ReceiptImportPage() {
 
       <div className="rip-card">
         <div className="rip-card__head">
-          <div className="rip-card__title">Danh sách thiết bị nhập</div>
+          <div className="rip-card__title">Danh sách thiết bị nhận</div>
           <button className="rip-btn rip-btn--ghost" onClick={addRow}>
             + Thêm dòng
           </button>
@@ -223,7 +223,7 @@ export default function ReceiptImportPage() {
 
         <div className="rip-footer">
           <button className="rip-btn rip-btn--primary" onClick={onSubmit} disabled={loading}>
-            {loading ? "Đang tạo..." : "Tạo phiếu nhập"}
+            {loading ? "Đang tạo..." : "Tạo phiếu nhận hàng"}
           </button>
         </div>
       </div>

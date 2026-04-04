@@ -4,7 +4,6 @@ import {
   admGetReportSummary,
   admGetReportRevenue,
   admGetReportInventory,
-  admGetReportTrainerShare,
 } from "../../../services/adminAdminCoreService";
 
 const fmtMoney = (v) => {
@@ -31,7 +30,7 @@ const addDaysISO = (iso, diff) => {
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState("summary"); // summary | revenue | inventory | trainerShare
+  const [tab, setTab] = useState("summary"); // summary | revenue | inventory
 
   const [filters, setFilters] = useState(() => {
     const to = todayISO();
@@ -43,8 +42,6 @@ export default function ReportsPage() {
   const [summary, setSummary] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [inventory, setInventory] = useState(null);
-  const [trainerShare, setTrainerShare] = useState(null);
-
   const params = useMemo(() => {
     const p = {
       from: filters.from || undefined,
@@ -71,10 +68,6 @@ export default function ReportsPage() {
         const res = await admGetReportInventory(params);
         setInventory(res.data);
       }
-      if (t === "trainerShare") {
-        const res = await admGetReportTrainerShare(params);
-        setTrainerShare(res.data);
-      }
     } catch (e) {
       // lỗi thường gặp: 401/403/404/CORS/ECONNREFUSED
       const msg = e?.response?.data?.message || e.message;
@@ -95,7 +88,6 @@ export default function ReportsPage() {
     if (tab === "summary" && !summary) fetchByTab("summary");
     if (tab === "revenue" && !revenue) fetchByTab("revenue");
     if (tab === "inventory" && !inventory) fetchByTab("inventory");
-    if (tab === "trainerShare" && !trainerShare) fetchByTab("trainerShare");
     // eslint-disable-next-line
   }, [tab]);
 
@@ -104,7 +96,6 @@ export default function ReportsPage() {
     if (tab === "summary") setSummary(null);
     if (tab === "revenue") setRevenue(null);
     if (tab === "inventory") setInventory(null);
-    if (tab === "trainerShare") setTrainerShare(null);
     await fetchByTab(tab);
   };
 
@@ -114,7 +105,7 @@ export default function ReportsPage() {
         <div>
           <div className="rp-title">Reports</div>
           <div className="rp-sub">
-            Tổng quan / Doanh thu / Kho / Chia sẻ PT (module 6.2 – main flow)
+            Tổng quan / Doanh thu / Kho
           </div>
         </div>
         <div className="rp-badge">{loading ? "Đang tải..." : "Module 6.2"}</div>
@@ -172,12 +163,6 @@ export default function ReportsPage() {
         >
           Inventory
         </button>
-        <button
-          className={`rp-tab ${tab === "trainerShare" ? "is-active" : ""}`}
-          onClick={() => setTab("trainerShare")}
-        >
-          Trainer Share
-        </button>
       </div>
 
       {/* ===================== SUMMARY ===================== */}
@@ -227,10 +212,6 @@ export default function ReportsPage() {
               <div className="rp-kpi">
                 <div className="rp-kpi__k">PO Pending</div>
                 <div className="rp-kpi__v">{summary?.cards?.poPendingCount ?? 0}</div>
-              </div>
-              <div className="rp-kpi">
-                <div className="rp-kpi__k">TrainerShare Pending</div>
-                <div className="rp-kpi__v">{summary?.cards?.trainerSharePendingCount ?? 0}</div>
               </div>
             </div>
           )}
@@ -409,76 +390,6 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {/* ===================== TRAINER SHARE ===================== */}
-      {tab === "trainerShare" && (
-        <div className="rp-card">
-          <div className="rp-card__head">
-            <div className="rp-card__title">Trainer Share</div>
-            <div className="rp-card__meta">
-              Approved: <b>{trainerShare?.summary?.approved ?? 0}</b> • Pending:{" "}
-              <b>{trainerShare?.summary?.pending ?? 0}</b>
-            </div>
-          </div>
-
-          {!trainerShare ? (
-            <div className="rp-empty">Nhấn Apply để tải trainer share report.</div>
-          ) : (
-            <>
-              <div className="rp-cards">
-                <div className="rp-kpi">
-                  <div className="rp-kpi__k">Total</div>
-                  <div className="rp-kpi__v">{trainerShare?.summary?.total ?? 0}</div>
-                </div>
-                <div className="rp-kpi">
-                  <div className="rp-kpi__k">Avg Split (Approved)</div>
-                  <div className="rp-kpi__v">
-                    {Number(trainerShare?.summary?.avgCommissionSplitApproved ?? 0).toFixed(2)}
-                  </div>
-                </div>
-                <div className="rp-kpi">
-                  <div className="rp-kpi__k">Rejected</div>
-                  <div className="rp-kpi__v">{trainerShare?.summary?.rejected ?? 0}</div>
-                </div>
-              </div>
-
-              <div className="rp-table-card">
-                <div className="rp-mini__title">Trainer Shares</div>
-                <div className="rp-table-wrap">
-                  <table className="rp-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Status</th>
-                        <th>TrainerId</th>
-                        <th>FromGym</th>
-                        <th>ToGym</th>
-                        <th>Split</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(trainerShare.data || []).map((r) => (
-                        <tr key={r.id}>
-                          <td>#{r.id}</td>
-                          <td>{r.status}</td>
-                          <td>{r.trainerId ?? "-"}</td>
-                          <td>{r.fromGymId ?? "-"}</td>
-                          <td>{r.toGymId ?? "-"}</td>
-                          <td>{r.commissionSplit ?? "-"}</td>
-                        </tr>
-                      ))}
-                      {(trainerShare.data || []).length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="rp-empty2">Không có trainer share</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

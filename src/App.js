@@ -1,4 +1,5 @@
 import React from "react";
+import AppToastHost from "./components/common/AppToastHost";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import LandingPage from "./components/pages/LandingPage";
@@ -11,8 +12,6 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import OwnerDashboard from "./components/owner/OwnerDashboard";
 
 /* ================= MEMBER ================= */
-import MemberHomePage from "./components/member/pages/MemberHomePage";
-import MemberBookingCreatePage from "./components/member/pages/MemberBookingCreatePage";
 import MemberBookingsPage from "./components/member/pages/MemberBookingsPage";
 import MemberCheckinPage from "./components/member/pages/MemberCheckinPage";
 import MemberMyPackagesPage from "./components/member/pages/MemberMyPackagesPage";
@@ -40,6 +39,7 @@ import PTFeedback from "./components/pt-portal/PTFeedback";
 import PTFinancePage from "./components/pt-portal/PTFinancePage";
 import PTDemoVideos from "./components/pt-portal/PTDemoVideos";
 import PTRequests from "./components/pt-portal/PTRequests";
+import PTMessagesPage from "./components/pt-portal/PTMessagesPage";
 
 /* ================= MARKETPLACE ================= */
 import WebsiteLayout from "./layouts/WebsiteLayout";
@@ -80,6 +80,7 @@ const AdminGuard = ({ children }) => {
 function App() {
   return (
     <Router>
+      <AppToastHost />
       <Routes>
         {/* ===== PUBLIC SIGNING ===== */}
         <Route path="/sign-contract" element={<SignContractPage />} />
@@ -115,11 +116,9 @@ function App() {
         {/* ===== MEMBER ===== */}
         <Route path="/member" element={<WebsiteLayout />}>
           <Route index element={<Navigate to="home" replace />} />
-          <Route path="home" element={<MemberHomePage />} />
           <Route path="my-packages" element={<MemberMyPackagesPage />} />
           <Route path="my-packages/:activationId" element={<MemberPackageDetailPage />} />
           <Route path="bookings" element={<MemberBookingsPage />} />
-          <Route path="bookings/new" element={<MemberBookingCreatePage />} />
           <Route path="checkin/:id" element={<MemberCheckinPage />} />
           <Route path="booking/wizard" element={<MemberBookingWizard />} />
 
@@ -145,6 +144,7 @@ function App() {
           <Route path="profile" element={<PTProfile />} />
           <Route path="profile/create" element={<PTCreateProfile />} />
           <Route path="clients" element={<PTClients />} />
+          <Route path="messages" element={<PTMessagesPage />} />
           <Route path="feedback" element={<PTFeedback />} />
           <Route path="demo-videos" element={<PTDemoVideos />} />
           <Route path="finance" element={<PTFinancePage />} />
