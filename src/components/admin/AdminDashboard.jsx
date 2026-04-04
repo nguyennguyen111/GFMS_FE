@@ -10,8 +10,6 @@ import InventoryLogsPage from "./pages/InventoryLogsPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
-import ReceiptImportPage from "./pages/ReceiptImportPage";
-import ExportPage from "./pages/ExportPage";
 import GymsPage from "./pages/GymsPage";
 
 // ✅ Purchase workflow (1.1–1.4 bạn đã code)
@@ -20,9 +18,6 @@ import PurchaseWorkflowPage from "./pages/PurchaseWorkflowPage";
 // ✅ NEW: module 2–6.2 pages (bạn copy thêm bên dưới)
 import MaintenancePage from "./pages/MaintenancePage";
 import FranchiseRequestsPage from "./pages/FranchiseRequestsPage";
-import SharingPoliciesPage from "./pages/SharingPoliciesPage";
-import TrainerShareApprovalsPage from "./pages/TrainerShareApprovalsPage";
-import TrainerShareOverridesPage from "./pages/TrainerShareOverridesPage";
 import AuditLogsPage from "./pages/AuditLogsPage";
 import ReportsPage from "./pages/ReportsPage";
 
@@ -43,19 +38,16 @@ export default function AdminDashboard() {
       { section: "Thiết bị & Kho" },
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
-      { label: "Mua sắm trang thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
+      {
+        label: "Mua sắm (yêu cầu → báo giá → PO → nhận hàng → TT)",
+        to: "/admin/purchase-workflow",
+        key: "purchase-workflow",
+      },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
       { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
-      { label: "Nhập kho", to: "/admin/import", key: "import" },
-      { label: "Xuất kho", to: "/admin/export", key: "export" },
 
       { section: "Thiết bị & Kỹ thuật" },
       { label: "Bảo trì / Sửa chữa", to: "/admin/maintenance", key: "maintenance" },
-
-      { section: "Chia sẻ PT" },
-      { label: "Chính sách chia sẻ", to: "/admin/policies/sharing", key: "policies" },
-      { label: "Duyệt chia sẻ PT", to: "/admin/shared-trainer-approvals", key: "ts-approvals" },
-      { label: "Ngoại lệ chia sẻ", to: "/admin/shared-trainers/overrides", key: "overrides" },
 
       { section: "Báo cáo & Nhật ký" },
       { label: "Báo cáo", to: "/admin/reports", key: "reports" },
@@ -157,16 +149,11 @@ export default function AdminDashboard() {
 
             <Route path="/stocks" element={<InventoryPage />} />
             <Route path="/inventory-logs" element={<InventoryLogsPage />} />
-            <Route path="/import" element={<ReceiptImportPage />} />
-            <Route path="/export" element={<ExportPage />} />
+            <Route path="/import" element={<Navigate to="/admin/purchase-workflow" replace />} />
+            <Route path="/export" element={<Navigate to="/admin/purchase-workflow" replace />} />
 
             {/* ✅ Module 2 */}
             <Route path="/maintenance" element={<MaintenancePage />} />
-
-            {/* ✅ Module 4–5 */}
-            <Route path="/policies/sharing" element={<SharingPoliciesPage />} />
-            <Route path="/shared-trainer-approvals" element={<TrainerShareApprovalsPage />} />
-            <Route path="/shared-trainers/overrides" element={<TrainerShareOverridesPage />} />
 
             {/* ✅ Module 6 */}
             <Route path="/reports" element={<ReportsPage />} />

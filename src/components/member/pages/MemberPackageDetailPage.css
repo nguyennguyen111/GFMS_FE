@@ -20,6 +20,12 @@
 .mpd2-page {
   min-height: 100vh;
   color: var(--mpd2-text);
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .mpd2-empty {
@@ -315,6 +321,63 @@
   color: #fff;
 }
 
+.mpd2-materials {
+  display: grid;
+  gap: 10px;
+}
+
+.mpd2-materialRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--mpd2-stroke);
+  background: var(--mpd2-surface-2);
+}
+
+.mpd2-materialIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mpd2-surface-3);
+  color: var(--mpd2-primary);
+}
+
+.mpd2-materialBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.mpd2-materialTitle {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+}
+
+.mpd2-materialMeta {
+  font-size: 12px;
+  color: var(--mpd2-text-muted);
+  margin-top: 4px;
+}
+
+.mpd2-materialLink {
+  display: inline-flex;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mpd2-primary);
+  text-decoration: none;
+}
+
+.mpd2-materialLink:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 1100px) {
   .mpd2-overview,
   .mpd2-detailGrid {
@@ -323,6 +386,10 @@
 }
 
 @media (max-width: 768px) {
+  .mpd2-page {
+    padding: 24px 16px 80px;
+  }
+  
   .mpd2-title {
     font-size: 38px;
   }

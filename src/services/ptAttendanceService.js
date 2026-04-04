@@ -41,3 +41,8 @@ export const ptCheckOut = async ({ bookingId, sessionNotes, exercises, weight, b
   );
   return res.data;
 };
+
+export const ptResetAttendance = async ({ bookingId }) => {
+  const res = await axios.post(`${BASE}/attendance/reset`, { bookingId }, ptConfig());
+  return res.data;
+};

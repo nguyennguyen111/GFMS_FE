@@ -2,7 +2,12 @@
   min-height: 100vh;
   background: #0e0e0e;
   color: #ffffff;
-  padding: 40px 24px 72px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .mprof-header {
@@ -1142,7 +1147,7 @@
 
 @media (max-width: 767px) {
   .mprof-page {
-    padding: 28px 16px 56px;
+    padding: 24px 16px 80px;
   }
 
   .mprof-pageTitle {

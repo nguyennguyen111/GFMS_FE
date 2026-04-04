@@ -6,6 +6,10 @@ import {
   getMyPTTrainingPlans,
   uploadMyPTTrainingPlan,
   uploadMyPTDemoVideo,
+  getPTEligibleActivations,
+  getPTActivationMaterials,
+  sendPTActivationMaterial,
+  deletePTActivationMaterial,
 } from "../../services/ptService";
 import "./PTDemoVideos.css";
 
@@ -30,6 +34,12 @@ const PTDemoVideos = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadingPlan, setUploadingPlan] = useState(false);
   const [error, setError] = useState("");
+  const [eligibleActivations, setEligibleActivations] = useState([]);
+  const [sendActivationId, setSendActivationId] = useState("");
+  const [sendKind, setSendKind] = useState("demo_video");
+  const [sendItemId, setSendItemId] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentMaterials, setSentMaterials] = useState([]);
 
   const fetchVideos = async () => {
     try {
@@ -49,6 +59,42 @@ const PTDemoVideos = () => {
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await getPTEligibleActivations();
+        if (!mounted) return;
+        setEligibleActivations(Array.isArray(res?.data) ? res.data : []);
+      } catch {
+        if (mounted) setEligibleActivations([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!sendActivationId) {
+      setSentMaterials([]);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const res = await getPTActivationMaterials(sendActivationId);
+        if (!mounted) return;
+        setSentMaterials(Array.isArray(res?.data) ? res.data : []);
+      } catch {
+        if (mounted) setSentMaterials([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [sendActivationId]);
 
   const onUpload = async (e) => {
     e.preventDefault();
@@ -114,6 +160,46 @@ const PTDemoVideos = () => {
     }
   };
 
+  const onSendToMember = async (e) => {
+    e.preventDefault();
+    if (!sendActivationId || !sendItemId) {
+      setError("Chọn gói kích hoạt và mục cần gửi.");
+      return;
+    }
+    try {
+      setSending(true);
+      setError("");
+      await sendPTActivationMaterial({
+        packageActivationId: Number(sendActivationId),
+        materialKind: sendKind,
+        sourceItemId: sendItemId,
+      });
+      const res = await getPTActivationMaterials(sendActivationId);
+      setSentMaterials(Array.isArray(res?.data) ? res.data : []);
+      setSendItemId("");
+    } catch (err) {
+      setError(err?.response?.data?.message || "Gửi thất bại.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onDeleteSent = async (materialId) => {
+    if (!window.confirm("Xóa tài liệu đã gửi? Học viên sẽ không còn thấy trong danh sách.")) return;
+    try {
+      await deletePTActivationMaterial(materialId);
+      const res = await getPTActivationMaterials(sendActivationId);
+      setSentMaterials(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Không xóa được.");
+    }
+  };
+
+  const sendItemOptions =
+    sendKind === "demo_video"
+      ? videos.map((v) => ({ id: v.id, label: v.title || v.id }))
+      : plans.map((p) => ({ id: p.id, label: p.title || p.id }));
+
   return (
     <div className="ptp-wrap">
       <div className="ptp-head">
@@ -151,6 +237,102 @@ const PTDemoVideos = () => {
             {uploading ? "Đang upload..." : "Upload video demo"}
           </button>
         </div>
+      </form>
+
+      <form className="ptp-card pt-demo-upload-card" onSubmit={onSendToMember}>
+        <h3 className="pt-demo-title">Gửi tài liệu cho học viên (theo gói đang học)</h3>
+        <div className="ptp-sub" style={{ marginBottom: 10 }}>
+          Chọn gói kích hoạt mà bạn được phụ trách, rồi gửi video demo hoặc file kế hoạch đã có ở trên.
+        </div>
+        <div className="ptp-grid">
+          <div className="ptp-row">
+            <label>Gói kích hoạt</label>
+            <select
+              className="ptp-input"
+              value={sendActivationId}
+              onChange={(e) => {
+                setSendActivationId(e.target.value);
+                setSendItemId("");
+              }}
+            >
+              <option value="">— Chọn —</option>
+              {eligibleActivations.map((a) => (
+                <option key={a.id} value={a.id}>
+                  #{a.id} · {a.packageName || "Gói"} · {a.memberUsername || "Học viên"}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="ptp-row">
+            <label>Loại gửi</label>
+            <select
+              className="ptp-input"
+              value={sendKind}
+              onChange={(e) => {
+                setSendKind(e.target.value);
+                setSendItemId("");
+              }}
+            >
+              <option value="demo_video">Video demo</option>
+              <option value="training_plan">File kế hoạch</option>
+            </select>
+          </div>
+          <div className="ptp-row">
+            <label>Mục từ thư viện của bạn</label>
+            <select
+              className="ptp-input"
+              value={sendItemId}
+              onChange={(e) => setSendItemId(e.target.value)}
+            >
+              <option value="">— Chọn —</option>
+              {sendItemOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="pt-demo-upload-action">
+          <button type="submit" className="ptp-btn ptp-btn--primary" disabled={sending || !sendActivationId}>
+            {sending ? "Đang gửi..." : "Gửi cho học viên"}
+          </button>
+        </div>
+        {sendActivationId ? (
+          <div style={{ marginTop: 14 }}>
+            <div className="ptp-sub" style={{ marginBottom: 10 }}>
+              Đã gửi cho gói này:
+            </div>
+            {!sentMaterials.length ? (
+              <div className="ptp-sub">Chưa có mục nào.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {sentMaterials.map((m) => (
+                  <div key={m.id} className="ptp-card" style={{ padding: 10 }}>
+                    <div style={{ fontWeight: 700 }}>
+                      {m.materialKind === "demo_video" ? "Video" : "Kế hoạch"} · {m.title || "—"}
+                    </div>
+                    <div className="ptp-sub">
+                      {m.createdAt ? new Date(m.createdAt).toLocaleString("vi-VN") : ""}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <a className="ptp-btn ptp-btn--small" href={m.fileUrl} target="_blank" rel="noreferrer">
+                        Mở link
+                      </a>
+                      <button
+                        type="button"
+                        className="ptp-btn ptp-btn--warn ptp-btn--small"
+                        onClick={() => onDeleteSent(m.id)}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </form>
 
       <form className="ptp-card pt-demo-upload-card" onSubmit={onUploadPlan}>

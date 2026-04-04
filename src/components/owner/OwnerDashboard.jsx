@@ -13,6 +13,8 @@ import OwnerTransferPage from "./pages/OwnerTransferPage";
 import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
+import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
+import OwnerProcurementPaymentsPage from "./pages/OwnerProcurementPaymentsPage";
 import OwnerFranchiseRequestsPage from "./pages/OwnerFranchiseRequestsPage";
 import OwnerTrainerSharePage from "./pages/OwnerTrainerSharePage";
 import OwnerMembersPage from "./pages/OwnerMembersPage";
@@ -76,9 +78,11 @@ export default function OwnerDashboard() {
     {
       title: "Mua hàng",
       items: [
-        { label: "Mua thiết bị", to: "/owner/quotations", key: "quotations", icon: "📝" },
+        { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests", icon: "📋" },
+        { label: "Báo giá", to: "/owner/quotations", key: "quotations", icon: "📝" },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", icon: "🧷" },
-        { label: "Nhập kho", to: "/owner/receipts", key: "receipts", icon: "📥" },
+        { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", icon: "📥" },
+        { label: "Thanh toán PO", to: "/owner/procurement-payments", key: "procurement-payments", icon: "💰" },
       ],
     },
     {
@@ -170,9 +174,11 @@ export default function OwnerDashboard() {
             <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
             {/* Purchasing */}
+            <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
             <Route path="/quotations" element={<OwnerQuotationsPage />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
+            <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />
 
             {/* Communication */}
             <Route path="/messages" element={<PlaceholderPage title="Tin nhắn (message)" />} />
