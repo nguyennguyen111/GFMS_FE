@@ -18,7 +18,7 @@
   font-size: 28px;
   font-weight: 900;
   margin: 0 0 4px 0;
-  background: linear-gradient(135deg, #eef2ff 0%, #cbd5e1 100%);
+  background: linear-gradient(135deg, #ffe4aa 0%, #ffb100 52%, #ff8a00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -59,8 +59,8 @@
 }
 
 .ots-tab.active {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  color: #ffd27a;
+  background: rgba(255, 177, 0, 0.14);
 }
 
 .ots-tab.active::after {
@@ -70,7 +70,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: #3b82f6;
+  background: #ffb100;
 }
 
 /* Alerts */
@@ -132,14 +132,14 @@
 
 .ots-btn--primary,
 .btn-primary {
-  background: rgba(0, 180, 255, .16);
-  border-color: rgba(0, 180, 255, .28);
+  background: linear-gradient(135deg, rgba(255, 177, 0, 0.24), rgba(255, 138, 0, 0.16));
+  border-color: rgba(255, 177, 0, .32);
 }
 
 .ots-btn--primary:hover,
 .btn-primary:hover {
-  background: rgba(0, 180, 255, .22);
-  border-color: rgba(0, 180, 255, .35);
+  background: linear-gradient(135deg, rgba(255, 177, 0, 0.32), rgba(255, 138, 0, 0.2));
+  border-color: rgba(255, 177, 0, .46);
 }
 
 .ots-btn--secondary {
@@ -184,23 +184,41 @@
 .ots-filters input,
 .ots-filters select {
   padding: 10px 14px;
-  background: rgba(0, 0, 0, .3);
-  border: 1px solid rgba(255, 255, 255, .12);
+  background: linear-gradient(145deg, rgba(7, 14, 28, 0.95), rgba(4, 10, 22, 0.95));
+  border: 1px solid rgba(255, 177, 0, 0.28);
   color: #eef2ff;
   border-radius: 14px;
   font-size: 14px;
   min-width: 200px;
   outline: none;
-  transition: border-color .2s ease;
+  transition: border-color .2s ease, box-shadow .2s ease;
 }
 
 .ots-filters input:focus,
 .ots-filters select:focus {
-  border-color: rgba(0, 180, 255, .4);
+  border-color: rgba(255, 177, 0, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.14);
 }
 
 .ots-filters input::placeholder {
   color: rgba(238, 242, 255, 0.4);
+}
+
+.ots-filters select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 38px;
+}
+
+.ots-filters select option {
+  background: #111827;
+  color: #eef2ff;
 }
 
 /* Table */
@@ -270,13 +288,13 @@
 .ots-badge--warning {
   background: rgba(255, 176, 0, .10);
   border-color: rgba(255, 176, 0, .22);
-  color: #ffc107;
+  color: #ffb100;
 }
 
 .ots-badge--success {
   background: rgba(80, 255, 180, .10);
   border-color: rgba(80, 255, 180, .24);
-  color: #5fffc0;
+  color: #00e3a6;
 }
 
 .ots-badge--danger {
@@ -286,9 +304,9 @@
 }
 
 .ots-badge--info {
-  background: rgba(59, 130, 246, .10);
-  border-color: rgba(59, 130, 246, .24);
-  color: #3b82f6;
+  background: rgba(0, 186, 255, .12);
+  border-color: rgba(0, 186, 255, .26);
+  color: #00baff;
 }
 
 /* Actions */
@@ -300,7 +318,7 @@
 }
 
 .ots-text--success {
-  color: rgba(80, 255, 180, 0.95);
+  color: rgba(0, 227, 166, 0.95);
   font-size: 13px;
   font-weight: 600;
 }
@@ -375,10 +393,10 @@
 .ots-modal__content {
   position: relative;
   background: linear-gradient(145deg, rgba(25, 32, 48, 0.98) 0%, rgba(18, 24, 38, 0.98) 100%);
-  border: 1px solid rgba(255, 138, 0, 0.15);
+  border: 1px solid rgba(255, 177, 0, 0.22);
   border-radius: 20px;
-  box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 138, 0, 0.08);
-  max-width: 680px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 177, 0, 0.1);
+  max-width: 760px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -402,13 +420,13 @@
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255, 138, 0, 0.04) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(255, 177, 0, 0.08) 0%, transparent 100%);
 }
 
 .ots-modal__header h2 {
   font-size: 20px;
   font-weight: 900;
-  background: linear-gradient(135deg, #eef2ff 0%, #cbd5e1 100%);
+  background: linear-gradient(135deg, #ffe4aa 0%, #ffb100 52%, #ff8a00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -444,18 +462,32 @@
 /* Form */
 .ots-form {
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .ots-field {
-  margin-bottom: 18px;
+  margin-bottom: 0;
+  padding: 14px 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.ots-field:focus-within {
+  border-color: rgba(255, 177, 0, 0.38);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.1);
+  background: linear-gradient(145deg, rgba(255, 177, 0, 0.08), rgba(255, 177, 0, 0.03));
 }
 
 .ots-field__label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.82);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -467,8 +499,8 @@
 
 .ots-field__hint {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.62);
+  margin-bottom: 10px;
   line-height: 1.4;
 }
 
@@ -481,8 +513,8 @@
 .ots-textarea {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(5, 10, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 12, 24, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
   border-radius: 12px;
   font-size: 14px;
@@ -494,6 +526,15 @@
 
 .ots-select {
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 38px;
 }
 
 .ots-select option {
@@ -511,9 +552,9 @@
 .ots-input:focus,
 .ots-select:focus,
 .ots-textarea:focus {
-  background: rgba(5, 10, 20, 0.95);
-  border-color: rgba(0, 180, 255, 0.35);
-  box-shadow: 0 0 0 2px rgba(0, 180, 255, 0.08), 0 0 20px rgba(0, 180, 255, 0.15);
+  background: rgba(8, 14, 28, 0.98);
+  border-color: rgba(255, 177, 0, 0.52);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.14), 0 8px 24px rgba(255, 177, 0, 0.08);
 }
 
 .ots-input:disabled,
@@ -526,24 +567,33 @@
   padding: 8px 12px;
   font-size: 13px;
   min-width: 150px;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(145deg, rgba(7, 14, 28, 0.95), rgba(4, 10, 22, 0.95));
+  border: 1px solid rgba(255, 177, 0, 0.28);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 15px;
+  padding-right: 34px;
 }
 
 .ots-select--sm:hover {
-  border-color: rgba(0, 180, 255, 0.4);
-  background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
-  box-shadow: 0 4px 8px rgba(0, 180, 255, 0.1);
+  border-color: rgba(255, 177, 0, 0.45);
+  background: linear-gradient(145deg, rgba(10, 18, 34, 0.98), rgba(6, 12, 24, 0.98));
+  box-shadow: 0 4px 8px rgba(255, 177, 0, 0.12);
 }
 
 .ots-select--sm:focus {
-  border-color: rgba(0, 180, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 180, 255, 0.1), 0 4px 12px rgba(0, 180, 255, 0.2);
+  border-color: rgba(255, 177, 0, 0.58);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.14), 0 4px 12px rgba(255, 177, 0, 0.2);
 }
 
 .ots-select--sm option {
@@ -724,7 +774,8 @@
 .ots-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
+  align-items: start;
 }
 
 .ots-form__actions {
@@ -1128,8 +1179,8 @@
 .ots-filter-input,
 .ots-filter-select {
   padding: 10px 12px;
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(145deg, rgba(7, 14, 28, 0.95), rgba(4, 10, 22, 0.95));
+  border: 1px solid rgba(255, 177, 0, 0.28);
   border-radius: 6px;
   color: #eef2ff;
   font-size: 14px;
@@ -1138,8 +1189,18 @@
 .ots-filter-input:focus,
 .ots-filter-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(255, 177, 0, 0.58);
+  background: linear-gradient(145deg, rgba(10, 18, 34, 0.98), rgba(6, 12, 24, 0.98));
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.14);
+}
+
+.ots-filter-select {
+  color-scheme: dark;
+}
+
+.ots-filter-select option {
+  background: #111827;
+  color: #eef2ff;
 }
 
 /* === Bulk Actions === */
@@ -1329,9 +1390,12 @@
 
 /* === Quick Action Buttons === */
 .ots-btn--xs {
-  padding: 4px 8px;
-  font-size: 12px;
-  min-width: 28px;
+  padding: 6px 10px;
+  font-size: 11px;
+  min-width: auto;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .ots-row-selected {

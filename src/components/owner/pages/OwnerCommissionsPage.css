@@ -163,7 +163,7 @@
 
 .period-preview-value {
   font-weight: 700;
-  color: #00ffaa;
+  color: #00e3a6;
 }
 
 .filter-select,
@@ -264,9 +264,9 @@
 .btn-pay {
   padding: 6px 10px;
   border-radius: 10px;
-  background: rgba(0, 255, 170, 0.2);
-  border: 1px solid rgba(0, 255, 170, 0.3);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.2);
+  border: 1px solid rgba(0, 227, 166, 0.32);
+  color: #00e3a6;
   cursor: pointer;
   font-weight: 600;
 }
@@ -312,7 +312,7 @@
 
 .tx-amount {
   font-weight: 700;
-  color: #00ffaa;
+  color: #00e3a6;
 }
 
 .tx-badge {
@@ -333,9 +333,9 @@
 
 .tx-badge-calculated,
 .tx-badge-paid {
-  background: rgba(0, 255, 170, 0.18);
-  color: #00ffaa;
-  border: 1px solid rgba(0, 255, 170, 0.35);
+  background: rgba(0, 227, 166, 0.18);
+  color: #00e3a6;
+  border: 1px solid rgba(0, 227, 166, 0.35);
 }
 
 .empty-cell {

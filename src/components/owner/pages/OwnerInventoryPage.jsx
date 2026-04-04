@@ -81,7 +81,7 @@ export default function OwnerInventoryPage() {
         <table className="oinv-table">
           <thead>
             <tr>
-              <th>Gym</th>
+              <th>Phòng tập</th>
               <th>Thiết bị</th>
               <th>Mã</th>
               <th>Tổng cộng</th>
@@ -111,15 +111,23 @@ export default function OwnerInventoryPage() {
         </table>
       </div>
 
-      <div className="oinv-paging">
-        <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-          ←
+      <div className="pagination">
+        <button
+          disabled={meta.page === 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="pagination-btn"
+        >
+          Trước
         </button>
-        <span>
-          Trang <b>{meta.page}</b> / {meta.totalPages}
+        <span className="pagination-info">
+          Trang {meta.page || 1} / {meta.totalPages || 1}
         </span>
-        <button disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}>
-          →
+        <button
+          disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+          onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+          className="pagination-btn"
+        >
+          Sau
         </button>
       </div>
     </div>

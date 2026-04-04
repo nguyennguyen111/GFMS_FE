@@ -155,12 +155,12 @@ export default function OwnerPackagesPage() {
     setErr("");
 
     if (!form.gymId || !form.name.trim()) {
-      setErr("Vui lòng nhập Gym ID và Tên gói.");
+      setErr("Vui lòng nhập ID phòng tập và Tên gói.");
       return;
     }
 
     if (form.packageType === "personal_training" && !form.trainerId) {
-      setErr("Vui lòng chọn PT cho gói Personal Training.");
+      setErr("Vui lòng chọn huấn luyện viên cho gói Personal Training.");
       return;
     }
 
@@ -205,7 +205,7 @@ export default function OwnerPackagesPage() {
         <div>
           <h2 className="op-title">Quản lý gói tập</h2>
           <div className="op-sub">
-            Tạo / cập nhật / kích hoạt-hủy kích hoạt gói tập theo gym thuộc quyền quản lý.
+            Tạo / cập nhật / kích hoạt-hủy kích hoạt gói tập theo phòng tập thuộc quyền quản lý.
           </div>
         </div>
 
@@ -256,9 +256,9 @@ export default function OwnerPackagesPage() {
               <tr>
                 <th>ID</th>
                 <th>Tên gói</th>
-                <th>Gym</th>
+                <th>Phòng tập</th>
                 <th>Loại gói</th>
-                <th>PT</th>
+                <th>Huấn luyện viên</th>
                 <th>Thời hạn</th>
                 <th>Giá</th>
                 <th>Buổi</th>
@@ -280,7 +280,7 @@ export default function OwnerPackagesPage() {
                     <td>{gym ? gym.name : `#${p.gymId}`}</td>
                     <td>
                       <span className={`op-badge ${p.packageType === 'membership' ? 'badge-membership' : 'badge-pt'}`}>
-                        {p.packageType === 'membership' ? '🏋️ Membership' : '👤 PT'}
+                        {p.packageType === 'membership' ? '🏋️ Membership' : '👤 Huấn luyện viên'}
                       </span>
                     </td>
                     <td>{trainer ? trainer.User?.username : '-'}</td>
@@ -358,14 +358,14 @@ export default function OwnerPackagesPage() {
 
             <div className="op-form">
               <div className="op-row">
-                <label>Chọn phòng gym *</label>
+                <label>Chọn phòng tập *</label>
                 <select
                   className="op-select"
                   value={form.gymId}
                   onChange={(e) => setForm({ ...form, gymId: e.target.value, trainerId: "" })}
                   required
                 >
-                  <option value="">-- Chọn gym --</option>
+                  <option value="">-- Chọn phòng tập --</option>
                   {gyms.map((gym) => (
                     <option key={gym.id} value={gym.id}>
                       {gym.name}
@@ -380,7 +380,7 @@ export default function OwnerPackagesPage() {
                   className="op-input"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="VD: Gói 12 buổi PT"
+                  placeholder="VD: Gói 12 buổi huấn luyện viên"
                 />
               </div>
 
@@ -401,21 +401,21 @@ export default function OwnerPackagesPage() {
                   value={form.packageType}
                   onChange={(e) => setForm({ ...form, packageType: e.target.value, trainerId: "" })}
                 >
-                  <option value="membership">🏋️ Membership (Thẻ tập gym)</option>
-                  <option value="personal_training">👤 Personal Training (Gói PT)</option>
+                  <option value="membership">🏋️ Membership (Thẻ tập phòng tập)</option>
+                  <option value="personal_training">👤 Personal Training (Gói huấn luyện viên)</option>
                 </select>
               </div>
 
               {form.packageType === 'personal_training' && (
                 <div className="op-row">
-                  <label>Chọn PT *</label>
+                  <label>Chọn huấn luyện viên *</label>
                   <select
                     className="op-select"
                     value={form.trainerId}
                     onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
                     disabled={!form.gymId}
                   >
-                    <option value="">{form.gymId ? "-- Chọn PT --" : "-- Chọn gym trước --"}</option>
+                    <option value="">{form.gymId ? "-- Chọn huấn luyện viên --" : "-- Chọn phòng tập trước --"}</option>
                     {gymFilteredTrainers.map((trainer) => (
                       <option key={trainer.id} value={trainer.id}>
                         {trainer.User?.username || `Trainer #${trainer.id}`}
@@ -435,7 +435,7 @@ export default function OwnerPackagesPage() {
                   >
                     <option value="basic">Cơ bản</option>
                     <option value="premium">Cao cấp</option>
-                    <option value="pt_only">Chỉ PT</option>
+                    <option value="pt_only">Chỉ huấn luyện viên</option>
                     <option value="unlimited">Không giới hạn</option>
                   </select>
                 </div>
@@ -477,7 +477,7 @@ export default function OwnerPackagesPage() {
 
                 {form.packageType === 'personal_training' && (
                   <div className="op-row">
-                    <label>Tỷ lệ hoa hồng PT</label>
+                    <label>Tỷ lệ hoa hồng huấn luyện viên</label>
                     <input
                       className="op-input"
                       type="number"

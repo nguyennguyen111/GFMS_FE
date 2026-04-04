@@ -230,7 +230,7 @@ export default function OwnerPoliciesPage() {
     };
 
     if (!payload.gymId) {
-      setErr("Vui lòng chọn gym.");
+      setErr("Vui lòng chọn phòng tập.");
       return;
     }
 
@@ -295,13 +295,13 @@ export default function OwnerPoliciesPage() {
         <div>
           <h2 className="op2-title">📜 Chính sách • Chia sẻ Huấn luyện viên</h2>
           <div className="op2-sub">
-            Quản lý policy loại <b>trainer_share</b> theo gym (override) và xem policy hiệu lực (fallback system).
+            Quản lý policy loại <b>trainer_share</b> theo phòng tập (override) và xem policy hiệu lực (fallback system).
           </div>
         </div>
 
         <div className="op2-toolbar">
           <div className="op2-gymPick">
-            <span>Gym</span>
+            <span>Phòng tập</span>
 
             {gyms.length > 0 ? (
               <select value={gymId} onChange={(e) => setGymId(e.target.value)} disabled={loadingGyms}>
@@ -325,7 +325,7 @@ export default function OwnerPoliciesPage() {
           </button>
 
           <button className="op2-btn op2-btn--primary" onClick={openCreate}>
-            + Tạo policy gym
+            + Tạo policy phòng tập
           </button>
         </div>
       </div>
@@ -341,7 +341,7 @@ export default function OwnerPoliciesPage() {
               {canQueryGym ? (
                 <>Ưu tiên policy theo gymId = <b>{gymId}</b>, nếu không có sẽ dùng system policy.</>
               ) : (
-                <>Chọn gym để xem effective.</>
+                <>Chọn phòng tập để xem effective.</>
               )}
             </div>
           </div>
@@ -351,9 +351,9 @@ export default function OwnerPoliciesPage() {
         </div>
 
         {!canQueryGym ? (
-          <div className="op2-empty">Chọn gym ở góc phải để xem policy hiệu lực.</div>
+          <div className="op2-empty">Chọn phòng tập ở góc phải để xem policy hiệu lực.</div>
         ) : !effective ? (
-          <div className="op2-empty">Không tìm thấy policy hiệu lực (gym & system đều không có/không active).</div>
+          <div className="op2-empty">Không tìm thấy policy hiệu lực (phòng tập & system đều không có/không active).</div>
         ) : (
           <div className="op2-effective">
             <div className="op2-effective__top">
@@ -407,15 +407,15 @@ export default function OwnerPoliciesPage() {
         <div className="op2-card">
           <div className="op2-card__head">
             <div>
-              <div className="op2-card__title">Gym policies</div>
-              <div className="op2-card__desc">Owner có thể tạo/sửa/toggle/xoá (chỉ gym thuộc owner).</div>
+              <div className="op2-card__title">Chính sách phòng tập</div>
+              <div className="op2-card__desc">Owner có thể tạo/sửa/toggle/xoá (chỉ phòng tập thuộc owner).</div>
             </div>
           </div>
 
           {loading ? (
             <div className="op2-empty">Đang tải…</div>
           ) : gymPolicies.length === 0 ? (
-            <div className="op2-empty">Chưa có policy cho gym.</div>
+            <div className="op2-empty">Chưa có policy cho phòng tập.</div>
           ) : (
             <div className="op2-list">
               {gymPolicies.map((p) => (
@@ -423,7 +423,7 @@ export default function OwnerPoliciesPage() {
                   <div className="op2-item__top">
                     <div>
                       <div className="op2-item__name">
-                        {p.name} <span className="op2-muted">#{p.id} • gym {p.gymId}</span>
+                        {p.name} <span className="op2-muted">#{p.id} • phòng tập {p.gymId}</span>
                       </div>
                       <div className="op2-muted">{p.description || "—"}</div>
                     </div>
@@ -457,21 +457,21 @@ export default function OwnerPoliciesPage() {
             <div className="op2-modal__head">
               <div>
                 <div className="op2-modal__title">
-                  {editing ? `Sửa policy #${editing.id}` : "Tạo policy gym (trainer_share)"}
+                  {editing ? `Sửa policy #${editing.id}` : "Tạo policy phòng tập (trainer_share)"}
                 </div>
-                <div className="op2-muted">Active = true sẽ tự tắt policy active khác cùng gym (theo BE).</div>
+                <div className="op2-muted">Active = true sẽ tự tắt policy active khác cùng phòng tập (theo BE).</div>
               </div>
               <button className="op2-btn op2-btn--small" onClick={closeModal}>✕</button>
             </div>
 
             <div className="op2-modal__body">
-              <Field label="Gym">
+              <Field label="Phòng tập">
                 {gyms.length > 0 ? (
                   <select
                     value={form.gymId}
                     onChange={(e) => setForm((f) => ({ ...f, gymId: e.target.value }))}
                   >
-                    <option value="">-- chọn gym --</option>
+                    <option value="">-- chọn phòng tập --</option>
                     {gyms.map((g) => (
                       <option key={g.id} value={g.id}>
                         #{g.id} • {g.name}

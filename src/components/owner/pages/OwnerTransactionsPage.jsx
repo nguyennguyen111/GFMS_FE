@@ -14,7 +14,7 @@ const statusLabel = {
 const typeLabel = {
   package_purchase: "Mua gói",
   package_renewal: "Gia hạn gói",
-  booking_payment: "Thanh toán PT",
+  booking_payment: "Thanh toán huấn luyện viên",
 };
 
 const formatMoney = (value) => {

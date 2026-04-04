@@ -104,7 +104,7 @@ const OwnerMembersPage = () => {
   const handleCreateMember = useCallback(async (e) => {
     e.preventDefault();
     if (!newMember.targetUserId || !newMember.gymId) {
-      alert("Vui lòng chọn user và gym");
+      alert("Vui lòng chọn user và phòng tập");
       return;
     }
 
@@ -224,18 +224,18 @@ const OwnerMembersPage = () => {
     e.preventDefault();
     
     if (!buyPTMember.packageId) {
-      alert("Vui lòng chọn gói PT");
+      alert("Vui lòng chọn gói huấn luyện viên");
       return;
     }
 
     try {
       const result = await ownerMemberService.renewMemberPackage(buyPTMember.id, buyPTMember.packageId);
-      alert(result.message || "Mua gói PT thành công!");
+      alert(result.message || "Mua gói huấn luyện viên thành công!");
       handleCloseBuyPTModal();
       loadMembers(pagination.page);
     } catch (error) {
-      console.error("Lỗi khi mua gói PT:", error);
-      alert(error.response?.data?.message || "Mua gói PT thất bại");
+      console.error("Lỗi khi mua gói huấn luyện viên:", error);
+      alert(error.response?.data?.message || "Mua gói huấn luyện viên thất bại");
     }
   }, [buyPTMember, handleCloseBuyPTModal, loadMembers, pagination.page]);
 
@@ -371,7 +371,7 @@ const OwnerMembersPage = () => {
                       Gia hạn
                     </button>
                     <button onClick={() => handleOpenBuyPTModal(member)} className="btn-buy-pt">
-                      Mua gói PT
+                      Mua gói huấn luyện viên
                     </button>
                     <button onClick={() => handleOpenEditModal(member)} className="btn-edit">
                       Sửa
@@ -455,7 +455,7 @@ const OwnerMembersPage = () => {
                 </div>
                 
                 <div className="info-card">
-                  <div className="info-label">Phòng gym:</div>
+                  <div className="info-label">Phòng tập:</div>
                   <div className="info-value">{selectedMember.Gym?.name || "N/A"}</div>
                 </div>
                 
@@ -466,7 +466,7 @@ const OwnerMembersPage = () => {
                       <div>
                         <div style={{fontWeight: 'bold', color: '#eef2ff'}}>{selectedMember.currentPackage.name}</div>
                         <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.7)', marginTop: '4px'}}>
-                          {selectedMember.currentPackage.packageType === 'membership' ? '🏋️ Thẻ membership' : '👤 Gói PT'}
+                          {selectedMember.currentPackage.packageType === 'membership' ? '🏋️ Thẻ membership' : '👤 Gói huấn luyện viên'}
                         </div>
                       </div>
                     ) : (
@@ -523,7 +523,7 @@ const OwnerMembersPage = () => {
                                   </>
                                 ) : (
                                   <>
-                                    <span>👨‍🏫 PT: {packageInfo?.Trainer?.User?.username || 'N/A'}</span>
+                                    <span>👨‍🏫 Huấn luyện viên: {packageInfo?.Trainer?.User?.username || 'N/A'}</span>
                                     <span>📊 Tổng: {pa.totalSessions || 0} buổi</span>
                                     <span>✅ Đã tập: {pa.sessionsUsed || 0} buổi</span>
                                   </>
@@ -609,14 +609,14 @@ const OwnerMembersPage = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Chọn phòng gym *</label>
+                <label>Chọn phòng tập *</label>
                 <select
                   value={newMember.gymId}
                   onChange={(e) => setNewMember({ ...newMember, gymId: e.target.value })}
                   required
                   className="form-select"
                 >
-                  <option value="">-- Chọn gym --</option>
+                  <option value="">-- Chọn phòng tập --</option>
                   {gyms.map((gym) => (
                     <option key={gym.id} value={gym.id}>
                       {gym.name}
@@ -647,7 +647,7 @@ const OwnerMembersPage = () => {
                   Hủy
                 </button>
                 <button type="submit" className="btn-submit">
-                  ✓ Tạo hội viên
+                  Tạo hội viên
                 </button>
               </div>
               </form>
@@ -668,14 +668,14 @@ const OwnerMembersPage = () => {
             <div className="modal-body">
               <form onSubmit={handleUpdateMember} className="modal-form">
               <div className="form-group">
-                <label>Chọn phòng gym *</label>
+                <label>Chọn phòng tập *</label>
                 <select
                   value={editMember.gymId}
                   onChange={(e) => setEditMember({ ...editMember, gymId: e.target.value })}
                   required
                   className="form-select"
                 >
-                  <option value="">-- Chọn gym --</option>
+                  <option value="">-- Chọn phòng tập --</option>
                   {gyms.map((gym) => (
                     <option key={gym.id} value={gym.id}>
                       {gym.name}
@@ -714,7 +714,7 @@ const OwnerMembersPage = () => {
               <div className="renew-note">
                 <div className="note-icon">ℹ️</div>
                 <div className="note-text">
-                  <strong>Lưu ý:</strong> Thay đổi phòng gym hoặc gói tập sẽ ảnh hưởng đến thông tin hiện tại của hội viên.
+                  <strong>Lưu ý:</strong> Thay đổi phòng tập hoặc gói tập sẽ ảnh hưởng đến thông tin hiện tại của hội viên.
                 </div>
               </div>
 
@@ -723,7 +723,7 @@ const OwnerMembersPage = () => {
                   Hủy
                 </button>
                 <button type="submit" className="btn-submit">
-                  ✓ Cập nhật
+                  Cập nhật
                 </button>
               </div>
               </form>
@@ -818,7 +818,7 @@ const OwnerMembersPage = () => {
                   <option value="">-- Chọn gói --</option>
                   
                   {/* Membership packages */}
-                  <optgroup label="🏋️ GÓI MEMBERSHIP (Thẻ tập gym)">
+                  <optgroup label="🏋️ GÓI MEMBERSHIP (Thẻ tập phòng tập)">
                     {packages
                       .filter(pkg => 
                         Number(pkg.gymId) === Number(renewMember.gymId) && 
@@ -833,7 +833,7 @@ const OwnerMembersPage = () => {
                   </optgroup>
                 </select>
                 <small style={{ color: 'rgba(238, 242, 255, 0.6)', marginTop: '8px', display: 'block' }}>
-                  Chỉ hiển thị gói Membership. Để mua gói PT, vui lòng dùng nút "Mua gói PT"
+                  Chỉ hiển thị gói Membership. Để mua gói huấn luyện viên, vui lòng dùng nút "Mua gói huấn luyện viên"
                 </small>
               </div>
               
@@ -843,7 +843,7 @@ const OwnerMembersPage = () => {
                   <strong>Lưu ý:</strong>
                   <ul>
                     <li><strong>Membership:</strong> Mỗi member chỉ có 1 gói membership hoạt động. Mua mới sẽ thay thế gói cũ</li>
-                    <li>Để mua <strong>gói PT</strong>, vui lòng sử dụng nút <strong>"Mua gói PT"</strong> riêng</li>
+                    <li>Để mua <strong>gói huấn luyện viên</strong>, vui lòng sử dụng nút <strong>"Mua gói huấn luyện viên"</strong> riêng</li>
                     <li>Thanh toán bằng tiền mặt sẽ được kích hoạt ngay lập tức</li>
                   </ul>
                 </div>
@@ -854,7 +854,7 @@ const OwnerMembersPage = () => {
                   Hủy
                 </button>
                 <button type="submit" className="btn-submit">
-                  ✓ Xác nhận gia hạn
+                  Xác nhận gia hạn
                 </button>
               </div>
               </form>
@@ -863,12 +863,12 @@ const OwnerMembersPage = () => {
         </div>
       )}
 
-      {/* Buy PT Package Modal */}
+      {/* Buy Trainer Package Modal */}
       {showBuyPTModal && (
         <div className="modal-overlay" onClick={handleCloseBuyPTModal}>
           <div className="modal-content modal-renew" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">🏋️ Mua gói PT cho hội viên</h2>
+              <h2 className="modal-title">🏋️ Mua gói huấn luyện viên cho hội viên</h2>
               <button className="modal-close" onClick={handleCloseBuyPTModal}>
                 ×
               </button>
@@ -883,14 +883,14 @@ const OwnerMembersPage = () => {
 
               <form onSubmit={handleBuyPTPackage} className="modal-form">
                 <div className="form-group">
-                  <label>Chọn gói PT *</label>
+                  <label>Chọn gói huấn luyện viên *</label>
                   <select
                     value={buyPTMember.packageId}
                     onChange={(e) => setBuyPTMember({ ...buyPTMember, packageId: e.target.value })}
                     required
                     className="form-select"
                   >
-                    <option value="">-- Chọn gói PT --</option>
+                    <option value="">-- Chọn gói huấn luyện viên --</option>
                     {packages
                       .filter(pkg => 
                         Number(pkg.gymId) === Number(buyPTMember.gymId) && 
@@ -899,12 +899,12 @@ const OwnerMembersPage = () => {
                       )
                       .map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
-                          👤 {pkg.name} - {Number(pkg.price).toLocaleString()}đ ({pkg.sessions} buổi) - PT: {pkg.Trainer?.User?.username || 'N/A'}
+                          👤 {pkg.name} - {Number(pkg.price).toLocaleString()}đ ({pkg.sessions} buổi) - Huấn luyện viên: {pkg.Trainer?.User?.username || 'N/A'}
                         </option>
                       ))}
                   </select>
                   <small style={{ color: 'rgba(238, 242, 255, 0.6)', marginTop: '8px', display: 'block' }}>
-                    Gói PT theo buổi tập với HLV riêng. Member có thể mua nhiều gói PT khác nhau.
+                    Gói huấn luyện viên theo buổi tập với HLV riêng. Member có thể mua nhiều gói huấn luyện viên khác nhau.
                   </small>
                 </div>
                 
@@ -913,9 +913,9 @@ const OwnerMembersPage = () => {
                   <div className="note-text">
                     <strong>Lưu ý:</strong>
                     <ul>
-                      <li>Member <strong>phải có membership</strong> đang hoạt động để mua gói PT</li>
-                      <li>Có thể mua <strong>nhiều gói PT</strong> khác nhau (mỗi PT một gói)</li>
-                      <li>Gói PT tính theo <strong>số buổi</strong>, không theo thời hạn</li>
+                      <li>Member <strong>phải có membership</strong> đang hoạt động để mua gói huấn luyện viên</li>
+                      <li>Có thể mua <strong>nhiều gói huấn luyện viên</strong> khác nhau (mỗi huấn luyện viên một gói)</li>
+                      <li>Gói huấn luyện viên tính theo <strong>số buổi</strong>, không theo thời hạn</li>
                       <li>Thanh toán bằng tiền mặt sẽ được kích hoạt ngay lập tức</li>
                     </ul>
                   </div>
@@ -926,7 +926,7 @@ const OwnerMembersPage = () => {
                     Hủy
                   </button>
                   <button type="submit" className="btn-submit" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
-                    ✓ Xác nhận mua gói PT
+                    Xác nhận mua gói huấn luyện viên
                   </button>
                 </div>
               </form>
