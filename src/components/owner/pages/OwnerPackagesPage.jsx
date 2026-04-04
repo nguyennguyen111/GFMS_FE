@@ -7,18 +7,15 @@ import {
   ownerTogglePackage,
 } from "../../../services/ownerPackageService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
-import ownerTrainerService from "../../../services/ownerTrainerService";
 
 const emptyForm = {
   gymId: "",
   name: "",
   description: "",
   type: "basic",
-  packageType: "membership", // membership | personal_training
-  trainerId: "", // Chỉ áp dụng cho personal_training
   durationDays: 30,
-  price: 0,
-  sessions: 0,
+  price: "",
+  sessions: "",
   commissionRate: 0.6,
 };
 
@@ -27,12 +24,17 @@ function safeNum(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function formatPackageType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "premium") return "Cao cấp";
+  return "Cơ bản";
+}
+
 export default function OwnerPackagesPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
   const [gyms, setGyms] = useState([]);
-  const [trainers, setTrainers] = useState([]);
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // all | active | inactive
@@ -68,14 +70,6 @@ export default function OwnerPackagesPage() {
     });
   }, [items, search, activeFilter]);
 
-  const gymFilteredTrainers = useMemo(() => {
-    if (!form.gymId) return [];
-    return trainers.filter((trainer) => {
-      const trainerGymId = trainer?.gymId ?? trainer?.Gym?.id;
-      return String(trainerGymId || "") === String(form.gymId);
-    });
-  }, [trainers, form.gymId]);
-
   // Pagination calculations
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedItems = useMemo(() => {
@@ -108,20 +102,9 @@ export default function OwnerPackagesPage() {
     }
   };
 
-  const loadTrainers = async () => {
-    try {
-      const response = await ownerTrainerService.getMyTrainers();
-      setTrainers(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Lỗi khi load danh sách PT:", error);
-      setTrainers([]);
-    }
-  };
-
   useEffect(() => {
     fetchData();
     loadGyms();
-    loadTrainers();
   }, []);
 
   const openCreate = () => {
@@ -139,8 +122,6 @@ export default function OwnerPackagesPage() {
       name: pkg.name ?? "",
       description: pkg.description ?? "",
       type: pkg.type ?? "basic",
-      packageType: pkg.packageType ?? "membership",
-      trainerId: pkg.trainerId ?? "",
       durationDays: pkg.durationDays ?? 30,
       price: pkg.price ?? 0,
       sessions: pkg.sessions ?? 0,
@@ -159,8 +140,14 @@ export default function OwnerPackagesPage() {
       return;
     }
 
-    if (form.packageType === "personal_training" && !form.trainerId) {
-      setErr("Vui lòng chọn huấn luyện viên cho gói Personal Training.");
+    if (safeNum(form.sessions) <= 0) {
+      setErr("Vui lòng nhập số buổi tập lớn hơn 0.");
+      return;
+    }
+
+    const commissionRate = safeNum(form.commissionRate, 0.6);
+    if (commissionRate < 0 || commissionRate > 1) {
+      setErr("Tỷ lệ hoa hồng phải trong khoảng từ 0 đến 1.");
       return;
     }
 
@@ -168,13 +155,13 @@ export default function OwnerPackagesPage() {
       gymId: safeNum(form.gymId),
       name: form.name.trim(),
       description: form.description,
-      type: form.type,
-      packageType: form.packageType,
-      trainerId: form.packageType === 'personal_training' && form.trainerId ? safeNum(form.trainerId) : null,
+      type: form.type === "premium" ? "premium" : "basic",
+      packageType: "personal_training",
+      trainerId: null,
       durationDays: safeNum(form.durationDays),
       price: safeNum(form.price),
       sessions: safeNum(form.sessions),
-      commissionRate: safeNum(form.commissionRate, 0.6),
+      commissionRate,
     };
 
     try {
@@ -258,7 +245,6 @@ export default function OwnerPackagesPage() {
                 <th>Tên gói</th>
                 <th>Phòng tập</th>
                 <th>Loại gói</th>
-                <th>Huấn luyện viên</th>
                 <th>Thời hạn</th>
                 <th>Giá</th>
                 <th>Buổi</th>
@@ -269,7 +255,6 @@ export default function OwnerPackagesPage() {
             <tbody>
               {paginatedItems.map((p) => {
                 const gym = gyms.find(g => g.id === p.gymId);
-                const trainer = trainers.find(t => t.id === p.trainerId);
                 return (
                   <tr key={p.id}>
                     <td>{p.id}</td>
@@ -279,14 +264,13 @@ export default function OwnerPackagesPage() {
                     </td>
                     <td>{gym ? gym.name : `#${p.gymId}`}</td>
                     <td>
-                      <span className={`op-badge ${p.packageType === 'membership' ? 'badge-membership' : 'badge-pt'}`}>
-                        {p.packageType === 'membership' ? '🏋️ Membership' : '👤 Huấn luyện viên'}
+                      <span className="op-badge badge-pt">
+                        {formatPackageType(p.type)}
                       </span>
                     </td>
-                    <td>{trainer ? trainer.User?.username : '-'}</td>
                     <td>{p.durationDays} ngày</td>
                     <td>{Number(p.price).toLocaleString("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₫</td>
-                    <td>{p.packageType === 'membership' ? 'Không giới hạn' : p.sessions}</td>
+                    <td>{p.sessions || 0}</td>
                     <td>
                       <span className={`op-badge ${p.status === 'ACTIVE' ? "is-on" : "is-off"}`}>
                         {p.status === 'ACTIVE' ? "Đang hoạt động" : "Ngừng hoạt động"}
@@ -362,7 +346,7 @@ export default function OwnerPackagesPage() {
                 <select
                   className="op-select"
                   value={form.gymId}
-                  onChange={(e) => setForm({ ...form, gymId: e.target.value, trainerId: "" })}
+                  onChange={(e) => setForm({ ...form, gymId: e.target.value })}
                   required
                 >
                   <option value="">-- Chọn phòng tập --</option>
@@ -380,7 +364,7 @@ export default function OwnerPackagesPage() {
                   className="op-input"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="VD: Gói 12 buổi huấn luyện viên"
+                  placeholder="VD: Gói PT 12 buổi"
                 />
               </div>
 
@@ -394,37 +378,6 @@ export default function OwnerPackagesPage() {
                 />
               </div>
 
-              <div className="op-row">
-                <label>Loại gói *</label>
-                <select
-                  className="op-select"
-                  value={form.packageType}
-                  onChange={(e) => setForm({ ...form, packageType: e.target.value, trainerId: "" })}
-                >
-                  <option value="membership">🏋️ Membership (Thẻ tập phòng tập)</option>
-                  <option value="personal_training">👤 Personal Training (Gói huấn luyện viên)</option>
-                </select>
-              </div>
-
-              {form.packageType === 'personal_training' && (
-                <div className="op-row">
-                  <label>Chọn huấn luyện viên *</label>
-                  <select
-                    className="op-select"
-                    value={form.trainerId}
-                    onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
-                    disabled={!form.gymId}
-                  >
-                    <option value="">{form.gymId ? "-- Chọn huấn luyện viên --" : "-- Chọn phòng tập trước --"}</option>
-                    {gymFilteredTrainers.map((trainer) => (
-                      <option key={trainer.id} value={trainer.id}>
-                        {trainer.User?.username || `Trainer #${trainer.id}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <div className="op-grid">
                 <div className="op-row">
                   <label>Phân loại</label>
@@ -435,8 +388,6 @@ export default function OwnerPackagesPage() {
                   >
                     <option value="basic">Cơ bản</option>
                     <option value="premium">Cao cấp</option>
-                    <option value="pt_only">Chỉ huấn luyện viên</option>
-                    <option value="unlimited">Không giới hạn</option>
                   </select>
                 </div>
 
@@ -462,35 +413,31 @@ export default function OwnerPackagesPage() {
                   />
                 </div>
 
-                {form.packageType === 'personal_training' && (
-                  <div className="op-row">
-                    <label>Số buổi tập *</label>
-                    <input
-                      className="op-input"
-                      type="number"
-                      value={form.sessions}
-                      onChange={(e) => setForm({ ...form, sessions: e.target.value })}
-                      placeholder="VD: 12"
-                    />
-                  </div>
-                )}
+                <div className="op-row">
+                  <label>Số buổi tập *</label>
+                  <input
+                    className="op-input"
+                    type="number"
+                    value={form.sessions}
+                    onChange={(e) => setForm({ ...form, sessions: e.target.value })}
+                    placeholder="VD: 12"
+                  />
+                </div>
 
-                {form.packageType === 'personal_training' && (
-                  <div className="op-row">
-                    <label>Tỷ lệ hoa hồng huấn luyện viên</label>
-                    <input
-                      className="op-input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1"
-                      value={form.commissionRate}
-                      onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
-                      placeholder="0.6"
-                    />
-                    <small style={{color: 'rgba(238, 242, 255, 0.6)', fontSize: '0.75rem', marginTop: '4px', display: 'block'}}>Nhập giá trị từ 0 đến 1 (VD: 0.6 = 60%)</small>
-                  </div>
-                )}
+                <div className="op-row">
+                  <label>Tỷ lệ hoa hồng huấn luyện viên</label>
+                  <input
+                    className="op-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={form.commissionRate}
+                    onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
+                    placeholder="0.6"
+                  />
+                  <small style={{color: 'rgba(238, 242, 255, 0.6)', fontSize: '0.75rem', marginTop: '4px', display: 'block'}}>Nhập giá trị từ 0 đến 1 (VD: 0.6 = 60%)</small>
+                </div>
 
               </div>
 
