@@ -33,8 +33,10 @@ const ownerMemberService = {
     return response.data;
   },
 
-  async renewMemberPackage(memberId, packageId) {
-    const response = await axios.post(`${API_URL}/${memberId}/renew-package`, { packageId });
+  async renewMemberPackage(memberId, packageId, trainerId) {
+    const payload = { packageId };
+    if (trainerId) payload.trainerId = trainerId;
+    const response = await axios.post(`${API_URL}/${memberId}/renew-package`, payload);
     return response.data;
   },
 
