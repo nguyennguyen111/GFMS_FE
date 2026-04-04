@@ -22,10 +22,13 @@ const statusBadge = (status) => {
 };
 
 export default function OwnerTransferPage() {
+  const PAGE_SIZE = 10;
   const [loading, setLoading] = useState(false);
   const [transfers, setTransfers] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ q: "", status: "", fromGymId: "", toGymId: "" });
+  const [searchInput, setSearchInput] = useState("");
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -43,17 +46,72 @@ export default function OwnerTransferPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch transfers list
-  const fetchTransfers = async () => {
+  const fetchTransfers = async (targetPage = page, targetFilters = filters) => {
     setLoading(true);
     try {
-      const res = await ownerGetTransfers({ page, limit: 10 });
-      setTransfers(res?.data?.data ?? []);
-      setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
+      const res = await ownerGetTransfers({
+        page: targetPage,
+        limit: PAGE_SIZE,
+        status: targetFilters.status || undefined,
+        q: targetFilters.q || undefined,
+      });
+
+      let rows = res?.data?.data ?? [];
+
+      if (targetFilters.fromGymId) {
+        rows = rows.filter((t) => String(t.fromGymId || t.fromGym?.id || "") === String(targetFilters.fromGymId));
+      }
+
+      if (targetFilters.toGymId) {
+        rows = rows.filter((t) => String(t.toGymId || t.toGym?.id || "") === String(targetFilters.toGymId));
+      }
+
+      const keyword = String(targetFilters.q || "").trim().toLowerCase();
+      if (keyword) {
+        rows = rows.filter((t) => {
+          const bag = [
+            `#${t.id}`,
+            t.fromGym?.name,
+            t.toGym?.name,
+            t.status,
+            statusBadge(t.status),
+            t.notes,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return bag.includes(keyword);
+        });
+      }
+
+      setTransfers(rows);
+      setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySearch = () => {
+    const nextFilters = { ...filters, q: searchInput.trim() };
+    setFilters(nextFilters);
+    if (page !== 1) {
+      setPage(1);
+      return;
+    }
+    fetchTransfers(1, nextFilters);
+  };
+
+  const resetSearch = () => {
+    const reset = { q: "", status: "", fromGymId: "", toGymId: "" };
+    setSearchInput("");
+    setFilters(reset);
+    if (page !== 1) {
+      setPage(1);
+      return;
+    }
+    fetchTransfers(1, reset);
   };
 
   // Fetch my gyms for dropdown
@@ -94,7 +152,7 @@ export default function OwnerTransferPage() {
   // Handle create transfer
   const handleCreate = async () => {
     if (!createForm.fromGymId || !createForm.toGymId) {
-      alert("Vui lòng chọn gym đi và gym đến");
+      alert("Vui lòng chọn phòng tập đi và phòng tập đến");
       return;
     }
     if (createForm.items.some((i) => !i.equipmentId || !i.quantity)) {
@@ -171,8 +229,12 @@ export default function OwnerTransferPage() {
   };
 
   useEffect(() => {
-    fetchTransfers();
     fetchMyGyms();
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    fetchTransfers();
     // eslint-disable-next-line
   }, [page]);
 
@@ -186,6 +248,59 @@ export default function OwnerTransferPage() {
         <button className="btn-primary" onClick={() => setShowCreate(true)}>
           + Tạo phiếu chuyển kho
         </button>
+      </div>
+
+      <div className="otrf-filters">
+        <input
+          className="otrf-filter-input"
+          placeholder="Tìm theo mã phiếu, gym hoặc trạng thái..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") applySearch();
+          }}
+        />
+
+        <select
+          className="otrf-filter-select"
+          value={filters.status}
+          onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="approved">Đã duyệt</option>
+          <option value="rejected">Bị từ chối</option>
+          <option value="completed">Hoàn tất</option>
+        </select>
+
+        <select
+          className="otrf-filter-select"
+          value={filters.fromGymId}
+          onChange={(e) => setFilters((prev) => ({ ...prev, fromGymId: e.target.value }))}
+        >
+          <option value="">Tất cả từ phòng tập</option>
+          {myGyms.map((g) => (
+            <option key={`from-${g.id}`} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="otrf-filter-select"
+          value={filters.toGymId}
+          onChange={(e) => setFilters((prev) => ({ ...prev, toGymId: e.target.value }))}
+        >
+          <option value="">Tất cả đến phòng tập</option>
+          {myGyms.map((g) => (
+            <option key={`to-${g.id}`} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+
+        <button className="otrf-filter-btn" onClick={applySearch}>Tìm</button>
+        <button className="otrf-filter-btn otrf-filter-btn-reset" onClick={resetSearch}>Đặt lại</button>
       </div>
 
       <div className="otrf-container">
@@ -235,15 +350,23 @@ export default function OwnerTransferPage() {
             </table>
           </div>
 
-          <div className="otrf-paging">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-              ←
+          <div className="pagination">
+            <button
+              disabled={meta.page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="pagination-btn"
+            >
+              Trước
             </button>
-            <span>
-              Trang <b>{meta.page}</b> / {meta.totalPages}
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
             </span>
-            <button disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}>
-              →
+            <button
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+              className="pagination-btn"
+            >
+              Sau
             </button>
           </div>
         </div>
@@ -263,12 +386,12 @@ export default function OwnerTransferPage() {
             <div className="modal-body">
               <div className="detail-grid">
                 <div className="detail-row">
-                  <span className="detail-label">Từ Gym:</span>
+                  <span className="detail-label">Từ Phòng tập:</span>
                   <span className="detail-value">{detail.fromGym?.name || "—"}</span>
                 </div>
 
                 <div className="detail-row">
-                  <span className="detail-label">Đến Gym:</span>
+                  <span className="detail-label">Đến Phòng tập:</span>
                   <span className="detail-value">{detail.toGym?.name || "—"}</span>
                 </div>
 

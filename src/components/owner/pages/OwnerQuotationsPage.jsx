@@ -18,10 +18,14 @@ const formatCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}
 const getItemTotal = (item) => Number(item?.quantity || 0) * Number(item?.unitPrice || 0);
 
 export default function OwnerQuotationsPage() {
+  const PAGE_SIZE = 10;
   const [loading, setLoading] = useState(false);
   const [quotations, setQuotations] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [detail, setDetail] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
@@ -40,17 +44,45 @@ export default function OwnerQuotationsPage() {
 
   const totalQuotationAmount = formData.items.reduce((sum, item) => sum + getItemTotal(item), 0);
 
-  const fetchQuotations = async () => {
+  const fetchQuotations = async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
     setLoading(true);
     try {
-      const res = await ownerGetQuotations({ page, limit: 10 });
+      const params = {
+        page: targetPage,
+        limit: PAGE_SIZE,
+        q: targetSearch || undefined,
+        status: targetStatus !== "all" ? targetStatus : undefined,
+      };
+
+      const res = await ownerGetQuotations(params);
       setQuotations(res?.data?.data ?? []);
-      setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
+      setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySearch = () => {
+    const nextSearch = searchInput.trim();
+    setSearchTerm(nextSearch);
+    if (page === 1) {
+      fetchQuotations(1, nextSearch, statusFilter);
+      return;
+    }
+    setPage(1);
+  };
+
+  const resetSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setStatusFilter("all");
+    if (page === 1) {
+      fetchQuotations(1, "", "all");
+      return;
+    }
+    setPage(1);
   };
 
   const fetchDetail = async (quotationId) => {
@@ -166,7 +198,7 @@ export default function OwnerQuotationsPage() {
 
   const handleSubmit = async () => {
     if (!formData.gymId || !formData.supplierId || formData.items.length === 0) {
-      alert("Vui lòng chọn gym, nhà cung cấp và thêm ít nhất 1 thiết bị");
+      alert("Vui lòng chọn phòng tập, nhà cung cấp và thêm ít nhất 1 thiết bị");
       return;
     }
     const hasInvalidItem = formData.items.some(it => !it.equipmentId || it.quantity < 1);
@@ -191,7 +223,7 @@ export default function OwnerQuotationsPage() {
   useEffect(() => {
     fetchQuotations();
     // eslint-disable-next-line
-  }, [page]);
+  }, [page, searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchLookups();
@@ -211,6 +243,38 @@ export default function OwnerQuotationsPage() {
         </button>
       </div>
 
+      <div className="oq-filters">
+        <input
+          className="oq-search-input"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") applySearch();
+          }}
+          placeholder="Tìm theo mã đơn hoặc nhà cung cấp"
+        />
+        <select
+          className="oq-status-select"
+          value={statusFilter}
+          onChange={(e) => {
+            const nextStatus = e.target.value;
+            setStatusFilter(nextStatus);
+            if (page === 1) {
+              fetchQuotations(1, searchTerm, nextStatus);
+            } else {
+              setPage(1);
+            }
+          }}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="approved">Đã duyệt</option>
+          <option value="rejected">Bị từ chối</option>
+        </select>
+        <button className="oq-filter-btn" onClick={applySearch}>Tìm kiếm</button>
+        <button className="oq-filter-btn oq-filter-btn-reset" onClick={resetSearch}>Đặt lại</button>
+      </div>
+
       <div className="oq-container">
         {/* List */}
         <div className="oq-list">
@@ -222,7 +286,7 @@ export default function OwnerQuotationsPage() {
                 <tr>
                   <th>Mã đơn hàng</th>
                   <th>Nhà cung cấp</th>
-                  <th>Gym</th>
+                  <th>Phòng tập</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
                 </tr>
@@ -236,7 +300,7 @@ export default function OwnerQuotationsPage() {
                       setShowDetailModal(true);
                     }}
                   >
-                    <td>#{q.id}</td>
+                    <td>{q.code || `#${q.id}`}</td>
                     <td>{q.supplier?.name || "-"}</td>
                     <td>{q.gym?.name || "-"}</td>
                     <td>
@@ -258,27 +322,25 @@ export default function OwnerQuotationsPage() {
             </table>
           </div>
 
-          {meta.totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="pagination-btn"
-              >
-                Trước
-              </button>
-              <span className="pagination-info">
-                Trang {meta.page} / {meta.totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
-                disabled={page === meta.totalPages}
-                className="pagination-btn"
-              >
-                Sau
-              </button>
-            </div>
-          )}
+          <div className="pagination">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={meta.page <= 1}
+              className="pagination-btn"
+            >
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(meta.totalPages || 1, page + 1))}
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              className="pagination-btn"
+            >
+              Sau
+            </button>
+          </div>
         </div>
 
         {/* Detail Modal */}
@@ -292,15 +354,15 @@ export default function OwnerQuotationsPage() {
               <div className="modal-body">
                 <div className="detail-grid">
                   <div className="detail-row">
-                    <span className="detail-label">ID</span>
-                    <span className="detail-value">#{detail.id}</span>
+                    <span className="detail-label">Mã đơn</span>
+                    <span className="detail-value">{detail.code || `#${detail.id}`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Nhà cung cấp</span>
                     <span className="detail-value">{detail.supplier?.name || "-"}</span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Gym</span>
+                    <span className="detail-label">Phòng tập</span>
                     <span className="detail-value">{detail.gym?.name || "-"}</span>
                   </div>
                   <div className="detail-row">

@@ -13,24 +13,56 @@ const statusBadge = (status) => {
 };
 
 export default function OwnerPurchaseOrdersPage() {
+  const PAGE_SIZE = 10;
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
     setLoading(true);
     try {
-      const res = await ownerGetPurchaseOrders({ page, limit: 10 });
+      const params = {
+        page: targetPage,
+        limit: PAGE_SIZE,
+        q: targetSearch || undefined,
+        status: targetStatus !== "all" ? targetStatus : undefined,
+      };
+
+      const res = await ownerGetPurchaseOrders(params);
       setOrders(res?.data?.data ?? []);
-      setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
+      setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const applySearch = () => {
+    const nextSearch = searchInput.trim();
+    setSearchTerm(nextSearch);
+    if (page === 1) {
+      fetchOrders(1, nextSearch, statusFilter);
+      return;
+    }
+    setPage(1);
+  };
+
+  const resetSearch = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setStatusFilter("all");
+    if (page === 1) {
+      fetchOrders(1, "", "all");
+      return;
+    }
+    setPage(1);
   };
 
   const fetchDetail = async (orderId) => {
@@ -45,7 +77,7 @@ export default function OwnerPurchaseOrdersPage() {
   useEffect(() => {
     fetchOrders();
     // eslint-disable-next-line
-  }, [page]);
+  }, [page, searchTerm, statusFilter]);
 
   return (
     <div className="opo-page">
@@ -54,6 +86,39 @@ export default function OwnerPurchaseOrdersPage() {
           <h2>Đơn mua hàng</h2>
           <p>Quản lý đơn mua hàng từ nhà cung cấp</p>
         </div>
+      </div>
+
+      <div className="opo-filters">
+        <input
+          className="opo-search-input"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") applySearch();
+          }}
+          placeholder="Tìm theo mã đơn hoặc nhà cung cấp"
+        />
+        <select
+          className="opo-status-select"
+          value={statusFilter}
+          onChange={(e) => {
+            const nextStatus = e.target.value;
+            setStatusFilter(nextStatus);
+            if (page === 1) {
+              fetchOrders(1, searchTerm, nextStatus);
+            } else {
+              setPage(1);
+            }
+          }}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="approved">Đã duyệt</option>
+          <option value="rejected">Bị từ chối</option>
+          <option value="received">Đã nhận</option>
+        </select>
+        <button className="opo-filter-btn" onClick={applySearch}>Tìm kiếm</button>
+        <button className="opo-filter-btn opo-filter-btn-reset" onClick={resetSearch}>Đặt lại</button>
       </div>
 
       <div className="opo-container">
@@ -67,7 +132,7 @@ export default function OwnerPurchaseOrdersPage() {
                 <tr>
                   <th>Mã đơn</th>
                   <th>Nhà cung cấp</th>
-                  <th>Gym</th>
+                  <th>Phòng tập</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
                 </tr>
@@ -81,7 +146,7 @@ export default function OwnerPurchaseOrdersPage() {
                       setShowDetailModal(true);
                     }}
                   >
-                    <td>#{order.id}</td>
+                    <td>{order.code || `#${order.id}`}</td>
                     <td>{order.supplier?.name || "-"}</td>
                     <td>{order.gym?.name || "-"}</td>
                     <td>
@@ -103,27 +168,25 @@ export default function OwnerPurchaseOrdersPage() {
             </table>
           </div>
 
-          {meta.totalPages > 1 && (
-            <div className="pagination">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="pagination-btn"
-              >
-                Trước
-              </button>
-              <span className="pagination-info">
-                Trang {meta.page} / {meta.totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(meta.totalPages, page + 1))}
-                disabled={page === meta.totalPages}
-                className="pagination-btn"
-              >
-                Sau
-              </button>
-            </div>
-          )}
+          <div className="pagination">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={meta.page <= 1}
+              className="pagination-btn"
+            >
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(meta.totalPages || 1, page + 1))}
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              className="pagination-btn"
+            >
+              Sau
+            </button>
+          </div>
         </div>
 
         {/* Detail Modal */}
@@ -137,20 +200,20 @@ export default function OwnerPurchaseOrdersPage() {
               <div className="modal-body">
                 <div className="detail-grid">
                   <div className="detail-row">
-                    <span className="detail-label">ID</span>
-                    <span className="detail-value">#{detail.id}</span>
+                    <span className="detail-label">Mã đơn</span>
+                    <span className="detail-value">{detail.code || `#${detail.id}`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Nhà cung cấp</span>
                     <span className="detail-value">{detail.supplier?.name || "-"}</span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Gym</span>
+                    <span className="detail-label">Phòng tập</span>
                     <span className="detail-value">{detail.gym?.name || "-"}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Báo giá</span>
-                    <span className="detail-value">#{detail.quotation?.id || "-"}</span>
+                    <span className="detail-value">{detail.quotation?.code || (detail.quotation?.id ? `#${detail.quotation.id}` : "-")}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Trạng thái</span>

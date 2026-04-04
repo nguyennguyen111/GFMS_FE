@@ -45,6 +45,13 @@
   color: rgba(238, 242, 255, 0.5);
 }
 
+.oeq-filters input:focus,
+.oeq-filters select:focus {
+  outline: none;
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
+}
+
 .btn-primary {
   padding: 10px 16px;
   background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
@@ -111,9 +118,9 @@
 }
 
 .oeq-badge--active {
-  background: rgba(0, 255, 170, 0.1);
-  border: 1px solid rgba(0, 255, 170, 0.3);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.1);
+  border: 1px solid rgba(0, 227, 166, 0.3);
+  color: #00e3a6;
 }
 
 .oeq-badge--maintenance {
