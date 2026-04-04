@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./OwnerPurchaseOrdersPage.css";
 import { ownerGetPurchaseOrders, ownerGetPurchaseOrderDetail } from "../../../services/ownerPurchaseService";
+import { ownerGetMyGyms } from "../../../services/ownerGymService";
 
 const statusBadge = (status) => {
   const map = {
@@ -32,19 +33,37 @@ export default function OwnerPurchaseOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
+  const [gyms, setGyms] = useState([]);
+  const [filters, setFilters] = useState({ q: "", status: "", gymId: "" });
+  const [appliedFilters, setAppliedFilters] = useState({ q: "", status: "", gymId: "" });
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await ownerGetPurchaseOrders({ page, limit: 10 });
+      const res = await ownerGetPurchaseOrders({
+        page,
+        limit: 10,
+        q: appliedFilters.q || undefined,
+        status: appliedFilters.status || undefined,
+      });
       setOrders(res?.data?.data ?? []);
       setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGyms = async () => {
+    try {
+      const response = await ownerGetMyGyms();
+      const list = response?.data?.data ?? response?.data ?? [];
+      setGyms(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setGyms([]);
     }
   };
 
@@ -58,9 +77,28 @@ export default function OwnerPurchaseOrdersPage() {
   };
 
   useEffect(() => {
+    loadGyms();
+  }, []);
+
+  useEffect(() => {
     fetchOrders();
     // eslint-disable-next-line
-  }, [page]);
+  }, [page, appliedFilters]);
+
+  const filteredOrders = useMemo(() => {
+    if (!appliedFilters.gymId) return orders;
+    return orders.filter((item) => Number(item?.gym?.id) === Number(appliedFilters.gymId));
+  }, [orders, appliedFilters.gymId]);
+
+  const handleSearch = () => {
+    const nextFilters = {
+      q: (filters.q || "").trim(),
+      status: filters.status || "",
+      gymId: filters.gymId || "",
+    };
+    setAppliedFilters(nextFilters);
+    setPage(1);
+  };
 
   return (
     <div className="opo-page">
@@ -74,6 +112,47 @@ export default function OwnerPurchaseOrdersPage() {
       <div className="opo-container">
         <div className="opo-list">
           {loading && <div className="opo-loading">Đang tải...</div>}
+
+          <div className="opo-filters">
+            <input
+              type="text"
+              className="opo-search-input"
+              placeholder="Tìm theo mã đơn, nhà cung cấp, gym..."
+              value={filters.q}
+              onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <select
+              className="opo-status-select"
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="draft">Nháp</option>
+              <option value="approved">Đã duyệt</option>
+              <option value="deposit_pending">Chờ cọc 30%</option>
+              <option value="deposit_paid">Đã cọc 30%</option>
+              <option value="ordered">Đã đặt hàng</option>
+              <option value="partially_received">Đã nhận một phần</option>
+              <option value="received">Đã nhận đủ</option>
+              <option value="final_payment_pending">Chờ thanh toán còn lại</option>
+              <option value="completed">Hoàn tất</option>
+              <option value="cancelled">Đã hủy</option>
+            </select>
+            <select
+              className="opo-status-select"
+              value={filters.gymId}
+              onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
+            >
+              <option value="">Tất cả phòng gym</option>
+              {gyms.map((gym) => (
+                <option key={gym.id} value={gym.id}>
+                  {gym.name}
+                </option>
+              ))}
+            </select>
+            <button className="opo-filter-btn" onClick={handleSearch}>Tìm</button>
+          </div>
 
           <div className="opo-table-wrap">
             <table className="opo-table">
@@ -89,7 +168,7 @@ export default function OwnerPurchaseOrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => {
+                {filteredOrders.map((order) => {
                   const payment = order.paymentSummary || {};
                   return (
                     <tr
@@ -113,7 +192,7 @@ export default function OwnerPurchaseOrdersPage() {
                     </tr>
                   );
                 })}
-                {orders.length === 0 && (
+                {filteredOrders.length === 0 && (
                   <tr>
                     <td colSpan={7} className="opo-empty">
                       Không có đơn mua

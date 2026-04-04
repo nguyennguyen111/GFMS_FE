@@ -203,6 +203,28 @@
   z-index: 1;
 }
 
+.od2-menuFab {
+  position: fixed;
+  top: 16px;
+  left: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 177, 0, 0.35);
+  background: linear-gradient(135deg, rgba(255, 177, 0, 0.3), rgba(255, 138, 0, 0.18));
+  color: var(--text);
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.od2-menuFab:hover {
+  border-color: rgba(255, 177, 0, 0.55);
+  transform: translateY(-1px);
+}
+
 .od2-topbar{
   display:flex; align-items:center; justify-content:space-between;
   gap: 14px;

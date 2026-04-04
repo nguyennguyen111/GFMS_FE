@@ -149,6 +149,16 @@ export default function OwnerDashboard() {
       </aside>
 
       <main className="od2-main">
+        {collapsed && (
+          <button
+            className="od2-menuFab"
+            onClick={() => setCollapsed(false)}
+            title="Mở menu"
+            aria-label="Mở menu"
+          >
+            ☰
+          </button>
+        )}
         <div className="od2-content">
           <Routes>
             <Route path="/" element={<Navigate to="/owner/overview" replace />} />
