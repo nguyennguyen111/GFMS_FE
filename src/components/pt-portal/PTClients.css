@@ -19,7 +19,7 @@
     margin-bottom: 20px;
     color: #eef2ff;
     letter-spacing: 0.05em;
-    border-left: 4px solid #ff8a00;
+    border-left: 4px solid var(--m-gold2, #FF8A00);
     padding-left: 15px;
 }
 
@@ -41,7 +41,7 @@
 .pt-custom-table th {
     padding: 14px 16px;
     text-align: left;
-    background: rgba(255, 138, 0, 0.08); /* Màu cam nhẹ từ ptw-table th */
+    background: rgba(255, 177, 0, 0.1);
     color: rgba(238, 242, 255, 0.8);
     font-weight: 700;
     font-size: 11px;
@@ -107,7 +107,7 @@
 .btn-action {
     background: rgba(255, 138, 0, 0.15);
     border: 1px solid rgba(255, 138, 0, 0.4);
-    color: #ff8a00;
+    color: var(--m-gold, #FFB100);
     padding: 6px 12px;
     border-radius: 8px;
     font-size: 12px;
@@ -117,7 +117,7 @@
 }
 
 .btn-action:hover {
-    background: #ff8a00;
+    background: linear-gradient(135deg, rgba(255,177,0,.9), rgba(255,138,0,.85));
     color: #000;
 }
 /* --- Bổ sung cho PTSchedule.jsx --- */

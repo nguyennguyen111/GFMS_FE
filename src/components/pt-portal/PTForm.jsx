@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { createPT, updatePT, getPTDetails, uploadMyPTProfileImage } from "../../services/ptService";
+import { specializationToVietnamese } from "../../utils/specializationI18n";
 import "./PTForm.css";
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -72,7 +73,7 @@ const PTForm = () => {
               ? [
                   {
                     id: makeCertId(),
-                    name: String(t?.certification || "Certificate").trim(),
+                    name: String(t?.certification || "Chứng chỉ").trim(),
                     url: String(oldCertificateUrl || "").trim(),
                   },
                 ]
@@ -89,7 +90,7 @@ const PTForm = () => {
 
         setPT({
           userId: t?.userId != null ? String(t.userId) : "",
-          specialization: t?.specialization || "",
+          specialization: specializationToVietnamese(t?.specialization || ""),
           certification: t?.certification || "",
           hourlyRate: t?.hourlyRate ?? 0,
           experienceYears: t?.experienceYears ?? 0,
@@ -228,7 +229,7 @@ const PTForm = () => {
           certificates: [
             {
               id: makeCertId(),
-              name: certDraftName.trim() || file.name || "Certificate",
+              name: certDraftName.trim() || file.name || "Chứng chỉ",
               url,
             },
             ...(Array.isArray(prev.certificates) ? prev.certificates : []),
@@ -255,7 +256,7 @@ const PTForm = () => {
       certificates: [
         {
           id: makeCertId(),
-          name: name || "Certificate",
+          name: name || "Chứng chỉ",
           url,
         },
         ...(Array.isArray(prev.certificates) ? prev.certificates : []),
@@ -345,7 +346,7 @@ const PTForm = () => {
       <div className="ptf-shell">
         <div className="ptf-topbar">
           <div>
-            <h1 className="ptf-title">PT Profile</h1>
+            <h1 className="ptf-title">Hồ sơ PT</h1>
             <p className="ptf-subtitle">
               Cập nhật thông tin huấn luyện viên theo giao diện dashboard.
             </p>
@@ -363,23 +364,22 @@ const PTForm = () => {
 
         {loading ? (
           <div className="ptf-card">
-            <p className="ptf-muted">Loading...</p>
+            <p className="ptf-muted">Đang tải...</p>
           </div>
         ) : (
           <form id="ptf-form" className="ptf-grid" onSubmit={handleSubmit}>
-            {/* Card: PT Profile */}
             <section className="ptf-card ptf-card--span2">
               <div className="ptf-cardHead">
-                <h3 className="ptf-cardTitle">PT Profile</h3>
+                <h3 className="ptf-cardTitle">Hồ sơ PT</h3>
                 <span className={`ptf-pill ${headerStatus === "active" ? "is-active" : "is-inactive"}`}>
-                  {headerStatus}
+                  {headerStatus === "active" ? "Đang hoạt động" : "Ngưng hoạt động"}
                 </span>
               </div>
 
-              <label className="ptf-label">Avatar</label>
+              <label className="ptf-label">Ảnh đại diện</label>
               <div className="ptf-uploadRow">
                 <div className="ptf-avatarPreview">
-                  {pt.avatarUrl ? <img src={pt.avatarUrl} alt="avatar" /> : <span>Avatar</span>}
+                  {pt.avatarUrl ? <img src={pt.avatarUrl} alt="" /> : <span>Ảnh đại diện</span>}
                 </div>
                 <label className="ptf-uploadBtn">
                   {uploadingAvatar ? "Đang upload..." : "Upload avatar"}
@@ -387,7 +387,7 @@ const PTForm = () => {
                 </label>
               </div>
 
-              <label className="ptf-label">Cover Image URL</label>
+              <label className="ptf-label">URL ảnh bìa</label>
               <input
                 className="ptf-input"
                 name="coverImageUrl"
@@ -412,7 +412,7 @@ const PTForm = () => {
                   className="ptf-resetBtn"
                   onClick={() => setPT((p) => ({ ...p, coverPosX: 50, coverPosY: 50 }))}
                 >
-                  Reset
+                  Đặt lại
                 </button>
               </div>
 
@@ -430,11 +430,11 @@ const PTForm = () => {
                 }
                 title="Giữ chuột và kéo để chỉnh vị trí ảnh"
               >
-                {!pt.coverImageUrl && <div className="ptf-coverEmpty">Cover preview</div>}
+                {!pt.coverImageUrl && <div className="ptf-coverEmpty">Xem trước ảnh bìa</div>}
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
-                Bio
+                Giới thiệu
               </label>
               <textarea
                 className="ptf-textarea"
@@ -446,11 +446,10 @@ const PTForm = () => {
               />
             </section>
 
-            {/* Basic Info */}
             <section className="ptf-card">
-              <h3 className="ptf-cardTitle">Basic Info</h3>
+              <h3 className="ptf-cardTitle">Thông tin cơ bản</h3>
 
-              <label className="ptf-label">User ID</label>
+              <label className="ptf-label">Mã người dùng</label>
               <input
                 className="ptf-input"
                 type="number"
@@ -462,18 +461,18 @@ const PTForm = () => {
                 placeholder="User ID (bắt buộc)"
               />
 
-              <label className="ptf-label">Status</label>
+              <label className="ptf-label">Trạng thái</label>
               <select
                 className="ptf-input"
                 name="status"
                 value={pt.status}
                 onChange={handleChange}
               >
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Ngưng hoạt động</option>
               </select>
 
-              <label className="ptf-label">Years of experience</label>
+              <label className="ptf-label">Số năm kinh nghiệm</label>
               <input
                 className="ptf-input"
                 type="number"
@@ -483,18 +482,17 @@ const PTForm = () => {
               />
             </section>
 
-            {/* Skills */}
             <section className="ptf-card">
-              <h3 className="ptf-cardTitle">Skills</h3>
+              <h3 className="ptf-cardTitle">Kỹ năng</h3>
 
-              <label className="ptf-label">Specialties (comma separated)</label>
+              <label className="ptf-label">Chuyên môn (phân tách bằng dấu phẩy)</label>
               <input
                 className="ptf-input"
                 type="text"
                 name="specialization"
                 value={pt.specialization}
                 onChange={handleChange}
-                placeholder="Weight Loss, Strength Training"
+                placeholder="Ví dụ: Giảm cân, Tăng sức mạnh"
               />
 
               <label className="ptf-label">Tên chứng chỉ</label>
@@ -503,7 +501,7 @@ const PTForm = () => {
                 type="text"
                 value={certDraftName}
                 onChange={(e) => setCertDraftName(e.target.value)}
-                placeholder="Ví dụ: ACE Certified Personal Trainer"
+                placeholder="Ví dụ: Chứng chỉ huấn luyện viên ACE"
               />
               <label className="ptf-label">Link ảnh chứng chỉ</label>
               <input
@@ -535,7 +533,7 @@ const PTForm = () => {
                   (Array.isArray(pt.certificates) ? pt.certificates : []).map((cert) => (
                     <div className="ptf-certItem" key={cert.id}>
                       <div className="ptf-certText">
-                        <strong>{cert.name || "Certificate"}</strong>
+                        <strong>{cert.name || "Chứng chỉ"}</strong>
                         {cert.url ? (
                           <a href={cert.url} target="_blank" rel="noreferrer" className="ptf-certLink">
                             Mở ảnh
@@ -557,7 +555,7 @@ const PTForm = () => {
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
-                Hourly Rate
+                Giá theo giờ
               </label>
               <input
                 className="ptf-input"

@@ -1,17 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { getPTBookings } from "../../services/ptService"; 
-import "./PTClients.css"; // Đảm bảo tên file CSS khớp với file bạn vừa tạo
+import { getPTBookings } from "../../services/ptService";
+import "./PTClients.css";
 
-const PTClients = ({ trainerId = "me" }) => { 
+const bookingStatusVi = (raw) => {
+  const s = String(raw || "").toLowerCase();
+  const map = {
+    pending: "Chờ xử lý",
+    confirmed: "Đã xác nhận",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+    absent: "Vắng",
+    present: "Có mặt",
+  };
+  return map[s] || raw || "—";
+};
+
+const PTClients = ({ trainerId = "me" }) => {
   const [bookings, setBookings] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // Hàm hỗ trợ định dạng ngày tháng
   const formatDate = (dateStr) => {
-    if (!dateStr) return "N/A";
+    if (!dateStr) return "—";
     const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN'); 
+    return date.toLocaleDateString("vi-VN");
   };
 
   useEffect(() => {
@@ -22,12 +35,12 @@ const PTClients = ({ trainerId = "me" }) => {
       })
       .catch((err) => {
         console.error(err);
-        setError("Error fetching student bookings");
+        setError("Không tải được lịch học viên.");
         setLoading(false);
       });
   }, [trainerId]);
 
-  if (loading) return <div className="ptp-wrap">Loading...</div>;
+  if (loading) return <div className="ptp-wrap">Đang tải...</div>;
   if (error) return <div className="ptp-wrap" style={{color: '#ff5555'}}>{error}</div>;
 
   return (
@@ -67,12 +80,12 @@ const PTClients = ({ trainerId = "me" }) => {
                     </td>
                     <td>
                       <span style={{ color: "rgba(238, 242, 255, 0.8)" }}>
-                        {item.Gym?.name || "N/A"}
+                        {item.Gym?.name || "—"}
                       </span>
                     </td>
                     <td>
                       <span className={`status-badge ${item.status}`}>
-                        {item.status}
+                        {bookingStatusVi(item.status)}
                       </span>
                     </td>
                     <td>

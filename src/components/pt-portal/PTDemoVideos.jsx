@@ -15,7 +15,7 @@ import "./PTDemoVideos.css";
 
 const formatBytes = (value) => {
   const n = Number(value || 0);
-  if (!n) return "N/A";
+  if (!n) return "Không có";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -41,14 +41,22 @@ const PTDemoVideos = () => {
   const [sending, setSending] = useState(false);
   const [sentMaterials, setSentMaterials] = useState([]);
 
+  const normalizeList = (raw) => {
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.data)) return raw.data;
+    if (Array.isArray(raw?.items)) return raw.items;
+    if (Array.isArray(raw?.result)) return raw.result;
+    return [];
+  };
+
   const fetchVideos = async () => {
     try {
       setLoading(true);
       setError("");
       const res = await getMyPTDemoVideos();
-      setVideos(Array.isArray(res?.data) ? res.data : []);
+      setVideos(normalizeList(res));
       const planRes = await getMyPTTrainingPlans();
-      setPlans(Array.isArray(planRes?.data) ? planRes.data : []);
+      setPlans(normalizeList(planRes));
     } catch (e) {
       setError(e?.response?.data?.message || "Không tải được danh sách video demo.");
     } finally {
@@ -204,7 +212,7 @@ const PTDemoVideos = () => {
     <div className="ptp-wrap">
       <div className="ptp-head">
         <div>
-          <h2 className="ptp-title">Demo Videos</h2>
+          <h2 className="ptp-title">Video demo</h2>
           <div className="ptp-sub">
             Tải video minh họa để hội viên xem kỹ phong cách huấn luyện của bạn.
           </div>
@@ -376,7 +384,7 @@ const PTDemoVideos = () => {
           {videos.map((v) => (
             <div key={v.id} className="ptp-card pt-demo-item-card">
               <video
-                src={v.url}
+                src={v.url || v.fileUrl || v.videoUrl || v.src}
                 controls
                 className="pt-demo-video"
                 onLoadedMetadata={(e) => {
@@ -389,13 +397,13 @@ const PTDemoVideos = () => {
                   });
                 }}
               />
-              <div className="pt-demo-title">{v.title || "Demo video"}</div>
+              <div className="pt-demo-title">{v.title || "Video demo"}</div>
               <div className="ptp-sub">
                 {Number.isFinite(durationsById[v.id])
-                  ? `Duration: ${Math.round(Number(durationsById[v.id]))}s`
+                  ? `Thời lượng: ${Math.round(Number(durationsById[v.id]))} giây`
                   : v.duration
-                    ? `Duration: ${Math.round(Number(v.duration))}s`
-                    : "Duration: N/A"} |{" "}
+                    ? `Thời lượng: ${Math.round(Number(v.duration))} giây`
+                    : "Thời lượng: không có"} |{" "}
                 {formatBytes(v.bytes)}
               </div>
               <div className="pt-demo-delete-action">
@@ -409,19 +417,28 @@ const PTDemoVideos = () => {
       )}
 
       <div className="ptp-card pt-demo-upload-card" style={{ marginTop: 12 }}>
-        <h3 className="pt-demo-title">Training Plans</h3>
+        <h3 className="pt-demo-title">Kế hoạch tập luyện</h3>
         {!plans.length ? (
           <div className="ptp-sub">Chưa có file kế hoạch nào.</div>
         ) : (
           <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
             {plans.map((p) => (
               <div key={p.id} className="ptp-card" style={{ padding: 10 }}>
-                <div style={{ fontWeight: 700 }}>{p.title || "Training plan"}</div>
+                <div style={{ fontWeight: 700 }}>{p.title || "Kế hoạch tập"}</div>
                 <div className="ptp-sub">{formatBytes(p.bytes)} {p.mimeType ? `| ${p.mimeType}` : ""}</div>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <a className="ptp-btn ptp-btn--small" href={p.url} target="_blank" rel="noreferrer">
-                    Xem/Tải file
-                  </a>
+                  {p.url || p.fileUrl ? (
+                    <a
+                      className="ptp-btn ptp-btn--small"
+                      href={p.url || p.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Xem/Tải file
+                    </a>
+                  ) : (
+                    <span className="ptp-sub">Chưa có link file</span>
+                  )}
                   <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDeletePlan(p.id)}>
                     Xóa
                   </button>

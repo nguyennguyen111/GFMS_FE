@@ -13,12 +13,12 @@ const fmtDT = (v) => {
 
 const pickMemberLabel = (booking) => {
   const memberName = booking?.Member?.User?.username || booking?.Member?.fullName || booking?.Member?.name;
-  return memberName || (booking?.memberId ? `Member #${booking.memberId}` : "—");
+  return memberName || (booking?.memberId ? `Học viên #${booking.memberId}` : "—");
 };
 
 const pickGymLabel = (booking) => {
   const g = booking?.Gym;
-  return g?.gymName || g?.name || (booking?.gymId ? `Gym #${booking.gymId}` : "—");
+  return g?.gymName || g?.name || (booking?.gymId ? `Cơ sở #${booking.gymId}` : "—");
 };
 
 export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onReset, refresh }) {
@@ -92,7 +92,7 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
               </div>
               {ta?.checkInTime && (
                 <div className="ptAttModal__row">
-                  <span className="k">Check-in</span>
+                  <span className="k">Thời điểm check-in</span>
                   <span className="v" style={{fontWeight: 'bold'}}>{fmtDT(ta?.checkInTime)}</span>
                 </div>
               )}

@@ -1,14 +1,10 @@
-/* =========================
-   TrainerSkills.css (FULL)
-   ========================= */
-
 .ptSkillsPage{
-  min-height: 100vh;
+  min-height: 0;
   width: 100%;
-  padding: 28px 0 48px;
+  padding: 8px 0 32px;
   box-sizing: border-box;
-  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
-  color: var(--lightgray);
+  background: transparent;
+  color: var(--m-text, rgba(255,255,255,.92));
 }
 
 .ptSkillsPage__inner{
@@ -28,7 +24,7 @@
   width: fit-content;
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   font-weight: 900;
   padding: 10px 12px;
   border-radius: 12px;
@@ -39,7 +35,7 @@
 .ptBack:hover{
   filter: brightness(1.08);
   transform: translateY(-1px);
-  border-color: rgba(244, 137, 21, 0.35);
+  border-color: rgba(255, 177, 0, 0.38);
 }
 
 .ptSkills__header{
@@ -51,14 +47,14 @@
 
 .ptSkills__header h1{
   margin: 0;
-  color: var(--orange);
+  color: var(--m-gold, #FFB100);
   font-size: 2.1rem;
   letter-spacing: 0.2px;
 }
 
 .ptSkills__sub{
   margin: 0.35rem 0 0;
-  color: var(--gray);
+  color: var(--m-muted, rgba(255,255,255,.68));
   font-weight: 700;
 }
 
@@ -79,14 +75,14 @@
 }
 
 .ptSkills__field label{
-  color: var(--gray);
+  color: var(--m-muted, rgba(255,255,255,.68));
   font-weight: 900;
 }
 
 .ptSkills__field textarea{
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   border-radius: 12px;
   padding: 0.75rem;
   resize: vertical;
@@ -94,7 +90,7 @@
 }
 
 .ptSkills__btn{
-  background: var(--orange);
+  background: linear-gradient(135deg, rgba(255,177,0,.92), rgba(255,138,0,.85));
   color: #111;
   font-weight: 950;
   padding: 0.7rem 1rem;
@@ -117,8 +113,8 @@
 
 .ptSkills__btn--ghost{
   background: transparent;
-  border: 2px solid rgba(244, 137, 21, 0.35);
-  color: var(--lightgray);
+  border: 2px solid rgba(255, 177, 0, 0.38);
+  color: var(--m-text, rgba(255,255,255,.92));
 }
 
 .ptSkills__btn:disabled{
