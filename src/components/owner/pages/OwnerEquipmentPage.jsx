@@ -87,7 +87,7 @@ export default function OwnerEquipmentPage() {
               <th>ID</th>
               <th>Tên</th>
               <th>Mã</th>
-              <th>Gym</th>
+              <th>Phòng tập</th>
               <th>Danh mục</th>
               <th>Trạng thái</th>
             </tr>

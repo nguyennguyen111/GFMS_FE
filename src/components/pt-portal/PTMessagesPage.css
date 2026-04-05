@@ -1,0 +1,8 @@
+.ptm-page {
+  width: 100%;
+}
+
+.ptm-shell .mm2-sidebar,
+.ptm-shell .mm2-chat {
+  background: linear-gradient(180deg, rgba(13, 18, 24, 0.98), rgba(9, 11, 16, 0.95));
+}

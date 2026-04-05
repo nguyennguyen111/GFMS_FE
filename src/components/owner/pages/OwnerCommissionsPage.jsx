@@ -238,7 +238,7 @@ const OwnerCommissionsPage = () => {
           showAlert(
             "success",
             "Hoàn tất",
-            `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho PT.`
+            `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho huấn luyện viên.`
           );
           break;
         }
@@ -259,7 +259,7 @@ const OwnerCommissionsPage = () => {
 
   const handleClosePeriod = async () => {
     if (!periodForm.gymId || !periodForm.startDate || !periodForm.endDate) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym và thời gian kỳ lương.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập và thời gian kỳ lương.");
       return;
     }
     try {
@@ -328,7 +328,7 @@ const OwnerCommissionsPage = () => {
   const handlePayByTrainer = async () => {
     const { gymId, trainerId, fromDate, toDate } = payByTrainerForm;
     if (!gymId || !trainerId || !fromDate || !toDate) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym, PT và khoảng thời gian.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập, huấn luyện viên và khoảng thời gian.");
       return;
     }
     try {
@@ -354,9 +354,9 @@ const OwnerCommissionsPage = () => {
       setDialog({
         kind: "confirm",
         tone: "warning",
-        title: "Xác nhận chi trả theo PT",
+        title: "Xác nhận chi trả theo huấn luyện viên",
         message:
-          "Các buổi «Chờ chốt kỳ» trong khoảng ngày đã chọn sẽ chuyển sang «Đã chi trả» và được ghi nhận vào số dư khả dụng của PT. Vui lòng kiểm tra đúng người nhận trước khi xác nhận.",
+          "Các buổi «Chờ chốt kỳ» trong khoảng ngày đã chọn sẽ chuyển sang «Đã chi trả» và được ghi nhận vào số dư khả dụng của huấn luyện viên. Vui lòng kiểm tra đúng người nhận trước khi xác nhận.",
         meta: {
           gymName: gym?.name || "",
           periodLabel: `${formatDate(fromDate)} — ${formatDate(toDate)}`,
@@ -367,7 +367,7 @@ const OwnerCommissionsPage = () => {
           {
             trainerId: Number(trainerId),
             username,
-            idLabel: `Mã PT: #${trainerId}`,
+            idLabel: `Mã huấn luyện viên: #${trainerId}`,
             email,
             sessions: totalSessions,
             amountLabel: formatMoney(totalAmount),
@@ -380,18 +380,18 @@ const OwnerCommissionsPage = () => {
         action: "payTrainer",
       });
     } catch (error) {
-      console.error("Lỗi khi chi trả theo PT:", error);
+      console.error("Lỗi khi chi trả theo huấn luyện viên:", error);
       showAlert(
         "error",
         "Lỗi",
-        error.response?.data?.message || "Không thể chi trả theo PT."
+        error.response?.data?.message || "Không thể chi trả theo huấn luyện viên."
       );
     }
   };
 
   const handleLoadRate = async () => {
     if (!rateForm.gymId) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng gym.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập.");
       return;
     }
     try {
@@ -410,7 +410,7 @@ const OwnerCommissionsPage = () => {
 
   const handleSaveRate = async () => {
     if (!rateForm.gymId || rateForm.ownerRate === "") {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym và nhập % hoa hồng owner.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập và nhập % hoa hồng owner.");
       return;
     }
     const ownerRate = Number(rateForm.ownerRate) / 100;
@@ -420,7 +420,7 @@ const OwnerCommissionsPage = () => {
     }
     try {
       await ownerSetGymCommissionRate({ gymId: Number(rateForm.gymId), ownerRate });
-      showAlert("success", "Đã lưu", "Đã cập nhật tỷ lệ hoa hồng theo gym.");
+      showAlert("success", "Đã lưu", "Đã cập nhật tỷ lệ hoa hồng theo phòng tập.");
     } catch (error) {
       console.error("Lỗi khi cập nhật tỷ lệ hoa hồng:", error);
       showAlert(
@@ -545,7 +545,7 @@ const OwnerCommissionsPage = () => {
               <th>Phòng gym</th>
               <th>Gói tập</th>
               <th>Giá trị/buổi</th>
-              <th>Hoa hồng PT</th>
+              <th>Hoa hồng Huấn luyện viên</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
@@ -634,7 +634,7 @@ const OwnerCommissionsPage = () => {
         </table>
       </div>
 
-      <div className="owner-section-heading">Thao tác chốt kỳ & chi trả tiền cho PT</div>
+      <div className="owner-section-heading">Thao tác chốt kỳ & chi trả tiền cho Huấn luyện viên</div>
       <div className="owner-pay-tools">
       <div className="period-card">
         <div className="period-card-title">Chốt bảng lương kỳ</div>
@@ -691,7 +691,7 @@ const OwnerCommissionsPage = () => {
       </div>
 
       <div className="period-card">
-        <div className="period-card-title">Chi trả theo từng PT</div>
+        <div className="period-card-title">Chi trả theo từng Huấn luyện viên</div>
         <div className="period-form">
           <select
             className="filter-select"
@@ -710,12 +710,12 @@ const OwnerCommissionsPage = () => {
             value={payByTrainerForm.trainerId}
             onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, trainerId: e.target.value })}
           >
-            <option value="">Chọn PT</option>
+            <option value="">Chọn Huấn luyện viên</option>
             {trainers
               .filter((t) => !payByTrainerForm.gymId || Number(t.gymId) === Number(payByTrainerForm.gymId))
               .map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.User?.username || `PT #${t.id}`}
+                  {t.User?.username || `Huấn luyện viên #${t.id}`}
                 </option>
               ))}
           </select>
@@ -736,7 +736,7 @@ const OwnerCommissionsPage = () => {
             showPopperArrow={false}
           />
           <button className="search-button" onClick={handlePayByTrainer}>
-            Chi trả PT
+            Chi trả Huấn luyện viên
           </button>
         </div>
         <div className="period-preview">
@@ -768,12 +768,12 @@ const OwnerCommissionsPage = () => {
               </option>
             ))}
           </select>
-          <div className="owner-rate-field" title="Phần trăm thuộc về chủ gym (0–100%)">
+          <div className="owner-rate-field" title="Phần trăm thuộc về chủ phòng tập (0–100%)">
             <input
               type="number"
               className="owner-rate-input"
               placeholder="vd: 15"
-              aria-label="Tỷ lệ hoa hồng chủ gym, phần trăm"
+              aria-label="Tỷ lệ hoa hồng chủ phòng tập, phần trăm"
               value={rateForm.ownerRate}
               onChange={(e) => setRateForm({ ...rateForm, ownerRate: e.target.value })}
               min="0"
@@ -810,7 +810,7 @@ const OwnerCommissionsPage = () => {
             <div className="tx-modal-body">
               <div className="period-summary">
                 <div><strong>Kỳ:</strong> {formatDate(selectedPeriod.startDate)} - {formatDate(selectedPeriod.endDate)}</div>
-                <div><strong>Gym:</strong> {selectedPeriod.Gym?.name || "N/A"}</div>
+                <div><strong>Phòng tập:</strong> {selectedPeriod.Gym?.name || "N/A"}</div>
                 <div><strong>Tổng buổi:</strong> {selectedPeriod.totalSessions || 0}</div>
                 <div><strong>Tổng tiền:</strong> {formatMoney(selectedPeriod.totalAmount)}</div>
               </div>

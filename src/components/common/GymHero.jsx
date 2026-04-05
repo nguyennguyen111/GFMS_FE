@@ -5,8 +5,8 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 
-import ImageWithFallback from "../../../common/ImageWithFallback";
-import { normalizeImageList } from "../../../../utils/image";
+import ImageWithFallback from "./ImageWithFallback";
+import { normalizeImageList } from "../../utils/image";
 import "../Marketplace.css";
 
 export default function GymHero({ gym }) {

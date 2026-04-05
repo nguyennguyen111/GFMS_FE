@@ -277,6 +277,10 @@ export default function GymDetailsPage() {
 
                       <div className="gd-pkgMeta">
                         <span className="gd-miniTag">
+                          <Users size={14} />
+                          <span>PT chung toàn gym</span>
+                        </span>
+                        <span className="gd-miniTag">
                           <Dumbbell size={14} />
                           <span>{p.sessions} buổi</span>
                         </span>

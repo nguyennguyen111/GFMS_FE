@@ -173,7 +173,7 @@ const OwnerBookingsPage = () => {
       if (showDetailModal) handleCloseDetailModal();
       await loadTrainers(pagination.page);
     } catch (error) {
-      alert(error.response?.data?.message || `Lỗi khi ${action} PT`);
+      alert(error.response?.data?.message || `Lỗi khi ${action} huấn luyện viên`);
     }
   };
 
@@ -213,29 +213,19 @@ const OwnerBookingsPage = () => {
   return (
     <div className="owner-bookings-page">
       {/* TABS NAVIGATION */}
-      <div className="tabs-container" style={{ marginBottom: '20px', borderBottom: '1px solid #333', display: 'flex', gap: '20px' }}>
-        <button 
-          onClick={() => setActiveTab("management")}
-          style={{ 
-            padding: '10px 20px', background: 'none', border: 'none', 
-            color: activeTab === "management" ? '#ff9800' : '#ccc',
-            borderBottom: activeTab === "management" ? '2px solid #ff9800' : 'none',
-            cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          Quản lý huấn luyện viên
-        </button>
-        <button 
-          onClick={() => setActiveTab("approval")}
-          style={{ 
-            padding: '10px 20px', background: 'none', border: 'none', 
-            color: activeTab === "approval" ? '#ff9800' : '#ccc',
-            borderBottom: activeTab === "approval" ? '2px solid #ff9800' : 'none',
-            cursor: 'pointer', fontWeight: 'bold'
-          }}
-        >
-          Duyệt yêu cầu PT
-        </button>
+      <div className="trainer-tabs-wrap">
+          <button
+            onClick={() => setActiveTab("management")}
+            className={`trainer-tab-btn ${activeTab === "management" ? "is-active" : ""}`}
+          >
+            Quản lý huấn luyện viên
+          </button>
+          <button
+            onClick={() => setActiveTab("approval")}
+            className={`trainer-tab-btn ${activeTab === "approval" ? "is-active" : ""}`}
+          >
+            Duyệt yêu cầu Huấn luyện viên
+          </button>
       </div>
 
       {activeTab === "management" ? (
@@ -260,7 +250,7 @@ const OwnerBookingsPage = () => {
               onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
               className="filter-select"
             >
-              <option value="">Tất cả phòng gym</option>
+              <option value="">Tất cả phòng tập</option>
               {gyms.map((gym) => (
                 <option key={gym.id} value={gym.id}>{gym.name}</option>
               ))}
@@ -272,7 +262,7 @@ const OwnerBookingsPage = () => {
             <table className="bookings-table">
               <thead>
                 <tr>
-                  <th>Tên huấn luyện viên</th><th>Email</th><th>Điện thoại</th><th>Phòng gym</th><th>Chuyên môn</th><th>Giá/giờ</th><th>Hành động</th>
+                  <th>Tên huấn luyện viên</th><th>Email</th><th>Điện thoại</th><th>Phòng tập</th><th>Chuyên môn</th><th>Giá/giờ</th><th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,7 +302,7 @@ const OwnerBookingsPage = () => {
         <div className="owner-request-approval" style={{ padding: 0 }}>
           <div className="od2-main">
             <div className="od2-topbar">
-              <h1 className="od2-h1">Duyệt yêu cầu PT</h1>
+              <h1 className="od2-h1">Duyệt yêu cầu Huấn luyện viên</h1>
             </div>
             <div className="od2-content">
               {loadingReq ? (
@@ -380,15 +370,15 @@ const OwnerBookingsPage = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Chọn phòng gym *</label>
+                  <label>Chọn phòng tập *</label>
                   <select value={newTrainer.gymId} onChange={(e) => setNewTrainer({ ...newTrainer, gymId: e.target.value })} required className="form-select">
-                    <option value="">-- Chọn phòng gym --</option>
+                    <option value="">-- Chọn phòng tập --</option>
                     {gyms.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Chuyên môn</label>
-                  <input type="text" className="form-input" value={newTrainer.specialization} onChange={(e) => setNewTrainer({ ...newTrainer, specialization: e.target.value })} placeholder="VD: Yoga, Gym..."/>
+                  <input type="text" className="form-input" value={newTrainer.specialization} onChange={(e) => setNewTrainer({ ...newTrainer, specialization: e.target.value })} placeholder="VD: Yoga, Phòng tập..."/>
                 </div>
                 <div className="form-group">
                   <label>Chứng chỉ</label>
@@ -400,13 +390,81 @@ const OwnerBookingsPage = () => {
                 </div>
                 <div className="form-actions">
                   <button type="button" onClick={handleCloseCreateModal} className="btn-cancel">Hủy</button>
-                  <button type="submit" className="btn-submit">✓ Thêm huấn luyện viên</button>
+                  <button type="submit" className="btn-submit">Thêm huấn luyện viên</button>
                 </div>
               </form>
             </div>
           </div>
         </div>
       )}
+
+      {showEditModal && selectedTrainer && (
+        <div className="modal-overlay" onClick={handleCloseEditModal}>
+          <div className="modal-content edit-trainer-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Sửa huấn luyện viên: {selectedTrainer?.User?.username || "N/A"}</h2>
+              <button className="modal-close" onClick={handleCloseEditModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="edit-info-card">
+                <span className="edit-label">Email</span>
+                <span className="edit-value">{selectedTrainer?.User?.email || "N/A"}</span>
+              </div>
+
+              <div className="edit-info-card">
+                <span className="edit-label">Phòng tập</span>
+                <span className="edit-value">{selectedTrainer?.Gym?.name || "N/A"}</span>
+              </div>
+
+              <div className="edit-field">
+                <p className="edit-field-label">Chuyên môn</p>
+                <input
+                  className="edit-field-input"
+                  type="text"
+                  value={selectedTrainer?.specialization || ""}
+                  onChange={(e) =>
+                    setSelectedTrainer((prev) => ({ ...prev, specialization: e.target.value }))
+                  }
+                  placeholder="VD: Weight Loss, Strength Training"
+                />
+              </div>
+
+              <div className="edit-field">
+                <p className="edit-field-label">Chứng chỉ</p>
+                <input
+                  className="edit-field-input"
+                  type="text"
+                  value={selectedTrainer?.certification || ""}
+                  onChange={(e) =>
+                    setSelectedTrainer((prev) => ({ ...prev, certification: e.target.value }))
+                  }
+                  placeholder="VD: ACE, NASM"
+                />
+              </div>
+
+              <div className="edit-field">
+                <p className="edit-field-label">Giá/giờ (VND)</p>
+                <input
+                  className="edit-field-input"
+                  type="number"
+                  value={selectedTrainer?.hourlyRate ?? ""}
+                  onChange={(e) =>
+                    setSelectedTrainer((prev) => ({ ...prev, hourlyRate: e.target.value }))
+                  }
+                  placeholder="VD: 200000"
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn-cancel" onClick={handleCloseEditModal}>Hủy</button>
+              <button type="button" className="btn-submit" onClick={handleUpdateTrainer}>Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
  {/* Modal Chi tiết PT */}
       {showDetailModal && trainerDetail && (
         <div className="modal-overlay" onClick={handleCloseDetailModal}>
@@ -419,7 +477,7 @@ const OwnerBookingsPage = () => {
             <div className="modal-body">
               {/* Thông tin cơ bản */}
               <div className="detail-section">
-                <h3 className="detail-section-title">📋 Thông tin cơ bản</h3>
+                <h3 className="detail-section-title">Thông tin cơ bản</h3>
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="detail-label">Họ tên:</span>
@@ -434,7 +492,7 @@ const OwnerBookingsPage = () => {
                     <span className="detail-value">{selectedTrainer?.User?.phone || "N/A"}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Phòng gym:</span>
+                    <span className="detail-label">Phòng tập:</span>
                     <span className="detail-value">{selectedTrainer?.Gym?.name || "N/A"}</span>
                   </div>
                   <div className="detail-item">
@@ -464,31 +522,27 @@ const OwnerBookingsPage = () => {
 
               {/* Thống kê */}
               <div className="detail-section">
-                <h3 className="detail-section-title">📊 Thống kê</h3>
+                <h3 className="detail-section-title">Thống kê</h3>
                 <div className="stats-grid">
                   <div className="stat-card">
-                    <div className="stat-icon">🏋️</div>
                     <div className="stat-content">
                       <div className="stat-value">{trainerDetail.totalBookings || 0}</div>
                       <div className="stat-label">Tổng lịch</div>
                     </div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-icon">✅</div>
                     <div className="stat-content">
                       <div className="stat-value">{trainerDetail.completedBookings || 0}</div>
                       <div className="stat-label">Hoàn thành</div>
                     </div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-icon">⏳</div>
                     <div className="stat-content">
                       <div className="stat-value">{trainerDetail.upcomingBookings || 0}</div>
                       <div className="stat-label">Sắp tới</div>
                     </div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-icon">⭐</div>
                     <div className="stat-content">
                       <div className="stat-value">{trainerDetail.averageRating?.toFixed(1) || "N/A"}</div>
                       <div className="stat-label">Đánh giá TB</div>

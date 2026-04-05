@@ -43,7 +43,7 @@ const OwnerGymsPage = () => {
       
       setGyms(sortedGyms);
     } catch (error) {
-      console.error("Lỗi khi load danh sách gym:", error);
+      console.error("Lỗi khi load danh sách phòng tập:", error);
       setGyms([]);
     }
   };
@@ -107,10 +107,10 @@ const OwnerGymsPage = () => {
       setGyms([]);
       await loadGyms();
       
-      alert("Cập nhật gym thành công!");
+      alert("Cập nhật phòng tập thành công!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật gym:", error);
-      alert(error.response?.data?.message || error.message || "Có lỗi xảy ra khi cập nhật gym");
+      console.error("Lỗi khi cập nhật phòng tập:", error);
+      alert(error.response?.data?.message || error.message || "Có lỗi xảy ra khi cập nhật phòng tập");
     }
   }, [editGym, handleCloseEditModal]);
 
@@ -203,7 +203,7 @@ const OwnerGymsPage = () => {
         return { ...prev, images: nextImages, avatarIndex: nextAvatarIndex };
       });
     } catch (e) {
-      console.error("Upload ảnh gym thất bại:", e);
+      console.error("Upload ảnh phòng tập thất bại:", e);
       const errorMsg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Upload ảnh thất bại";
       alert(errorMsg);
     } finally {
@@ -233,8 +233,8 @@ const OwnerGymsPage = () => {
     <div className="owner-gyms-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Quản lý Gym của tôi</h1>
-          <p className="page-subtitle">Xem và quản lý thông tin các phòng gym</p>
+          <h1 className="page-title">Quản lý Phòng tập của tôi</h1>
+          <p className="page-subtitle">Xem và quản lý thông tin các phòng tập</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ const OwnerGymsPage = () => {
         {gyms.length === 0 ? (
           <div className="no-gyms">
             <div className="no-gyms-icon">🏋️</div>
-            <p>Bạn chưa có gym nào</p>
+            <p>Bạn chưa có phòng tập nào</p>
           </div>
         ) : (
           visibleGyms.map((gym) => (
@@ -291,7 +291,7 @@ const OwnerGymsPage = () => {
                 </div>
                 <div className="stat-item">
                   <div className="stat-value">{gym.totalTrainers || 0}</div>
-                  <div className="stat-label">Trainer</div>
+                  <div className="stat-label">Huấn luyện viên</div>
                 </div>
                 <div className="stat-item">
                   <div className="stat-value">{gym.totalPackages || 0}</div>
@@ -301,10 +301,10 @@ const OwnerGymsPage = () => {
 
               <div className="gym-actions">
                 <button onClick={() => handleViewDetail(gym)} className="btn-view">
-                  👁️ Chi tiết
+                  Chi tiết
                 </button>
                 <button onClick={() => handleOpenEditModal(gym)} className="btn-edit">
-                  ✏️ Chỉnh sửa
+                  Chỉnh sửa
                 </button>
               </div>
             </div>
@@ -337,7 +337,7 @@ const OwnerGymsPage = () => {
         <div className="modal-overlay" onClick={handleCloseDetailModal}>
           <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Chi tiết Gym</h2>
+              <h2 className="modal-title">Chi tiết Phòng tập</h2>
               <button className="modal-close" onClick={handleCloseDetailModal}>
                 ×
               </button>
@@ -345,7 +345,7 @@ const OwnerGymsPage = () => {
             <div className="modal-body">
               <div className="gym-detail-info">
                 <div className="info-card">
-                  <div className="info-label">Tên Gym:</div>
+                  <div className="info-label">Tên Phòng tập:</div>
                   <div className="info-value">{selectedGym.name}</div>
                 </div>
 
@@ -395,7 +395,7 @@ const OwnerGymsPage = () => {
                 }} 
                 className="btn-submit"
               >
-                ✏️ Chỉnh sửa
+                Chỉnh sửa
               </button>
             </div>
           </div>
@@ -407,7 +407,7 @@ const OwnerGymsPage = () => {
         <div className="modal-overlay" onClick={handleCloseEditModal}>
           <div className="modal-content modal-edit" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Chỉnh sửa thông tin Gym</h2>
+              <h2 className="modal-title">Chỉnh sửa thông tin Phòng tập</h2>
               <button className="modal-close" onClick={handleCloseEditModal}>
                 ×
               </button>
@@ -415,14 +415,14 @@ const OwnerGymsPage = () => {
             <div className="modal-body">
               <form onSubmit={handleUpdateGym} className="modal-form">
                 <div className="form-group">
-                  <label className="form-label">Tên Gym *</label>
+                  <label className="form-label">Tên Phòng tập *</label>
                   <input
                     type="text"
                     value={editGym.name}
                     onChange={(e) => setEditGym({ ...editGym, name: e.target.value })}
                     required
                     className="form-input"
-                    placeholder="Nhập tên gym"
+                    placeholder="Nhập tên phòng tập"
                   />
                 </div>
 
@@ -469,7 +469,7 @@ const OwnerGymsPage = () => {
                     onChange={(e) => setEditGym({ ...editGym, description: e.target.value })}
                     className="form-textarea"
                     rows="4"
-                    placeholder="Mô tả về gym..."
+                    placeholder="Mô tả về phòng tập..."
                   />
                 </div>
 
@@ -528,7 +528,7 @@ const OwnerGymsPage = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="gym-upload__empty">📷 Chưa có ảnh nào. Hãy chọn ảnh để hiển thị phòng gym của bạn!</div>
+                      <div className="gym-upload__empty">📷 Chưa có ảnh nào. Hãy chọn ảnh để hiển thị phòng tập của bạn!</div>
                     )}
                   </div>
                 </div>
