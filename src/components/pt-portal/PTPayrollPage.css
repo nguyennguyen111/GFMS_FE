@@ -16,15 +16,17 @@
 }
 
 .ptpay-card {
-  background: rgba(15, 22, 33, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  padding: 14px;
+  padding: 16px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .ptpay-label {
   font-size: 12px;
-  opacity: 0.7;
+  opacity: 0.72;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -33,7 +35,7 @@
   font-size: 20px;
   font-weight: 800;
   margin: 6px 0;
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
 }
 
 .ptpay-meta {
@@ -51,8 +53,8 @@
 }
 
 .ptpay-table {
-  background: rgba(15, 22, 33, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   overflow: auto;
 }
@@ -66,8 +68,8 @@
 .ptpay-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08);
-  color: rgba(238, 242, 255, 0.8);
+  background: rgba(214, 255, 0, 0.08);
+  color: rgba(238, 242, 255, 0.85);
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
@@ -92,49 +94,57 @@
 }
 
 .ptpay-money {
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
   font-weight: 700;
 }
 
 .ptpay-badge {
   display: inline-block;
-  padding: 4px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .ptpay-badge-pending {
-  background: rgba(255, 176, 0, 0.2);
-  color: #ffb000;
+  border-color: rgba(214, 255, 0, 0.55);
+  background: rgba(214, 255, 0, 0.12);
+  color: rgba(214, 255, 0, 0.95);
 }
 
 .ptpay-badge-calculated {
-  background: rgba(0, 180, 255, 0.2);
-  color: #00b4ff;
+  border-color: rgba(0, 180, 255, 0.55);
+  background: rgba(0, 180, 255, 0.12);
+  color: rgba(0, 180, 255, 0.95);
 }
 
 .ptpay-badge-paid {
   background: rgba(0, 255, 170, 0.18);
-  color: #00ffaa;
   border: 1px solid rgba(0, 255, 170, 0.35);
+  color: rgba(0, 255, 170, 0.95);
 }
 
 .ptpay-badge-withdraw-pending {
-  background: rgba(255, 176, 0, 0.2);
-  color: #ffb000;
+  border-color: rgba(214, 255, 0, 0.55);
+  background: rgba(214, 255, 0, 0.12);
+  color: rgba(214, 255, 0, 0.95);
 }
 
 .ptpay-badge-withdraw-completed {
-  background: rgba(0, 255, 170, 0.2);
-  color: #00ffaa;
+  border-color: rgba(0, 255, 170, 0.35);
+  background: rgba(0, 255, 170, 0.18);
+  color: rgba(0, 255, 170, 0.95);
 }
 
 .ptpay-badge-withdraw-rejected {
-  background: rgba(255, 80, 100, 0.2);
-  color: #ff6b7a;
+  border-color: rgba(255, 80, 100, 0.55);
+  background: rgba(255, 80, 100, 0.12);
+  color: rgba(255, 80, 100, 0.95);
 }
 
 .ptpay-withdraw-notes {
@@ -275,7 +285,7 @@
 }
 
 .ptpay-balance-inline strong {
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
 }
 
 .ptp-btn-secondary {
@@ -285,10 +295,12 @@
 
 /* —— Rút tiền: thẻ + modal (theo mẫu form gọn) —— */
 .ptw-withdraw-card {
-  background: rgba(15, 22, 33, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  padding: 18px 20px;
+  padding: 16px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .ptw-withdraw-card-row {
@@ -311,25 +323,25 @@
 .ptw-withdraw-balance-value {
   font-size: 22px;
   font-weight: 800;
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
   letter-spacing: 0.02em;
 }
 
 .ptw-withdraw-open-btn {
   padding: 12px 22px;
   border-radius: 12px;
-  border: none;
+  border: 1px solid rgba(214, 255, 0, 0.55);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  color: #fff;
-  background: #f97316;
-  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(214, 255, 0, 0.12);
+  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.10);
   transition: transform 0.12s ease, filter 0.15s ease, opacity 0.15s ease;
 }
 
 .ptw-withdraw-open-btn:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 
@@ -387,7 +399,7 @@
 }
 
 .ptw-modal-balance strong {
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
   font-weight: 800;
 }
 
@@ -496,12 +508,12 @@
 }
 
 .ptw-btn-submit {
-  background: #f97316;
-  border-color: #ea580c;
-  color: #fff;
+  background: rgba(214, 255, 0, 0.14);
+  border-color: rgba(214, 255, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .ptw-btn-submit:hover:not(:disabled) {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }

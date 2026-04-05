@@ -21,16 +21,16 @@ const formatMoney = (value) => {
 };
 
 const formatDate = (value) => {
-  if (!value) return "N/A";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("vi-VN");
 };
 
 const formatDateTime = (value) => {
-  if (!value) return "N/A";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("vi-VN");
 };
 
@@ -605,8 +605,8 @@ const PTPayrollPage = () => {
                 commissions.map((c) => (
                   <tr key={c.id}>
                     <td>{formatDate(c.sessionDate)}</td>
-                    <td>{c.Gym?.name || "N/A"}</td>
-                    <td>{c.PackageActivation?.Package?.name || "N/A"}</td>
+                    <td>{c.Gym?.name || "—"}</td>
+                    <td>{c.PackageActivation?.Package?.name || "—"}</td>
                     <td className="ptpay-money">{formatMoney(c.sessionValue)}</td>
                     <td className="ptpay-money">{formatMoney(c.commissionAmount)}</td>
                     <td>
@@ -655,7 +655,7 @@ const PTPayrollPage = () => {
                     <td>
                       {formatDate(item.PayrollPeriod?.startDate)} - {formatDate(item.PayrollPeriod?.endDate)}
                     </td>
-                    <td>{item.PayrollPeriod?.Gym?.name || "N/A"}</td>
+                    <td>{item.PayrollPeriod?.Gym?.name || "—"}</td>
                     <td>{item.totalSessions || 0}</td>
                     <td className="ptpay-money">{formatMoney(item.totalAmount)}</td>
                     <td>
@@ -688,7 +688,7 @@ const PTPayrollPage = () => {
             <div className="ptpay-modal-body">
               <div className="ptpay-modal-summary">
                 <div><strong>Kỳ:</strong> {formatDate(selectedPeriod?.PayrollPeriod?.startDate)} - {formatDate(selectedPeriod?.PayrollPeriod?.endDate)}</div>
-                <div><strong>Gym:</strong> {selectedPeriod?.PayrollPeriod?.Gym?.name || "N/A"}</div>
+                <div><strong>Phòng gym:</strong> {selectedPeriod?.PayrollPeriod?.Gym?.name || "—"}</div>
                 <div><strong>Số buổi:</strong> {selectedPeriod?.totalSessions || 0}</div>
                 <div><strong>Tổng tiền:</strong> {formatMoney(selectedPeriod?.totalAmount)}</div>
               </div>
@@ -707,7 +707,7 @@ const PTPayrollPage = () => {
                       periodCommissions.map((c) => (
                         <tr key={c.id}>
                           <td>{formatDate(c.sessionDate)}</td>
-                          <td>{c.PackageActivation?.Package?.name || "N/A"}</td>
+                          <td>{c.PackageActivation?.Package?.name || "—"}</td>
                           <td className="ptpay-money">{formatMoney(c.sessionValue)}</td>
                           <td className="ptpay-money">{formatMoney(c.commissionAmount)}</td>
                         </tr>

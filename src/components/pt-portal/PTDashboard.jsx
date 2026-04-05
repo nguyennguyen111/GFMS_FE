@@ -13,6 +13,8 @@ import {
   getPTScheduleSlots,
   getMyPTPayrollPeriods,
 } from "../../services/ptService";
+import "../member/member-pages.css";
+import "../member/pages/MemberHomePage.css";
 import "./PTDashboard.css";
 
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -202,7 +204,7 @@ const PTDashboard = () => {
       setPayrollItems(normalizePayrollItems(payrollRes));
     } catch (e) {
       console.error("PTDashboard load error:", e);
-      setLoadError(e?.response?.data?.message || "Không tải được dashboard. Thử đăng nhập lại.");
+      setLoadError(e?.response?.data?.message || "Không tải được bảng điều khiển. Thử đăng nhập lại.");
     } finally {
       setLoading(false);
     }
@@ -367,6 +369,47 @@ const PTDashboard = () => {
     };
   }, [trainer, commissions]);
 
+  const commissionRowsForModal = useMemo(() => {
+    const namesByDate = new Map();
+    bookings.forEach((b) => {
+      const ymd = bookingToYMD(b?.bookingDate);
+      if (!ymd) return;
+      const name =
+        b.Member?.User?.username ||
+        b.Member?.User?.email ||
+        (b?.memberId != null ? `Học viên #${b.memberId}` : "—");
+      if (!namesByDate.has(ymd)) namesByDate.set(ymd, new Set());
+      namesByDate.get(ymd).add(name);
+    });
+
+    return [...commissions]
+      .sort((a, b) => {
+        const da = a.sessionDate ? new Date(a.sessionDate).getTime() : 0;
+        const db = b.sessionDate ? new Date(b.sessionDate).getTime() : 0;
+        return db - da;
+      })
+      .map((c) => {
+        const directName =
+          c?.memberName ||
+          c?.Member?.User?.username ||
+          c?.Member?.User?.email ||
+          c?.booking?.Member?.User?.username ||
+          c?.booking?.Member?.User?.email ||
+          c?.PackageActivation?.Member?.User?.username ||
+          c?.PackageActivation?.Member?.User?.email ||
+          null;
+
+        const ymd = bookingToYMD(c?.sessionDate);
+        const dateNames = ymd ? Array.from(namesByDate.get(ymd) || []) : [];
+        const fallbackName = dateNames.length > 0 ? dateNames.join(", ") : "—";
+
+        return {
+          ...c,
+          studentName: directName || fallbackName,
+        };
+      });
+  }, [commissions, bookings]);
+
   const revenueChart = useMemo(() => {
     const labels = [];
     const sums = [];
@@ -432,7 +475,7 @@ const PTDashboard = () => {
       <div className="ptd-wrap">
         <div className="ptd-card">
           <h2>Bạn chưa đăng nhập</h2>
-          <p>Vui lòng đăng nhập để vào PT Dashboard.</p>
+          <p>Vui lòng đăng nhập để vào bảng điều khiển PT.</p>
           <button className="ptd-btn" onClick={() => navigate("/login")}>
             Đi tới trang đăng nhập
           </button>
@@ -442,16 +485,17 @@ const PTDashboard = () => {
   }
 
   return (
-    <div className="ptd-main2">
+    <div className="ptd-main2 mh">
       <header className="ptd-topbar">
         <div className="ptd-topLeft">
-          <div className="ptd-appName">
-            <span className="ptd-brandOrange">GFMS</span> Coach
-          </div>
+          <h1 className="mh-title ptd-dashTitle">
+            <span className="mh-accent">GFMS</span>{" "}
+            <span className="ptd-dashTitleRest">Huấn luyện viên</span>
+          </h1>
         </div>
 
         <div className="ptd-topRight">
-          <button type="button" className="ptd-pillBtn" onClick={() => loadDashboard()}>
+          <button type="button" className="mh-btn mh-btn--ghost" onClick={() => loadDashboard()}>
             Làm mới
           </button>
           <div className="ptd-userChip">
@@ -464,7 +508,7 @@ const PTDashboard = () => {
       {loadError && (
         <div className="ptd-bannerErr" role="alert">
           {loadError}{" "}
-          <Link to="/pt/profile/create" className="ptd-link">
+          <Link to="/pt/profile/create" className="mh-btn mh-btn--ghost ptd-bannerLink">
             Tạo hồ sơ PT
           </Link>
         </div>
@@ -480,28 +524,28 @@ const PTDashboard = () => {
       <section className="ptd-kpiGrid">
         <button
           type="button"
-          className="ptd-kpiCard ptd-kpiCard--clickable"
+          className="ptd-kpiCard--clickable mh-stat"
           onClick={() => setKpiModal("students")}
         >
           <div className="ptd-kpiHead">
-            <div className="ptd-kpiTitle">Học viên</div>
+            <div className="mh-stat__k">Học viên</div>
             <div className="ptd-kpiIcon">👥</div>
           </div>
-          <div className="ptd-kpiValue">{stats.students}</div>
-          <div className="ptd-kpiSub">Đã từng đặt lịch với bạn</div>
+          <div className="mh-stat__v mh-accent ptd-kpiStatNum">{stats.students}</div>
+          <div className="mh-stat__s">Đã từng đặt lịch với bạn</div>
         </button>
 
         <button
           type="button"
-          className="ptd-kpiCard ptd-kpiCard--clickable"
+          className="ptd-kpiCard--clickable mh-stat"
           onClick={() => setKpiModal("bookings")}
         >
           <div className="ptd-kpiHead">
-            <div className="ptd-kpiTitle">Lịch đặt</div>
+            <div className="mh-stat__k">Lịch đặt</div>
             <div className="ptd-kpiIcon">📅</div>
           </div>
-          <div className="ptd-kpiValue">{stats.bookingCount}</div>
-          <div className="ptd-kpiSub">
+          <div className="mh-stat__v mh-accent ptd-kpiStatNum">{stats.bookingCount}</div>
+          <div className="mh-stat__s">
             Tổng buổi trong hệ thống
             {stats.totalSessions ? ` · Đã ghi nhận ${stats.totalSessions} buổi` : ""}
           </div>
@@ -509,28 +553,32 @@ const PTDashboard = () => {
 
         <button
           type="button"
-          className="ptd-kpiCard ptd-kpiCard--clickable"
+          className="ptd-kpiCard--clickable mh-stat"
           onClick={() => setKpiModal("revenue")}
         >
           <div className="ptd-kpiHead">
-            <div className="ptd-kpiTitle">Tổng doanh thu</div>
+            <div className="mh-stat__k">Tổng doanh thu</div>
             <div className="ptd-kpiIcon">🪙</div>
           </div>
-          <div className="ptd-kpiValue">{stats.totalRevenue.toLocaleString("vi-VN")}đ</div>
-          <div className="ptd-kpiSub">Theo hồ sơ PT / tổng hoa hồng</div>
+          <div className="mh-stat__v mh-accent ptd-kpiStatNum">
+            {stats.totalRevenue.toLocaleString("vi-VN")}đ
+          </div>
+          <div className="mh-stat__s">Theo hồ sơ PT / tổng hoa hồng</div>
         </button>
 
         <button
           type="button"
-          className="ptd-kpiCard ptd-kpiCard--clickable"
+          className="ptd-kpiCard--clickable mh-stat"
           onClick={() => setKpiModal("wallet")}
         >
           <div className="ptd-kpiHead">
-            <div className="ptd-kpiTitle">Số dư ví</div>
+            <div className="mh-stat__k">Số dư ví</div>
             <div className="ptd-kpiIcon">💳</div>
           </div>
-          <div className="ptd-kpiValue">{stats.wallet.toLocaleString("vi-VN")}đ</div>
-          <div className="ptd-kpiSub">
+          <div className="mh-stat__v mh-accent ptd-kpiStatNum">
+            {stats.wallet.toLocaleString("vi-VN")}đ
+          </div>
+          <div className="mh-stat__s">
             Đã rút {stats.totalWithdrawn.toLocaleString("vi-VN")}đ
           </div>
         </button>
@@ -654,8 +702,8 @@ const PTDashboard = () => {
                       <div className="ptd-kpiModalStatLabel">Nguồn</div>
                       <div className="ptd-kpiModalStatValue ptd-kpiModalStatValue--sm">
                         {revenueMeta.usesProfile
-                          ? "Theo totalEarned trên hồ sơ PT"
-                          : "Tổng các khoản hoa hồng đã tải"}
+                          ? "Theo tổng thu (totalEarned) trên hồ sơ PT"
+                          : "Theo tổng hoa hồng trong danh sách booking"}
                       </div>
                     </div>
                     <div>
@@ -666,26 +714,22 @@ const PTDashboard = () => {
                     </div>
                   </div>
                   <div className="ptd-kpiModalTable">
-                    <div className="ptd-kpiModalRow ptd-kpiModalRow--head">
-                      <span>Ngày buổi</span>
+                    <div className="ptd-kpiModalRow ptd-kpiModalRow--head ptd-kpiModalRow--3">
+                      <span>Ngày</span>
+                      <span>Học viên</span>
                       <span>Số tiền</span>
                     </div>
-                    {commissions.length === 0 ? (
+                    {commissionRowsForModal.length === 0 ? (
                       <div className="ptd-kpiModalEmpty">Chưa có bản ghi hoa hồng.</div>
                     ) : (
-                      [...commissions]
-                        .sort((a, b) => {
-                          const da = a.sessionDate ? new Date(a.sessionDate).getTime() : 0;
-                          const db = b.sessionDate ? new Date(b.sessionDate).getTime() : 0;
-                          return db - da;
-                        })
-                        .map((c) => (
-                          <div key={String(c.id ?? `${c.sessionDate}-${c.commissionAmount}`)} className="ptd-kpiModalRow">
+                      commissionRowsForModal.map((c) => (
+                          <div key={String(c.id ?? `${c.sessionDate}-${c.commissionAmount}`)} className="ptd-kpiModalRow ptd-kpiModalRow--3">
                             <span>
                               {c.sessionDate
                                 ? new Date(c.sessionDate).toLocaleDateString("vi-VN")
                                 : "—"}
                             </span>
+                            <span className="ptd-kpiModalStudentNames">{c.studentName}</span>
                             <span>
                               {Number(c.commissionAmount ?? 0).toLocaleString("vi-VN")}đ
                             </span>
@@ -730,10 +774,12 @@ const PTDashboard = () => {
 
       <section className="ptd-contentGrid">
         <div className="ptd-leftCol">
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Lịch tuần này</div>
-              <Link className="ptd-link" to={scheduleLink}>
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Lịch tuần này</div>
+              </div>
+              <Link className="mh-btn mh-btn--ghost ptd-cardHeadLink" to={scheduleLink}>
                 Mở lịch đầy đủ
               </Link>
             </div>
@@ -751,10 +797,12 @@ const PTDashboard = () => {
             </div>
           </div>
 
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Buổi gần đây</div>
-              <Link className="ptd-link" to="/pt/clients">
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Buổi gần đây</div>
+              </div>
+              <Link className="mh-btn mh-btn--ghost ptd-cardHeadLink" to="/pt/clients">
                 Xem tất cả
               </Link>
             </div>
@@ -783,10 +831,12 @@ const PTDashboard = () => {
             </div>
           </div>
 
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Biểu đồ hoa hồng</div>
-              <div className="ptd-muted2">4 tuần gần nhất</div>
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Biểu đồ hoa hồng</div>
+                <div className="mh-card__desc">4 tuần gần nhất</div>
+              </div>
             </div>
 
             <div className="ptd-chartBox">
@@ -794,11 +844,13 @@ const PTDashboard = () => {
             </div>
           </div>
 
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Biểu đồ lương</div>
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Biểu đồ lương</div>
+              </div>
             </div>
-            <div className="ptd-chartHint">
+            <div className="mh-card__desc ptd-chartHint">
               Tổng tiền theo từng kỳ lương đã chốt (Payroll). Màu teal phân biệt với hoa hồng theo tuần.
             </div>
             {salaryChart.empty ? (
@@ -812,53 +864,60 @@ const PTDashboard = () => {
         </div>
 
         <div className="ptd-rightCol">
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Học viên</div>
-              <Link className="ptd-link" to="/pt/clients">
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Học viên</div>
+              </div>
+              <Link className="mh-btn mh-btn--ghost ptd-cardHeadLink" to="/pt/clients">
                 Quản lý
               </Link>
             </div>
 
             {topStudents.length === 0 ? (
-              <div className="ptd-muted2">Chưa có học viên.</div>
+              <div className="mh-empty">Chưa có học viên.</div>
             ) : (
-              topStudents.map((s, idx) => (
-                <div key={s.email || `${s.name}-${idx}`} className="ptd-studentItem">
-                  <div className="ptd-avatar" />
-                  <div className="ptd-studentMeta">
-                    <div className="ptd-studentName">{s.name}</div>
-                    <div className="ptd-studentEmail">{s.email || "—"}</div>
+              <div className="mh-list ptd-studentListTight">
+                {topStudents.map((s, idx) => (
+                  <div key={s.email || `${s.name}-${idx}`} className="mh-item">
+                    <div>
+                      <div className="mh-item__name">{s.name}</div>
+                      <div className="mh-item__meta">{s.email || "—"}</div>
+                    </div>
+                    <Link className="mh-mini" to="/pt/clients">
+                      Xem
+                    </Link>
                   </div>
-                  <Link className="ptd-miniBtn" to="/pt/clients">
-                    Xem
-                  </Link>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
 
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Đánh giá</div>
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Đánh giá</div>
+              </div>
             </div>
             <div className="ptd-ratingRow">
-              <div className="ptd-ratingValue">{stats.rating || "—"}</div>
+              <div className="mh-stat__v mh-accent ptd-ratingNum">{stats.rating || "—"}</div>
               <div className="ptd-star">★</div>
             </div>
-            <div className="ptd-muted2">{stats.reviews} đánh giá</div>
+            <div className="mh-card__desc">{stats.reviews} đánh giá</div>
           </div>
 
-          <div className="ptd-card2">
-            <div className="ptd-card2Head">
-              <div className="ptd-card2Title">Hoa hồng &amp; lương</div>
+          <div className="mh-card">
+            <div className="mh-card__head">
+              <div>
+                <div className="mh-card__title">Hoa hồng &amp; lương</div>
+              </div>
             </div>
-            <Link className="ptd-upgradeBtn ptd-upgradeBtn--link" to="/pt/payroll">
+            <Link className="mh-btn mh-btn--primary ptd-payrollFull" to="/pt/payroll">
               Mở Payroll
             </Link>
           </div>
 
-          <div className="ptd-card2 ptd-userFooter">
+          <div className="mh-card ptd-userFooter">
             <div className="ptd-userFooterName">{displayName}</div>
             <div className="ptd-userFooterEmail">{email}</div>
           </div>

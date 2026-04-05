@@ -1,102 +1,128 @@
 
 import React from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useParams } from "react-router-dom";
+import Header from "../components/header/Header";
+import Footer from "../components/footer/Footer";
 import { getTrainerId } from "../components/pt-portal/ptStorage";
+import "../components/member/member-pages.css";
+import "../components/member/pages/MemberHomePage.css";
 import "./PTLayout.css";
 
 const PTLayout = () => {
   const trainerId = getTrainerId();
-  const navigate = useNavigate();
+  const params = useParams();
+  const routeId = params?.id ? Number(params.id) : null;
+  const effectiveId = routeId || trainerId;
 
-  // Hàm xử lý Logout
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    // Thêm các lệnh xóa token khác nếu có
-    navigate("/login");
-  };
-
-  const scheduleLink = trainerId ? `/pt/${trainerId}/schedule` : "/pt/profile";
-  const profileLink = trainerId ? `/pt/${trainerId}/details` : "/pt/profile";
+  const scheduleLink = effectiveId ? `/pt/${effectiveId}/schedule` : "/pt/dashboard";
+  const profileLink = effectiveId ? `/pt/${effectiveId}/details` : "/pt/profile";
 
   return (
-    <div className="ptl-wrap">
-      {/* Sidebar cố định */}
-      <aside className="ptl-sidebar">
-        <div className="ptl-brand">
-          <div className="ptl-logo">GFMS</div>
-          <div className="ptl-sub">PT Portal</div>
+    <div className="site pt-app">
+      <Header />
+      <main className="site-main">
+        <div className="pt-shell">
+          <aside className="pt-shell__sidebar" aria-label="Điều hướng PT">
+            <div className="pt-shell__brand">
+              <div className="pt-shell__mark">PT</div>
+              <div>
+                <div className="pt-shell__name">GFMS</div>
+                <div className="pt-shell__sub">Khu vực huấn luyện viên</div>
+              </div>
+            </div>
+
+            <nav className="pt-shell__nav">
+              <NavLink
+                to="/pt/dashboard"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+                end
+              >
+                <span className="pt-shell__dot" />
+                Tổng quan
+              </NavLink>
+
+              <NavLink
+                to="/pt/clients"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Học viên
+              </NavLink>
+
+              <NavLink
+                to={profileLink}
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Hồ sơ
+              </NavLink>
+
+              <NavLink
+                to={scheduleLink}
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Lịch làm việc
+              </NavLink>
+
+              <NavLink
+                to="/pt/feedback"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Đánh giá
+              </NavLink>
+
+              <NavLink
+                to="/pt/demo-videos"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Video demo
+              </NavLink>
+
+              <NavLink
+                to="/pt/finance"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Tài chính
+              </NavLink>
+
+              <NavLink
+                to="/pt/requests"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Gửi yêu cầu
+              </NavLink>
+            </nav>
+          </aside>
+
+          <div className="pt-shell__content">
+            <div className="pt-shell__contentInner mh">
+              <Outlet />
+            </div>
+          </div>
         </div>
-
-        <nav className="ptl-nav">
-          <NavLink
-            to="/pt/dashboard"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">🏠</span> Overview
-          </NavLink>
-
-          <NavLink
-            to="/pt/clients"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">👥</span> Students
-          </NavLink>
-
-          <NavLink
-            to={profileLink}
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">👤</span> Profile
-          </NavLink>
-
-          <NavLink
-            to={scheduleLink}
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">🗓️</span> Schedule
-          </NavLink>
-
-          <NavLink
-            to="/pt/feedback"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">💬</span> Feedback
-          </NavLink>
-
-          <NavLink
-            to="/pt/demo-videos"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">🎬</span> Demo Videos
-          </NavLink>
-
-          <NavLink
-            to="/pt/finance"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">💵</span> Finance
-          </NavLink>
-
-          <NavLink
-            to="/pt/requests"
-            className={({ isActive }) => `ptl-item ${isActive ? "active" : ""}`}
-          >
-            <span className="ptl-ic">📝</span> Requests
-          </NavLink>
-        </nav>
-
-        {/* Nút Logout tách biệt ở cuối Sidebar */}
-        <div className="ptl-logout-wrap">
-          <button onClick={handleLogout} className="ptl-item ptl-logout-btn">
-            <span className="ptl-ic">🚪</span> Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Content đổi theo route */}
-      <main className="ptl-content">
-        <Outlet />
       </main>
+      <Footer />
     </div>
   );
 };

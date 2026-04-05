@@ -1,5 +1,6 @@
-/* === PT Portal Pages - Shared UI === */
-.ptp-wrap { }
+.ptp-wrap {
+  color: var(--m-text, rgba(255, 255, 255, 0.92));
+}
 
 .ptp-head{
   display: flex;
@@ -13,10 +14,11 @@
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 900;
+  color: var(--m-gold, #ffb100);
 }
 
 .ptp-sub{
-  opacity: .75;
+  color: var(--m-muted, rgba(255, 255, 255, 0.68));
   font-size: 13px;
   line-height: 1.35;
 }
@@ -35,10 +37,16 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid var(--m-border, rgba(255,255,255,.12));
   background: rgba(0,0,0,.18);
-  color: #fff;
+  color: var(--m-text, rgba(255,255,255,.92));
   outline: none;
+}
+.ptp-input:focus,
+.ptp-select:focus,
+.ptp-textarea:focus{
+  border-color: rgba(255,177,0,.45);
+  box-shadow: 0 0 0 3px rgba(255,177,0,.10);
 }
 
 .ptp-input{ max-width: 380px; }
@@ -65,16 +73,18 @@
 .ptp-btn{
   border-radius: 14px;
   padding: 10px 12px;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(0,0,0,.18);
-  color: #fff;
+  border: 1px solid var(--m-border, rgba(255,255,255,.12));
+  background: rgba(255,255,255,.06);
+  color: var(--m-text, rgba(255,255,255,.92));
+  font-weight: 800;
   cursor: pointer;
-  transition: transform .06s ease, background .15s ease, border-color .15s ease;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
 }
 
 .ptp-btn:hover{
-  background: rgba(255,255,255,.06);
-  border-color: rgba(255,255,255,.22);
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.10);
+  border-color: var(--m-border2, rgba(255,255,255,.18));
 }
 
 .ptp-btn:active{
@@ -87,8 +97,14 @@
 }
 
 .ptp-btn--primary{
-  background: rgba(0, 180, 255, .16);
-  border-color: rgba(0, 180, 255, .28);
+  border-color: rgba(255, 177, 0, .40);
+  background: linear-gradient(135deg, rgba(255, 177, 0, .22), rgba(255, 138, 0, .14));
+  color: var(--m-text, rgba(255, 255, 255, .96));
+  font-weight: 800;
+}
+.ptp-btn--primary:hover{
+  border-color: rgba(255, 177, 0, .75);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, .12) inset;
 }
 
 .ptp-btn--warn{
@@ -108,10 +124,13 @@
 }
 
 .ptp-card{
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.18);
+  border: 1px solid var(--m-border, rgba(255,255,255,.12));
+  background: rgba(255,255,255,.07);
+  box-shadow: var(--m-shadow, 0 24px 70px rgba(0,0,0,.45));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .ptp-empty{
@@ -271,13 +290,6 @@
 .ptp-actions{
   display:flex;
   gap:8px;
-}
-
-.ptp-btn--primary{
-  background:#ff8a00;
-  border-color:#ff8a00;
-  color:#111;
-  font-weight:600;
 }
 
 .ptp-btn--danger{

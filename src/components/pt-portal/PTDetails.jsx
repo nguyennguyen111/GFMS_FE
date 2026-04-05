@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { getPTDetails, getMyPTProfile } from "../../services/ptService";
+import { specializationToVietnamese } from "../../utils/specializationI18n";
 import { setTrainerId, clearTrainerId } from "./ptStorage";
 import "./PTDetails.css";
 
@@ -106,12 +107,12 @@ const PTDetails = () => {
     if (fromList.length > 0) return fromList;
 
     const fallbackUrl = String(profileImages?.certificateUrl || "").trim();
-    const fallbackName = String(pt?.certification || "Certificate").trim();
+    const fallbackName = String(pt?.certification || "Chứng chỉ").trim();
     if (!fallbackUrl && !fallbackName) return [];
     return [
       {
         id: "cert_main",
-        name: fallbackName || "Certificate",
+        name: fallbackName || "Chứng chỉ",
         url: fallbackUrl,
       },
     ];
@@ -119,7 +120,7 @@ const PTDetails = () => {
 
   return (
     <div className="pt-details-page">
-      <div className="pt-shell">
+      <div className="pt-details-inner">
         <div className="pt-topbar">
           <div>
             <h1 className="pt-title">Hồ sơ PT</h1>
@@ -135,7 +136,7 @@ const PTDetails = () => {
 
         {loading && (
           <div className="pt-card">
-            <p className="pt-muted">Loading...</p>
+            <p className="pt-muted">Đang tải...</p>
           </div>
         )}
 
@@ -217,7 +218,7 @@ const PTDetails = () => {
 
                 <div className="pt-chip-wrap">
                   <div className="pt-chip-title">Chuyên môn</div>
-                  <div className="pt-chip">{pt.specialization || "—"}</div>
+                  <div className="pt-chip">{specializationToVietnamese(pt.specialization || "") || "—"}</div>
                 </div>
               </section>
 
@@ -229,7 +230,7 @@ const PTDetails = () => {
                 <div className="pt-table">
                   <div className="pt-row">
                     <div className="pt-label">Chuyên môn</div>
-                    <div className="pt-value">{pt.specialization || "—"}</div>
+                    <div className="pt-value">{specializationToVietnamese(pt.specialization || "") || "—"}</div>
                   </div>
 
                   <div className="pt-row">
@@ -241,7 +242,7 @@ const PTDetails = () => {
                         <div className="pt-cert-list">
                           {certificateItems.map((cert) => (
                             <div className="pt-cert-item" key={cert.id}>
-                              <span>{cert.name || "Certificate"}</span>
+                              <span>{cert.name || "Chứng chỉ"}</span>
                               {cert.url ? (
                                 <a
                                   href={cert.url}
