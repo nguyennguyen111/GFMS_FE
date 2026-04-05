@@ -216,7 +216,7 @@ const PTSchedule = () => {
 
       <div className="ptSchedule__controlWrapper">
         <div className="ptSchedule__tabs">
-          <button className={`ptTab ${activeTab==="week"?"active":""}`} onClick={()=>setActiveTab("week")}>Tuần (Calendar)</button>
+          <button className={`ptTab ${activeTab==="week"?"active":""}`} onClick={()=>setActiveTab("week")}>Tuần (lịch)</button>
           <button className={`ptTab ${activeTab==="today"?"active":""}`} onClick={()=>setActiveTab("today")}>Hôm nay</button>
           <button className={`ptTab ${activeTab==="next7"?"active":""}`} onClick={()=>setActiveTab("next7")}>7 ngày tới</button>
 

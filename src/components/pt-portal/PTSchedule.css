@@ -9,7 +9,10 @@
   width: 100%;
   padding: 28px 0 48px;
   box-sizing: border-box;
-  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+  background:
+    radial-gradient(720px 300px at 18% 0%, rgba(214, 255, 0, 0.14), transparent 55%),
+    radial-gradient(720px 300px at 88% 10%, rgba(0, 180, 255, 0.10), transparent 58%),
+    linear-gradient(180deg, #0f1113 0%, #0f1113 40%, #0b0e10 100%);
   color: var(--lightgray);
 }
 
@@ -25,14 +28,14 @@
 
 .ptSchedule__headText h1 {
   margin: 0;
-  color: var(--orange);
+  color: var(--m-gold, #d6ff00);
   font-size: 2.1rem;
   letter-spacing: 0.2px;
 }
 
 .ptSchedule__subtitle {
   margin: 0.35rem 0 0;
-  color: var(--gray);
+  color: rgba(214, 255, 0, 0.72);
   font-weight: 700;
 }
 
@@ -45,8 +48,9 @@
 }
 
 .ptBtn {
-  background: var(--orange);
-  color: #111;
+  background: linear-gradient(135deg, rgba(214, 255, 0, 0.26), rgba(184, 220, 0, 0.16));
+  border-color: rgba(214, 255, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
   font-weight: 900;
   padding: 0.65rem 1rem;
   border-radius: 12px;
@@ -63,7 +67,7 @@
 .ptBtn--ghost {
   background: transparent;
   color: var(--lightgray);
-  border: 2px solid rgba(244, 137, 21, 0.35);
+  border: 2px solid rgba(214, 255, 0, 0.35);
 }
 
 /* Tabs & Filters */
@@ -97,9 +101,9 @@
 }
 
 .ptTab.active {
-  background: rgba(244, 137, 21, 0.15);
-  border-color: rgba(244, 137, 21, 0.35);
-  color: var(--orange);
+  background: rgba(214, 255, 0, 0.14);
+  border-color: rgba(214, 255, 0, 0.35);
+  color: var(--m-gold, #d6ff00);
 }
 
 .ptMonthPick {
@@ -110,7 +114,7 @@
   padding: 8px 12px;
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(214, 255, 0, 0.18);
 }
 
 .ptMonthSelect, 
@@ -127,11 +131,31 @@
 .ptSchedule__card {
   width: min(1100px, 92vw);
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   padding: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.ptSchedule__card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background:
+    radial-gradient(720px 300px at 15% 0%, rgba(214, 255, 0, 0.18), transparent 55%),
+    radial-gradient(720px 300px at 85% 10%, rgba(0, 180, 255, 0.12), transparent 58%);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 160ms ease;
+}
+
+.ptSchedule__card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* GRID VIEW - Layout */
@@ -214,10 +238,15 @@
   left: 2px;
   right: 2px;
   border-radius: 4px;
-  padding: 4px;
+  padding: 3px 4px;
   cursor: pointer;
   z-index: 10;
   box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
   background: rgba(244, 137, 21, 0.15) !important;
   border: 1px solid rgba(244, 137, 21, 0.4) !important;
   border-left: 3px solid var(--orange) !important;
@@ -227,6 +256,7 @@
   font-size: 10px;
   font-weight: 900;
   color: var(--orange);
+  line-height: 1.05;
 }
 
 .ptWeek__studentName {
@@ -236,6 +266,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--orange);
+  line-height: 1.05;
+}
+
+/* Nội dung trạng thái điểm danh (✓ Có mặt / ✗ Vắng mặt) */
+.mini-status {
+  margin: 1px 0 0;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1.05;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 /* Attendance Status Colors */

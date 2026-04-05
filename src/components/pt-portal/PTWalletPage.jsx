@@ -11,9 +11,9 @@ import "./PTWalletPage.css";
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 const formatDateTime = (value) => {
-  if (!value) return "N/A";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("vi-VN");
 };
 

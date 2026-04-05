@@ -11,18 +11,18 @@ import {
 import "./PTRequests.css";
 
 const REQUEST_TYPES = [
-  { value: "LEAVE", label: "Leave" },
-  { value: "SHIFT_CHANGE", label: "Shift Change" },
-  { value: "TRANSFER_BRANCH", label: "Transfer Branch" },
-  { value: "OVERTIME", label: "Overtime" },
+  { value: "LEAVE", label: "Nghỉ phép" },
+  { value: "SHIFT_CHANGE", label: "Đổi ca" },
+  { value: "TRANSFER_BRANCH", label: "Chuyển chi nhánh" },
+  { value: "OVERTIME", label: "Tăng ca" },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "PENDING", label: "pending" },
-  { value: "APPROVED", label: "approved" },
-  { value: "REJECTED", label: "rejected" },
-  { value: "CANCELLED", label: "cancelled" },
+  { value: "", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ duyệt" },
+  { value: "APPROVED", label: "Đã duyệt" },
+  { value: "REJECTED", label: "Từ chối" },
+  { value: "CANCELLED", label: "Đã hủy" },
 ];
 
 const emptyForms = {
@@ -39,14 +39,21 @@ const normalizeListResponse = (data) => {
 };
 
 const statusClass = (status) => String(status || "").toLowerCase(); // pending/approved/rejected/cancelled
-const prettyStatus = (s) => String(s || "-").toLowerCase();
+const STATUS_VI = {
+  pending: "chờ duyệt",
+  approved: "đã duyệt",
+  rejected: "từ chối",
+  cancelled: "đã hủy",
+};
+
+const prettyStatus = (s) => STATUS_VI[String(s || "").toLowerCase()] || String(s || "—").toLowerCase();
 
 const formatDateTime = (v) => {
   try {
-    if (!v) return "-";
-    return new Date(v).toLocaleString();
+    if (!v) return "—";
+    return new Date(v).toLocaleString("vi-VN");
   } catch {
-    return "-";
+    return "—";
   }
 };
 
@@ -79,31 +86,31 @@ export default function PTRequests() {
     const f = currentForm;
 
     if (activeType === "LEAVE") {
-      if (!f.fromDate || !f.toDate) return "Please select from/to date";
-      if (f.fromDate > f.toDate) return "From date must be <= To date";
+      if (!f.fromDate || !f.toDate) return "Vui lòng chọn ngày bắt đầu và kết thúc";
+      if (f.fromDate > f.toDate) return "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc";
       return null;
     }
 
     if (activeType === "SHIFT_CHANGE") {
-      if (!f.currentShiftId || !f.targetShiftId) return "Shift IDs are required";
-      if (String(f.currentShiftId) === String(f.targetShiftId)) return "Current shift must be different";
+      if (!f.currentShiftId || !f.targetShiftId) return "Cần nhập mã ca hiện tại và ca đích";
+      if (String(f.currentShiftId) === String(f.targetShiftId)) return "Ca đích phải khác ca hiện tại";
       return null;
     }
 
     if (activeType === "TRANSFER_BRANCH") {
-      if (!f.toBranchId) return "To branch ID is required";
-      if (!f.expectedDate) return "Expected date is required";
+      if (!f.toBranchId) return "Cần nhập mã chi nhánh đích";
+      if (!f.expectedDate) return "Cần chọn ngày dự kiến";
       return null;
     }
 
     if (activeType === "OVERTIME") {
-      if (!f.date) return "Date is required";
-      if (!f.fromTime || !f.toTime) return "From/To time are required";
-      if (f.fromTime >= f.toTime) return "From time must be < To time";
+      if (!f.date) return "Cần chọn ngày";
+      if (!f.fromTime || !f.toTime) return "Cần nhập giờ bắt đầu và kết thúc";
+      if (f.fromTime >= f.toTime) return "Giờ bắt đầu phải trước giờ kết thúc";
       return null;
     }
 
-    return "Invalid request type";
+    return "Loại đơn không hợp lệ";
   };
 
   const buildPayload = () => {
@@ -142,7 +149,7 @@ export default function PTRequests() {
       setRequests(normalized.items);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Failed to load requests");
+      alert(err?.response?.data?.message || "Không tải được danh sách đơn");
     } finally {
       setLoading(false);
     }
@@ -165,33 +172,33 @@ export default function PTRequests() {
       if (activeType === "TRANSFER_BRANCH") await createTransferBranchRequest(payload);
       if (activeType === "OVERTIME") await createOvertimeRequest(payload);
 
-      alert("Request created");
+      alert("Đã tạo đơn");
       resetForm();
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Create request failed");
+      alert(err?.response?.data?.message || "Tạo đơn thất bại");
     }
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this request?")) return;
+    if (!window.confirm("Hủy đơn này?")) return;
     try {
       await cancelRequest(id);
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Cancel failed");
+      alert(err?.response?.data?.message || "Hủy đơn thất bại");
     }
   };
 
   return (
     <div className="ptr-wrap">
       <div className="ptr-toprow">
-        <h2 className="ptr-title">Requests</h2>
+        <h2 className="ptr-title">Gửi yêu cầu</h2>
 
         <div className="ptr-field ptr-filter">
-          <label>Status</label>
+          <label>Trạng thái</label>
           <select value={filters.status} onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}>
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value || "ALL"} value={s.value}>
@@ -204,12 +211,12 @@ export default function PTRequests() {
 
       {/* CREATE */}
       <div className="ptr-card" style={{ marginBottom: 14 }}>
-        <p className="ptr-subtitle">Create Request</p>
+        <p className="ptr-subtitle">Tạo đơn mới</p>
         <div className="ptr-divider" />
 
         <div className="ptr-grid2" style={{ marginBottom: 10 }}>
           <div className="ptr-field">
-            <label>Type</label>
+            <label>Loại đơn</label>
             <select value={activeType} onChange={(e) => setActiveType(e.target.value)}>
               {REQUEST_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -220,12 +227,12 @@ export default function PTRequests() {
           </div>
 
           <div className="ptr-field">
-            <label>Filter by Type</label>
+            <label>Lọc theo loại</label>
             <select
               value={filters.requestType}
               onChange={(e) => setFilters((p) => ({ ...p, requestType: e.target.value }))}
             >
-              <option value="">All</option>
+              <option value="">Tất cả</option>
               {REQUEST_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -239,18 +246,18 @@ export default function PTRequests() {
           {activeType === "LEAVE" && (
             <div className="ptr-grid2">
               <div className="ptr-field">
-                <label>From date</label>
+                <label>Từ ngày</label>
                 <input type="date" value={currentForm.fromDate} onChange={(e) => updateForm("fromDate", e.target.value)} />
               </div>
 
               <div className="ptr-field">
-                <label>To date</label>
+                <label>Đến ngày</label>
                 <input type="date" value={currentForm.toDate} onChange={(e) => updateForm("toDate", e.target.value)} />
               </div>
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Reason</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Optional" />
+                <label>Lý do</label>
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
               </div>
             </div>
           )}
@@ -258,28 +265,28 @@ export default function PTRequests() {
           {activeType === "SHIFT_CHANGE" && (
             <div className="ptr-grid2">
               <div className="ptr-field">
-                <label>Current shift ID</label>
+                <label>Mã ca hiện tại</label>
                 <input
                   type="number"
                   value={currentForm.currentShiftId}
                   onChange={(e) => updateForm("currentShiftId", e.target.value)}
-                  placeholder="e.g. 12"
+                  placeholder="Ví dụ: 12"
                 />
               </div>
 
               <div className="ptr-field">
-                <label>Target shift ID</label>
+                <label>Mã ca đích</label>
                 <input
                   type="number"
                   value={currentForm.targetShiftId}
                   onChange={(e) => updateForm("targetShiftId", e.target.value)}
-                  placeholder="e.g. 20"
+                  placeholder="Ví dụ: 20"
                 />
               </div>
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Reason</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Optional" />
+                <label>Lý do</label>
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
               </div>
             </div>
           )}
@@ -287,23 +294,23 @@ export default function PTRequests() {
            {activeType === "TRANSFER_BRANCH" && (
             <div className="ptr-grid2">
               <div className="ptr-field">
-                <label>To branch ID</label>
+                <label>Mã chi nhánh đích</label>
                 <input
                   type="number"
                   value={currentForm.toBranchId}
                   onChange={(e) => updateForm("toBranchId", e.target.value)}
-                  placeholder="e.g. 3"
+                  placeholder="Ví dụ: 3"
                 />
               </div>
 
               <div className="ptr-field">
-                <label>Expected date</label>
+                <label>Ngày dự kiến</label>
                 <input type="date" value={currentForm.expectedDate} onChange={(e) => updateForm("expectedDate", e.target.value)} />
               </div>
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Reason</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Optional" />
+                <label>Lý do</label>
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
               </div>
             </div>
           )} 
@@ -311,33 +318,33 @@ export default function PTRequests() {
           {activeType === "OVERTIME" && (
             <div className="ptr-grid2">
               <div className="ptr-field">
-                <label>Date</label>
+                <label>Ngày</label>
                 <input type="date" value={currentForm.date} onChange={(e) => updateForm("date", e.target.value)} />
               </div>
 
               <div className="ptr-field">
-                <label>From time</label>
+                <label>Từ giờ</label>
                 <input type="time" value={currentForm.fromTime} onChange={(e) => updateForm("fromTime", e.target.value)} />
               </div>
 
               <div className="ptr-field">
-                <label>To time</label>
+                <label>Đến giờ</label>
                 <input type="time" value={currentForm.toTime} onChange={(e) => updateForm("toTime", e.target.value)} />
               </div>
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Reason</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Optional" />
+                <label>Lý do</label>
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
               </div>
             </div>
           )}
 
           <div className="ptr-actions">
             <button className="ptr-btn" onClick={resetForm} type="button">
-              Reset
+              Đặt lại
             </button>
             <button className="ptr-btn primary" onClick={handleSubmit} type="button">
-              Submit
+              Gửi đơn
             </button>
           </div>
         </div>
@@ -345,18 +352,18 @@ export default function PTRequests() {
 
       {/* LIST */}
       <div className="ptr-card">
-        <p className="ptr-subtitle">My Requests</p>
+        <p className="ptr-subtitle">Đơn của tôi</p>
         <div className="ptr-divider" />
 
         <div className="ptr-tablewrap">
           <table className="ptr-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Reason</th>
-                <th>Created</th>
-                <th>Action</th>
+                <th>Loại</th>
+                <th>Trạng thái</th>
+                <th>Lý do</th>
+                <th>Ngày tạo</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
 
@@ -364,13 +371,13 @@ export default function PTRequests() {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="ptr-empty">
-                    Loading...
+                    Đang tải...
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="ptr-empty">
-                    No requests found
+                    Không có đơn nào
                   </td>
                 </tr>
               ) : (
@@ -385,7 +392,7 @@ export default function PTRequests() {
                     <td>
                       {r.status === "PENDING" ? (
                         <button className="ptr-btn" onClick={() => handleCancel(r.id)} type="button">
-                          Cancel
+                          Hủy đơn
                         </button>
                       ) : (
                         "-"

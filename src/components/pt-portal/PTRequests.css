@@ -3,7 +3,7 @@
 .ptr-wrap{ max-width:1100px; margin:0 auto; }
 
 .ptr-title{
-  color:#fff; font-size:22px; font-weight:900;
+  color:var(--m-gold, #FFB100); font-size:22px; font-weight:900;
   letter-spacing:.2px; margin:6px 0 14px;
 }
 
@@ -54,8 +54,8 @@
 .ptr-field input:focus,
 .ptr-field select:focus,
 .ptr-field textarea:focus{
-  border:1px solid rgba(244,137,21,0.55);
-  box-shadow: 0 0 0 3px rgba(244,137,21,0.12);
+  border:1px solid rgba(255,177,0,0.55);
+  box-shadow: 0 0 0 3px rgba(255,177,0,0.12);
 }
 
 .ptr-field textarea{ min-height:92px; resize:vertical; }
@@ -76,9 +76,9 @@
 .ptr-btn:hover{ transform: translateY(-1px); filter: brightness(1.06); }
 
 .ptr-btn.primary{
-  border:1px solid rgba(244,137,21,0.55);
-  background: rgba(244,137,21,0.12);
-  box-shadow: 0 0 0 3px rgba(244,137,21,0.10);
+  border:1px solid rgba(255,177,0,0.55);
+  background: rgba(255,177,0,0.12);
+  box-shadow: 0 0 0 3px rgba(255,177,0,0.10);
 }
 
 .ptr-btn:disabled{
@@ -130,8 +130,8 @@
 }
 
 .ptr-badge.pending{
-  border-color: rgba(244,137,21,0.55);
-  background: rgba(244,137,21,0.12);
+  border-color: rgba(255,177,0,0.55);
+  background: rgba(255,177,0,0.12);
 }
 .ptr-badge.approved{
   border-color: rgba(61, 201, 127, 0.55);
