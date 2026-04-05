@@ -1,15 +1,10 @@
-/* =========================
-   TrainerScheduleUpdate.css
-   FINAL – GFMS style
-   ========================= */
-
 .ptSUPage {
-  min-height: 100vh;
+  min-height: 0;
   width: 100%;
-  padding: 28px 0 48px;
+  padding: 8px 0 32px;
   box-sizing: border-box;
-  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
-  color: var(--lightgray);
+  background: transparent;
+  color: var(--m-text, rgba(255,255,255,.92));
 }
 
 .ptSUPage__inner {
@@ -17,7 +12,6 @@
   margin: 0 auto;
 }
 
-/* ===== Top ===== */
 .ptSUTop {
   display: flex;
   flex-direction: column;
@@ -25,12 +19,11 @@
   margin-bottom: 18px;
 }
 
-/* Back button (reuse from schedule) */
 .ptBack {
   width: fit-content;
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   font-weight: 900;
   padding: 10px 14px;
   border-radius: 12px;
@@ -41,10 +34,9 @@
 .ptBack:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  border-color: rgba(244, 137, 21, 0.35);
+  border-color: rgba(255, 177, 0, 0.38);
 }
 
-/* Header */
 .ptSU__header {
   display: flex;
   justify-content: space-between;
@@ -54,27 +46,25 @@
 
 .ptSU__header h1 {
   margin: 0;
-  color: var(--orange);
+  color: var(--m-gold, #FFB100);
   font-size: 2.1rem;
   letter-spacing: 0.2px;
 }
 
 .ptSU__sub {
   margin-top: 4px;
-  color: var(--gray);
+  color: var(--m-muted, rgba(255,255,255,.68));
   font-weight: 800;
 }
 
-/* Actions */
 .ptSU__actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-/* Buttons */
 .ptSU__btn {
-  background: var(--orange);
+  background: linear-gradient(135deg, rgba(255,177,0,.92), rgba(255,138,0,.85));
   color: #111;
   font-weight: 950;
   padding: 0.65rem 1.1rem;
@@ -101,37 +91,33 @@
 
 .ptSU__btn--ghost {
   background: transparent;
-  color: var(--lightgray);
-  border: 2px solid rgba(244, 137, 21, 0.35);
+  color: var(--m-text, rgba(255,255,255,.92));
+  border: 2px solid rgba(255, 177, 0, 0.38);
 }
 
-/* Message / error */
 .ptSU__error {
   background: rgba(250, 80, 66, 0.12);
   border: 1px solid rgba(250, 80, 66, 0.35);
   padding: 12px 14px;
   border-radius: 14px;
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   font-weight: 800;
 }
 
-/* ===== Grid days ===== */
 .ptSU__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-/* Day card */
 .ptSU__dayCard {
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--m-border, rgba(255,255,255,.12));
   border-radius: 18px;
   padding: 14px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--m-shadow, 0 24px 70px rgba(0,0,0,.45));
 }
 
-/* Day header */
 .ptSU__dayHeader {
   display: flex;
   justify-content: space-between;
@@ -142,14 +128,13 @@
 .ptSU__dayHeader h3 {
   margin: 0;
   font-weight: 950;
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
 }
 
-/* Add slot button */
 .ptSU__miniBtn {
-  background: rgba(244, 137, 21, 0.15);
-  border: 1px solid rgba(244, 137, 21, 0.35);
-  color: var(--lightgray);
+  background: rgba(255, 177, 0, 0.15);
+  border: 1px solid rgba(255, 177, 0, 0.38);
+  color: var(--m-text, rgba(255,255,255,.92));
   font-weight: 950;
   border-radius: 12px;
   padding: 0.45rem 0.85rem;
@@ -162,14 +147,12 @@
   transform: translateY(-1px);
 }
 
-/* Empty */
 .ptSU__empty {
-  color: var(--gray);
+  color: var(--m-muted, rgba(255,255,255,.68));
   font-weight: 800;
   padding: 6px 0;
 }
 
-/* Slot */
 .ptSU__slot {
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -178,7 +161,6 @@
   margin-bottom: 12px;
 }
 
-/* Slot row */
 .ptSU__slotRow {
   display: grid;
   grid-template-columns: 80px 1fr;
@@ -188,30 +170,29 @@
 }
 
 .ptSU__slotRow label {
-  color: var(--gray);
+  color: var(--m-muted, rgba(255,255,255,.68));
   font-weight: 900;
 }
 
 .ptSU__slotRow input {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   padding: 0.55rem 0.7rem;
   border-radius: 12px;
   outline: none;
 }
 
 .ptSU__slotRow input:focus {
-  border-color: rgba(244, 137, 21, 0.45);
-  box-shadow: 0 0 0 3px rgba(244, 137, 21, 0.18);
+  border-color: rgba(255, 177, 0, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 177, 0, 0.15);
 }
 
-/* Remove slot */
 .ptSU__remove {
   width: 100%;
   background: rgba(250, 80, 66, 0.12);
   border: 1px solid rgba(250, 80, 66, 0.35);
-  color: var(--lightgray);
+  color: var(--m-text, rgba(255,255,255,.92));
   font-weight: 950;
   border-radius: 12px;
   padding: 0.6rem;
@@ -224,7 +205,6 @@
   transform: translateY(-1px);
 }
 
-/* ===== Responsive ===== */
 @media (max-width: 860px) {
   .ptSU__grid {
     grid-template-columns: 1fr;

@@ -1,17 +1,23 @@
-/* PTDetails.css - dashboard style (SCOPED) */
-
 .pt-details-page {
-  min-height: 100vh;
+  min-height: 0;
   width: 100%;
-  padding: 22px 0 48px;
-  background: radial-gradient(circle at top, #3a3a3a, #0f1113 65%);
+  padding: 8px 0 32px;
+  background: transparent;
   box-sizing: border-box;
-  color: #fff;
+  color: var(--m-text, rgba(255,255,255,.92));
 }
 
-.pt-shell {
+.pt-details-page .pt-title {
+  background: linear-gradient(90deg, var(--m-gold, #ffb100), var(--m-gold2, #ff8a00));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pt-details-inner {
   width: min(1120px, 92vw);
   margin: 0 auto;
+  display: block;
 }
 
 /* Topbar */
@@ -27,13 +33,13 @@
   margin: 0;
   font-size: 34px;
   font-weight: 900;
-  color: var(--orange);
+  color: var(--m-gold, #FFB100);
   letter-spacing: 0.2px;
 }
 
 .pt-subtitle {
   margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--m-muted, rgba(255, 255, 255, 0.68));
   font-size: 13px;
   line-height: 1.5;
 }
@@ -62,7 +68,7 @@
   white-space: nowrap;
 
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(244, 137, 21, 0.35);
+  border: 1px solid rgba(255, 177, 0, 0.38);
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -80,11 +86,13 @@
 
 /* Cards */
 .pt-card {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--m-border, rgba(255, 255, 255, 0.12));
+  border-radius: 22px;
   padding: 14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: var(--m-shadow, 0 24px 70px rgba(0,0,0,0.45));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .pt-card--span2 {
@@ -113,7 +121,7 @@
 
 .pt-banner {
   height: 84px;
-  background: linear-gradient(90deg, rgba(244,137,21,0.35), rgba(255,255,255,0.05));
+  background: linear-gradient(90deg, rgba(255,177,0,0.35), rgba(255,255,255,0.05));
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
@@ -128,8 +136,8 @@
   width: 52px;
   height: 52px;
   border-radius: 999px;
-  background: rgba(244,137,21,0.22);
-  border: 1px solid rgba(244,137,21,0.35);
+  background: rgba(255,177,0,0.22);
+  border: 1px solid rgba(255,177,0,0.35);
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -236,8 +244,8 @@
   display: inline-flex;
   padding: 8px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(244,137,21,0.28);
-  background: rgba(244,137,21,0.12);
+  border: 1px solid rgba(255,177,0,0.28);
+  background: rgba(255,177,0,0.12);
   font-weight: 900;
   color: rgba(255,255,255,0.9);
 }
@@ -261,7 +269,7 @@
 }
 
 .pt-label {
-  color: var(--orange);
+  color: var(--m-gold, #FFB100);
   font-weight: 900;
 }
 
@@ -270,7 +278,7 @@
 }
 
 .pt-cert-link {
-  color: var(--orange);
+  color: var(--m-gold, #FFB100);
   font-weight: 800;
   text-decoration: underline;
 }
@@ -330,7 +338,7 @@
   height: 220px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.10);
-  background: linear-gradient(90deg, rgba(244,137,21,0.18), rgba(255,255,255,0.05));
+  background: linear-gradient(90deg, rgba(255,177,0,0.18), rgba(255,255,255,0.05));
   overflow: hidden;
 
   background-size: cover;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPTDetails, updatePTSkills } from '../../services/ptService';
+import { specializationToVietnamese } from '../../utils/specializationI18n';
 import './PTSkills.css';
 
 const PTSkills = () => {
@@ -19,8 +20,9 @@ const PTSkills = () => {
       try {
         setLoading(true);
         const data = await getPTDetails(ptId);
-        setSpecialization(data?.specialization || '');
-        setCertification(data?.certification || '');
+        const t = data?.DT || data;
+        setSpecialization(specializationToVietnamese(t?.specialization || ''));
+        setCertification(t?.certification || '');
       } catch (e) {
         console.error(e);
         setError('Không tải được thông tin PT.');
@@ -67,7 +69,7 @@ const PTSkills = () => {
       <div className="ptSkillsPage__inner">
         <div className="ptSkillsTop">
           <button className="ptBack" onClick={() => navigate('/pt/dashboard')}>
-            ← Dashboard PT
+            ← Bảng điều khiển PT
           </button>
 
           <div className="ptSkills__header">
@@ -86,22 +88,22 @@ const PTSkills = () => {
 
         <div className="ptSkills__card">
           <div className="ptSkills__field">
-            <label>Kỹ năng / Chuyên môn (specialization)</label>
+            <label>Kỹ năng / Chuyên môn</label>
             <textarea
               rows="3"
               value={specialization}
               onChange={(e) => setSpecialization(e.target.value)}
-              placeholder="Ví dụ: Weight Loss, Strength Training..."
+              placeholder="Ví dụ: Giảm cân, Tăng sức mạnh, Yoga..."
             />
           </div>
 
           <div className="ptSkills__field">
-            <label>Chứng chỉ (certification)</label>
+            <label>Chứng chỉ</label>
             <textarea
               rows="3"
               value={certification}
               onChange={(e) => setCertification(e.target.value)}
-              placeholder="Ví dụ: ACE Certified Personal Trainer..."
+              placeholder="Ví dụ: Chứng chỉ ACE, NASM-CPT..."
             />
           </div>
 

@@ -1,4 +1,3 @@
-// src/components/pt-portal/PTScheduleUpdate.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getMyPTProfile, getPTScheduleRaw, updatePTSchedule } from "../../services/ptService";
@@ -25,10 +24,8 @@ const days = [
   { key: "sunday", label: "Chủ nhật" },
 ];
 
-// ===== sanitize schedule before sending to BE =====
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-// Extract "HH:MM" even if UI/browser returns "08:00 SA" / "09:00 CH"
 const toHHMM = (v) => {
   const s = String(v ?? "");
   const m = s.match(/\b\d{2}:\d{2}\b/);
@@ -41,10 +38,10 @@ const buildCleanSchedule = (raw) => {
     const slots = Array.isArray(raw?.[k]) ? raw[k] : [];
     out[k] = slots
       .map((x) => ({
-        start: toHHMM(x?.start),  // Chuyển đổi giá trị time thành HH:MM
+        start: toHHMM(x?.start),
         end: toHHMM(x?.end),
       }))
-      .filter((x) => x.start && x.end);  // Kiểm tra rằng cả start và end đều hợp lệ
+      .filter((x) => x.start && x.end);
   }
   return out;
 };
@@ -69,7 +66,6 @@ const PTScheduleUpdate = () => {
     }
   }, []);
 
-  // 1) Resolve đúng PT đang đăng nhập
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -79,7 +75,7 @@ const PTScheduleUpdate = () => {
     const run = async () => {
       try {
         setResolveError("");
-        const me = await getMyPTProfile(); // GET /api/pt/me
+        const me = await getMyPTProfile();
         const myId = String(me?.id);
 
         setPtId(myId);
@@ -100,15 +96,14 @@ const PTScheduleUpdate = () => {
     run();
   }, [id, navigate, user]);
 
-  // 2) Load schedule theo ptId resolved
   useEffect(() => {
     if (!ptId) return;
 
     const run = async () => {
       try {
         setLoading(true);
-       const sch = await getPTScheduleRaw(ptId);
-setSchedule({ ...EMPTY, ...(sch || {}) });
+        const sch = await getPTScheduleRaw(ptId);
+        setSchedule({ ...EMPTY, ...(sch || {}) });
 
       } catch (e) {
         console.error(e);
@@ -121,7 +116,6 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
     run();
   }, [ptId]);
 
-  // Helpers
   const addSlot = (dayKey) => {
     setSchedule((prev) => ({
       ...prev,
@@ -143,27 +137,28 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
     }));
   };
 
-const handleSave = async () => {
-  if (!ptId) return;
+  const handleSave = async () => {
+    if (!ptId) return;
 
-  try {
-    setSaving(true);
-    setMsg("");
+    try {
+      setSaving(true);
+      setMsg("");
 
-    const clean = buildCleanSchedule(schedule);  // Chuẩn hóa dữ liệu lịch
+      const clean = buildCleanSchedule(schedule);
 
-    await updatePTSchedule(ptId, clean);  // Gửi dữ liệu như đối tượng JSON
+      await updatePTSchedule(ptId, clean);
 
-    setMsg("✅ Lưu lịch rảnh thành công!");
-    navigate(`/pt/${ptId}/schedule`);
-  } catch (e) {
-    console.error(e);
-    const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
-    setMsg(`❌ ${err}`);
-  } finally {
-    setSaving(false);
-  }
-};
+      setMsg("✅ Lưu lịch rảnh thành công!");
+      navigate(`/pt/${ptId}/schedule`);
+    } catch (e) {
+      console.error(e);
+      const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
+      setMsg(`❌ ${err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (resolveError) {
     return (
       <div className="ptSUPage">

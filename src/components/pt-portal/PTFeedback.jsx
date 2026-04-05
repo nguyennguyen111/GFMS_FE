@@ -55,7 +55,7 @@ const PTFeedback = () => {
     <div className="ptp-wrap">
       <div className="ptp-head">
         <div>
-          <h2 className="ptp-title">Feedback</h2>
+          <h2 className="ptp-title">Đánh giá từ học viên</h2>
           <div className="ptp-sub">Xem đánh giá của hội viên và phản hồi trực tiếp.</div>
         </div>
       </div>
@@ -107,7 +107,7 @@ const PTFeedback = () => {
             <tbody>
               {reviews.map((item) => {
                 const memberName =
-                  item?.Member?.User?.username || item?.Member?.User?.email || `Member #${item?.memberId || "?"}`;
+                  item?.Member?.User?.username || item?.Member?.User?.email || `Học viên #${item?.memberId || "?"}`;
                 const draft = replyDraft[item.id] || "";
                 return (
                   <tr key={item.id}>
