@@ -44,6 +44,12 @@
   color: rgba(238, 242, 255, 0.5);
 }
 
+.oinv-filters input:focus {
+  outline: none;
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
+}
+
 .btn-primary {
   padding: 10px 16px;
   background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
@@ -102,7 +108,7 @@
 }
 
 .oinv-available {
-  color: #00ffaa;
+  color: #00e3a6;
   font-weight: 600;
 }
 
@@ -115,7 +121,7 @@
 }
 
 .oinv-maintenance {
-  color: #00b4ff;
+  color: #00baff;
 }
 
 .oinv-empty {
@@ -124,28 +130,37 @@
   padding: 20px !important;
 }
 
-.oinv-paging {
+.pagination {
   display: flex;
   justify-content: center;
   gap: 12px;
   align-items: center;
+  margin-top: 20px;
 }
 
-.oinv-paging button {
+.pagination button {
   padding: 8px 12px;
   background: rgba(255, 138, 0, 0.18);
   border: 1px solid rgba(255, 138, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
+  transition: all 100ms ease;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.oinv-paging button:disabled {
+.pagination button:hover:not(:disabled) {
+  background: rgba(255, 138, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.pagination button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.oinv-paging span {
+.pagination span {
   color: rgba(238, 242, 255, 0.7);
   font-size: 13px;
 }

@@ -1,5 +1,18 @@
 .mn-page {
+  --surface-low: rgba(255,255,255,.05);
+  --surface-highest: rgba(255,255,255,.08);
+  --surface-bright: rgba(255,255,255,.10);
+  --primary-neon: #d6ff00;
+  --text-muted: rgba(255,255,255,.68);
+}
+
+.mn-page {
   width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .mn-head {
@@ -246,6 +259,10 @@
 }
 
 @media (max-width: 768px) {
+  .mn-page {
+    padding: 24px 16px 80px;
+  }
+  
   .mn-head {
     align-items: flex-start;
   }
@@ -296,3 +313,25 @@
     padding: 9px 12px;
   }
 }
+
+.mn-inline-read {
+  margin-top: 14px;
+  border: none;
+  background: transparent;
+  color: var(--primary-neon);
+  font-family: var(--font-label);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mn-mark-all-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mn-inline-read.muted{opacity:.65}
+
+.mn-item,.mn-tab,.mn-mark-all-btn{color:#fff}.mn-item-desc,.mn-time,.mn-category-title{opacity:1}.mn-item *{color:inherit}.mn-item-desc{color:rgba(255,255,255,.78)}

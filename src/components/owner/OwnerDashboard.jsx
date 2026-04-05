@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./OwnerDashboard.css";
+import "./OwnerThemeOverrides.css";
 
 import OwnerOverviewPage from "./pages/OwnerOverviewPage";
 import OwnerPackagesPage from "./pages/OwnerPackagesPage";
@@ -12,6 +13,8 @@ import OwnerTransferPage from "./pages/OwnerTransferPage";
 import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
+import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
+import OwnerProcurementPaymentsPage from "./pages/OwnerProcurementPaymentsPage";
 import OwnerFranchiseRequestsPage from "./pages/OwnerFranchiseRequestsPage";
 import OwnerTrainerSharePage from "./pages/OwnerTrainerSharePage";
 import OwnerMembersPage from "./pages/OwnerMembersPage";
@@ -75,9 +78,11 @@ export default function OwnerDashboard() {
     {
       title: "Mua hàng",
       items: [
-        { label: "Mua thiết bị", to: "/owner/quotations", key: "quotations", icon: "📝" },
+        { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests", icon: "📋" },
+        { label: "Báo giá", to: "/owner/quotations", key: "quotations", icon: "📝" },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", icon: "🧷" },
-        { label: "Nhập kho", to: "/owner/receipts", key: "receipts", icon: "📥" },
+        { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", icon: "📥" },
+        { label: "Thanh toán PO", to: "/owner/procurement-payments", key: "procurement-payments", icon: "💰" },
       ],
     },
     {
@@ -101,19 +106,6 @@ export default function OwnerDashboard() {
     <div className="od2-layout">
       <aside className={`od2-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="od2-brand">
-          <div className="od2-logo">
-            <div className="od2-mark">G</div>
-            {!collapsed && (
-              <div className="od2-brandText">
-                <div className="od2-title">GFMS</div>
-                <div className="od2-sub">Owner Console</div>
-              </div>
-            )}
-          </div>
-
-          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
-            {collapsed ? "»" : "«"}
-          </button>
         </div>
 
         <div className="od2-profile">
@@ -124,6 +116,9 @@ export default function OwnerDashboard() {
               <div className="od2-email">{user?.email || ""}</div>
             </div>
           )}
+          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
+            {collapsed ? "»" : "«"}
+          </button>
         </div>
 
         <nav className="od2-nav">
@@ -154,21 +149,16 @@ export default function OwnerDashboard() {
       </aside>
 
       <main className="od2-main">
-        <header className="od2-topbar">
-          <div className="od2-topLeft">
-            <div className="od2-h1">Owner Dashboard</div>
-            <div className="od2-h2">Vận hành • Gói tập • Booking • Tài chính • Kho</div>
-          </div>
-
-          <div className="od2-topRight">
-            <div className="od2-search">
-              <span className="od2-searchIco">⌕</span>
-              <input placeholder="Tìm nhanh: member, booking, gói tập..." />
-            </div>
-            <button className="od2-notiBtn" title="Thông báo">🔔</button>
-          </div>
-        </header>
-
+        {collapsed && (
+          <button
+            className="od2-menuFab"
+            onClick={() => setCollapsed(false)}
+            title="Mở menu"
+            aria-label="Mở menu"
+          >
+            ☰
+          </button>
+        )}
         <div className="od2-content">
           <Routes>
             <Route path="/" element={<Navigate to="/owner/overview" replace />} />
@@ -194,9 +184,11 @@ export default function OwnerDashboard() {
             <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
             {/* Purchasing */}
+            <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
             <Route path="/quotations" element={<OwnerQuotationsPage />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
+            <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />
 
             {/* Communication */}
             <Route path="/messages" element={<PlaceholderPage title="Tin nhắn (message)" />} />

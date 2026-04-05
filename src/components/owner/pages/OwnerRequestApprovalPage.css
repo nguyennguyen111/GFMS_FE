@@ -67,8 +67,8 @@
 }
 
 .owner-request-approval .status-approved {
-  color: #00ffaa;
-  background: rgba(0, 255, 170, 0.1);
+  color: #00e3a6;
+  background: rgba(0, 227, 166, 0.1);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -89,8 +89,8 @@
 }
 
 .owner-request-approval .btn-approve {
-  background: #00ffaa;
-  color: #000;
+  background: linear-gradient(135deg, rgba(0, 186, 255, 0.32), rgba(0, 128, 255, 0.2));
+  color: #eef2ff;
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -112,7 +112,7 @@
 }
 
 .owner-request-approval .btn-approve:hover {
-  background: #00cc88;
+  background: linear-gradient(135deg, rgba(0, 186, 255, 0.42), rgba(0, 128, 255, 0.28));
   transform: translateY(-1px);
 }
 

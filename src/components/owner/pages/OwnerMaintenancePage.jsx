@@ -11,11 +11,11 @@ import { ownerGetEquipments } from "../../../services/ownerEquipmentService";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
-  { value: "pending", label: "Pending" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "assigned", label: "Đã phân công" },
+  { value: "in_progress", label: "Đang xử lý" },
+  { value: "completed", label: "Hoàn thành" },
+  { value: "cancelled", label: "Đã hủy" },
 ];
 
 const money = (v) => {
@@ -165,7 +165,7 @@ export default function OwnerMaintenancePage() {
 
       <div className="oma-filters">
         <div className="oma-field">
-          <label>Status</label>
+          <label>Trạng thái</label>
           <select
             value={filters.status}
             onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}
@@ -179,16 +179,22 @@ export default function OwnerMaintenancePage() {
         </div>
 
         <div className="oma-field">
-          <label>GymId</label>
-          <input
+          <label>Phòng tập</label>
+          <select
             value={filters.gymId}
             onChange={(e) => setFilters((s) => ({ ...s, gymId: e.target.value }))}
-            placeholder="VD: 1"
-          />
+          >
+            <option value="">Tất cả phòng tập</option>
+            {myGyms.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="oma-field oma-field--grow">
-          <label>Search</label>
+          <label>Tìm kiếm</label>
           <input
             value={filters.q}
             onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
@@ -203,7 +209,7 @@ export default function OwnerMaintenancePage() {
             fetchList();
           }}
         >
-          Tìm Kiếm 
+          Tìm kiếm
         </button>
       </div>
 
@@ -221,9 +227,9 @@ export default function OwnerMaintenancePage() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Status</th>
-                  <th>Gym</th>
-                  <th>Equipment</th>
+                  <th>Trạng thái</th>
+                  <th>Phòng tập</th>
+                  <th>Thiết bị</th>
                   <th>Ngày tạo</th>
                 </tr>
               </thead>
@@ -241,8 +247,8 @@ export default function OwnerMaintenancePage() {
                     <td>
                       <span className={`oma-pill oma-pill--${r.status}`}>{r.status}</span>
                     </td>
-                    <td>{r.gymId ?? "-"}</td>
-                    <td>{r.equipmentId ?? "-"}</td>
+                    <td>{r.Gym?.name || r.gym?.name || r.gymId || "-"}</td>
+                    <td>{r.Equipment?.name || r.equipment?.name || r.equipmentId || "-"}</td>
                     <td>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "-"}</td>
                   </tr>
                 ))}
@@ -257,19 +263,23 @@ export default function OwnerMaintenancePage() {
             </table>
           </div>
 
-          <div className="oma-paging">
-            <button className="oma-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              ←
-            </button>
-            <div className="oma-paging__text">
-              Page <b>{meta.page}</b> / {meta.totalPages}
-            </div>
+          <div className="pagination">
             <button
-              className="oma-btn"
-              disabled={page >= meta.totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              disabled={meta.page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="pagination-btn"
             >
-              →
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
+            </span>
+            <button
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+              className="pagination-btn"
+            >
+              Sau
             </button>
           </div>
         </div>
@@ -296,7 +306,7 @@ export default function OwnerMaintenancePage() {
                 </div>
 
                 <div className="detail-row">
-                  <span className="detail-label">Gym:</span>
+                  <span className="detail-label">Phòng tập:</span>
                   <span className="detail-value">{detail.Gym?.name || detail.gym?.name || "—"}</span>
                 </div>
 
