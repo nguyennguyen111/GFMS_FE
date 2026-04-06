@@ -30,34 +30,16 @@ export const ownerGetReceiptDetail = (id) =>
 
 // Purchase requests (owner nhu cầu mua)
 export const ownerPreviewPurchaseStock = (params) =>
-  axios.get(`/api/owner/inventory`, {
-    params: {
-      page: 1,
-      limit: 500,
-      gymId: params?.gymId,
-      equipmentId: params?.equipmentId,
-    },
-  });
+  axios.get(`${API}/purchase-requests/stock-preview`, { params });
 
 export const ownerCreatePurchaseRequest = (payload) =>
-  axios.post(`${API}/quotations`, {
-    gymId: payload?.gymId,
-    supplierId: payload?.expectedSupplierId,
-    items: [
-      {
-        equipmentId: payload?.equipmentId,
-        quantity: payload?.quantity,
-        unitPrice: payload?.expectedUnitPrice || 0,
-      },
-    ],
-    notes: payload?.note || "",
-  });
+  axios.post(`${API}/purchase-requests`, payload);
 
 export const ownerGetPurchaseRequests = (params = {}) =>
-  axios.get(`${API}/quotations`, { params });
+  axios.get(`${API}/purchase-requests`, { params });
 
 export const ownerGetPurchaseRequestDetail = (id) =>
-  axios.get(`${API}/quotations/${id}`);
+  axios.get(`${API}/purchase-requests/${id}`);
 
 // Procurement payments
 export const ownerGetProcurementPayments = (params = {}) =>
