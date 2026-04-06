@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ownerGetProcurementPayments } from "../../../services/ownerPurchaseService";
 import "../OwnerDashboard.css";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const money = (v) => Number(v || 0).toLocaleString("vi-VN") + " đ";
 const statusLabel = {
@@ -16,6 +18,7 @@ const phaseLabel = {
 };
 
 export default function OwnerProcurementPaymentsPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalItems: 0, limit: 10 });
   const [page, setPage] = useState(1);
@@ -23,27 +26,39 @@ export default function OwnerProcurementPaymentsPage() {
   const [detail, setDetail] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const loadData = async (nextPage = page) => {
+  const loadData = useCallback(async (nextPage = page) => {
     setLoading(true);
     try {
       const res = await ownerGetProcurementPayments({ page: nextPage, limit: 10 });
-      setRows(res?.data?.data ?? []);
+      const data = res?.data?.data ?? [];
+      setRows(
+        selectedGymId
+          ? data.filter((row) => String(row?.purchaseOrder?.gym?.id || row?.Gym?.id || row?.gymId || "") === String(selectedGymId))
+          : data
+      );
       setMeta(res?.data?.meta ?? { page: nextPage, totalPages: 1, totalItems: 0, limit: 10 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, selectedGymId]);
 
   useEffect(() => {
     loadData(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [loadData, page]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadData(page);
+    },
+    events: ["notification:new"],
+    notificationTypes: ["payment"],
+  });
 
   return (
     <div className="od2-content" style={{ maxWidth: 1200 }}>
-      <div className="od2-h1" style={{ marginBottom: 8 }}>Thanh toán đơn mua</div>
+      <div className="od2-h1" style={{ marginBottom: 8 }}>Thanh toán đơn mua {selectedGymName ? `- ${selectedGymName}` : ""}</div>
       <p style={{ opacity: 0.85, marginBottom: 18 }}>
         Theo dõi tiến độ đặt cọc 30% và thanh toán phần còn lại cho từng đơn mua. Đây là phần tài chính của flow procurement, không làm tăng tồn kho trực tiếp.
       </p>

@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./OwnerPurchaseOrdersPage.css";
 import { ownerGetPurchaseOrders, ownerGetPurchaseOrderDetail } from "../../../services/ownerPurchaseService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => {
   const map = {
@@ -28,7 +31,18 @@ const paymentStageLabel = {
   fully_paid: "Đã thanh toán đủ",
 };
 
+const paymentStatusLabel = {
+  pending: "Chờ thanh toán",
+  completed: "Đã thanh toán",
+  failed: "Thất bại",
+  refunded: "Hoàn tiền",
+  cancelled: "Đã hủy",
+};
+
 export default function OwnerPurchaseOrdersPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const [searchParams] = useSearchParams();
+  const openedOrderRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -39,7 +53,14 @@ export default function OwnerPurchaseOrdersPage() {
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchOrders = async () => {
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setAppliedFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPage(1);
+  }, [selectedGymId]);
+
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await ownerGetPurchaseOrders({
@@ -47,6 +68,7 @@ export default function OwnerPurchaseOrdersPage() {
         limit: 10,
         q: appliedFilters.q || undefined,
         status: appliedFilters.status || undefined,
+        gymId: selectedGymId ? String(selectedGymId) : appliedFilters.gymId || undefined,
       });
       setOrders(res?.data?.data ?? []);
       setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
@@ -55,9 +77,9 @@ export default function OwnerPurchaseOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appliedFilters, page]);
 
-  const loadGyms = async () => {
+  const loadGyms = useCallback(async () => {
     try {
       const response = await ownerGetMyGyms();
       const list = response?.data?.data ?? response?.data ?? [];
@@ -65,25 +87,43 @@ export default function OwnerPurchaseOrdersPage() {
     } catch (e) {
       setGyms([]);
     }
-  };
+  }, []);
 
-  const fetchDetail = async (orderId) => {
+  const fetchDetail = useCallback(async (orderId) => {
     try {
       const res = await ownerGetPurchaseOrderDetail(orderId);
       setDetail(res?.data?.data);
+      setShowDetailModal(true);
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
-
-  useEffect(() => {
-    loadGyms();
   }, []);
 
   useEffect(() => {
+    loadGyms();
+  }, [loadGyms]);
+
+  useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line
-  }, [page, appliedFilters]);
+  }, [fetchOrders]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchOrders();
+      if (detail?.id) {
+        await fetchDetail(detail.id);
+      }
+    },
+    events: ["notification:new"],
+    notificationTypes: ["purchaseorder", "payment"],
+  });
+
+  useEffect(() => {
+    const purchaseOrderId = searchParams.get("purchaseOrderId");
+    if (!purchaseOrderId || openedOrderRef.current === purchaseOrderId) return;
+    openedOrderRef.current = purchaseOrderId;
+    fetchDetail(purchaseOrderId);
+  }, [fetchDetail, searchParams]);
 
   const filteredOrders = useMemo(() => {
     if (!appliedFilters.gymId) return orders;
@@ -105,7 +145,7 @@ export default function OwnerPurchaseOrdersPage() {
       <div className="opo-head">
         <div>
           <h2>Đơn mua hàng</h2>
-          <p>Theo dõi PO theo chuẩn procurement: báo giá → đặt cọc 30% → nhận hàng → thanh toán phần còn lại</p>
+          <p>Theo dõi PO theo chuẩn procurement tại {selectedGymName || "các chi nhánh"}: báo giá → đặt cọc 30% → nhận hàng → thanh toán phần còn lại</p>
         </div>
       </div>
 
@@ -143,8 +183,9 @@ export default function OwnerPurchaseOrdersPage() {
               className="opo-status-select"
               value={filters.gymId}
               onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
+              disabled={Boolean(selectedGymId)}
             >
-              <option value="">Tất cả phòng gym</option>
+              <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng gym"}</option>
               {gyms.map((gym) => (
                 <option key={gym.id} value={gym.id}>
                   {gym.name}
@@ -175,7 +216,6 @@ export default function OwnerPurchaseOrdersPage() {
                       key={order.id}
                       onClick={() => {
                         fetchDetail(order.id);
-                        setShowDetailModal(true);
                       }}
                     >
                       <td>{order.code || `PO-${order.id}`}</td>
@@ -288,7 +328,7 @@ export default function OwnerPurchaseOrdersPage() {
                           <td>{tx.transactionCode || `TX-${tx.id}`}</td>
                           <td>{tx.metadata?.paymentPhase === "deposit" ? "Đặt cọc 30%" : tx.metadata?.paymentPhase === "final" ? "Thanh toán còn lại" : "-"}</td>
                           <td>{money(tx.amount)}</td>
-                          <td>{tx.paymentStatus || "-"}</td>
+                          <td>{paymentStatusLabel[tx.paymentStatus] || tx.paymentStatus || "-"}</td>
                           <td>{tx.transactionDate ? new Date(tx.transactionDate).toLocaleString("vi-VN") : "-"}</td>
                         </tr>
                       )) : (

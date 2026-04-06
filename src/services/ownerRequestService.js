@@ -4,10 +4,17 @@ import axios from "../setup/axios";  // Đảm bảo đã setup axios
 const BASE = "/api/owner/requests";
 
 // Lấy danh sách yêu cầu PT
-export const getRequests = async () => {
+export const getRequests = async (params = {}) => {
   try {
-    const res = await axios.get(`${BASE}`);
-    return Array.isArray(res.data.data) ? res.data.data : [];  // Đảm bảo trả về mảng yêu cầu
+    const res = await axios.get(`${BASE}`, { params });
+    const data = Array.isArray(res.data?.data) ? res.data.data : [];
+    const pagination = res.data?.pagination || {
+      page: Number(params.page) || 1,
+      limit: Number(params.limit) || 10,
+      total: data.length,
+      totalPages: 1,
+    };
+    return { data, pagination };
   } catch (error) {
     console.error("Error fetching requests:", error);
     throw error;

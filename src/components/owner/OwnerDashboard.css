@@ -14,7 +14,8 @@
 }
 
 .od2-layout{
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-h, 80px));
+  margin-top: var(--header-h, 80px);
   background:
     radial-gradient(980px 680px at 14% 10%, rgba(255,177,0,.24), transparent 58%),
     radial-gradient(800px 620px at 82% 16%, rgba(0,186,255,.17), transparent 58%),
@@ -41,8 +42,8 @@
 
 .od2-sidebar{
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--header-h, 80px);
+  height: calc(100vh - var(--header-h, 80px));
   padding: 16px;
   border-right: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
@@ -129,7 +130,7 @@
 
 .od2-nav{
   overflow: auto;
-  height: calc(100vh - 220px);
+  height: calc(100vh - var(--header-h, 80px) - 220px);
   padding-right: 6px;
 }
 
@@ -203,9 +204,28 @@
   z-index: 1;
 }
 
+.od2-branchBanner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+}
+
+.od2-branchBanner__label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
 .od2-menuFab {
   position: fixed;
-  top: 16px;
+  top: calc(var(--header-h, 80px) + 12px);
   left: 14px;
   width: 42px;
   height: 42px;

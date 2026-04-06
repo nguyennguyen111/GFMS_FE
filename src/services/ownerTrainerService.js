@@ -38,6 +38,20 @@ const ownerTrainerService = {
     return response.data;
   },
 
+  async uploadTrainerCertificates(id, files = []) {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const response = await axios.post(`${API_URL}/${id}/certificates`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
   async getTrainerSchedule(id, params = {}) {
     const response = await axios.get(`${API_URL}/${id}/schedule`, { params });
     return response.data;
