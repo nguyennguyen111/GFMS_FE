@@ -282,6 +282,14 @@ export default function MemberBookingsCalendarPage() {
                       const displayKey = disp.key;
                       const isActive = isToday && displayKey === "scheduled";
 
+                      const requestBadge = b?.pendingRescheduleRequest
+                        ? { text: "Đang chờ đổi lịch", cls: "pending" }
+                        : b?.latestRescheduleRequest?.status === "rejected"
+                        ? { text: "Đổi lịch bị từ chối", cls: "rejected" }
+                        : b?.isRescheduled || b?.latestRescheduleRequest?.status === "approved"
+                        ? { text: "Đã đổi lịch", cls: "approved" }
+                        : null;
+
                       return (
                         <button
                           key={b.id}
@@ -307,6 +315,8 @@ export default function MemberBookingsCalendarPage() {
                             )}
                           </div>
 
+                          {requestBadge ? <div className={`mb-sessionTag mb-sessionTag--${requestBadge.cls}`}>{requestBadge.text}</div> : null}
+
                           <div className="mb-sessionInfo">
                             <h4 className="mb-sessionTrainer">
                               {b?.Trainer?.User?.username || "PT"}
@@ -330,7 +340,7 @@ export default function MemberBookingsCalendarPage() {
         </section>
       </div>
 
-      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />}
+      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} onUpdated={async () => { await loadBookings(); setSelected(null); }} />}
     </div>
   );
 }
