@@ -83,3 +83,12 @@ export const memberConfirmFixedPlan = ({
     paymentMethod,
     confirmDuplicate: !!confirmDuplicate,
   });
+
+export const memberGetRescheduleOptions = (id, params) =>
+  axios.get(`${API_PREFIX}/${id}/reschedule-options`, { params: params || {} });
+
+export const memberCreateRescheduleRequest = (id, payload) =>
+  axios.post(`${API_PREFIX}/${id}/reschedule-request`, payload || {});
+
+export const memberGetMyRescheduleRequests = () =>
+  axios.get(`${API_PREFIX}/reschedule-requests`);

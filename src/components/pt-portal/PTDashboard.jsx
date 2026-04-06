@@ -12,6 +12,9 @@ import {
   getMyPTReviews,
   getPTScheduleSlots,
   getMyPTPayrollPeriods,
+  getMyPTRescheduleRequests,
+  approvePTRescheduleRequest,
+  rejectPTRescheduleRequest,
 } from "../../services/ptService";
 import "../member/member-pages.css";
 import "../member/pages/MemberHomePage.css";
@@ -154,6 +157,7 @@ const PTDashboard = () => {
   const [reviews, setReviews] = useState([]);
   const [scheduleSlots, setScheduleSlots] = useState({});
   const [payrollItems, setPayrollItems] = useState([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
   const [kpiModal, setKpiModal] = useState(null);
 
   const user = useMemo(() => {
@@ -186,13 +190,14 @@ const PTDashboard = () => {
       setTrainerId(Number(myId));
       setPtId(Number(myId));
 
-      const [bookingsRaw, walletRes, commRes, revRes, sch, payrollRes] = await Promise.all([
+      const [bookingsRaw, walletRes, commRes, revRes, sch, payrollRes, rescheduleRes] = await Promise.all([
         getPTBookings("me").catch(() => []),
         getMyPTWalletSummary().catch(() => ({ data: { availableBalance: 0, totalWithdrawn: 0 } })),
         getMyPTCommissions({}).catch(() => ({ data: [] })),
         getMyPTReviews({}).catch(() => ({ data: [] })),
         getPTScheduleSlots(String(myId)).catch(() => ({})),
         getMyPTPayrollPeriods().catch(() => ({ data: [] })),
+        getMyPTRescheduleRequests().catch(() => ({ data: [] })),
       ]);
 
       setTrainer(me);
@@ -202,6 +207,7 @@ const PTDashboard = () => {
       setReviews(normalizeReviews(revRes));
       setScheduleSlots(sch || {});
       setPayrollItems(normalizePayrollItems(payrollRes));
+      setRescheduleRequests(Array.isArray(rescheduleRes?.data) ? rescheduleRes.data : []);
     } catch (e) {
       console.error("PTDashboard load error:", e);
       setLoadError(e?.response?.data?.message || "Không tải được bảng điều khiển. Thử đăng nhập lại.");
@@ -280,6 +286,33 @@ const PTDashboard = () => {
     });
     return list;
   }, [bookings, scheduleSlots]);
+
+
+const pendingRescheduleCount = useMemo(
+  () => rescheduleRequests.filter((r) => String(r?.status || '').toLowerCase() === 'pending').length,
+  [rescheduleRequests]
+);
+
+const handleApproveReschedule = async (requestId) => {
+  try {
+    await approvePTRescheduleRequest(requestId, {});
+    window.alert('Đã chấp nhận yêu cầu đổi lịch.');
+    loadDashboard();
+  } catch (e) {
+    window.alert(e?.response?.data?.message || 'Không chấp nhận được yêu cầu đổi lịch.');
+  }
+};
+
+const handleRejectReschedule = async (requestId) => {
+  const note = window.prompt('Nhập lý do từ chối (không bắt buộc):', '') || '';
+  try {
+    await rejectPTRescheduleRequest(requestId, { note });
+    window.alert('Đã từ chối yêu cầu đổi lịch.');
+    loadDashboard();
+  } catch (e) {
+    window.alert(e?.response?.data?.message || 'Không từ chối được yêu cầu đổi lịch.');
+  }
+};
 
   const recentSessions = useMemo(() => {
     const now = Date.now();
@@ -583,6 +616,50 @@ const PTDashboard = () => {
           </div>
         </button>
       </section>
+
+<section className="ptd-reschedulePanel mh-card">
+  <div className="ptd-reschedulePanelHead">
+    <div>
+      <div className="mh-kicker">Reschedule requests</div>
+      <h3>Yêu cầu đổi lịch từ hội viên</h3>
+      <p>Các yêu cầu đang chờ nên được xử lý sớm để lịch tập được cập nhật chính xác cho cả hai bên.</p>
+    </div>
+    <div className="ptd-rescheduleCounter">{pendingRescheduleCount} chờ xử lý</div>
+  </div>
+  <div className="ptd-rescheduleList">
+    {rescheduleRequests.length === 0 ? (
+      <div className="ptd-rescheduleEmpty">Hiện chưa có yêu cầu đổi lịch nào.</div>
+    ) : (
+      rescheduleRequests.slice(0, 6).map((item) => {
+        const booking = item?.Booking;
+        const memberName = booking?.Member?.User?.username || booking?.Member?.User?.email || `Học viên #${booking?.memberId || item?.memberId}`;
+        const status = String(item?.status || '').toLowerCase();
+        return (
+          <div key={item.id} className={`ptd-rescheduleItem ptd-rescheduleItem--${status || 'pending'}`}>
+            <div className="ptd-rescheduleMain">
+              <div className="ptd-rescheduleName">{memberName}</div>
+              <div className="ptd-rescheduleMeta">Lịch cũ: {booking?.bookingDate ? bookingToYMD(booking.bookingDate).split('-').reverse().join('/') : '—'} · {String(item?.oldStartTime || '').slice(0,5)} - {String(item?.oldEndTime || '').slice(0,5)}</div>
+              <div className="ptd-rescheduleMeta">Đề xuất mới: {String(item?.requestedDate || '').split('-').reverse().join('/')} · {String(item?.requestedStartTime || '').slice(0,5)} - {String(item?.requestedEndTime || '').slice(0,5)}</div>
+              {item?.reason ? <div className="ptd-rescheduleReason">Lý do: {item.reason}</div> : null}
+            </div>
+            <div className="ptd-rescheduleSide">
+              <span className={`ptd-rescheduleStatus ptd-rescheduleStatus--${status || 'pending'}`}>{status === 'approved' ? 'Đã chấp nhận' : status === 'rejected' ? 'Đã từ chối' : 'Đang chờ'}</span>
+              {status === 'pending' ? (
+                <div className="ptd-rescheduleActions">
+                  <button type="button" className="ptd-rescheduleBtn ptd-rescheduleBtn--ghost" onClick={() => handleRejectReschedule(item.id)}>Từ chối</button>
+                  <button type="button" className="ptd-rescheduleBtn" onClick={() => handleApproveReschedule(item.id)}>Chấp nhận</button>
+                </div>
+              ) : item?.trainerResponseNote ? (
+                <div className="ptd-rescheduleReason ptd-rescheduleReason--small">Ghi chú: {item.trainerResponseNote}</div>
+              ) : null}
+            </div>
+          </div>
+        );
+      })
+    )}
+  </div>
+</section>
+
 
       {kpiModal ? (
         <div
