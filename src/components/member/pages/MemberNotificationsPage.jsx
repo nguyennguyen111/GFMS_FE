@@ -46,7 +46,7 @@ export default function MemberNotificationsPage() {
   const resolveNotificationPath = (item) => {
     const type = String(item?.notificationType || "").toLowerCase();
     if (type === "chat") return "/member/messages";
-    if (["booking_update", "booking"].includes(type)) return "/member/bookings";
+    if (["booking_update", "booking", "booking_reschedule"].includes(type)) return "/member/bookings";
     if (["package_purchase", "transaction", "payment"].includes(type)) return "/member/my-packages";
     if (type === "review") return "/member/reviews";
     if (type === "promo") return "/member/my-packages";

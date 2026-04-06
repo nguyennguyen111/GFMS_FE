@@ -5,15 +5,13 @@
   --bd-line: rgba(255, 255, 255, 0.08);
   --bd-line-strong: rgba(255, 255, 255, 0.12);
   --bd-text: #f5f5f5;
-  --bd-muted: rgba(255, 255, 255, 0.6);
+  --bd-muted: rgba(255, 255, 255, 0.65);
   --bd-primary: #d6ff00;
   --bd-error: #ff7351;
   --bd-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 .bd-backdrop {
   position: fixed;
@@ -29,12 +27,10 @@
 
 .bd-modal {
   width: 100%;
-  max-width: 560px;
+  max-width: 680px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%),
-    var(--bd-card);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%), var(--bd-card);
   border-radius: 28px;
   box-shadow: var(--bd-shadow);
   border: 1px solid var(--bd-line);
@@ -49,7 +45,7 @@
 }
 
 .bd-kicker {
-  font-family: 'Lexend', sans-serif;
+  font-family: "Lexend", sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: var(--bd-primary);
@@ -60,7 +56,7 @@
 
 .bd-title {
   margin: 8px 0 0;
-  font-family: 'Be Vietnam Pro', sans-serif;
+  font-family: "Be Vietnam Pro", sans-serif;
   font-size: 32px;
   line-height: 1.05;
   font-weight: 900;
@@ -92,9 +88,7 @@
   transition: all 0.22s ease;
 }
 
-.bd-x:hover {
-  background: rgba(255, 255, 255, 0.09);
-}
+.bd-x:hover { background: rgba(255, 255, 255, 0.09); }
 
 .bd-top {
   display: flex;
@@ -119,40 +113,35 @@
   letter-spacing: 0.08em;
 }
 
-.bd-status.scheduled {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+.bd-status.scheduled { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid var(--bd-line); }
+.bd-status.attended { background: rgba(214,255,0,0.12); color: var(--bd-primary); border: 1px solid rgba(214,255,0,0.15); }
+.bd-status.present { background: rgba(46,204,113,0.14); color: #8fefb0; border: 1px solid rgba(46,204,113,0.28); }
+.bd-status.absent,
+.bd-status.cancelled { background: rgba(255,115,81,0.14); color: #ff9a84; border: 1px solid rgba(255,115,81,0.22); }
+.bd-timeChip { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--bd-line); }
+
+.bd-rescheduleBanner,
+.bd-successNotice {
+  margin: 18px 24px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
   border: 1px solid var(--bd-line);
+  background: rgba(255,255,255,0.04);
 }
 
-.bd-status.attended {
-  background: rgba(214, 255, 0, 0.12);
-  color: var(--bd-primary);
-  border: 1px solid rgba(214, 255, 0, 0.15);
-}
-
-.bd-status.present {
-  background: rgba(46, 204, 113, 0.14);
-  color: #8fefb0;
-  border: 1px solid rgba(46, 204, 113, 0.28);
-}
-
-.bd-status.absent {
-  background: rgba(255, 115, 81, 0.14);
-  color: #ff9a84;
-  border: 1px solid rgba(255, 115, 81, 0.22);
-}
-
-.bd-status.cancelled {
-  background: rgba(255, 115, 81, 0.12);
-  color: #ff9a84;
-  border: 1px solid rgba(255, 115, 81, 0.15);
-}
-
-.bd-timeChip {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  border: 1px solid var(--bd-line);
+.bd-rescheduleBanner--pending { background: rgba(255,255,255,0.05); }
+.bd-rescheduleBanner--approved,
+.bd-successNotice { background: rgba(214,255,0,0.08); border-color: rgba(214,255,0,0.18); }
+.bd-rescheduleBanner--rejected { background: rgba(255,115,81,0.08); border-color: rgba(255,115,81,0.16); }
+.bd-rescheduleTitle,
+.bd-successTitle { font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.bd-rescheduleText,
+.bd-successText { margin-top: 6px; color: var(--bd-muted); font-size: 13px; line-height: 1.6; }
+.bd-successNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #e8ff9f;
 }
 
 .bd-grid {
@@ -183,22 +172,136 @@
   font-weight: 700;
 }
 
-.bd-label svg {
+.bd-label svg { color: var(--bd-primary); }
+.bd-value { color: var(--bd-text); font-size: 15px; font-weight: 900; text-align: right; }
+
+.bd-requestPanel {
+  margin: 18px 24px 0;
+  padding: 18px;
+  border-radius: 22px;
+  background: #141414;
+  border: 1px solid var(--bd-line);
+}
+
+.bd-requestHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bd-requestHead svg { color: var(--bd-primary); }
+.bd-requestHint { margin: 10px 0 18px; color: var(--bd-muted); font-size: 13px; line-height: 1.6; }
+.bd-pickerSection + .bd-pickerSection { margin-top: 18px; }
+.bd-sectionLabel { margin-bottom: 10px; color: #fff; font-size: 13px; font-weight: 800; }
+.bd-helperText { margin-bottom: 10px; color: var(--bd-muted); font-size: 12px; }
+
+.bd-chipGrid,
+.bd-optionGrid,
+.bd-slotGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.bd-chipGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bd-optionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bd-slotGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.bd-chip,
+.bd-optionCard,
+.bd-slotBtn {
+  border: 1px solid var(--bd-line-strong);
+  background: #0f0f0f;
+  color: #fff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.bd-chip {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bd-optionCard {
+  min-height: 72px;
+  padding: 14px;
+  border-radius: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bd-optionTitle { font-size: 15px; font-weight: 900; }
+.bd-optionSub { color: var(--bd-muted); font-size: 12px; line-height: 1.4; }
+
+.bd-slotBtn {
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bd-chip:hover,
+.bd-optionCard:hover,
+.bd-slotBtn:hover { border-color: rgba(214,255,0,0.4); transform: translateY(-1px); }
+
+.bd-chip.active,
+.bd-optionCard.active,
+.bd-slotBtn.active {
+  background: rgba(214,255,0,0.12);
+  border-color: rgba(214,255,0,0.4);
   color: var(--bd-primary);
 }
 
-.bd-value {
-  color: var(--bd-text);
-  font-size: 15px;
-  font-weight: 900;
-  text-align: right;
+.bd-emptyState {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px dashed var(--bd-line-strong);
+  color: var(--bd-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
+
+.bd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.bd-field span { color: var(--bd-muted); font-size: 12px; font-weight: 700; }
+
+.bd-field textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--bd-line-strong);
+  background: #0f0f0f;
+  color: #fff;
+  padding: 12px 14px;
+  outline: none;
+  resize: vertical;
+}
+
+.bd-inlineNotice,
+.bd-inlineError { margin-top: 12px; font-size: 13px; }
+.bd-inlineNotice { color: var(--bd-muted); }
+.bd-inlineError { color: #ff9a84; }
 
 .bd-actions {
   padding: 20px 24px 24px;
   display: flex;
   justify-content: flex-end;
 }
+
+.bd-actions--spread { justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
 .bd-btn {
   min-width: 140px;
@@ -212,37 +315,29 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   cursor: pointer;
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, opacity 0.2s ease;
 }
 
-.bd-btn:hover {
-  transform: translateY(-2px);
-}
+.bd-btn:hover { transform: translateY(-2px); }
+.bd-btn:disabled { cursor: not-allowed; opacity: 0.7; transform: none; }
+.bd-btn--ghost { background: rgba(255,255,255,0.06); color: #fff; }
+.bd-btn--secondary { background: rgba(255,255,255,0.08); color: #fff; }
+.bd-btn--disabled { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); cursor: not-allowed; }
 
 @media (max-width: 640px) {
-  .bd-backdrop {
-    padding: 12px;
-  }
+  .bd-backdrop { padding: 12px; }
+  .bd-modal { max-height: calc(100vh - 24px); border-radius: 22px; }
+  .bd-title { font-size: 26px; }
+  .bd-row { flex-direction: column; align-items: flex-start; }
+  .bd-value { text-align: left; }
+  .bd-btn { width: 100%; }
+  .bd-chipGrid,
+  .bd-optionGrid,
+  .bd-slotGrid { grid-template-columns: 1fr 1fr; }
+}
 
-  .bd-modal {
-    max-height: calc(100vh - 24px);
-    border-radius: 22px;
-  }
-
-  .bd-title {
-    font-size: 26px;
-  }
-
-  .bd-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .bd-value {
-    text-align: left;
-  }
-
-  .bd-btn {
-    width: 100%;
-  }
+@media (max-width: 480px) {
+  .bd-chipGrid,
+  .bd-optionGrid,
+  .bd-slotGrid { grid-template-columns: 1fr; }
 }
