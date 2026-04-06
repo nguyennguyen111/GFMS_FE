@@ -239,10 +239,6 @@ export default function MemberBookingsCalendarPage() {
             <span className="mb-summaryValue text-absent">{pad2(counts.absent)}</span>
           </div>
 
-          <div className="mb-summaryCard border-error">
-            <span className="mb-summaryLabel">Đã huỷ</span>
-            <span className="mb-summaryValue text-error">{pad2(counts.cancelled)}</span>
-          </div>
         </section>
 
         <div className="mb-rangeBar">
@@ -256,7 +252,6 @@ export default function MemberBookingsCalendarPage() {
             <span className="mb-pill is-muted">Chưa điểm danh: {counts.pending}</span>
             <span className="mb-pill is-green">Có mặt: {counts.present}</span>
             <span className="mb-pill is-absent">Vắng: {counts.absent}</span>
-            <span className="mb-pill is-red">Đã huỷ: {counts.cancelled}</span>
           </div>
         </div>
 
