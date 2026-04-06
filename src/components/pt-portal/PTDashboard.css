@@ -813,3 +813,30 @@ button.ptd-kpiCard--clickable.mh-stat:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+.ptd-reschedulePanel { margin-top: 22px; padding: 22px; border-radius: 24px; }
+.ptd-reschedulePanelHead { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom: 16px; }
+.ptd-reschedulePanelHead h3 { margin: 6px 0; }
+.ptd-reschedulePanelHead p { margin: 0; opacity: .72; }
+.ptd-rescheduleCounter { padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); font-weight: 800; }
+.ptd-rescheduleList { display:flex; flex-direction:column; gap:14px; }
+.ptd-rescheduleItem { display:flex; justify-content:space-between; gap:16px; padding:16px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
+.ptd-rescheduleMain { flex:1; min-width: 0; }
+.ptd-rescheduleName { font-weight:900; margin-bottom:6px; }
+.ptd-rescheduleMeta, .ptd-rescheduleReason { opacity:.78; font-size: 13px; line-height:1.6; }
+.ptd-rescheduleSide { min-width: 220px; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+.ptd-rescheduleStatus { padding:8px 12px; border-radius:999px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+.ptd-rescheduleStatus--pending { background: rgba(255,255,255,.08); }
+.ptd-rescheduleStatus--approved { background: rgba(214,255,0,.12); color:#d6ff00; }
+.ptd-rescheduleStatus--rejected { background: rgba(255,115,81,.12); color:#ff9a84; }
+.ptd-rescheduleActions { display:flex; gap:10px; }
+.ptd-rescheduleBtn { min-height: 40px; padding: 0 14px; border-radius: 12px; border:none; cursor:pointer; font-weight:800; }
+.ptd-rescheduleBtn--ghost { background: rgba(255,255,255,.08); color:#fff; }
+.ptd-rescheduleReason--small { text-align:right; }
+.ptd-rescheduleEmpty { padding:18px; border-radius:18px; background: rgba(255,255,255,.03); opacity:.7; }
+@media (max-width: 860px) {
+  .ptd-rescheduleItem { flex-direction: column; }
+  .ptd-rescheduleSide { min-width: 0; align-items: flex-start; }
+  .ptd-rescheduleReason--small { text-align:left; }
+}
