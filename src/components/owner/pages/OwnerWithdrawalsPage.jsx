@@ -7,11 +7,20 @@ import {
 } from "../../../services/ownerWithdrawalService";
 import { connectSocket } from "../../../services/socketClient";
 import NiceModal from "../../common/NiceModal";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerWithdrawalsPage.css";
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
+const withdrawalStatusLabel = {
+  pending: "Chờ duyệt",
+  completed: "Đã chi trả",
+  rejected: "Từ chối",
+  cancelled: "Đã hủy",
+};
+
 const OwnerWithdrawalsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ status: "" });
   const [loading, setLoading] = useState(false);
@@ -21,19 +30,27 @@ const OwnerWithdrawalsPage = () => {
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [alertModal, setAlertModal] = useState(null);
 
+  const getWithdrawalGymId = useCallback((item) => item?.Trainer?.gymId || item?.Trainer?.Gym?.id || null, []);
+
   const loadWithdrawals = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await ownerGetWithdrawals(filters);
+      const res = await ownerGetWithdrawals({
+        ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
+      });
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      setWithdrawals(list);
+      const scopedList = selectedGymId
+        ? list.filter((item) => Number(getWithdrawalGymId(item)) === Number(selectedGymId))
+        : list;
+      setWithdrawals(scopedList);
     } catch (e) {
       console.error("Lỗi khi tải yêu cầu chi trả:", e);
       setWithdrawals([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, getWithdrawalGymId, selectedGymId]);
 
   useEffect(() => {
     loadWithdrawals();
@@ -103,7 +120,10 @@ const OwnerWithdrawalsPage = () => {
 
   const handleExport = async () => {
     try {
-      const res = await ownerExportWithdrawals(filters);
+      const res = await ownerExportWithdrawals({
+        ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
+      });
       const contentType = res.headers?.["content-type"] || "";
       const blob = new Blob([res.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
@@ -146,7 +166,10 @@ const OwnerWithdrawalsPage = () => {
   return (
     <div className="owner-withdrawals-page">
       <div className="page-header">
-        <h1 className="page-title">Duyệt yêu cầu rút tiền</h1>
+        <div>
+          <h1 className="page-title">Duyệt yêu cầu rút tiền</h1>
+          {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
+        </div>
       </div>
 
       <div className="withdrawals-filters">
@@ -238,7 +261,7 @@ const OwnerWithdrawalsPage = () => {
                     </td>
                     <td>
                       <span className={`tx-badge tx-badge-${w.status || "pending"}`}>
-                        {w.status || "pending"}
+                        {withdrawalStatusLabel[w.status] || withdrawalStatusLabel.pending}
                       </span>
                     </td>
                     <td>
@@ -307,7 +330,7 @@ const OwnerWithdrawalsPage = () => {
                     <strong>Ghi chú:</strong> {selectedRequest.notes || "N/A"}
                   </div>
                   <div>
-                    <strong>Trạng thái:</strong> {selectedRequest.status || "pending"}
+                    <strong>Trạng thái:</strong> {withdrawalStatusLabel[selectedRequest.status] || withdrawalStatusLabel.pending}
                   </div>
                 </div>
               );

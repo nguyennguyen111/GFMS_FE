@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ownerGetMyGyms, ownerUpdateGym, ownerUploadGymImage } from "../../../services/ownerGymService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerGymsPage.css";
 
+const sortGymsByStatus = (gyms = []) =>
+  [...gyms].sort((a, b) => {
+    const aActive = a.status?.toLowerCase() === "active" ? 0 : 1;
+    const bActive = b.status?.toLowerCase() === "active" ? 0 : 1;
+    return aActive - bActive;
+  });
+
 const OwnerGymsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [page, setPage] = useState(1);
   const pageSize = 4;
@@ -10,7 +20,6 @@ const OwnerGymsPage = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [editGym, setEditGym] = useState({
     id: "",
     name: "",
@@ -23,30 +32,43 @@ const OwnerGymsPage = () => {
   });
 
   useEffect(() => {
-    loadGyms();
-  }, []);
-
-  useEffect(() => {
     setPage(1);
   }, [gyms.length]);
 
-  const loadGyms = async () => {
+  const syncGymState = useCallback((nextGyms) => {
+    const scopedGyms = selectedGymId
+      ? nextGyms.filter((gym) => Number(gym.id) === Number(selectedGymId))
+      : nextGyms;
+    const sortedGyms = sortGymsByStatus(scopedGyms);
+    setGyms(sortedGyms);
+    setSelectedGym((prev) => {
+      if (!prev?.id) return prev;
+      return sortedGyms.find((gym) => Number(gym.id) === Number(prev.id)) || prev;
+    });
+  }, [selectedGymId]);
+
+  const loadGyms = useCallback(async () => {
     try {
       const response = await ownerGetMyGyms();
       const gymsData = Array.isArray(response.data?.data) ? response.data.data : [];
-      
-      const sortedGyms = gymsData.sort((a, b) => {
-        const aActive = a.status?.toLowerCase() === 'active' ? 0 : 1;
-        const bActive = b.status?.toLowerCase() === 'active' ? 0 : 1;
-        return aActive - bActive;
-      });
-      
-      setGyms(sortedGyms);
+
+      syncGymState(gymsData);
     } catch (error) {
       console.error("Lỗi khi load danh sách phòng tập:", error);
       setGyms([]);
     }
-  };
+  }, [syncGymState]);
+
+  useEffect(() => {
+    loadGyms();
+  }, [loadGyms]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadGyms();
+    },
+    events: ["gym:changed"],
+  });
 
   const handleViewDetail = useCallback((gym) => {
     setSelectedGym(gym);
@@ -99,20 +121,32 @@ const OwnerGymsPage = () => {
       if (emailValue) payload.email = emailValue;
       if (descriptionValue) payload.description = descriptionValue;
       
-      await ownerUpdateGym(editGym.id, payload);
+      const response = await ownerUpdateGym(editGym.id, payload);
+      const updatedGym = response.data?.data;
       handleCloseEditModal();
-      
-      // Force complete refresh
-      setRefreshKey(prev => prev + 1);
-      setGyms([]);
-      await loadGyms();
+
+      if (updatedGym?.id) {
+        setGyms((prev) => {
+          const nextGyms = prev.map((gym) =>
+            Number(gym.id) === Number(updatedGym.id) ? { ...gym, ...updatedGym } : gym
+          );
+          const sortedGyms = sortGymsByStatus(nextGyms);
+          setSelectedGym((prevSelected) => {
+            if (!prevSelected?.id) return prevSelected;
+            return sortedGyms.find((gym) => Number(gym.id) === Number(prevSelected.id)) || prevSelected;
+          });
+          return sortedGyms;
+        });
+      } else {
+        await loadGyms();
+      }
       
       alert("Cập nhật phòng tập thành công!");
     } catch (error) {
       console.error("Lỗi khi cập nhật phòng tập:", error);
       alert(error.response?.data?.message || error.message || "Có lỗi xảy ra khi cập nhật phòng tập");
     }
-  }, [editGym, handleCloseEditModal]);
+  }, [editGym, handleCloseEditModal, loadGyms]);
 
   const getStatusBadge = (status) => {
     const normalizedStatus = status?.toLowerCase();
@@ -234,7 +268,9 @@ const OwnerGymsPage = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Quản lý Phòng tập của tôi</h1>
-          <p className="page-subtitle">Xem và quản lý thông tin các phòng tập</p>
+          <p className="page-subtitle">
+            {selectedGymName ? `Đang quản lý chi nhánh ${selectedGymName}` : "Xem và quản lý thông tin các phòng tập"}
+          </p>
         </div>
       </div>
 
@@ -242,18 +278,17 @@ const OwnerGymsPage = () => {
         {gyms.length === 0 ? (
           <div className="no-gyms">
             <div className="no-gyms-icon">🏋️</div>
-            <p>Bạn chưa có phòng tập nào</p>
+            <p>{selectedGymName ? `Không tìm thấy chi nhánh ${selectedGymName}` : "Bạn chưa có phòng tập nào"}</p>
           </div>
         ) : (
           visibleGyms.map((gym) => (
-            <div key={`${gym.id}-${refreshKey}-${gym.updatedAt || gym.createdAt}`} className="gym-card">
+            <div key={gym.id} className="gym-card">
               <div className="gym-image-container">
                 {getGymImage(gym) ? (
                   <img 
                     src={getGymImage(gym)} 
                     alt={gym.name} 
                     className="gym-image"
-                    key={`img-${gym.id}-${refreshKey}-${gym.updatedAt || Date.now()}`}
                   />
                 ) : (
                   <div className="gym-image-placeholder">

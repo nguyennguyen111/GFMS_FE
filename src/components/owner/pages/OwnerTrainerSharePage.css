@@ -375,7 +375,7 @@
   align-items: center;
   justify-content: center;
   z-index: 999;
-  padding: 20px;
+  padding: 14px;
   animation: fadeIn 0.2s ease;
 }
 
@@ -394,11 +394,11 @@
   position: relative;
   background: linear-gradient(145deg, rgba(25, 32, 48, 0.98) 0%, rgba(18, 24, 38, 0.98) 100%);
   border: 1px solid rgba(255, 177, 0, 0.22);
-  border-radius: 20px;
+  border-radius: 16px;
   box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 177, 0, 0.1);
-  max-width: 760px;
+  max-width: 640px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 86vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
 }
@@ -418,13 +418,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(255, 177, 0, 0.08) 0%, transparent 100%);
 }
 
 .ots-modal__header h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   background: linear-gradient(135deg, #ffe4aa 0%, #ffb100 52%, #ff8a00 100%);
   -webkit-background-clip: text;
@@ -437,17 +437,17 @@
 .ots-modal__close {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 26px;
+  font-size: 22px;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   line-height: 1;
   padding: 0;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.2s ease;
   font-weight: 300;
 }
@@ -461,18 +461,18 @@
 
 /* Form */
 .ots-form {
-  padding: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .ots-field {
   margin-bottom: 0;
-  padding: 14px 16px;
+  padding: 10px 12px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -484,8 +484,8 @@
 
 .ots-field__label {
   display: block;
-  margin-bottom: 10px;
-  font-size: 11px;
+  margin-bottom: 7px;
+  font-size: 10px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.82);
   text-transform: uppercase;
@@ -498,9 +498,9 @@
 }
 
 .ots-field__hint {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.62);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   line-height: 1.4;
 }
 
@@ -512,12 +512,12 @@
 .ots-select,
 .ots-textarea {
   width: 100%;
-  padding: 14px 16px;
+  padding: 10px 12px;
   background: rgba(6, 12, 24, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
   font-family: inherit;
   transition: all 0.2s ease;
   outline: none;
@@ -532,9 +532,9 @@
   color-scheme: dark;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 38px;
+  background-position: right 10px center;
+  background-size: 14px;
+  padding-right: 32px;
 }
 
 .ots-select option {
@@ -605,7 +605,7 @@
 
 .ots-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 76px;
   line-height: 1.5;
 }
 
@@ -774,20 +774,20 @@
 .ots-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 10px;
   align-items: start;
 }
 
 .ots-form__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 20px 24px;
-  margin: 0 -24px -24px;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  margin: 0 -16px -16px;
   background: rgba(0, 0, 0, 0.25);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 16px 16px;
 }
 
 /* Responsive */
@@ -854,7 +854,7 @@
 
 /* Trainer Schedule Display */
 .ots-schedule-info {
-  padding: 12px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -863,16 +863,16 @@
 
 /* Trainer Schedule in Modal */
 .ots-trainer-schedule {
-  margin-top: 20px;
-  padding: 16px;
+  margin-top: 14px;
+  padding: 12px;
   background: rgba(30, 41, 59, 0.4);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
 }
 
 .ots-trainer-schedule h4 {
-  margin: 0 0 16px 0;
-  font-size: 15px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.95);
   display: flex;
@@ -883,8 +883,8 @@
 .ots-schedule-days {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 400px;
+  gap: 10px;
+  max-height: 280px;
   overflow-y: auto;
   padding-right: 8px;
 }
@@ -892,8 +892,8 @@
 .ots-schedule-day {
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.15);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 10px;
   transition: all 0.2s ease;
 }
 
@@ -906,8 +906,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
 }
 
@@ -1153,19 +1153,187 @@
   letter-spacing: 0.5px;
 }
 
-/* === View Controls === */
-.ots-view-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
+.ots-availability-panel {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 177, 0, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
 }
 
-.ots-view-mode-toggle {
+.ots-availability-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.ots-availability-panel__title {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff3cf;
+}
+
+.ots-availability-panel__subtitle {
+  margin: 0;
+  color: rgba(238, 242, 255, 0.62);
+  font-size: 13px;
+}
+
+.ots-availability-panel__filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ots-availability-panel__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: rgba(238, 242, 255, 0.7);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.ots-availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.ots-availability-card {
+  padding: 16px;
+  background: rgba(5, 10, 18, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+}
+
+.ots-availability-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ots-availability-card__name {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.ots-availability-card__meta {
+  color: rgba(238, 242, 255, 0.62);
+  font-size: 12px;
+}
+
+.ots-availability-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.ots-availability-badge.is-free {
+  color: #00e3a6;
+  background: rgba(0, 227, 166, 0.12);
+  border-color: rgba(0, 227, 166, 0.22);
+}
+
+.ots-availability-badge.is-busy {
+  color: #ff8b8b;
+  background: rgba(255, 80, 80, 0.12);
+  border-color: rgba(255, 80, 80, 0.22);
+}
+
+.ots-availability-badge.is-neutral {
+  color: #d8dee9;
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.ots-availability-section {
+  margin-top: 14px;
+}
+
+.ots-availability-section__label {
+  margin-bottom: 8px;
+  color: rgba(238, 242, 255, 0.78);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ots-slot-list {
   display: flex;
   gap: 8px;
-  background: rgba(30, 41, 59, 0.3);
-  padding: 4px;
-  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.ots-slot-list--stacked {
+  flex-direction: column;
+}
+
+.ots-slot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.ots-slot-pill--outline {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+.ots-slot-pill--free {
+  color: #0bffd0;
+  background: rgba(0, 227, 166, 0.12);
+  border: 1px solid rgba(0, 227, 166, 0.2);
+}
+
+.ots-slot-pill--busy {
+  justify-content: space-between;
+  color: #ffd7d7;
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 80, 80, 0.18);
+}
+
+.ots-slot-pill--interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ots-slot-pill--interactive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(11, 255, 208, 0.45);
+  box-shadow: 0 8px 20px rgba(11, 255, 208, 0.12);
+}
+
+.ots-availability-muted {
+  color: rgba(238, 242, 255, 0.5);
+  font-size: 12px;
+}
+
+.ots-empty--compact {
+  padding: 24px 12px;
 }
 
 /* === Advanced Filters === */

@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./OwnerQuotationsPage.css";
 import { ownerGetQuotations, ownerGetQuotationDetail } from "../../../services/ownerPurchaseService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => {
   const map = {
@@ -16,6 +19,9 @@ const statusBadge = (status) => {
 const formatCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
 export default function OwnerQuotationsPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const [searchParams] = useSearchParams();
+  const openedQuotationRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [quotations, setQuotations] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -26,7 +32,14 @@ export default function OwnerQuotationsPage() {
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchQuotations = async () => {
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setAppliedFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPage(1);
+  }, [selectedGymId]);
+
+  const fetchQuotations = useCallback(async () => {
     setLoading(true);
     try {
       const res = await ownerGetQuotations({
@@ -34,6 +47,7 @@ export default function OwnerQuotationsPage() {
         limit: 10,
         q: appliedFilters.q || undefined,
         status: appliedFilters.status || undefined,
+        gymId: selectedGymId ? String(selectedGymId) : appliedFilters.gymId || undefined,
       });
       setQuotations(res?.data?.data ?? []);
       setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
@@ -42,9 +56,9 @@ export default function OwnerQuotationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appliedFilters, page]);
 
-  const loadGyms = async () => {
+  const loadGyms = useCallback(async () => {
     try {
       const response = await ownerGetMyGyms();
       const list = response?.data?.data ?? response?.data ?? [];
@@ -52,9 +66,9 @@ export default function OwnerQuotationsPage() {
     } catch (e) {
       setGyms([]);
     }
-  };
+  }, []);
 
-  const fetchDetail = async (quotationId) => {
+  const fetchDetail = useCallback(async (quotationId) => {
     try {
       const res = await ownerGetQuotationDetail(quotationId);
       setDetail(res?.data?.data);
@@ -62,16 +76,33 @@ export default function OwnerQuotationsPage() {
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
-
-  useEffect(() => {
-    loadGyms();
   }, []);
 
   useEffect(() => {
+    loadGyms();
+  }, [loadGyms]);
+
+  useEffect(() => {
     fetchQuotations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, appliedFilters]);
+  }, [fetchQuotations]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchQuotations();
+      if (detail?.id) {
+        await fetchDetail(detail.id);
+      }
+    },
+    events: ["notification:new"],
+    notificationTypes: ["quotation"],
+  });
+
+  useEffect(() => {
+    const quotationId = searchParams.get("quotationId");
+    if (!quotationId || openedQuotationRef.current === quotationId) return;
+    openedQuotationRef.current = quotationId;
+    fetchDetail(quotationId);
+  }, [fetchDetail, searchParams]);
 
   const filteredQuotations = useMemo(() => {
     if (!appliedFilters.gymId) return quotations;
@@ -93,7 +124,7 @@ export default function OwnerQuotationsPage() {
       <div className="oq-head">
         <div>
           <h2>Báo giá</h2>
-          <p>Theo dõi báo giá do admin chốt từ yêu cầu mua sắm của owner</p>
+          <p>Theo dõi báo giá do admin chốt từ yêu cầu mua sắm của owner tại {selectedGymName || "các chi nhánh"}</p>
         </div>
       </div>
 
@@ -125,8 +156,9 @@ export default function OwnerQuotationsPage() {
               className="oq-status-select"
               value={filters.gymId}
               onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
+              disabled={Boolean(selectedGymId)}
             >
-              <option value="">Tất cả phòng gym</option>
+              <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng gym"}</option>
               {gyms.map((gym) => (
                 <option key={gym.id} value={gym.id}>
                   {gym.name}

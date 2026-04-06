@@ -1,20 +1,121 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 // Import Services
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import ownerBookingService from "../../../services/ownerBookingService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import { approveRequest, rejectRequest, getRequests } from "../../../services/ownerRequestService";
+import { specializationToVietnamese } from "../../../utils/specializationI18n";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 // Import CSS
 import "./OwnerBookingsPage.css";
 import "./OwnerRequestApprovalPage.css";
 
 const OwnerBookingsPage = () => {
-  const [activeTab, setActiveTab] = useState("management");
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const REQUEST_TYPE_LABELS = {
+    LEAVE: "Nghỉ phép",
+    SHIFT_CHANGE: "Đổi ca",
+    TRANSFER_BRANCH: "Chuyển chi nhánh",
+    OVERTIME: "Tăng ca",
+    BECOME_TRAINER: "Đăng ký trở thành huấn luyện viên",
+  };
+
+  const SPECIALIZATION_OPTIONS = [
+    "Yoga",
+    "Pilates",
+    "HIIT",
+    "CrossFit",
+    "Thể hình",
+    "Tăng sức mạnh",
+    "Tập chức năng",
+    "Giảm mỡ",
+    "Huấn luyện dinh dưỡng",
+    "Phục hồi chức năng",
+    "Quyền anh",
+    "Tập cardio",
+    "Chạy bộ",
+    "Đạp xe",
+  ];
+
+  const parseSpecializationSelections = (input) => {
+    if (Array.isArray(input)) return input.filter(Boolean);
+    return String(input || "")
+      .split(/[\n,;|]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
+  const normalizeSpecializations = (input) => {
+    const tokens = parseSpecializationSelections(input);
+
+    if (!tokens.length) return { ok: false, message: "Vui lòng nhập ít nhất 1 chuyên môn" };
+    if (tokens.length > 6) return { ok: false, message: "Tối đa 6 chuyên môn" };
+
+    const invalid = tokens.find(
+      (token) => token.length < 2 || token.length > 60 || /[^A-Za-z0-9\u00C0-\u1EF9\s+&/()-]/.test(token)
+    );
+    if (invalid) return { ok: false, message: `Chuyên môn không hợp lệ: ${invalid}` };
+
+    const unique = [...new Map(tokens.map((v) => [v.toLowerCase(), v])).values()];
+    return { ok: true, value: specializationToVietnamese(unique.join(", ")) };
+  };
+
+  const normalizeCertificateLinks = (input) => {
+    const raw = Array.isArray(input)
+      ? input
+      : String(input || "")
+          .split(/[\n,;]+/)
+          .map((v) => v.trim())
+          .filter(Boolean);
+
+    const unique = [...new Set(raw)];
+    if (unique.length > 10) return { ok: false, message: "Tối đa 10 link chứng chỉ" };
+
+    for (const link of unique) {
+      try {
+        const u = new URL(link);
+        if (!["http:", "https:"].includes(u.protocol)) {
+          return { ok: false, message: `Link không hợp lệ: ${link}` };
+        }
+      } catch (_e) {
+        return { ok: false, message: `Link không hợp lệ: ${link}` };
+      }
+    }
+
+    return { ok: true, value: unique };
+  };
+
+  const getTrainerGymId = (trainer) => trainer?.gymId || trainer?.Gym?.id || null;
+
+  const getRequestGymIds = (request) => {
+    const candidateIds = [
+      request?.gymId,
+      request?.Gym?.id,
+      request?.gym?.id,
+      request?.requestApplication?.gymId,
+      request?.requestData?.gymId,
+      request?.requestData?.application?.gymId,
+      request?.requestData?.fromGymId,
+      request?.requestData?.toGymId,
+      request?.requestData?.targetGymId,
+    ];
+
+    return [...new Set(
+      candidateIds
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0)
+    )];
+  };
+
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "approval" ? "approval" : "management");
 
   // --- PT Management State (Giữ nguyên từ file 1) ---
   const [trainers, setTrainers] = useState([]);
-  const [filters, setFilters] = useState({ q: "", gymId: "" });
+  const [filters, setFilters] = useState({ q: "", gymId: selectedGymId ? String(selectedGymId) : "" });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [gyms, setGyms] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -23,11 +124,14 @@ const OwnerBookingsPage = () => {
   const [availableUsers, setAvailableUsers] = useState([]);
   const [selectedTrainer, setSelectedTrainer] = useState(null);
   const [trainerDetail, setTrainerDetail] = useState(null);
+  const [highlightTrainerId, setHighlightTrainerId] = useState(null);
   const [newTrainer, setNewTrainer] = useState({
     targetUserId: "",
-    gymId: "",
-    specialization: "",
+    gymId: selectedGymId ? String(selectedGymId) : "",
+    specializationSelections: [],
     certification: "",
+    certificationLinksText: "",
+    certificateFiles: [],
     hourlyRate: "",
     availableHours: {},
   });
@@ -35,6 +139,52 @@ const OwnerBookingsPage = () => {
   // --- Approval State (Giữ nguyên từ file 2) ---
   const [requests, setRequests] = useState([]);
   const [loadingReq, setLoadingReq] = useState(true);
+  const [requestPagination, setRequestPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [showRequestDetailModal, setShowRequestDetailModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const latestRequestTotalRef = useRef(0);
+
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setNewTrainer((prev) => ({ ...prev, gymId: scopedGymId || prev.gymId }));
+  }, [selectedGymId]);
+
+  useEffect(() => {
+    if (activeTab !== "management") return;
+    loadTrainers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedGymId]);
+
+  const getRequestTypeLabel = (requestType) => {
+    const key = String(requestType || "").trim().toUpperCase();
+    return REQUEST_TYPE_LABELS[key] || String(requestType || "Không xác định");
+  };
+
+  const formatRequestDataValue = (value) => {
+    if (value === null || value === undefined || value === "") return "N/A";
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "N/A";
+      return value
+        .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
+        .join(" | ");
+    }
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch (_e) {
+        return "[Object]";
+      }
+    }
+    return String(value);
+  };
+
+  const getRequestDataEntries = (requestData) => {
+    if (!requestData || typeof requestData !== "object") return [];
+    return Object.entries(requestData)
+      .filter(([key]) => key !== "application")
+      .map(([key, value]) => ({ key, value: formatRequestDataValue(value) }));
+  };
 
   // --- Effect & Logic PT Management ---
   useEffect(() => {
@@ -42,6 +192,12 @@ const OwnerBookingsPage = () => {
     loadTrainers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!highlightTrainerId) return undefined;
+    const timer = setTimeout(() => setHighlightTrainerId(null), 3200);
+    return () => clearTimeout(timer);
+  }, [highlightTrainerId]);
 
   const loadGyms = async () => {
     try {
@@ -55,9 +211,14 @@ const OwnerBookingsPage = () => {
 
   const loadTrainers = async (page = 1) => {
     try {
-      const params = { ...filters, page, limit: pagination.limit };
+      const activeGymId = selectedGymId ? String(selectedGymId) : filters.gymId || undefined;
+      const params = { ...filters, gymId: activeGymId, page, limit: pagination.limit };
       const response = await ownerTrainerService.getMyTrainers(params);
-      setTrainers(response.data || []);
+      const nextRows = Array.isArray(response.data) ? response.data : [];
+      const filteredRows = activeGymId
+        ? nextRows.filter((trainer) => String(getTrainerGymId(trainer) || "") === String(activeGymId))
+        : nextRows;
+      setTrainers(filteredRows);
       setPagination(response.pagination || { page: 1, limit: 10, total: 0 });
     } catch (error) {
       console.error("Lỗi khi load trainers:", error);
@@ -85,24 +246,92 @@ const OwnerBookingsPage = () => {
   const handleCloseCreateModal = () => {
     setShowCreateModal(false);
     setNewTrainer({
-      targetUserId: "", gymId: "", specialization: "",
-      certification: "", hourlyRate: "", availableHours: {},
+      targetUserId: "", gymId: selectedGymId ? String(selectedGymId) : "", specializationSelections: [],
+      certification: "", certificationLinksText: "", certificateFiles: [], hourlyRate: "", availableHours: {},
+    });
+  };
+
+  const toggleNewTrainerSpecialization = (option) => {
+    setNewTrainer((prev) => {
+      const selected = Array.isArray(prev.specializationSelections) ? prev.specializationSelections : [];
+      const exists = selected.includes(option);
+      return {
+        ...prev,
+        specializationSelections: exists
+          ? selected.filter((item) => item !== option)
+          : [...selected, option],
+      };
+    });
+  };
+
+  const toggleSelectedTrainerSpecialization = (option) => {
+    setSelectedTrainer((prev) => {
+      if (!prev) return prev;
+      const selected = Array.isArray(prev.specializationSelections) ? prev.specializationSelections : [];
+      const exists = selected.includes(option);
+      return {
+        ...prev,
+        specializationSelections: exists
+          ? selected.filter((item) => item !== option)
+          : [...selected, option],
+      };
     });
   };
 
   const handleCreateTrainer = async () => {
     try {
-      await ownerTrainerService.createTrainer(newTrainer);
+      const spec = normalizeSpecializations(newTrainer.specializationSelections);
+      if (!spec.ok) {
+        alert(spec.message);
+        return;
+      }
+
+      const certLinks = normalizeCertificateLinks(newTrainer.certificationLinksText);
+      if (!certLinks.ok) {
+        alert(certLinks.message);
+        return;
+      }
+
+      const response = await ownerTrainerService.createTrainer({
+        targetUserId: newTrainer.targetUserId,
+        gymId: newTrainer.gymId,
+        specialization: spec.value,
+        certification: newTrainer.certification,
+        certificationLinks: certLinks.value,
+        hourlyRate: newTrainer.hourlyRate,
+        availableHours: newTrainer.availableHours,
+      });
+
+      const createdTrainerId = response?.data?.id;
+      if (createdTrainerId && Array.isArray(newTrainer.certificateFiles) && newTrainer.certificateFiles.length > 0) {
+        await ownerTrainerService.uploadTrainerCertificates(createdTrainerId, newTrainer.certificateFiles);
+      }
+
+      if (createdTrainerId) {
+        setHighlightTrainerId(createdTrainerId);
+      }
+
       alert("Thêm huấn luyện viên thành công!");
       handleCloseCreateModal();
-      loadTrainers();
+      loadTrainers(1);
     } catch (error) {
       alert(error.response?.data?.message || "Lỗi khi thêm huấn luyện viên");
     }
   };
 
   const handleOpenEditModal = (trainer) => {
-    setSelectedTrainer(trainer);
+    const initialSelections = parseSpecializationSelections(
+      specializationToVietnamese(trainer?.specialization || "")
+    );
+
+    setSelectedTrainer({
+      ...trainer,
+      specializationSelections: initialSelections,
+      certificationLinksText: Array.isArray(trainer?.socialLinks?.certificateLinks)
+        ? trainer.socialLinks.certificateLinks.join("\n")
+        : "",
+      certificateFiles: [],
+    });
     setShowEditModal(true);
   };
 
@@ -113,12 +342,30 @@ const OwnerBookingsPage = () => {
 
   const handleUpdateTrainer = async () => {
     try {
+      const spec = normalizeSpecializations(selectedTrainer.specializationSelections);
+      if (!spec.ok) {
+        alert(spec.message);
+        return;
+      }
+
+      const certLinks = normalizeCertificateLinks(selectedTrainer.certificationLinksText);
+      if (!certLinks.ok) {
+        alert(certLinks.message);
+        return;
+      }
+
       await ownerTrainerService.updateTrainer(selectedTrainer.id, {
-        specialization: selectedTrainer.specialization,
+        specialization: spec.value,
         certification: selectedTrainer.certification,
+        certificationLinks: certLinks.value,
         hourlyRate: selectedTrainer.hourlyRate,
         availableHours: selectedTrainer.availableHours,
       });
+
+      if (Array.isArray(selectedTrainer.certificateFiles) && selectedTrainer.certificateFiles.length > 0) {
+        await ownerTrainerService.uploadTrainerCertificates(selectedTrainer.id, selectedTrainer.certificateFiles);
+      }
+
       alert("Cập nhật huấn luyện viên thành công!");
       handleCloseEditModal();
       loadTrainers();
@@ -178,36 +425,92 @@ const OwnerBookingsPage = () => {
   };
 
   // --- Approval Logic (Giữ nguyên từ file 2) ---
-  const fetchRequests = async () => {
-    setLoadingReq(true);
+  const fetchRequests = useCallback(async (page = 1, options = {}) => {
+    const { silent = false, autoRefresh = false } = options;
+    if (!silent) setLoadingReq(true);
     try {
-      const response = await getRequests();
-      setRequests(response);
+      const response = await getRequests({
+        page,
+        limit: requestPagination.limit,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
+      });
+      const nextData = Array.isArray(response.data) ? response.data : [];
+      const filteredData = selectedGymId
+        ? nextData.filter((request) => getRequestGymIds(request).includes(Number(selectedGymId)))
+        : nextData;
+      const nextPagination = response.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 };
+      const hasNewIncomingRequest =
+        latestRequestTotalRef.current > 0 && Number(nextPagination.total) > Number(latestRequestTotalRef.current);
+
+      latestRequestTotalRef.current = Number(nextPagination.total) || 0;
+
+      if (autoRefresh && hasNewIncomingRequest && page !== 1) {
+        await fetchRequests(1, { silent: true, autoRefresh: false });
+        return;
+      }
+
+      setRequests(filteredData);
+      setRequestPagination(nextPagination);
     } catch (error) {
       console.error("Error fetching requests:", error);
+      setRequests([]);
     } finally {
-      setLoadingReq(false);
+      if (!silent) setLoadingReq(false);
     }
-  };
+  }, [requestPagination.limit, selectedGymId]);
 
   useEffect(() => {
     if (activeTab === "approval") {
-      fetchRequests();
+      fetchRequests(1);
     }
-  }, [activeTab]);
+  }, [activeTab, fetchRequests]);
+
+  useEffect(() => {
+    const nextTab = searchParams.get("tab");
+    if (nextTab === "approval" && activeTab !== "approval") {
+      setActiveTab("approval");
+    }
+  }, [activeTab, searchParams]);
+
+  useOwnerRealtimeRefresh({
+    enabled: activeTab === "approval",
+    onRefresh: async () => {
+      await fetchRequests(requestPagination.page || 1, { silent: true, autoRefresh: true });
+    },
+    events: ["notification:new", "request:changed"],
+    notificationTypes: ["trainer_request"],
+  });
 
   const handleApprove = async (requestId) => {
     try {
       await approveRequest(requestId, "Approved by Gym Owner");
-      setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "APPROVED" } : r));
+      await fetchRequests(requestPagination.page);
     } catch (error) { console.error(error); }
   };
 
   const handleReject = async (requestId) => {
     try {
-      await rejectRequest(requestId, "Rejected by Gym Owner");
-      setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "REJECTED" } : r));
+      const rejectReason = window.prompt("Nhập lý do từ chối đơn này:", "");
+      if (rejectReason === null) return;
+      const note = String(rejectReason || "").trim();
+      if (!note) {
+        alert("Vui lòng nhập lý do từ chối.");
+        return;
+      }
+
+      await rejectRequest(requestId, note);
+      await fetchRequests(requestPagination.page);
     } catch (error) { console.error(error); }
+  };
+
+  const handleOpenRequestDetail = (request) => {
+    setSelectedRequest(request);
+    setShowRequestDetailModal(true);
+  };
+
+  const handleCloseRequestDetail = () => {
+    setShowRequestDetailModal(false);
+    setSelectedRequest(null);
   };
 
   return (
@@ -231,7 +534,10 @@ const OwnerBookingsPage = () => {
       {activeTab === "management" ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h1 className="page-title">Quản lý huấn luyện viên</h1>
+            <div>
+              <h1 className="page-title">Quản lý huấn luyện viên {selectedGymName ? `- ${selectedGymName}` : ""}</h1>
+              {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
+            </div>
             <button onClick={handleOpenCreateModal} className="search-button" style={{ marginBottom: 0 }}>
               + Thêm huấn luyện viên mới
             </button>
@@ -249,8 +555,9 @@ const OwnerBookingsPage = () => {
               value={filters.gymId}
               onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
               className="filter-select"
+              disabled={Boolean(selectedGymId)}
             >
-              <option value="">Tất cả phòng tập</option>
+              <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng tập"}</option>
               {gyms.map((gym) => (
                 <option key={gym.id} value={gym.id}>{gym.name}</option>
               ))}
@@ -262,30 +569,34 @@ const OwnerBookingsPage = () => {
             <table className="bookings-table">
               <thead>
                 <tr>
-                  <th>Tên huấn luyện viên</th><th>Email</th><th>Điện thoại</th><th>Phòng tập</th><th>Chuyên môn</th><th>Giá/giờ</th><th>Hành động</th>
+                  <th>Tên huấn luyện viên</th><th>Email</th><th>Điện thoại</th><th>Phòng tập</th><th>Chuyên môn</th><th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
                 {trainers.length > 0 ? (
                   trainers.map((trainer) => (
-                    <tr key={trainer.id}>
+                    <tr
+                      key={trainer.id}
+                      className={highlightTrainerId === trainer.id ? "new-trainer-row" : ""}
+                    >
                       <td>{trainer.User?.username || "N/A"}</td>
                       <td>{trainer.User?.email || "N/A"}</td>
                       <td>{trainer.User?.phone || "N/A"}</td>
                       <td>{trainer.Gym?.name || "N/A"}</td>
-                      <td>{trainer.specialization || "N/A"}</td>
-                      <td>{trainer.hourlyRate ? `${Number(trainer.hourlyRate).toLocaleString("vi-VN")}đ` : "N/A"}</td>
+                      <td>{specializationToVietnamese(trainer.specialization || "") || "N/A"}</td>
                       <td>
-                        <button onClick={() => handleViewDetail(trainer)} className="btn-detail">Chi tiết</button>
-                        <button onClick={() => handleOpenEditModal(trainer)} className="btn-edit">Sửa</button>
-                        <button onClick={() => handleToggleStatus(trainer)} className="btn-deactivate">
-                          {trainer.isActive !== false ? "Ngừng hoạt động" : "Kích hoạt"}
-                        </button>
+                        <div className="trainer-actions">
+                          <button onClick={() => handleViewDetail(trainer)} className="btn-detail">Chi tiết</button>
+                          <button onClick={() => handleOpenEditModal(trainer)} className="btn-edit">Sửa</button>
+                          <button onClick={() => handleToggleStatus(trainer)} className="btn-deactivate">
+                            {trainer.isActive !== false ? "Ngừng hoạt động" : "Kích hoạt"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
-                  <tr><td colSpan="7" className="no-bookings">Không có huấn luyện viên nào</td></tr>
+                  <tr><td colSpan="6" className="no-bookings">Không có huấn luyện viên nào</td></tr>
                 )}
               </tbody>
             </table>
@@ -302,7 +613,10 @@ const OwnerBookingsPage = () => {
         <div className="owner-request-approval" style={{ padding: 0 }}>
           <div className="od2-main">
             <div className="od2-topbar">
-              <h1 className="od2-h1">Duyệt yêu cầu Huấn luyện viên</h1>
+              <div>
+                <h1 className="od2-h1">Duyệt yêu cầu Huấn luyện viên {selectedGymName ? `- ${selectedGymName}` : ""}</h1>
+                {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
+              </div>
             </div>
             <div className="od2-content">
               {loadingReq ? (
@@ -314,16 +628,25 @@ const OwnerBookingsPage = () => {
                   <table className="approval-table">
                     <thead>
                       <tr>
-                        <th>Người yêu cầu</th><th>Loại yêu cầu</th><th>Người duyệt</th><th>Lý do</th><th>Trạng thái</th><th>Hành động</th>
+                        <th>Người yêu cầu</th><th>Loại yêu cầu</th><th>Người duyệt</th><th>Lý do / Nội dung</th><th>Trạng thái</th><th>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
                       {requests.map((request) => (
                         <tr key={request.id}>
                           <td>{request.requesterUsername}</td>
-                          <td><span className="type-badge">{request.requestType.toLowerCase()}</span></td>
+                          <td>
+                            <button type="button" className="type-badge type-badge-btn" disabled>
+                              {getRequestTypeLabel(request.requestType)}
+                            </button>
+                          </td>
                           <td>{request.approverUsername || '—'}</td>
-                          <td className="reason-cell">{request.reason || 'N/A'}</td>
+                          <td className="reason-cell">
+                            <div className="request-content-wrap">
+                              <div><b>Lý do:</b> {request.reason || "N/A"}</div>
+                              <div><b>Nội dung:</b> {request.requestContent || "N/A"}</div>
+                            </div>
+                          </td>
                           <td>
                             {request.status === 'PENDING' && <span className="status-pending">Chờ duyệt</span>}
                             {request.status === 'APPROVED' && <span className="status-approved">Đã duyệt</span>}
@@ -331,6 +654,7 @@ const OwnerBookingsPage = () => {
                           </td>
                           <td>
                             <div className="action-buttons">
+                              <button className="btn-detail" onClick={() => handleOpenRequestDetail(request)}>Chi tiết đơn</button>
                               {request.status === 'PENDING' ? (
                                 <>
                                   <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
@@ -345,6 +669,28 @@ const OwnerBookingsPage = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {!loadingReq && requestPagination.totalPages > 1 && (
+                <div className="pagination-controls">
+                  <button
+                    disabled={requestPagination.page <= 1}
+                    onClick={() => fetchRequests(requestPagination.page - 1)}
+                    className="pagination-btn"
+                  >
+                    Trước
+                  </button>
+                  <span className="pagination-info">
+                    Trang {requestPagination.page} / {requestPagination.totalPages}
+                  </span>
+                  <button
+                    disabled={requestPagination.page >= requestPagination.totalPages}
+                    onClick={() => fetchRequests(requestPagination.page + 1)}
+                    className="pagination-btn"
+                  >
+                    Sau
+                  </button>
                 </div>
               )}
             </div>
@@ -371,18 +717,57 @@ const OwnerBookingsPage = () => {
                 </div>
                 <div className="form-group">
                   <label>Chọn phòng tập *</label>
-                  <select value={newTrainer.gymId} onChange={(e) => setNewTrainer({ ...newTrainer, gymId: e.target.value })} required className="form-select">
-                    <option value="">-- Chọn phòng tập --</option>
+                  <select value={newTrainer.gymId} onChange={(e) => setNewTrainer({ ...newTrainer, gymId: e.target.value })} required className="form-select" disabled={Boolean(selectedGymId)}>
+                    <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "-- Chọn phòng tập --"}</option>
                     {gyms.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Chuyên môn</label>
-                  <input type="text" className="form-input" value={newTrainer.specialization} onChange={(e) => setNewTrainer({ ...newTrainer, specialization: e.target.value })} placeholder="VD: Yoga, Phòng tập..."/>
+                  <div className="specialization-picker">
+                    {SPECIALIZATION_OPTIONS.map((option) => {
+                      const checked = Array.isArray(newTrainer.specializationSelections)
+                        ? newTrainer.specializationSelections.includes(option)
+                        : false;
+                      return (
+                        <label key={option} className={`spec-option ${checked ? "is-selected" : ""}`}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleNewTrainerSpecialization(option)}
+                          />
+                          <span>{option}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <small style={{ color: "#9ca3af" }}>Chọn 1 hoặc nhiều chuyên môn từ danh sách.</small>
                 </div>
                 <div className="form-group">
                   <label>Chứng chỉ</label>
                   <input type="text" className="form-input" value={newTrainer.certification} onChange={(e) => setNewTrainer({ ...newTrainer, certification: e.target.value })} placeholder="VD: NASM..."/>
+                </div>
+                <div className="form-group">
+                  <label>Link chứng chỉ (mỗi dòng 1 link)</label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    value={newTrainer.certificationLinksText}
+                    onChange={(e) => setNewTrainer({ ...newTrainer, certificationLinksText: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Ảnh chứng chỉ</label>
+                  <input
+                    type="file"
+                    className="form-input"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) =>
+                      setNewTrainer({ ...newTrainer, certificateFiles: Array.from(e.target.files || []) })
+                    }
+                  />
                 </div>
                 <div className="form-group">
                   <label>Giá/giờ (đ)</label>
@@ -419,15 +804,24 @@ const OwnerBookingsPage = () => {
 
               <div className="edit-field">
                 <p className="edit-field-label">Chuyên môn</p>
-                <input
-                  className="edit-field-input"
-                  type="text"
-                  value={selectedTrainer?.specialization || ""}
-                  onChange={(e) =>
-                    setSelectedTrainer((prev) => ({ ...prev, specialization: e.target.value }))
-                  }
-                  placeholder="VD: Weight Loss, Strength Training"
-                />
+                <div className="specialization-picker">
+                  {SPECIALIZATION_OPTIONS.map((option) => {
+                    const checked = Array.isArray(selectedTrainer?.specializationSelections)
+                      ? selectedTrainer.specializationSelections.includes(option)
+                      : false;
+                    return (
+                      <label key={option} className={`spec-option ${checked ? "is-selected" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelectedTrainerSpecialization(option)}
+                        />
+                        <span>{option}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <small style={{ color: "#9ca3af" }}>Chọn 1 hoặc nhiều chuyên môn từ danh sách.</small>
               </div>
 
               <div className="edit-field">
@@ -440,6 +834,32 @@ const OwnerBookingsPage = () => {
                     setSelectedTrainer((prev) => ({ ...prev, certification: e.target.value }))
                   }
                   placeholder="VD: ACE, NASM"
+                />
+              </div>
+
+              <div className="edit-field">
+                <p className="edit-field-label">Link chứng chỉ (mỗi dòng 1 link)</p>
+                <textarea
+                  className="edit-field-input"
+                  rows={3}
+                  value={selectedTrainer?.certificationLinksText || ""}
+                  onChange={(e) =>
+                    setSelectedTrainer((prev) => ({ ...prev, certificationLinksText: e.target.value }))
+                  }
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="edit-field">
+                <p className="edit-field-label">Tải thêm ảnh chứng chỉ</p>
+                <input
+                  className="edit-field-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) =>
+                    setSelectedTrainer((prev) => ({ ...prev, certificateFiles: Array.from(e.target.files || []) }))
+                  }
                 />
               </div>
 
@@ -460,6 +880,106 @@ const OwnerBookingsPage = () => {
             <div className="modal-footer">
               <button type="button" className="btn-cancel" onClick={handleCloseEditModal}>Hủy</button>
               <button type="button" className="btn-submit" onClick={handleUpdateTrainer}>Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRequestDetailModal && selectedRequest && (
+        <div className="modal-overlay" onClick={handleCloseRequestDetail}>
+          <div className="modal-content request-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Chi tiết đơn: {getRequestTypeLabel(selectedRequest.requestType)}</h2>
+              <button className="modal-close" onClick={handleCloseRequestDetail}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="detail-section">
+                <h3 className="detail-section-title">Thông tin người gửi</h3>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Người yêu cầu:</span>
+                    <span className="detail-value">{selectedRequest.requesterUsername || "N/A"}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Loại yêu cầu:</span>
+                    <span className="detail-value">{getRequestTypeLabel(selectedRequest.requestType)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h3 className="detail-section-title">Nội dung đã gửi</h3>
+                <div className="request-content-wrap">
+                  <div><b>Lý do:</b> {selectedRequest.reason || "N/A"}</div>
+                  <div><b>Nội dung:</b> {selectedRequest.requestContent || "N/A"}</div>
+                </div>
+              </div>
+
+              {String(selectedRequest?.requestType || "").toUpperCase() === "BECOME_TRAINER" ? (
+                <div className="detail-section">
+                  <h3 className="detail-section-title">Thông tin ứng tuyển PT</h3>
+                  <div className="detail-item detail-item--block">
+                    <span className="detail-label">Phòng gym:</span>
+                    <span className="detail-value">
+                      {selectedRequest?.requestApplication?.gymName
+                        || (selectedRequest?.requestApplication?.gymId ? `Gym #${selectedRequest.requestApplication.gymId}` : "N/A")}
+                    </span>
+                  </div>
+                  <div className="detail-item detail-item--block">
+                    <span className="detail-label">Giá/giờ:</span>
+                    <span className="detail-value">
+                      {selectedRequest?.requestApplication?.hourlyRate
+                        ? `${selectedRequest.requestApplication.hourlyRate.toLocaleString("vi-VN")} đ`
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="detail-item detail-item--block">
+                    <span className="detail-label">Chuyên môn:</span>
+                    <span className="detail-value">
+                      {Array.isArray(selectedRequest?.requestApplication?.specializations)
+                        && selectedRequest.requestApplication.specializations.length > 0
+                        ? selectedRequest.requestApplication.specializations.join(", ")
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="detail-item detail-item--block">
+                    <span className="detail-label">Chứng chỉ:</span>
+                    <span className="detail-value">{selectedRequest?.requestApplication?.certification || "N/A"}</span>
+                  </div>
+                  <div className="detail-item detail-item--block">
+                    <span className="detail-label">Link chứng chỉ:</span>
+                    <span className="detail-value">
+                      {Array.isArray(selectedRequest?.requestApplication?.certificationLinks)
+                        && selectedRequest.requestApplication.certificationLinks.length > 0
+                        ? selectedRequest.requestApplication.certificationLinks.join(" | ")
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="detail-section">
+                  <h3 className="detail-section-title">Dữ liệu chi tiết của đơn</h3>
+                  {getRequestDataEntries(selectedRequest?.requestData).length === 0 ? (
+                    <div className="detail-item detail-item--block">
+                      <span className="detail-value">Không có dữ liệu bổ sung.</span>
+                    </div>
+                  ) : (
+                    <div className="request-data-grid">
+                      {getRequestDataEntries(selectedRequest?.requestData).map((entry) => (
+                        <div key={entry.key} className="detail-item detail-item--block">
+                          <span className="detail-label">{entry.key}:</span>
+                          <span className="detail-value">{entry.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn-cancel" onClick={handleCloseRequestDetail}>Đóng</button>
             </div>
           </div>
         </div>
@@ -497,11 +1017,31 @@ const OwnerBookingsPage = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Chuyên môn:</span>
-                    <span className="detail-value">{selectedTrainer?.specialization || "N/A"}</span>
+                    <span className="detail-value">{specializationToVietnamese(selectedTrainer?.specialization || "") || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Chứng chỉ:</span>
                     <span className="detail-value">{selectedTrainer?.certification || "N/A"}</span>
+                  </div>
+                  <div className="detail-item" style={{ gridColumn: "1 / -1" }}>
+                    <span className="detail-label">Link/ảnh chứng chỉ:</span>
+                    <div className="detail-value detail-cert-list" style={{ display: "flex", flexDirection: "column" }}>
+                      {(() => {
+                        const certs = Array.isArray(trainerDetail?.socialLinks?.certificates)
+                          ? trainerDetail.socialLinks.certificates
+                          : [];
+                        const links = Array.isArray(trainerDetail?.socialLinks?.certificateLinks)
+                          ? trainerDetail.socialLinks.certificateLinks
+                          : [];
+                        const merged = certs.length > 0 ? certs.map((c) => c.url).filter(Boolean) : links;
+                        if (!merged.length) return <span>N/A</span>;
+                        return merged.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer" className="detail-cert-link">
+                            {url}
+                          </a>
+                        ));
+                      })()}
+                    </div>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Giá/giờ:</span>

@@ -17,5 +17,5 @@ export const ownerApproveTransfer = (id) =>
 export const ownerRejectTransfer = (id, payload) =>
   axios.patch(`${API}/${id}/reject`, payload);
 
-export const ownerCompleteTransfer = (id) =>
-  axios.patch(`${API}/${id}/complete`);
+export const ownerCompleteTransfer = (id, payload) =>
+  axios.patch(`${API}/${id}/complete`, payload);

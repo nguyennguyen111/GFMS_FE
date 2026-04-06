@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import { ownerGetEquipments } from "../../../services/ownerEquipmentService";
 import {
@@ -10,6 +10,8 @@ import {
 } from "../../../services/ownerPurchaseService";
 import "../OwnerDashboard.css";
 import "./OwnerPurchaseRequestsPage.css";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const REASONS = [
   { value: "new_opening", label: "Mở mới / mở rộng" },
@@ -20,6 +22,7 @@ const REASONS = [
 ];
 
 export default function OwnerPurchaseRequestsPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -41,12 +44,19 @@ export default function OwnerPurchaseRequestsPage() {
   const [preview, setPreview] = useState(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
 
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setAppliedFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setGymId(scopedGymId);
+  }, [selectedGymId]);
+
   const reasonLabelMap = useMemo(
     () => REASONS.reduce((acc, item) => ({ ...acc, [item.value]: item.label }), {}),
     []
   );
 
-  const loadRefs = async () => {
+  const loadRefs = useCallback(async () => {
     try {
       const [gRes, eRes, sRes] = await Promise.all([
         ownerGetMyGyms(),
@@ -62,9 +72,9 @@ export default function OwnerPurchaseRequestsPage() {
     } catch (e) {
       setErr(e?.response?.data?.message || e.message);
     }
-  };
+  }, []);
 
-  const loadList = async (page = 1, overrideFilters = null) => {
+  const loadList = useCallback(async (page = 1, overrideFilters = null) => {
     setLoading(true);
     setErr("");
     try {
@@ -74,6 +84,7 @@ export default function OwnerPurchaseRequestsPage() {
         limit: pagination.limit,
         q: activeFilters.q || undefined,
         status: activeFilters.status || undefined,
+        gymId: selectedGymId ? String(selectedGymId) : activeFilters.gymId || undefined,
       });
       const data = res?.data?.data ?? res?.data ?? [];
       const list = Array.isArray(data) ? data : [];
@@ -118,13 +129,20 @@ export default function OwnerPurchaseRequestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appliedFilters, pagination.limit, selectedGymId]);
 
   useEffect(() => {
     loadRefs();
     loadList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadList, loadRefs]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadList(pagination.page || 1);
+    },
+    events: ["notification:new"],
+    notificationTypes: ["purchase_request", "quotation"],
+  });
 
   const filteredRows = useMemo(() => {
     if (!appliedFilters.gymId) return rows;
@@ -244,7 +262,7 @@ export default function OwnerPurchaseRequestsPage() {
         </button>
       </div>
       <p className="owner-purchase-subtitle">
-        Bắt đầu từ nhu cầu vận hành: chọn gym, thiết bị, số lượng, giá dự kiến, NCC và lý do. Hệ thống kiểm tra tồn kho / min stock
+        Bắt đầu từ nhu cầu vận hành tại {selectedGymName || "chi nhánh cần quản lý"}: chọn gym, thiết bị, số lượng, giá dự kiến, NCC và lý do. Hệ thống kiểm tra tồn kho / min stock
         (với lý do &quot;thiếu tồn&quot;). Admin tiếp nhận và tạo báo giá.
       </p>
 
@@ -270,7 +288,7 @@ export default function OwnerPurchaseRequestsPage() {
                 <div className="owner-purchase-grid owner-purchase-grid-2">
                   <label>
                     <div className="owner-purchase-label">Gym</div>
-                    <select className="od2-input" value={gymId} onChange={(e) => setGymId(e.target.value)} required>
+                    <select className="od2-input" value={gymId} onChange={(e) => setGymId(e.target.value)} required disabled={Boolean(selectedGymId)}>
                       <option value="">— Chọn —</option>
                       {gyms.map((g) => (
                         <option key={g.id} value={g.id}>
@@ -420,8 +438,9 @@ export default function OwnerPurchaseRequestsPage() {
           value={filters.gymId}
           onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
           className="owner-purchase-filter-select"
+          disabled={Boolean(selectedGymId)}
         >
-          <option value="">Tất cả phòng gym</option>
+          <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng gym"}</option>
           {gyms.map((gym) => (
             <option key={gym.id} value={gym.id}>
               {gym.name}
