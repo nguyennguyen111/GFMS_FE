@@ -183,6 +183,22 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
+.bookings-table tbody tr.new-trainer-row {
+  animation: trainerRowFlash 3s ease;
+}
+
+@keyframes trainerRowFlash {
+  0% {
+    background: rgba(34, 211, 238, 0.28);
+  }
+  40% {
+    background: rgba(34, 211, 238, 0.16);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
 .status-badge {
   display: inline-block;
   padding: 4px 8px;
@@ -219,12 +235,21 @@
 .btn-detail,
 .btn-deactivate {
   padding: 8px 12px !important;
+  min-height: 34px;
   border-radius: 12px !important;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   transition: all 100ms ease;
-  margin-right: 5px;
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+.trainer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .btn-edit {
@@ -270,6 +295,15 @@
   opacity: 0.5;
   cursor: not-allowed;
   color: #666 !important;
+}
+
+/* Force consistent action button border/style inside owner trainer table */
+.owner-bookings-page .bookings-table td .btn-edit,
+.owner-bookings-page .bookings-table td .btn-edit:hover,
+.owner-bookings-page .bookings-table td .btn-edit:focus {
+  border: 1px solid rgba(255, 176, 0, 0.34) !important;
+  background: rgba(255, 176, 0, 0.18) !important;
+  color: #eef2ff !important;
 }
 
 .pagination-controls {
@@ -473,6 +507,20 @@
   font-weight: 600;
 }
 
+.request-detail-modal {
+  width: min(860px, 94vw);
+}
+
+.detail-item--block {
+  margin-bottom: 10px;
+  align-items: flex-start;
+}
+
+.request-data-grid {
+  display: grid;
+  gap: 10px;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -589,6 +637,41 @@
   outline: none;
 }
 
+.specialization-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.spec-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  color: rgba(238, 242, 255, 0.9);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.spec-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spec-option.is-selected {
+  border-color: rgba(0, 186, 255, 0.35);
+  background: rgba(0, 186, 255, 0.12);
+}
+
+.spec-option input[type="checkbox"] {
+  accent-color: #00baff;
+}
+
 .form-select option {
   background: rgba(0, 0, 0, 0.9);
   color: #eef2ff;
@@ -647,6 +730,10 @@
     grid-template-columns: 1fr;
   }
 
+  .specialization-picker {
+    grid-template-columns: 1fr;
+  }
+
   .bookings-search-filters {
     flex-direction: column;
   }
@@ -655,6 +742,10 @@
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
+  }
+
+  .trainer-actions {
+    flex-wrap: wrap;
   }
 }
 
@@ -907,17 +998,20 @@
 
 /* Trainer Detail Modal */
 .trainer-detail-modal {
-  max-width: 800px;
+  max-width: 860px;
   max-height: 90vh;
   overflow-y: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(12, 20, 35, 0.98), rgba(10, 17, 30, 0.98));
 }
 
 .detail-section {
   margin-bottom: 24px;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  border-radius: 12px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(9, 18, 35, 0.85), rgba(8, 15, 30, 0.7));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
 }
 
 .detail-section-title {
@@ -930,13 +1024,17 @@
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
 }
 
 .detail-label {
@@ -948,9 +1046,37 @@
 }
 
 .detail-value {
-  font-size: 15px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.95);
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.detail-value.detail-cert-list {
+  gap: 8px;
+}
+
+.detail-cert-link {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  color: #93c5fd;
+  text-decoration: none;
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  background: rgba(147, 197, 253, 0.1);
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.detail-cert-link:hover {
+  background: rgba(147, 197, 253, 0.2);
+  border-color: rgba(147, 197, 253, 0.4);
 }
 
 .detail-value.status-active {
@@ -966,11 +1092,11 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .stat-card {
-  padding: 16px;
+  padding: 14px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 10px;
@@ -990,9 +1116,9 @@
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
-  color: #ffd27a;
+  color: #22d3ee;
   line-height: 1.2;
 }
 

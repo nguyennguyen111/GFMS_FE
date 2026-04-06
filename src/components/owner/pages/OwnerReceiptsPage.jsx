@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./OwnerReceiptsPage.css";
 import { ownerGetReceipts, ownerGetReceiptDetail } from "../../../services/ownerPurchaseService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => {
   const map = {
@@ -12,7 +15,10 @@ const statusBadge = (status) => {
 };
 
 export default function OwnerReceiptsPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const PAGE_SIZE = 10;
+  const [searchParams] = useSearchParams();
+  const openedReceiptRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [receipts, setReceipts] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -23,7 +29,7 @@ export default function OwnerReceiptsPage() {
   const [detail, setDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchReceipts = async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
+  const fetchReceipts = useCallback(async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
     setLoading(true);
     try {
       const params = {
@@ -31,17 +37,23 @@ export default function OwnerReceiptsPage() {
         limit: PAGE_SIZE,
         q: targetSearch || undefined,
         status: targetStatus !== "all" ? targetStatus : undefined,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
       };
 
       const res = await ownerGetReceipts(params);
-      setReceipts(res?.data?.data ?? []);
+      const data = res?.data?.data ?? [];
+      setReceipts(
+        selectedGymId
+          ? data.filter((receipt) => String(receipt?.gym?.id || receipt?.purchaseOrder?.gym?.id || receipt?.gymId || "") === String(selectedGymId))
+          : data
+      );
       setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, searchTerm, selectedGymId, statusFilter]);
 
   const applySearch = () => {
     const nextSearch = searchInput.trim();
@@ -64,26 +76,44 @@ export default function OwnerReceiptsPage() {
     setPage(1);
   };
 
-  const fetchDetail = async (receiptId) => {
+  const fetchDetail = useCallback(async (receiptId) => {
     try {
       const res = await ownerGetReceiptDetail(receiptId);
       setDetail(res?.data?.data);
+      setShowDetailModal(true);
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchReceipts();
-    // eslint-disable-next-line
-  }, [page, searchTerm, statusFilter]);
+  }, [fetchReceipts]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchReceipts(page, searchTerm, statusFilter);
+      if (detail?.id) {
+        await fetchDetail(detail.id);
+      }
+    },
+    events: ["notification:new"],
+    notificationTypes: ["receipt", "purchaseorder"],
+  });
+
+  useEffect(() => {
+    const receiptId = searchParams.get("receiptId");
+    if (!receiptId || openedReceiptRef.current === receiptId) return;
+    openedReceiptRef.current = receiptId;
+    fetchDetail(receiptId);
+  }, [fetchDetail, searchParams]);
 
   return (
     <div className="or-page">
       <div className="or-head">
         <div>
           <h2>Phiếu nhận hàng</h2>
-          <p>Theo dõi phiếu nhận hàng từ đơn mua</p>
+          <p>Theo dõi phiếu nhận hàng từ đơn mua {selectedGymName ? `của ${selectedGymName}` : ""}</p>
         </div>
       </div>
 
@@ -142,7 +172,6 @@ export default function OwnerReceiptsPage() {
                     key={receipt.id}
                     onClick={() => {
                       fetchDetail(receipt.id);
-                      setShowDetailModal(true);
                     }}
                   >
                     <td>{receipt.code || `#${receipt.id}`}</td>

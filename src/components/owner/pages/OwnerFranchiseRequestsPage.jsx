@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./OwnerFranchiseRequestsPage.css";
+import { useSearchParams } from "react-router-dom";
 import {
   ownerGetMyFranchiseRequests,
+  ownerGetFranchiseRequestDetail,
   ownerCreateFranchiseRequest,
   ownerUpdateFranchiseRequest,
   ownerDeleteFranchiseRequest,
 } from "../../../services/ownerFranchiseService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 
 const STATUS_LABELS = {
   pending: { label: "Chờ duyệt", color: "warning" },
@@ -42,6 +45,8 @@ const INITIAL_FORM = {
 };
 
 export default function OwnerFranchiseRequestsPage() {
+  const [searchParams] = useSearchParams();
+  const openedRequestRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -51,13 +56,16 @@ export default function OwnerFranchiseRequestsPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailRequest, setDetailRequest] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
 
   const [filters, setFilters] = useState({ q: "", status: "" });
   const [currentPage, setCurrentPage] = useState(1);
 
   // Load danh sách
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -71,18 +79,65 @@ export default function OwnerFranchiseRequestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters]);
 
   useEffect(() => {
     loadRequests();
-    // eslint-disable-next-line
-  }, [currentPage]);
+  }, [loadRequests, currentPage]);
+
+  const loadRequestDetail = useCallback(async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      setDetailLoading(true);
+      setError("");
+      const res = await ownerGetFranchiseRequestDetail(requestId);
+      setDetailRequest(res.data?.data || null);
+      setShowDetailModal(true);
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể tải chi tiết yêu cầu");
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const requestId = searchParams.get("requestId");
+
+    if (!requestId) {
+      openedRequestRef.current = null;
+      return;
+    }
+
+    if (openedRequestRef.current === requestId) {
+      return;
+    }
+
+    openedRequestRef.current = requestId;
+    loadRequestDetail(requestId);
+  }, [loadRequestDetail, searchParams]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadRequests();
+      if (detailRequest?.id) {
+        await loadRequestDetail(detailRequest.id);
+      }
+    },
+    events: ["notification:new", "franchise:changed"],
+    notificationTypes: ["franchise"],
+  });
 
   // Mở modal tạo mới
   const handleCreate = () => {
     setEditing(null);
     setForm({ ...INITIAL_FORM });
     setShowModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setDetailRequest(null);
   };
 
   // Mở modal sửa
@@ -207,7 +262,11 @@ export default function OwnerFranchiseRequestsPage() {
             </thead>
             <tbody>
               {requests.map((req) => (
-                <tr key={req.id}>
+                <tr
+                  key={req.id}
+                  className={detailRequest?.id === req.id ? "ofr-row ofr-row--active" : "ofr-row"}
+                  onClick={() => loadRequestDetail(req.id)}
+                >
                   <td>{req.id}</td>
                   <td>{req.businessName}</td>
                   <td>{req.location}</td>
@@ -227,13 +286,19 @@ export default function OwnerFranchiseRequestsPage() {
                         <>
                           <button
                             className="ofr-btn ofr-btn--sm ofr-btn--secondary"
-                            onClick={() => handleEdit(req)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(req);
+                            }}
                           >
                             Sửa
                           </button>
                           <button
                             className="ofr-btn ofr-btn--sm ofr-btn--danger"
-                            onClick={() => handleDelete(req.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(req.id);
+                            }}
                           >
                             Xóa
                           </button>
@@ -275,6 +340,96 @@ export default function OwnerFranchiseRequestsPage() {
             </div>
           )}
         </>
+      )}
+
+      {showDetailModal && (
+        <div className="ofr-modal">
+          <div className="ofr-modal__backdrop" onClick={handleCloseDetail} />
+          <div className="ofr-modal__content ofr-modal__content--detail">
+            <div className="ofr-modal__header">
+              <h2>Chi tiết yêu cầu nhượng quyền</h2>
+              <button className="ofr-modal__close" onClick={handleCloseDetail}>
+                ×
+              </button>
+            </div>
+
+            <div className="ofr-detail">
+              {detailLoading ? (
+                <div className="ofr-loading ofr-loading--modal">Đang tải chi tiết...</div>
+              ) : detailRequest ? (
+                <>
+                  <div className="ofr-detail__grid">
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Mã yêu cầu</span>
+                      <span className="ofr-detail__value">#{detailRequest.id}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Trạng thái</span>
+                      <span className="ofr-detail__value"><StatusBadge status={detailRequest.status} /></span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Tên doanh nghiệp</span>
+                      <span className="ofr-detail__value">{detailRequest.businessName || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Địa điểm</span>
+                      <span className="ofr-detail__value">{detailRequest.location || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Người liên hệ</span>
+                      <span className="ofr-detail__value">{detailRequest.contactPerson || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Số điện thoại</span>
+                      <span className="ofr-detail__value">{detailRequest.contactPhone || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Email</span>
+                      <span className="ofr-detail__value">{detailRequest.contactEmail || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Số vốn dự kiến</span>
+                      <span className="ofr-detail__value">{formatCurrency(detailRequest.investmentAmount)}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Ngày tạo</span>
+                      <span className="ofr-detail__value">{formatDate(detailRequest.createdAt)}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Người xử lý</span>
+                      <span className="ofr-detail__value">{detailRequest.reviewer?.username || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="ofr-detail__section">
+                    <div className="ofr-detail__label">Kế hoạch kinh doanh</div>
+                    <div className="ofr-detail__panel">{detailRequest.businessPlan || "Chưa có mô tả."}</div>
+                  </div>
+
+                  <div className="ofr-form__actions ofr-form__actions--detail">
+                    {detailRequest.status === "pending" && (
+                      <button
+                        type="button"
+                        className="ofr-btn ofr-btn--secondary"
+                        onClick={() => {
+                          handleCloseDetail();
+                          handleEdit(detailRequest);
+                        }}
+                      >
+                        Sửa yêu cầu
+                      </button>
+                    )}
+                    <button type="button" className="ofr-btn ofr-btn--primary" onClick={handleCloseDetail}>
+                      Đóng
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="ofr-empty ofr-empty--modal">Không có dữ liệu chi tiết</div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal Create/Edit */}
