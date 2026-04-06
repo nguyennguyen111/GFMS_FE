@@ -14,7 +14,10 @@ import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import ownerMemberService from "../../../services/ownerMemberService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import { ownerGetPackages } from "../../../services/ownerPackageService";
+import { connectSocket } from "../../../services/socketClient";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import axios from "../../../setup/axios";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const STATUS_LABELS = {
  // Trainer Share statuses
@@ -32,6 +35,20 @@ const STATUS_LABELS = {
  cancelled: { label: "Đã hủy", color: "danger" },
  no_show: { label: "Vắng mặt", color: "danger" },
 };
+
+const DAY_LABELS = {
+ monday: "Thứ 2",
+ tuesday: "Thứ 3",
+ wednesday: "Thứ 4",
+ thursday: "Thứ 5",
+ friday: "Thứ 6",
+ saturday: "Thứ 7",
+ sunday: "Chủ nhật",
+};
+
+const DAY_KEYS_BY_INDEX = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DEFAULT_SHARE_TYPE = "temporary";
+const DEFAULT_COMMISSION_SPLIT = 0.7;
 
 function StatusBadge({ status }) {
  const info = STATUS_LABELS[status] || { label: status, color: "secondary" };
@@ -61,10 +78,134 @@ function cleanQueryParams(params) {
  );
 }
 
+function getTodayValue() {
+ return new Date().toISOString().split("T")[0];
+}
+
+function getDayKeyFromDate(dateValue) {
+ if (!dateValue) return null;
+ const date = new Date(dateValue);
+ if (Number.isNaN(date.getTime())) return null;
+ return DAY_KEYS_BY_INDEX[date.getDay()] || null;
+}
+
+function normalizeTimeValue(timeValue) {
+ if (!timeValue) return "";
+ const parts = String(timeValue).split(":");
+ if (parts.length < 2) return "";
+ return `${String(parts[0]).padStart(2, "0")}:${String(parts[1]).padStart(2, "0")}`;
+}
+
+function timeToMinutes(timeValue) {
+ const normalized = normalizeTimeValue(timeValue);
+ if (!normalized) return null;
+ const [hours, minutes] = normalized.split(":").map(Number);
+ if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+ return hours * 60 + minutes;
+}
+
+function minutesToTime(totalMinutes) {
+ if (!Number.isFinite(totalMinutes)) return "";
+ const safeMinutes = Math.max(0, totalMinutes);
+ const hours = Math.floor(safeMinutes / 60);
+ const minutes = safeMinutes % 60;
+ return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function normalizeRanges(ranges = []) {
+ return (Array.isArray(ranges) ? ranges : [])
+ .map((range) => ({
+ start: normalizeTimeValue(range?.start),
+ end: normalizeTimeValue(range?.end),
+ }))
+ .filter((range) => range.start && range.end && range.start < range.end);
+}
+
+function mergeBlocks(blocks = []) {
+ const normalized = blocks
+ .map((block) => ({
+ startMinute: timeToMinutes(block?.startTime),
+ endMinute: timeToMinutes(block?.endTime),
+ }))
+ .filter((block) => block.startMinute !== null && block.endMinute !== null && block.startMinute < block.endMinute)
+ .sort((a, b) => a.startMinute - b.startMinute);
+
+ const merged = [];
+ normalized.forEach((block) => {
+ const last = merged[merged.length - 1];
+ if (!last || block.startMinute > last.endMinute) {
+ merged.push({ ...block });
+ return;
+ }
+ last.endMinute = Math.max(last.endMinute, block.endMinute);
+ });
+ return merged;
+}
+
+function subtractBusyBlocks(availableRanges = [], busyBlocks = []) {
+ const mergedBusy = mergeBlocks(busyBlocks);
+
+ return normalizeRanges(availableRanges).flatMap((range) => {
+ const startMinute = timeToMinutes(range.start);
+ const endMinute = timeToMinutes(range.end);
+ if (startMinute === null || endMinute === null || startMinute >= endMinute) return [];
+
+ let cursor = startMinute;
+ const freeRanges = [];
+
+ mergedBusy.forEach((busy) => {
+ if (busy.endMinute <= cursor || busy.startMinute >= endMinute) {
+ return;
+ }
+
+ if (busy.startMinute > cursor) {
+ freeRanges.push({
+ start: minutesToTime(cursor),
+ end: minutesToTime(Math.min(busy.startMinute, endMinute)),
+ });
+ }
+
+ cursor = Math.max(cursor, busy.endMinute);
+ });
+
+ if (cursor < endMinute) {
+ freeRanges.push({
+ start: minutesToTime(cursor),
+ end: minutesToTime(endMinute),
+ });
+ }
+
+ return freeRanges.filter((freeRange) => freeRange.start && freeRange.end && freeRange.start < freeRange.end);
+ });
+}
+
+function hasAnyWorkingHours(availableHours) {
+ if (!availableHours || typeof availableHours !== "object") return false;
+ return Object.values(availableHours).some((ranges) => normalizeRanges(ranges).length > 0);
+}
+
+function getEligiblePtPackages(packageActivations = [], trainerId) {
+ const activePtPackages = (Array.isArray(packageActivations) ? packageActivations : []).filter((activation) =>
+ activation?.Package?.packageType === 'personal_training' &&
+ activation?.status === 'active' &&
+ (activation?.sessionsRemaining > 0 || activation?.sessionsRemaining === null)
+ );
+
+ const exactMatchPackages = activePtPackages.filter(
+ (activation) => Number(activation?.Package?.trainerId) === Number(trainerId)
+ );
+
+ return {
+ exactMatch: exactMatchPackages.length > 0,
+ packages: exactMatchPackages.length > 0 ? exactMatchPackages : activePtPackages,
+ };
+}
+
 // PT Package Info Component
 function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageActivationId }) {
  const [ptPackages, setPtPackages] = useState([]);
  const [loading, setLoading] = useState(false);
+ const [isSharedTrainerFallback, setIsSharedTrainerFallback] = useState(false);
 
  useEffect(() => {
  const loadPTPackages = async () => {
@@ -76,20 +217,21 @@ function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageAc
  const member = response.data;
  
  if (member && member.PackageActivations) {
- const filtered = member.PackageActivations.filter(pa => 
- pa.Package?.packageType === 'personal_training' &&
- pa.Package?.trainerId === parseInt(trainerId) &&
- pa.status === 'active' &&
- (pa.sessionsRemaining > 0 || pa.sessionsRemaining === null)
- );
- setPtPackages(filtered);
+ const eligible = getEligiblePtPackages(member.PackageActivations, trainerId);
+ setPtPackages(eligible.packages);
+ setIsSharedTrainerFallback(!eligible.exactMatch && eligible.packages.length > 0);
  
  // Auto-select first package if available
- if (filtered.length > 0 && !selectedPackageActivationId) {
- onPackageSelect(filtered[0].id, filtered[0].packageId);
+ if (eligible.packages.length > 0 && !selectedPackageActivationId) {
+ onPackageSelect(eligible.packages[0].id, eligible.packages[0].packageId);
  }
+ } else {
+ setPtPackages([]);
+ setIsSharedTrainerFallback(false);
  }
  } catch (error) {
+ setPtPackages([]);
+ setIsSharedTrainerFallback(false);
  } finally {
  setLoading(false);
  }
@@ -106,7 +248,7 @@ function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageAc
 
  if (ptPackages.length === 0) {
  return <div className="ots-pt-package-info" style={{padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', marginBottom: '12px'}}>
- <div style={{color: '#ef4444', fontWeight: 'bold'}}>Hội viên chưa có gói huấn luyện viên với huấn luyện viên này</div>
+ <div style={{color: '#ef4444', fontWeight: 'bold'}}>Hội viên chưa có gói huấn luyện viên còn hiệu lực để đặt lịch</div>
  <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.6)', marginTop: '4px'}}>
  Vui lòng mua gói huấn luyện viên cho hội viên trước khi đặt lịch
  </div>
@@ -118,6 +260,11 @@ function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageAc
  <label className="ots-field__label" style={{marginBottom: '8px', display: 'block'}}>
  Chọn gói huấn luyện viên <span className="ots-required">*</span>
  </label>
+ {isSharedTrainerFallback && (
+ <div className="ots-field__hint" style={{marginBottom: '8px', color: '#fbbf24'}}>
+ Đang dùng gói PT gốc của hội viên để xếp lịch với PT thay thế.
+ </div>
+ )}
  {ptPackages.map((pa) => (
  <div 
  key={pa.id}
@@ -145,6 +292,11 @@ function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageAc
  <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.7)'}}>
  Tổng: {pa.totalSessions || 0} buổi | Đã tập: {pa.sessionsUsed || 0} buổi
  </div>
+ {pa.Package?.Trainer?.User?.username && (
+ <div style={{fontSize: '0.78rem', color: 'rgba(238, 242, 255, 0.55)', marginTop: '4px'}}>
+ PT gốc: {pa.Package.Trainer.User.username}
+ </div>
+ )}
  </div>
  <div style={{textAlign: 'right'}}>
  <div style={{fontSize: '1.3rem', fontWeight: 'bold', color: '#c084fc'}}>
@@ -159,139 +311,17 @@ function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageAc
  );
 }
 
-// Calendar View Component
-function CalendarView({ bookings, currentMonth: propCurrentMonth, onMonthChange, onBookingClick, onDateClick }) {
- const [currentMonth, setCurrentMonth] = React.useState(propCurrentMonth || new Date());
-
- // Sync with parent currentMonth
- React.useEffect(() => {
- if (propCurrentMonth) {
- setCurrentMonth(propCurrentMonth);
- }
- }, [propCurrentMonth]);
-
- const getDaysInMonth = (date) => {
- const year = date.getFullYear();
- const month = date.getMonth();
- const firstDay = new Date(year, month, 1);
- const lastDay = new Date(year, month + 1, 0);
- const daysInMonth = lastDay.getDate();
- const startingDayOfWeek = firstDay.getDay();
-
- const days = [];
- // Add empty cells for days before month starts
- for (let i = 0; i < startingDayOfWeek; i++) {
- days.push(null);
- }
- // Add days of month
- for (let i = 1; i <= daysInMonth; i++) {
- days.push(new Date(year, month, i));
- }
- return days;
- };
-
- const getBookingsForDate = (date) => {
- if (!date) return [];
- const dateStr = date.toISOString().split('T')[0];
- return bookings.filter(b => {
- const bookingDate = b.bookingDate ? b.bookingDate.split('T')[0] : null;
- return bookingDate === dateStr;
- });
- };
-
- const days = getDaysInMonth(currentMonth);
- const monthName = currentMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
-
- const prevMonth = () => {
- const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
- setCurrentMonth(newMonth);
- if (onMonthChange) {
- onMonthChange(newMonth);
- }
- };
-
- const nextMonth = () => {
- const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
- setCurrentMonth(newMonth);
- if (onMonthChange) {
- onMonthChange(newMonth);
- }
- };
-
- const today = new Date().toISOString().split('T')[0];
-
- return (
- <div className="ots-calendar">
- <div className="ots-calendar-header">
- <button className="ots-btn ots-btn--sm" onClick={prevMonth}>‹</button>
- <h3>{monthName}</h3>
- <button className="ots-btn ots-btn--sm" onClick={nextMonth}>›</button>
- </div>
- <div className="ots-calendar-grid">
- {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(day => (
- <div key={day} className="ots-calendar-day-name">{day}</div>
- ))}
- {days.map((date, idx) => {
- if (!date) return <div key={`empty-${idx}`} className="ots-calendar-day ots-calendar-day--empty" />;
- 
- const dayBookings = getBookingsForDate(date);
- const dateStr = date.toISOString().split('T')[0];
- const isToday = dateStr === today;
-
- return (
- <div 
- key={idx} 
- className={`ots-calendar-day ${isToday ? 'ots-calendar-day--today' : ''} ${dayBookings.length > 0 ? 'ots-calendar-day--has-bookings' : ''}`}
- onClick={() => onDateClick && onDateClick(date)}
- >
- <div className="ots-calendar-day-number">{date.getDate()}</div>
- {dayBookings.length > 0 && (
- <div className="ots-calendar-bookings">
- <div className="ots-calendar-booking-count">{dayBookings.length} lịch</div>
- <div className="ots-calendar-booking-list">
- {dayBookings.slice(0, 2).map(booking => (
- <div 
- key={booking.id} 
- className={`ots-calendar-booking ots-calendar-booking--${booking.status || 'confirmed'}`}
- onClick={(e) => {
- e.stopPropagation();
- if (booking.type === 'trainer_share') return;
- onBookingClick && onBookingClick(booking);
- }}
- >
- <span className="ots-booking-time">{booking.startTime}</span>
- <span className="ots-booking-trainer">
- {booking.Trainer?.User?.username || 'Huấn luyện viên'}
- </span>
- </div>
- ))}
- {dayBookings.length > 2 && (
- <div className="ots-calendar-booking-more">+{dayBookings.length - 2}</div>
- )}
- </div>
- </div>
- )}
- </div>
- );
- })}
- </div>
- </div>
- );
-}
-
 const INITIAL_FORM = {
  trainerId: "",
  fromGymId: "",
  toGymId: "",
  memberId: "", // Optional: Nếu chọn member, khi approve sẽ tự động tạo booking
- shareType: "temporary",
  scheduleMode: "single", // single, date_range, multiple_dates
  startDate: "",
  endDate: "",
  startTime: "",
  endTime: "",
  multipleDates: [], // [{date: "2026-01-01", startTime: "09:00", endTime: "10:00"}]
- commissionSplit: 0.7,
  notes: "",
 };
 
@@ -299,6 +329,7 @@ const INITIAL_BOOKING = {
  memberId: "",
  trainerId: "",
  gymId: "",
+ packageActivationId: "",
  packageId: "",
  bookingMode: "single", // single, date_range, multiple_dates
  bookingDate: "",
@@ -310,10 +341,10 @@ const INITIAL_BOOKING = {
  notes: "",
 };
 
-export default function OwnerTrainerSharePage() {
- const [activeTab, setActiveTab] = useState("bookings"); // bookings or shares
- const [viewMode, setViewMode] = useState("table"); // table or calendar
- const [currentMonth, setCurrentMonth] = useState(new Date()); // For calendar navigation
+export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
+ const { selectedGymId, selectedGymName } = useSelectedGym();
+ const isBookingsPage = pageMode === "bookings";
+ const [activeTab, setActiveTab] = useState(isBookingsPage ? "bookings" : "shares"); // bookings or shares
  
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState("");
@@ -367,10 +398,37 @@ export default function OwnerTrainerSharePage() {
  const [gyms, setGyms] = useState([]);
  const [bookingGyms, setBookingGyms] = useState([]); // Gym của owner cho booking form
  const [myGymIds, setMyGymIds] = useState([]); // IDs của các gym thuộc owner này
+ const [allOwnerTrainers, setAllOwnerTrainers] = useState([]);
  const [trainers, setTrainers] = useState([]);
  const [members, setMembers] = useState([]);
  const [packages, setPackages] = useState([]);
  const [loadingLookups, setLoadingLookups] = useState(false);
+ const [availabilityFilters, setAvailabilityFilters] = useState({ gymId: "", date: getTodayValue() });
+ const [trainerAvailability, setTrainerAvailability] = useState([]);
+ const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+ useEffect(() => {
+ const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+ setForm((prev) => ({
+ ...prev,
+ toGymId: scopedGymId || prev.toGymId,
+ memberId: scopedGymId && prev.toGymId && String(prev.toGymId) !== scopedGymId ? "" : prev.memberId,
+ }));
+ setBookingForm((prev) => ({
+ ...prev,
+ gymId: scopedGymId || prev.gymId,
+ trainerId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.trainerId,
+ memberId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.memberId,
+ packageActivationId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.packageActivationId,
+ packageId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.packageId,
+ }));
+ setBookingFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+ setAvailabilityFilters((prev) => ({ ...prev, gymId: scopedGymId || prev.gymId }));
+ }, [selectedGymId]);
+
+ useEffect(() => {
+ setActiveTab(isBookingsPage ? "bookings" : "shares");
+ }, [isBookingsPage]);
 
  // Filter trainers by selected fromGym (for share form)
  const availableTrainers = React.useMemo(() => {
@@ -390,6 +448,25 @@ export default function OwnerTrainerSharePage() {
  });
  return filtered;
  }, [trainers, bookingForm.gymId]);
+
+ const availabilityTrainers = React.useMemo(() => {
+ if (!availabilityFilters.gymId) return allOwnerTrainers;
+ return allOwnerTrainers.filter((trainer) => {
+ const trainerGymId = trainer.gymId || trainer.Gym?.id;
+ return trainerGymId && trainerGymId.toString() === availabilityFilters.gymId.toString();
+ });
+ }, [allOwnerTrainers, availabilityFilters.gymId]);
+
+ const visibleTrainerAvailability = trainerAvailability.filter(({ availableRanges }) => availableRanges.length > 0);
+ const visibleShares = React.useMemo(() => {
+ if (!selectedGymId) return shares;
+ return shares.filter((share) => String(share?.toGymId || share?.toGym?.id || "") === String(selectedGymId));
+ }, [selectedGymId, shares]);
+
+ const visibleReceivedShares = React.useMemo(() => {
+ if (!selectedGymId) return receivedShares;
+ return receivedShares.filter((share) => String(share?.fromGymId || share?.FromGym?.id || "") === String(selectedGymId));
+ }, [receivedShares, selectedGymId]);
 
  // Load trainers khi chọn fromGym (for share form)
  useEffect(() => {
@@ -436,13 +513,7 @@ export default function OwnerTrainerSharePage() {
  const member = response.data;
  
  if (member && member.PackageActivations) {
- // Filter only PT packages with the selected trainer that are active
- const ptPackages = member.PackageActivations.filter(pa => 
- pa.Package?.packageType === 'personal_training' &&
- pa.Package?.trainerId === parseInt(bookingForm.trainerId) &&
- pa.status === 'active' &&
- (pa.sessionsRemaining > 0 || pa.sessionsRemaining === null)
- );
+ const { packages: ptPackages } = getEligiblePtPackages(member.PackageActivations, bookingForm.trainerId);
 
  // Auto-select the first matching PT package
  if (ptPackages.length > 0 && !bookingForm.packageActivationId) {
@@ -583,17 +654,89 @@ export default function OwnerTrainerSharePage() {
  setGyms(allGyms); // Hiển thị tất cả gyms để chọn (cho share form)
  setBookingGyms(myGyms); // Hiển thị chỉ gym của owner (cho booking form)
  setMyGymIds(myGyms.map(g => g.id)); // Lưu IDs của gyms thuộc owner này
+ setAllOwnerTrainers(trainersRes?.data || []);
  setTrainers(trainersRes?.data || []);
  setMembers(membersRes?.data || []);
  setPackages(packagesRes?.data?.data || []);
+ setAvailabilityFilters((prev) => ({
+ ...prev,
+ gymId: prev.gymId || String(myGyms?.[0]?.id || ""),
+ }));
  } catch (err) {
  } finally {
  setLoadingLookups(false);
  }
  };
 
+ const loadTrainerAvailability = useCallback(async () => {
+ if (!isBookingsPage || activeTab !== "bookings") return;
+ if (!availabilityFilters.date) {
+ setTrainerAvailability([]);
+ return;
+ }
+
+ const dayKey = getDayKeyFromDate(availabilityFilters.date);
+ if (!dayKey) {
+ setTrainerAvailability([]);
+ return;
+ }
+
+ if (availabilityTrainers.length === 0) {
+ setTrainerAvailability([]);
+ return;
+ }
+
+ setLoadingAvailability(true);
+ try {
+ const results = await Promise.all(
+ availabilityTrainers.map(async (trainer) => {
+ const scheduleResponse = await ownerBookingService.getTrainerSchedule(trainer.id, availabilityFilters.date, { includeAllGyms: true });
+ const occupiedBlocks = Array.isArray(scheduleResponse?.data)
+ ? scheduleResponse.data
+ : Array.isArray(scheduleResponse)
+ ? scheduleResponse
+ : [];
+ const availableRanges = normalizeRanges(trainer.availableHours?.[dayKey] || []);
+ const freeRanges = subtractBusyBlocks(availableRanges, occupiedBlocks);
+ const hasConfiguredHours = hasAnyWorkingHours(trainer.availableHours);
+
+ let availabilityState = "busy";
+ if (!availableRanges.length) {
+ availabilityState = hasConfiguredHours ? "off" : "unconfigured";
+ } else if (freeRanges.length > 0) {
+ availabilityState = "free";
+ }
+
+ return {
+ trainer,
+ occupiedBlocks: occupiedBlocks
+ .map((item) => ({
+ id: item.id,
+ startTime: normalizeTimeValue(item.startTime),
+ endTime: normalizeTimeValue(item.endTime),
+ status: item.status,
+ type: item.type,
+ memberName: item.Member?.User?.username || null,
+ }))
+ .filter((item) => item.startTime && item.endTime),
+ availableRanges,
+ freeRanges,
+ availabilityState,
+ };
+ })
+ );
+
+ setTrainerAvailability(results);
+ } catch (err) {
+ setTrainerAvailability([]);
+ setError(err?.response?.data?.message || "Không thể tải lịch rảnh của huấn luyện viên");
+ } finally {
+ setLoadingAvailability(false);
+ }
+ }, [activeTab, availabilityFilters.date, availabilityTrainers, isBookingsPage]);
+
  // Load trainer shares
- const loadShares = async (page = currentPage) => {
+ const loadShares = useCallback(async (page = currentPage) => {
  try {
  setLoading(true);
  setError("");
@@ -609,10 +752,10 @@ export default function OwnerTrainerSharePage() {
  } finally {
  setLoading(false);
  }
- };
+ }, [currentPage, filters]);
 
  // Load received trainer share requests (Owner B)
- const loadReceivedShares = async (page = receivedCurrentPage) => {
+ const loadReceivedShares = useCallback(async (page = receivedCurrentPage) => {
  try {
  setLoading(true);
  setError("");
@@ -627,7 +770,7 @@ export default function OwnerTrainerSharePage() {
  } finally {
  setLoading(false);
  }
- };
+ }, [receivedCurrentPage, receivedFilters]);
 
  // View trainer schedule before accepting
  const handleViewTrainerSchedule = async (share) => {
@@ -709,7 +852,7 @@ export default function OwnerTrainerSharePage() {
  const params = cleanQueryParams({
  q: bookingFilters.q,
  status: bookingFilters.status,
- gymId: bookingFilters.gymId,
+ gymId: selectedGymId ? String(selectedGymId) : bookingFilters.gymId,
  trainerId: bookingFilters.trainerId,
  fromDate: bookingFilters.startDate,
  toDate: bookingFilters.endDate,
@@ -839,106 +982,84 @@ export default function OwnerTrainerSharePage() {
  } finally {
  setLoading(false);
  }
- }, [bookingFilters, bookingCurrentPage]);
-
- // Load calendar data (trainer schedule for selected trainer/month)
- const loadCalendarData = useCallback(async () => {
- try {
- setLoading(true);
- setError("");
-
- // Get all dates in current month
- const year = currentMonth?.getFullYear() || new Date().getFullYear();
- const month = currentMonth?.getMonth() || new Date().getMonth();
- const daysInMonth = new Date(year, month + 1, 0).getDate();
-
- // Determine which trainers to load
- let trainersToLoad = [];
- if (bookingFilters.trainerId) {
- // Load specific trainer
- trainersToLoad = [{ id: bookingFilters.trainerId }];
- } else {
- // Load all trainers
- trainersToLoad = trainers.map(t => ({ id: t.id }));
- }
-
- if (trainersToLoad.length === 0) {
- setBookings([]);
- setLoading(false);
- return;
- }
-
- // Load schedule for each day and each trainer
- const schedulePromises = [];
- 
- trainersToLoad.forEach(trainer => {
- for (let day = 1; day <= daysInMonth; day++) {
- const date = new Date(year, month, day);
- const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
- 
- schedulePromises.push(
- ownerBookingService.getTrainerSchedule(trainer.id, dateStr)
- .then(res => ({ 
- date: dateStr,
- bookingDate: dateStr,
- trainerId: trainer.id,
- items: res.data || [] 
- }))
- .catch(err => {
- console.error(`Failed to load schedule for trainer ${trainer.id} on ${dateStr}:`, err);
- return { date: dateStr, bookingDate: dateStr, trainerId: trainer.id, items: [] };
- })
- );
- }
- });
-
- const allSchedules = await Promise.all(schedulePromises);
- 
- // Flatten schedule items with date info
- const calendarBookings = [];
- allSchedules.forEach(({ date, items }) => {
- items.forEach(item => {
- calendarBookings.push({
- ...item,
- bookingDate: date,
- date: date
- });
- });
- });
-
- setBookings(calendarBookings);
-
- } catch (err) {
- console.error('Error loading calendar data:', err);
- setError(err.response?.data?.message || err.message || "Không thể tải lịch");
- } finally {
- setLoading(false);
- }
- }, [bookingFilters.trainerId, currentMonth, trainers]);
+ }, [bookingFilters, bookingCurrentPage, selectedGymId]);
 
  useEffect(() => {
  loadLookups();
  }, []);
 
- // Load data based on view mode
  useEffect(() => {
- if (viewMode === "calendar") {
- // Only load calendar if we have trainers loaded or a specific trainer selected
- if (trainers.length > 0 || bookingFilters.trainerId) {
- loadCalendarData(); // Load trainer schedule for calendar
+ if (!isBookingsPage && activeTab !== "bookings") {
+ return;
  }
- } else {
- loadBookings(); // Load booking list for table
- }
+ loadBookings();
  }, [
- viewMode, 
- bookingFilters.trainerId,
- currentMonth,
  bookingCurrentPage,
- trainers.length, // Re-load when trainers list changes
+ isBookingsPage,
+ activeTab,
  loadBookings,
- loadCalendarData
+ trainers.length
  ]);
+
+ useEffect(() => {
+ loadTrainerAvailability();
+ }, [loadTrainerAvailability]);
+
+useEffect(() => {
+ if (!isBookingsPage) return undefined;
+
+ const socket = connectSocket();
+ const onBookingStatusChanged = (payload) => {
+ if (activeTab !== "bookings") return;
+
+ setBookings((prev) => {
+ const exists = prev.some((item) => String(item.id) === String(payload?.bookingId));
+ if (!exists) return prev;
+ return prev.map((item) => (
+ String(item.id) === String(payload?.bookingId)
+ ? { ...item, status: payload?.status || item.status }
+ : item
+ ));
+ });
+
+ loadBookings();
+ loadTrainerAvailability();
+ };
+
+ socket.on("booking:status-changed", onBookingStatusChanged);
+
+ return () => {
+ socket.off("booking:status-changed", onBookingStatusChanged);
+ };
+}, [activeTab, isBookingsPage, loadBookings, loadTrainerAvailability]);
+
+const refreshTrainerShareData = useCallback(async () => {
+ const tasks = [loadShares(currentPage), loadReceivedShares(receivedCurrentPage)];
+
+ if (isBookingsPage && activeTab === "bookings") {
+ tasks.push(loadBookings(bookingCurrentPage));
+ tasks.push(loadTrainerAvailability());
+ }
+
+ await Promise.all(tasks);
+}, [
+ activeTab,
+ bookingCurrentPage,
+ currentPage,
+ isBookingsPage,
+ loadBookings,
+ loadReceivedShares,
+ loadShares,
+ loadTrainerAvailability,
+ receivedCurrentPage,
+]);
+
+useOwnerRealtimeRefresh({
+ enabled: activeTab === "requests" || activeTab === "received" || isBookingsPage,
+ onRefresh: refreshTrainerShareData,
+ events: ["notification:new", "trainer_share:changed"],
+ notificationTypes: ["trainer_share"],
+});
 
  // Auto-clear success/error messages after 5 seconds
  useEffect(() => {
@@ -973,14 +1094,29 @@ export default function OwnerTrainerSharePage() {
  // Mở modal tạo mới share
  const handleCreate = () => {
  setEditing(null);
- setForm({ ...INITIAL_FORM });
+ setForm({ ...INITIAL_FORM, toGymId: selectedGymId ? String(selectedGymId) : "" });
  setShowModal(true);
  };
 
  // Mở modal tạo mới booking
  const handleCreateBooking = () => {
  setEditing(null);
- setBookingForm({ ...INITIAL_BOOKING });
+ setBookingForm({ ...INITIAL_BOOKING, gymId: selectedGymId ? String(selectedGymId) : "" });
+ setShowBookingModal(true);
+ };
+
+ const handleQuickBookFromAvailability = (trainer, range) => {
+ const trainerGymId = trainer.gymId || trainer.Gym?.id || availabilityFilters.gymId || "";
+ setEditing(null);
+ setBookingForm({
+ ...INITIAL_BOOKING,
+ gymId: trainerGymId ? String(trainerGymId) : "",
+ trainerId: trainer.id ? String(trainer.id) : "",
+ bookingMode: "single",
+ bookingDate: availabilityFilters.date || getTodayValue(),
+ startTime: range.start,
+ endTime: range.end,
+ });
  setShowBookingModal(true);
  };
 
@@ -992,7 +1128,8 @@ export default function OwnerTrainerSharePage() {
  memberId: booking.memberId || "",
  trainerId: booking.trainerId || "",
  gymId: booking.gymId || "",
- packageId: booking.packageActivationId || "",
+ packageActivationId: booking.packageActivationId || "",
+ packageId: booking.packageId || "",
  bookingMode: "single", // Edit mode chỉ cho phép sửa 1 ngày
  bookingDate: booking.bookingDate ? booking.bookingDate.slice(0, 10) : "",
  startTime: booking.startTime || "",
@@ -1010,12 +1147,10 @@ export default function OwnerTrainerSharePage() {
  trainerId: share.trainerId || "",
  fromGymId: share.fromGymId || "",
  toGymId: share.toGymId || "",
- shareType: share.shareType || "temporary",
  startDate: share.startDate ? share.startDate.slice(0, 10) : "",
  endDate: share.endDate ? share.endDate.slice(0, 10) : "",
  startTime: share.startTime || "",
  endTime: share.endTime || "",
- commissionSplit: share.commissionSplit || 0.7,
  notes: share.notes || "",
  scheduleMode: share.scheduleMode || "all_days",
  specificSchedules: share.specificSchedules || [],
@@ -1043,6 +1178,7 @@ export default function OwnerTrainerSharePage() {
  memberId: bookingForm.memberId,
  trainerId: bookingForm.trainerId,
  gymId: bookingForm.gymId,
+ packageActivationId: bookingForm.packageActivationId,
  packageId: bookingForm.packageId,
  bookingDate: bookingForm.bookingDate,
  startTime: bookingForm.startTime,
@@ -1069,6 +1205,7 @@ export default function OwnerTrainerSharePage() {
  memberId: bookingForm.memberId,
  trainerId: bookingForm.trainerId,
  gymId: bookingForm.gymId,
+ packageActivationId: bookingForm.packageActivationId,
  packageId: bookingForm.packageId,
  bookingDate: date,
  startTime: bookingForm.startTime,
@@ -1107,6 +1244,7 @@ export default function OwnerTrainerSharePage() {
  memberId: bookingForm.memberId,
  trainerId: bookingForm.trainerId,
  gymId: bookingForm.gymId,
+ packageActivationId: bookingForm.packageActivationId,
  packageId: bookingForm.packageId,
  bookingDate: dateItem.date,
  startTime: dateItem.startTime,
@@ -1346,11 +1484,22 @@ export default function OwnerTrainerSharePage() {
  }
 
  try {
+ if (!form.startDate && form.scheduleMode === "single") {
+ setError("Vui lòng chọn ngày mượn huấn luyện viên");
+ return;
+ }
+
+ const sharePayload = {
+ ...form,
+ shareType: DEFAULT_SHARE_TYPE,
+ commissionSplit: DEFAULT_COMMISSION_SPLIT,
+ };
+
  if (editing) {
- await ownerUpdateTrainerShare(editing.id, form);
+ await ownerUpdateTrainerShare(editing.id, sharePayload);
  setSuccess("Cập nhật yêu cầu thành công!");
  } else {
- await ownerCreateTrainerShare(form);
+ await ownerCreateTrainerShare(sharePayload);
  setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
  }
 
@@ -1382,31 +1531,43 @@ export default function OwnerTrainerSharePage() {
  return new Date(dateStr).toLocaleDateString("vi-VN");
  };
 
+ const pageTitle = isBookingsPage ? "Đặt lịch tập" : "Chia sẻ huấn luyện viên";
+ const pageSubtitle = isBookingsPage
+ ? `Quản lý lịch tập với huấn luyện viên mượn${selectedGymName ? ` tại ${selectedGymName}` : " theo một trang riêng"}`
+ : `Quản lý yêu cầu mượn và cho mượn huấn luyện viên${selectedGymName ? ` cho ${selectedGymName}` : " giữa các phòng tập"}`;
+
+ const primaryAction = isBookingsPage
+ ? handleCreateBooking
+ : activeTab === "shares"
+ ? handleCreate
+ : null;
+
+ const primaryLabel = isBookingsPage
+ ? "Đặt lịch mới"
+ : activeTab === "shares"
+ ? "Tạo yêu cầu chia sẻ huấn luyện viên"
+ : "";
+
  return (
  <div className="ots-page">
  <div className="ots-header">
  <div>
- <h1 className="ots-title">Đặt lịch và chia sẻ huấn luyện viên</h1>
- <p className="ots-subtitle">Quản lý lịch tập và điều phối huấn luyện viên giữa các phòng tập</p>
+ <h1 className="ots-title">{pageTitle}</h1>
+ <p className="ots-subtitle">{pageSubtitle}</p>
  </div>
- {activeTab !== "received" && (
+ {(isBookingsPage || activeTab !== "received") && primaryAction && (
  <button 
  className="btn-primary" 
- onClick={activeTab === "bookings" ? handleCreateBooking : activeTab === "shares" ? handleCreate : null}
+ onClick={primaryAction}
  >
- + {activeTab === "bookings" ? "Đặt lịch mới" : activeTab === "shares" ? "Tạo yêu cầu chia sẻ huấn luyện viên" : ""}
+ + {primaryLabel}
  </button>
  )}
  </div>
 
  {/* Tab Navigation */}
+ {!isBookingsPage && (
  <div className="ots-tabs">
- <button
- className={`ots-tab ${activeTab === "bookings" ? "active" : ""}`}
- onClick={() => setActiveTab("bookings")}
- >
- Đặt lịch tập
- </button>
  <button
  className={`ots-tab ${activeTab === "shares" ? "active" : ""}`}
  onClick={() => setActiveTab("shares")}
@@ -1420,6 +1581,7 @@ export default function OwnerTrainerSharePage() {
  Yêu cầu cho mượn huấn luyện viên
  </button>
  </div>
+ )}
 
  {error && <div className="ots-alert ots-alert--danger">{error}</div>}
  {success && <div className="ots-alert ots-alert--success">{success}</div>}
@@ -1458,7 +1620,7 @@ export default function OwnerTrainerSharePage() {
  Thử lại
  </button>
  </div>
- ) : shares.length === 0 ? (
+ ) : visibleShares.length === 0 ? (
  <div className="ots-empty">
  <p>Chưa có yêu cầu chia sẻ huấn luyện viên nào</p>
  <button className="ots-btn ots-btn--primary" onClick={handleCreate}>
@@ -1474,15 +1636,13 @@ export default function OwnerTrainerSharePage() {
  <th>Trainer</th>
  <th>Từ Gym</th>
  <th>Đến Gym</th>
- <th>Loại</th>
  <th>Thời gian</th>
- <th>Hoa hồng</th>
  <th>Trạng thái</th>
  <th>Thao tác</th>
  </tr>
  </thead>
  <tbody>
- {shares.map((share) => (
+ {visibleShares.map((share) => (
  <tr 
  key={share.id}
  onClick={() => {
@@ -1495,10 +1655,11 @@ export default function OwnerTrainerSharePage() {
  <td><strong>{share.Trainer?.User?.username || "—"}</strong></td>
  <td>{share.fromGym?.name || "—"}</td>
  <td>{share.toGym?.name || "—"}</td>
- <td>{share.shareType}</td>
  <td>
  <div>
- <div>{formatDate(share.startDate)} - {formatDate(share.endDate)}</div>
+ <div>
+ {share.startDate ? `${formatDate(share.startDate)} - ${formatDate(share.endDate || share.startDate)}` : "Không giới hạn"}
+ </div>
  {share.startTime && share.endTime && 
  share.startTime !== '00:00:00' && 
  share.endTime !== '00:00:00' && (
@@ -1508,7 +1669,6 @@ export default function OwnerTrainerSharePage() {
  )}
  </div>
  </td>
- <td>{(share.commissionSplit * 100).toFixed(0)}%</td>
  <td>
  <StatusBadge status={share.status} />
  </td>
@@ -1589,30 +1749,30 @@ export default function OwnerTrainerSharePage() {
  <div className="ots-stats-grid">
  <div className="ots-stat-card">
  <div className="ots-stat-card__label">Tổng yêu cầu nhận</div>
- <div className="ots-stat-card__value">{receivedShares.length}</div>
+ <div className="ots-stat-card__value">{visibleReceivedShares.length}</div>
  </div>
  <div className="ots-stat-card ots-stat-card--warning">
  <div className="ots-stat-card__label">Chờ chấp nhận</div>
  <div className="ots-stat-card__value">
- {receivedShares.filter(s => s.status === 'waiting_acceptance').length}
+ {visibleReceivedShares.filter(s => s.status === 'waiting_acceptance').length}
  </div>
  </div>
  <div className="ots-stat-card ots-stat-card--info">
  <div className="ots-stat-card__label">Đang xử lý</div>
  <div className="ots-stat-card__value">
- {receivedShares.filter(s => s.status === 'pending').length}
+ {visibleReceivedShares.filter(s => s.status === 'pending').length}
  </div>
  </div>
  <div className="ots-stat-card ots-stat-card--success">
  <div className="ots-stat-card__label">Đã được duyệt</div>
  <div className="ots-stat-card__value">
- {receivedShares.filter(s => s.status === 'approved').length}
+ {visibleReceivedShares.filter(s => s.status === 'approved').length}
  </div>
  </div>
  <div className="ots-stat-card ots-stat-card--danger">
  <div className="ots-stat-card__label">Đã từ chối</div>
  <div className="ots-stat-card__value">
- {receivedShares.filter(s => s.status === 'rejected_by_partner').length}
+ {visibleReceivedShares.filter(s => s.status === 'rejected_by_partner').length}
  </div>
  </div>
  </div>
@@ -1651,7 +1811,7 @@ export default function OwnerTrainerSharePage() {
  Thử lại
  </button>
  </div>
- ) : receivedShares.length === 0 ? (
+ ) : visibleReceivedShares.length === 0 ? (
  <div className="ots-empty">
  <p>Chưa có yêu cầu nào</p>
  </div>
@@ -1664,39 +1824,27 @@ export default function OwnerTrainerSharePage() {
  <th>Trainer</th>
  <th>Từ Gym</th>
  <th>Đến Gym</th>
- <th>Loại</th>
  <th>Thời gian</th>
  <th>Trạng thái</th>
  <th>Thao tác</th>
  </tr>
  </thead>
  <tbody>
- {receivedShares.map((share) => (
+ {visibleReceivedShares.map((share) => (
  <tr key={share.id}>
  <td>#{share.id}</td>
  <td>{share.Trainer?.User?.username || `Huấn luyện viên #${share.trainerId}`}</td>
  <td>{share.FromGym?.name || `Gym #${share.fromGymId}`}</td>
  <td>{share.ToGym?.name || `Gym #${share.toGymId}`}</td>
  <td>
- <span className={`ots-badge ${share.shareType === "temporary" ? "ots-badge--warning" : "ots-badge--info"}`}>
- {share.shareType === "temporary" ? "Tạm thời" : "Vĩnh viễn"}
- </span>
- </td>
- <td>
  <div>
- {share.shareType === "temporary" ? (
- <>
- <div>{formatDate(share.startDate)} → {formatDate(share.endDate)}</div>
+ <div>{share.startDate ? `${formatDate(share.startDate)} → ${formatDate(share.endDate || share.startDate)}` : "Không giới hạn"}</div>
  {share.startTime && share.endTime && 
  share.startTime !== '00:00:00' && 
  share.endTime !== '00:00:00' && (
  <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.25rem' }}>
  {share.startTime.substring(0, 5)} - {share.endTime.substring(0, 5)}
  </div>
- )}
- </>
- ) : (
- "Không giới hạn"
  )}
  </div>
  </td>
@@ -1801,24 +1949,126 @@ export default function OwnerTrainerSharePage() {
 
  {activeTab === "bookings" && (
  <>
- {/* View Mode Toggle */}
- <div className="ots-view-controls">
- <div className="ots-view-mode-toggle">
- <button
- className={`ots-btn ots-btn--sm ${viewMode === "table" ? "ots-btn--primary" : "ots-btn--secondary"}`}
- onClick={() => setViewMode("table")}
+ {/* Trainer Availability */}
+ <div className="ots-availability-panel">
+ <div className="ots-availability-panel__header">
+ <div>
+ <h3 className="ots-availability-panel__title">Lịch rảnh huấn luyện viên</h3>
+ <p className="ots-availability-panel__subtitle">
+ Xem khung giờ còn trống của từng PT theo chi nhánh và ngày cụ thể
+ </p>
+ </div>
+ <div className="ots-availability-panel__filters">
+ <select
+ className="ots-filter-select"
+ value={availabilityFilters.gymId}
+ onChange={(e) => setAvailabilityFilters((prev) => ({ ...prev, gymId: e.target.value }))}
+ disabled={Boolean(selectedGymId)}
  >
- Bảng
- </button>
- <button
- className={`ots-btn ots-btn--sm ${viewMode === "calendar" ? "ots-btn--primary" : "ots-btn--secondary"}`}
- onClick={() => setViewMode("calendar")}
- >
- Lịch
+ <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả chi nhánh"}</option>
+ {bookingGyms.map((gym) => (
+ <option key={gym.id} value={gym.id}>{gym.name}</option>
+ ))}
+ </select>
+ <input
+ type="date"
+ className="ots-filter-input"
+ value={availabilityFilters.date}
+ onChange={(e) => setAvailabilityFilters((prev) => ({ ...prev, date: e.target.value }))}
+ />
+ <button className="ots-btn ots-btn--secondary" onClick={loadTrainerAvailability}>
+ Xem lịch rảnh
  </button>
  </div>
  </div>
 
+ <div className="ots-availability-panel__meta">
+ <span>
+ {DAY_LABELS[getDayKeyFromDate(availabilityFilters.date)] || "Ngày đã chọn"}
+ {availabilityFilters.date ? ` • ${formatDate(availabilityFilters.date)}` : ""}
+ </span>
+ <span>{visibleTrainerAvailability.length} PT có ca làm</span>
+ </div>
+
+ {loadingAvailability ? (
+ <div className="ots-loading">Đang tải lịch rảnh của huấn luyện viên...</div>
+ ) : visibleTrainerAvailability.length === 0 ? (
+ <div className="ots-empty ots-empty--compact">
+ <p>Không có huấn luyện viên nào có lịch làm việc trong ngày đã chọn.</p>
+ </div>
+ ) : (
+ <div className="ots-availability-grid">
+ {visibleTrainerAvailability.map(({ trainer, freeRanges, occupiedBlocks, availableRanges, availabilityState }) => (
+ <div key={trainer.id} className="ots-availability-card">
+ <div className="ots-availability-card__top">
+ <div>
+ <div className="ots-availability-card__name">{trainer.User?.username || `Huấn luyện viên #${trainer.id}`}</div>
+ <div className="ots-availability-card__meta">
+ {trainer.Gym?.name || "Không rõ chi nhánh"}
+ {trainer.specialization ? ` • ${trainer.specialization}` : ""}
+ </div>
+ </div>
+ <span className={`ots-availability-badge ${availabilityState === "free" ? "is-free" : availabilityState === "busy" ? "is-busy" : "is-neutral"}`}>
+ {availabilityState === "free"
+ ? `${freeRanges.length} khung rảnh`
+ : availabilityState === "busy"
+ ? "Kín lịch"
+ : availabilityState === "off"
+ ? "Nghỉ ngày này"
+ : "Chưa cài lịch"}
+ </span>
+ </div>
+
+ <div className="ots-availability-section">
+ <div className="ots-availability-section__label">Khung giờ làm việc</div>
+ <div className="ots-slot-list">
+ {availableRanges.length ? availableRanges.map((range, index) => (
+ <span key={`${trainer.id}-available-${index}`} className="ots-slot-pill ots-slot-pill--outline">
+ {range.start} - {range.end}
+ </span>
+ )) : <span className="ots-availability-muted">Chưa cập nhật lịch làm việc</span>}
+ </div>
+ </div>
+
+ <div className="ots-availability-section">
+ <div className="ots-availability-section__label">Khung giờ còn rảnh</div>
+ <div className="ots-slot-list">
+ {freeRanges.length ? freeRanges.map((range, index) => (
+ <button
+ key={`${trainer.id}-free-${index}`}
+ type="button"
+ className="ots-slot-pill ots-slot-pill--free ots-slot-pill--interactive"
+ onClick={() => handleQuickBookFromAvailability(trainer, range)}
+ title="Bấm để mở form đặt lịch với khung giờ này"
+ >
+ {range.start} - {range.end}
+ </button>
+ )) : <span className="ots-availability-muted">{availabilityState === "off" ? "PT không làm việc trong ngày này" : availabilityState === "unconfigured" ? "PT chưa cập nhật lịch làm việc" : "Không còn khung giờ trống trong ngày này"}</span>}
+ </div>
+ </div>
+
+ <div className="ots-availability-section">
+ <div className="ots-availability-section__label">Khung giờ đang bận</div>
+ <div className="ots-slot-list ots-slot-list--stacked">
+ {occupiedBlocks.length ? occupiedBlocks.map((block) => (
+ <div key={`${trainer.id}-busy-${block.id}`} className="ots-slot-pill ots-slot-pill--busy">
+ <span>{block.startTime} - {block.endTime}</span>
+ <span>
+ {block.type === "trainer_share"
+ ? "Đang chia sẻ PT"
+ : block.memberName
+ ? `Hội viên: ${block.memberName}`
+ : STATUS_LABELS[block.status]?.label || "Đang bận"}
+ </span>
+ </div>
+ )) : <span className="ots-availability-muted">Chưa có booking chiếm chỗ</span>}
+ </div>
+ </div>
+ </div>
+ ))}
+ </div>
+ )}
+ </div>
  {/* Filter */}
  <div className="ots-filters ots-filters--advanced">
  <input
@@ -1831,8 +2081,9 @@ export default function OwnerTrainerSharePage() {
  className="ots-filter-select"
  value={bookingFilters.gymId}
  onChange={(e) => setBookingFilters({ ...bookingFilters, gymId: e.target.value })}
+ disabled={Boolean(selectedGymId)}
  >
- <option value="">Tất cả Gym</option>
+ <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả Gym"}</option>
  {bookingGyms.map((g) => (
  <option key={g.id} value={g.id}>{g.name}</option>
  ))}
@@ -1897,18 +2148,6 @@ export default function OwnerTrainerSharePage() {
  Đặt lịch đầu tiên
  </button>
  </div>
- ) : viewMode === "calendar" ? (
- <CalendarView 
- bookings={bookings}
- currentMonth={currentMonth}
- onMonthChange={setCurrentMonth}
- onBookingClick={handleEditBooking}
- onDateClick={(date) => {
- const dateStr = date.toISOString().split('T')[0];
- setBookingFilters({ ...bookingFilters, startDate: dateStr, endDate: dateStr });
- setViewMode("table");
- }}
- />
  ) : (
  <>
  <table className="ots-table">
@@ -2116,7 +2355,7 @@ export default function OwnerTrainerSharePage() {
  value={form.toGymId}
  onChange={(e) => setForm({ ...form, toGymId: e.target.value, memberId: '' })}
  required
- disabled={loadingLookups}
+ disabled={loadingLookups || Boolean(selectedGymId)}
  >
  <option value="">-- Chọn Gym của tôi --</option>
  {gyms.filter(g => myGymIds.includes(g.id)).map((g) => (
@@ -2145,17 +2384,6 @@ export default function OwnerTrainerSharePage() {
  </option>
  ))
  }
- </select>
- </Field>
-
- <Field label="Loại chia sẻ">
- <select
- className="ots-select"
- value={form.shareType}
- onChange={(e) => setForm({ ...form, shareType: e.target.value })}
- >
- <option value="temporary">Tạm thời</option>
- <option value="permanent">Vĩnh viễn</option>
  </select>
  </Field>
 
@@ -2478,18 +2706,6 @@ export default function OwnerTrainerSharePage() {
  </div>
  )}
 
- <Field label="Hoa hồng (%)" hint="Từ 0 đến 1 (vd: 0.7 = 70%)">
- <input
- type="number"
- className="ots-input"
- value={form.commissionSplit}
- onChange={(e) => setForm({ ...form, commissionSplit: e.target.value })}
- min="0"
- max="1"
- step="0.01"
- />
- </Field>
-
  <Field label="Ghi chú">
  <textarea
  className="ots-textarea"
@@ -2534,9 +2750,9 @@ export default function OwnerTrainerSharePage() {
  <select
  className="ots-select"
  value={bookingForm.gymId}
- onChange={(e) => setBookingForm({ ...bookingForm, gymId: e.target.value, trainerId: '' })}
+ onChange={(e) => setBookingForm({ ...bookingForm, gymId: e.target.value, trainerId: '', memberId: '', packageActivationId: '', packageId: '' })}
  required
- disabled={loadingLookups}
+ disabled={loadingLookups || Boolean(selectedGymId)}
  >
  <option value="">-- Chọn Gym --</option>
  {bookingGyms.map((g) => (
@@ -2556,7 +2772,7 @@ export default function OwnerTrainerSharePage() {
  disabled={loadingLookups}
  >
  <option value="">-- Chọn Member --</option>
- {members.map((m) => (
+ {members.filter((m) => !bookingForm.gymId || String(m.gymId || m.Gym?.id || "") === String(bookingForm.gymId)).map((m) => (
  <option key={m.id} value={m.id}>
  {m.User?.username || "N/A"} - {m.User?.email || ""}
  </option>
@@ -2984,29 +3200,6 @@ export default function OwnerTrainerSharePage() {
  </strong>
  </div>
  
- <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
- <span style={{ opacity: 0.9, minWidth: '90px' }}>Loại:</span>
- <span style={{ 
- padding: '0.25rem 0.75rem', 
- background: 'rgba(255,255,255,0.25)', 
- borderRadius: '20px',
- fontSize: '0.9rem',
- fontWeight: '600',
- backdropFilter: 'blur(10px)'
- }}>
- {selectedShareForSchedule.shareType === 'temporary' ? 'Tạm thời' : 'Vĩnh viễn'}
- </span>
- </div>
-
- {selectedShareForSchedule.commissionSplit && (
- <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
- <span style={{ opacity: 0.9, minWidth: '90px' }}>Hoa hồng:</span>
- <strong style={{ fontSize: '1rem' }}>
- {(selectedShareForSchedule.commissionSplit * 100).toFixed(0)}%
- </strong>
- </div>
- )}
-
  {selectedShareForSchedule.scheduleMode === 'specific_days' && selectedShareForSchedule.specificSchedules?.length > 0 && (
  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
  <span style={{ opacity: 0.9, fontWeight: '600' }}>Lịch cụ thể:</span>
@@ -3243,11 +3436,6 @@ export default function OwnerTrainerSharePage() {
  </div>
 
  <div className="detail-row">
- <span className="detail-label">Loại:</span>
- <span className="detail-value">{selectedShare.shareType === 'temporary' ? 'Tạm thời' : 'Vĩnh viễn'}</span>
- </div>
-
- <div className="detail-row">
  <span className="detail-label">Ngày bắt đầu:</span>
  <span className="detail-value">{formatDate(selectedShare.startDate)}</span>
  </div>
@@ -3270,11 +3458,6 @@ export default function OwnerTrainerSharePage() {
  </div>
  </>
  )}
-
- <div className="detail-row">
- <span className="detail-label">Hoa hồng:</span>
- <span className="detail-value">{(selectedShare.commissionSplit * 100).toFixed(0)}%</span>
- </div>
 
  <div className="detail-row">
  <span className="detail-label">Trạng thái:</span>

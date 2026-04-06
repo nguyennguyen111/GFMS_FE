@@ -9,6 +9,7 @@ import {
   ownerDeletePolicy,
 } from "../../../services/ownerPolicyService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 // ===== helpers =====
 const toISO = (d) => (d ? String(d).slice(0, 10) : "");
@@ -32,6 +33,8 @@ function Field({ label, hint, children }) {
     </div>
   );
 }
+
+const formatPolicyActiveLabel = (isActive) => (isActive ? "Đang áp dụng" : "Ngừng áp dụng");
 
 const DEFAULT_VALUE = {
   commissionSplit: 0.7,
@@ -69,7 +72,8 @@ const normalizeValue = (v) => {
 };
 
 export default function OwnerPoliciesPage() {
-  const [gymId, setGymId] = useState("");
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const [gymId, setGymId] = useState(selectedGymId ? String(selectedGymId) : "");
 
   // gyms dropdown
   const [gyms, setGyms] = useState([]);
@@ -86,7 +90,7 @@ export default function OwnerPoliciesPage() {
   const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
-    gymId: "",
+    gymId: selectedGymId ? String(selectedGymId) : "",
     name: "Trainer Share Policy",
     description: "Hoa hồng/max giờ/huỷ",
     isActive: true,
@@ -96,6 +100,12 @@ export default function OwnerPoliciesPage() {
   });
 
   const canQueryGym = useMemo(() => String(gymId || "").trim().length > 0, [gymId]);
+
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setGymId(scopedGymId);
+    setForm((prev) => ({ ...prev, gymId: scopedGymId || prev.gymId }));
+  }, [selectedGymId]);
 
   // ===== load gyms =====
   useEffect(() => {
@@ -107,7 +117,7 @@ export default function OwnerPoliciesPage() {
         const list = res?.data?.data || res?.data?.DT || [];
         setGyms(Array.isArray(list) ? list : []);
 
-        if (!gymId && Array.isArray(list) && list.length > 0) {
+        if (!selectedGymId && !gymId && Array.isArray(list) && list.length > 0) {
           setGymId(String(list[0].id));
         }
       } catch (e) {
@@ -117,7 +127,7 @@ export default function OwnerPoliciesPage() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gymId, selectedGymId]);
 
   const loadList = async () => {
     setErr("");
@@ -174,7 +184,7 @@ export default function OwnerPoliciesPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({
-      gymId: gymId || "",
+      gymId: selectedGymId ? String(selectedGymId) : gymId || "",
       name: "Trainer Share Policy",
       description: "Hoa hồng/max giờ/huỷ",
       isActive: true,
@@ -189,7 +199,7 @@ export default function OwnerPoliciesPage() {
     const x = normalizeValue(p.value);
     setEditing(p);
     setForm({
-      gymId: p.gymId ?? "",
+      gymId: selectedGymId ? String(selectedGymId) : p.gymId ?? "",
       name: p.name || "Trainer Share Policy",
       description: p.description || "",
       isActive: !!p.isActive,
@@ -295,7 +305,7 @@ export default function OwnerPoliciesPage() {
         <div>
           <h2 className="op2-title">📜 Chính sách • Chia sẻ Huấn luyện viên</h2>
           <div className="op2-sub">
-            Quản lý policy loại <b>trainer_share</b> theo phòng tập (override) và xem policy hiệu lực (fallback system).
+            Quản lý policy loại <b>trainer_share</b> theo phòng tập (override) và xem policy hiệu lực (fallback system){selectedGymName ? ` cho ${selectedGymName}` : ""}.
           </div>
         </div>
 
@@ -304,7 +314,7 @@ export default function OwnerPoliciesPage() {
             <span>Phòng tập</span>
 
             {gyms.length > 0 ? (
-              <select value={gymId} onChange={(e) => setGymId(e.target.value)} disabled={loadingGyms}>
+              <select value={gymId} onChange={(e) => setGymId(e.target.value)} disabled={loadingGyms || Boolean(selectedGymId)}>
                 {gyms.map((g) => (
                   <option key={g.id} value={g.id}>
                     #{g.id} • {g.name}
@@ -316,6 +326,7 @@ export default function OwnerPoliciesPage() {
                 value={gymId}
                 onChange={(e) => setGymId(e.target.value)}
                 placeholder={loadingGyms ? "đang tải..." : "vd: 1"}
+                disabled={Boolean(selectedGymId)}
               />
             )}
           </div>
@@ -353,7 +364,7 @@ export default function OwnerPoliciesPage() {
         {!canQueryGym ? (
           <div className="op2-empty">Chọn phòng tập ở góc phải để xem policy hiệu lực.</div>
         ) : !effective ? (
-          <div className="op2-empty">Không tìm thấy policy hiệu lực (phòng tập & system đều không có/không active).</div>
+          <div className="op2-empty">Không tìm thấy policy hiệu lực (phòng tập và hệ thống đều không có hoặc không áp dụng).</div>
         ) : (
           <div className="op2-effective">
             <div className="op2-effective__top">
@@ -363,7 +374,7 @@ export default function OwnerPoliciesPage() {
                   #{effective.id} • {effective.gymId == null ? "SYSTEM" : `GYM ${effective.gymId}`}
                 </span>
               </div>
-              <Badge on={!!effective.isActive} label={effective.isActive ? "Active" : "Inactive"} />
+              <Badge on={!!effective.isActive} label={formatPolicyActiveLabel(effective.isActive)} />
             </div>
             {renderValue(effective.value)}
           </div>
@@ -395,7 +406,7 @@ export default function OwnerPoliciesPage() {
                       </div>
                       <div className="op2-muted">{p.description || "—"}</div>
                     </div>
-                    <Badge on={!!p.isActive} label={p.isActive ? "Active" : "Inactive"} />
+                    <Badge on={!!p.isActive} label={formatPolicyActiveLabel(p.isActive)} />
                   </div>
                   {renderValue(p.value)}
                 </div>
@@ -427,7 +438,7 @@ export default function OwnerPoliciesPage() {
                       </div>
                       <div className="op2-muted">{p.description || "—"}</div>
                     </div>
-                    <Badge on={!!p.isActive} label={p.isActive ? "Active" : "Inactive"} />
+                    <Badge on={!!p.isActive} label={formatPolicyActiveLabel(p.isActive)} />
                   </div>
 
                   {renderValue(p.value)}
@@ -459,7 +470,7 @@ export default function OwnerPoliciesPage() {
                 <div className="op2-modal__title">
                   {editing ? `Sửa policy #${editing.id}` : "Tạo policy phòng tập (trainer_share)"}
                 </div>
-                <div className="op2-muted">Active = true sẽ tự tắt policy active khác cùng phòng tập (theo BE).</div>
+                <div className="op2-muted">Nếu bật áp dụng, hệ thống sẽ tự tắt policy đang áp dụng khác cùng phòng tập (theo BE).</div>
               </div>
               <button className="op2-btn op2-btn--small" onClick={closeModal}>✕</button>
             </div>
@@ -470,8 +481,9 @@ export default function OwnerPoliciesPage() {
                   <select
                     value={form.gymId}
                     onChange={(e) => setForm((f) => ({ ...f, gymId: e.target.value }))}
+                    disabled={Boolean(selectedGymId)}
                   >
-                    <option value="">-- chọn phòng tập --</option>
+                    <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "-- chọn phòng tập --"}</option>
                     {gyms.map((g) => (
                       <option key={g.id} value={g.id}>
                         #{g.id} • {g.name}
@@ -483,6 +495,7 @@ export default function OwnerPoliciesPage() {
                     value={form.gymId}
                     onChange={(e) => setForm((f) => ({ ...f, gymId: e.target.value }))}
                     placeholder="vd: 1"
+                    disabled={Boolean(selectedGymId)}
                   />
                 )}
               </Field>
@@ -579,14 +592,14 @@ export default function OwnerPoliciesPage() {
                 </Field>
               </div>
 
-              <Field label="Active">
+              <Field label="Trạng thái áp dụng">
                 <label className="op2-switch">
                   <input
                     type="checkbox"
                     checked={!!form.isActive}
                     onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
-                  <span>{form.isActive ? "Active" : "Inactive"}</span>
+                  <span>{formatPolicyActiveLabel(form.isActive)}</span>
                 </label>
               </Field>
             </div>

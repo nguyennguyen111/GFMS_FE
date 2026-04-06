@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
-import { getPTAttendanceSchedule, ptCheckIn, ptResetAttendance } from "../../services/ptAttendanceService";
+import { getPTAttendanceSchedule, ptCheckIn, ptCheckOut, ptResetAttendance } from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
 import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
 import NiceModal from "../common/NiceModal";
@@ -194,6 +194,27 @@ const PTSchedule = () => {
     }
   };
 
+  const completeStatus = async () => {
+    if (!attBooking) return;
+    setAttLoading(true);
+    try {
+      await ptCheckOut({ bookingId: attBooking.id, status: "present" });
+      const ymd = toYMD(new Date(attBooking.bookingDate));
+      const res = await getPTAttendanceSchedule({ date: ymd });
+      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+    } catch (e) {
+      const data = e?.response?.data;
+      const msg = data?.DT || data?.message || data?.EM || e?.message || "";
+      const locked = /chốt kỳ|chi trả|điểm danh|không thể thay đổi/i.test(String(msg));
+      setAttendanceBlockModal(
+        locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể hoàn thành buổi tập. Vui lòng thử lại."
+      );
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
   const getStudentNameColor = (attendanceStatus) => {
@@ -369,6 +390,7 @@ const PTSchedule = () => {
         onClose={() => setAttOpen(false)}
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}
+        onComplete={completeStatus}
         onReset={resetStatus}
       />
 

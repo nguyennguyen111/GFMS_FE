@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./MemberProfilePage.css";
 import { memberGetLatestMetric, memberGetMetrics } from "../../../services/memberMetricService";
 import {
   memberGetMyProfile,
   memberUpdateMyProfile,
   memberChangeMyPassword,
+  memberCreateBecomeTrainerRequest,
+  memberGetBecomeTrainerRequests,
 } from "../../../services/memberProfileService";
+import { mpGetGyms } from "../../../services/marketplaceService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
 
@@ -157,7 +161,50 @@ const buildActivitiesFromMetrics = (rows = []) => {
   });
 };
 
+const TRAINER_SPECIALIZATION_OPTIONS = [
+  "Yoga",
+  "Pilates",
+  "HIIT",
+  "CrossFit",
+  "Thể hình",
+  "Tăng sức mạnh",
+  "Tập chức năng",
+  "Giảm mỡ",
+  "Huấn luyện dinh dưỡng",
+  "Phục hồi chức năng",
+  "Quyền anh",
+  "Tập cardio",
+  "Bơi lội",
+  "Chạy bộ",
+  "Đạp xe",
+];
+
+const normalizeCertificateLinks = (input) => {
+  const raw = Array.isArray(input)
+    ? input
+    : String(input || "")
+        .split(/[\n,;]+/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+  const unique = [...new Set(raw)];
+  if (unique.length > 10) return { ok: false, message: "Tối đa 10 link chứng chỉ" };
+
+  for (const link of unique) {
+    try {
+      const u = new URL(link);
+      if (!["http:", "https:"].includes(u.protocol)) {
+        return { ok: false, message: `Link không hợp lệ: ${link}` };
+      }
+    } catch (_e) {
+      return { ok: false, message: `Link không hợp lệ: ${link}` };
+    }
+  }
+  return { ok: true, value: unique };
+};
+
 export default function MemberProfilePage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("profile");
   const [user, setUser] = useState(null);
   const [form, setForm] = useState(null);
@@ -171,6 +218,20 @@ export default function MemberProfilePage() {
 
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
+  const [trainerReason, setTrainerReason] = useState("");
+  const [trainerContent, setTrainerContent] = useState("");
+  const [trainerSpecializations, setTrainerSpecializations] = useState([]);
+  const [trainerCertification, setTrainerCertification] = useState("");
+  const [trainerCertificateLinksText, setTrainerCertificateLinksText] = useState("");
+  const [trainerHourlyRate, setTrainerHourlyRate] = useState("");
+  const [trainerGymId, setTrainerGymId] = useState("");
+  const [trainerGyms, setTrainerGyms] = useState([]);
+  const [trainerGymsLoading, setTrainerGymsLoading] = useState(false);
+  const [showTrainerReqModal, setShowTrainerReqModal] = useState(false);
+  const [trainerReqSaving, setTrainerReqSaving] = useState(false);
+  const [trainerReqNotice, setTrainerReqNotice] = useState({ type: "", message: "" });
+  const [trainerRequests, setTrainerRequests] = useState([]);
+  const [trainerRequestsLoading, setTrainerRequestsLoading] = useState(false);
   const [profileNotice, setProfileNotice] = useState({ type: "", message: "" });
   const [passwordNotice, setPasswordNotice] = useState({ type: "", message: "" });
 
@@ -217,10 +278,65 @@ export default function MemberProfilePage() {
     }
   };
 
+  const loadTrainerGyms = async () => {
+    setTrainerGymsLoading(true);
+    try {
+      const res = await mpGetGyms();
+      const list = Array.isArray(res?.data?.DT) ? res.data.DT : [];
+      setTrainerGyms(list);
+    } catch (_e) {
+      setTrainerGyms([]);
+    } finally {
+      setTrainerGymsLoading(false);
+    }
+  };
+
+  const loadMyTrainerRequests = async () => {
+    setTrainerRequestsLoading(true);
+    try {
+      const res = await memberGetBecomeTrainerRequests();
+      const dt = res?.data?.DT;
+      const list = Array.isArray(dt) ? dt : [];
+      setTrainerRequests(list);
+
+      const hasApproved = list.some((r) => String(r?.status || "").toUpperCase() === "APPROVED");
+      const currentUser = getStoredUser();
+      const currentGroupId = Number(currentUser?.groupId ?? currentUser?.group_id ?? 0);
+
+      if (hasApproved && currentGroupId !== 3) {
+        const nextUser = {
+          ...(currentUser || {}),
+          groupId: 3,
+          group_id: 3,
+        };
+        persistStoredUser(nextUser);
+        showAppToast({
+          type: "success",
+          title: "Đơn PT",
+          message: "Đơn đã được duyệt, đang chuyển sang cổng huấn luyện viên.",
+        });
+        navigate("/pt/dashboard", { replace: true });
+      }
+    } catch (_e) {
+      setTrainerRequests([]);
+    } finally {
+      setTrainerRequestsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadProfile();
     loadMetrics();
+    loadTrainerGyms();
+    loadMyTrainerRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!trainerGymId && user?.gym?.id) {
+      setTrainerGymId(String(user.gym.id));
+    }
+  }, [user, trainerGymId]);
 
   const displayName = useMemo(() => form?.username || user?.username || "HỘI VIÊN", [form, user]);
 
@@ -441,6 +557,95 @@ export default function MemberProfilePage() {
     } finally {
       setPwSaving(false);
     }
+  };
+
+  const handleCreateTrainerRequest = async () => {
+    const reason = String(trainerReason || "").trim();
+    const content = String(trainerContent || "").trim();
+    const gymId = Number(trainerGymId);
+
+    if (reason.length < 10) {
+      setTrainerReqNotice({
+        type: "error",
+        message: "Vui lòng nhập lý do tối thiểu 10 ký tự.",
+      });
+      return;
+    }
+
+    if (!Array.isArray(trainerSpecializations) || trainerSpecializations.length === 0) {
+      setTrainerReqNotice({
+        type: "error",
+        message: "Vui lòng chọn ít nhất 1 chuyên môn.",
+      });
+      return;
+    }
+
+    if (!Number.isInteger(gymId) || gymId <= 0) {
+      setTrainerReqNotice({
+        type: "error",
+        message: "Vui lòng chọn phòng gym.",
+      });
+      return;
+    }
+
+    const links = normalizeCertificateLinks(trainerCertificateLinksText);
+    if (!links.ok) {
+      setTrainerReqNotice({ type: "error", message: links.message });
+      return;
+    }
+
+    const hourlyRate = Number(trainerHourlyRate);
+    if (!Number.isFinite(hourlyRate) || hourlyRate <= 0) {
+      setTrainerReqNotice({
+        type: "error",
+        message: "Giá/giờ phải lớn hơn 0.",
+      });
+      return;
+    }
+
+    setTrainerReqNotice({ type: "", message: "" });
+    setTrainerReqSaving(true);
+    try {
+      const res = await memberCreateBecomeTrainerRequest({
+        reason,
+        content,
+        application: {
+          gymId,
+          specializations: trainerSpecializations,
+          certification: trainerCertification,
+          certificationLinks: links.value,
+          hourlyRate,
+        },
+      });
+      const message = res?.data?.EM || "Đã gửi đơn trở thành huấn luyện viên.";
+      setTrainerReqNotice({ type: "success", message });
+      setTrainerReason("");
+      setTrainerContent("");
+      setTrainerSpecializations([]);
+      setTrainerCertification("");
+      setTrainerCertificateLinksText("");
+      setTrainerHourlyRate("");
+      setTrainerGymId(user?.gym?.id ? String(user.gym.id) : "");
+      setShowTrainerReqModal(false);
+      await loadMyTrainerRequests();
+      showAppToast({ type: "success", title: "Đơn đăng ký PT", message });
+    } catch (e) {
+      const message =
+        e?.response?.data?.EM || e?.message || "Không thể gửi đơn, vui lòng thử lại.";
+      setTrainerReqNotice({ type: "error", message });
+      showAppToast({ type: "error", title: "Đơn đăng ký PT", message });
+    } finally {
+      setTrainerReqSaving(false);
+    }
+  };
+
+  const toggleTrainerSpecialization = (option) => {
+    setTrainerSpecializations((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      return list.includes(option)
+        ? list.filter((item) => item !== option)
+        : [...list, option];
+    });
   };
 
   if (loadingProfile) {
@@ -713,6 +918,91 @@ export default function MemberProfilePage() {
               </div>
             ))}
           </div>
+
+          <div className="mprof-singleGrid">
+            <section className="mprof-securityCard">
+              <div className="mprof-cardHead">
+                <label className="mprof-cardLabel">ỨNG TUYỂN HUẤN LUYỆN VIÊN</label>
+                <h3 className="mprof-cardTitle">GỬI ĐƠN TRỞ THÀNH PT</h3>
+              </div>
+
+              <p className="mprof-note" style={{ marginTop: 0 }}>
+                Chủ gym sẽ duyệt đơn của bạn trong mục duyệt yêu cầu huấn luyện viên.
+              </p>
+
+              {trainerReqNotice.message ? (
+                <div className={`m-inline-note ${trainerReqNotice.type}`}>{trainerReqNotice.message}</div>
+              ) : null}
+              <div className="mprof-saveRow end">
+                <button
+                  className="mprof-btn primary"
+                  onClick={() => {
+                    setTrainerReqNotice({ type: "", message: "" });
+                    setShowTrainerReqModal(true);
+                  }}
+                >
+                  MỞ FORM ĐĂNG KÝ PT
+                </button>
+              </div>
+
+              <div className="mprof-field full" style={{ marginTop: 14 }}>
+                <div className="mprof-label">ĐƠN ĐÃ GỬI</div>
+                {trainerRequestsLoading ? (
+                  <div className="mprof-note" style={{ marginTop: 0 }}>Đang tải lịch sử đơn...</div>
+                ) : trainerRequests.length === 0 ? (
+                  <div className="mprof-note" style={{ marginTop: 0 }}>Bạn chưa gửi đơn nào.</div>
+                ) : (
+                  <div className="mprof-request-list">
+                    {trainerRequests.map((req) => {
+                      const status = String(req?.status || "").toUpperCase();
+                      const statusLabel =
+                        status === "PENDING"
+                          ? "Chờ duyệt"
+                          : status === "APPROVED"
+                            ? "Đã duyệt"
+                            : status === "REJECTED"
+                              ? "Bị từ chối"
+                              : status;
+
+                      return (
+                        <div key={req.id} className="mprof-request-item">
+                          <div className="mprof-request-head">
+                            <div className="mprof-request-head-left">
+                              <span className="mprof-request-code">Đơn #{req.id}</span>
+                              {req?.createdAt ? (
+                                <span className="mprof-request-time">
+                                  {new Date(req.createdAt).toLocaleString("vi-VN")}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span className={`mprof-request-status mprof-request-status--${status.toLowerCase() || "unknown"}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <div className="mprof-request-body">
+                            <div className="mprof-request-row">
+                              <span className="mprof-request-row-label">Lý do</span>
+                              <span className="mprof-request-row-value">{req.reason || "N/A"}</span>
+                            </div>
+                            <div className="mprof-request-row">
+                              <span className="mprof-request-row-label">Nội dung</span>
+                              <span className="mprof-request-row-value">{req.requestContent || "N/A"}</span>
+                            </div>
+                            {status === "REJECTED" && (
+                              <div className="mprof-request-row mprof-request-row--reject">
+                                <span className="mprof-request-row-label">Lý do từ chối</span>
+                                <span className="mprof-request-row-value">{req.reviewNote || "Owner chưa ghi rõ"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </>
       )}
 
@@ -775,6 +1065,140 @@ export default function MemberProfilePage() {
               * Phần đổi mật khẩu đã nối API backend thật.
             </div>
           </section>
+        </div>
+      )}
+
+      {showTrainerReqModal && (
+        <div className="mprof-modal-overlay" onClick={() => !trainerReqSaving && setShowTrainerReqModal(false)}>
+          <div className="mprof-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mprof-modal-head">
+              <h3>Gửi đơn trở thành huấn luyện viên</h3>
+              <button
+                className="mprof-modal-close"
+                type="button"
+                onClick={() => !trainerReqSaving && setShowTrainerReqModal(false)}
+                disabled={trainerReqSaving}
+              >
+                ×
+              </button>
+            </div>
+
+            {trainerReqNotice.message ? (
+              <div className={`m-inline-note ${trainerReqNotice.type}`}>{trainerReqNotice.message}</div>
+            ) : null}
+
+            <div className="mprof-field full">
+              <div className="mprof-label">LÝ DO ỨNG TUYỂN</div>
+              <textarea
+                className="mprof-textarea"
+                rows={3}
+                placeholder="Ví dụ: Tôi có kinh nghiệm hướng dẫn 2 năm, chuyên về giảm mỡ và phục hồi chức năng..."
+                value={trainerReason}
+                onChange={(e) => setTrainerReason(e.target.value)}
+              />
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">CHUYÊN MÔN</div>
+              <div className="mprof-spec-picker">
+                {TRAINER_SPECIALIZATION_OPTIONS.map((option) => {
+                  const checked = Array.isArray(trainerSpecializations)
+                    ? trainerSpecializations.includes(option)
+                    : false;
+                  return (
+                    <label key={option} className={`mprof-spec-option ${checked ? "is-selected" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleTrainerSpecialization(option)}
+                      />
+                      <span>{option}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">PHÒNG GYM</div>
+              <select
+                className="mprof-input"
+                value={trainerGymId}
+                onChange={(e) => setTrainerGymId(e.target.value)}
+                disabled={trainerGymsLoading}
+              >
+                <option value="">-- Chọn phòng gym --</option>
+                {trainerGyms.map((gym) => (
+                  <option key={gym.id} value={gym.id}>
+                    {gym.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">CHỨNG CHỈ</div>
+              <input
+                className="mprof-input"
+                placeholder="VD: NASM..."
+                value={trainerCertification}
+                onChange={(e) => setTrainerCertification(e.target.value)}
+              />
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">LINK CHỨNG CHỈ (MỖI DÒNG 1 LINK)</div>
+              <textarea
+                className="mprof-textarea"
+                rows={3}
+                placeholder="https://..."
+                value={trainerCertificateLinksText}
+                onChange={(e) => setTrainerCertificateLinksText(e.target.value)}
+              />
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">GIÁ/GIỜ (Đ)</div>
+              <input
+                className="mprof-input"
+                type="number"
+                min="1"
+                placeholder="Nhập giá theo giờ"
+                value={trainerHourlyRate}
+                onChange={(e) => setTrainerHourlyRate(e.target.value)}
+              />
+            </div>
+
+            <div className="mprof-field full">
+              <div className="mprof-label">NỘI DUNG ĐƠN</div>
+              <textarea
+                className="mprof-textarea"
+                rows={4}
+                placeholder="Mô tả thêm chứng chỉ, chuyên môn, kinh nghiệm thực tế, thời gian có thể nhận lớp..."
+                value={trainerContent}
+                onChange={(e) => setTrainerContent(e.target.value)}
+              />
+            </div>
+
+            <div className="mprof-saveRow end">
+              <button
+                className="mprof-btn ghost"
+                type="button"
+                onClick={() => setShowTrainerReqModal(false)}
+                disabled={trainerReqSaving}
+              >
+                HỦY
+              </button>
+              <button
+                className="mprof-btn primary"
+                type="button"
+                onClick={handleCreateTrainerRequest}
+                disabled={trainerReqSaving}
+              >
+                {trainerReqSaving ? "ĐANG GỬI..." : "GỬI ĐƠN TRỞ THÀNH PT"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

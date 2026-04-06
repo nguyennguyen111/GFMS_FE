@@ -4,6 +4,8 @@ import { Line } from "react-chartjs-2";
 import "../../../services/chartSetup";
 import "./OwnerOverviewPage.css";
 import ownerDashboardService from "../../../services/ownerDashboardService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 function StatCard({ title, value, hint, icon, loading }) {
   return (
@@ -124,6 +126,7 @@ function GymDropdown({ gyms, selectedGymId, onChange }) {
 export default function OwnerOverviewPage() {
   const PREVIEW_LIMIT = 4;
   const navigate = useNavigate();
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [revenueTrendLoading, setRevenueTrendLoading] = useState(false);
@@ -132,7 +135,6 @@ export default function OwnerOverviewPage() {
   const [revenueTrend, setRevenueTrend] = useState([]);
   const [viewAllType, setViewAllType] = useState(null);
   const [gyms, setGyms] = useState([]);
-  const [selectedGymId, setSelectedGymId] = useState(null);
   const [data, setData] = useState({
     todayBookings: 0,
     totalMembers: 0,
@@ -141,6 +143,7 @@ export default function OwnerOverviewPage() {
     upcomingBookings: [],
     expiringMembers: [],
     lowStock: [],
+    bestSellingPackages: [],
     totalRevenue: 0,
   });
 
@@ -160,6 +163,7 @@ export default function OwnerOverviewPage() {
         upcomingBookings: result.upcomingBookings ?? [],
         expiringMembers: result.expiringMembers ?? [],
         lowStock: result.lowStock ?? [],
+        bestSellingPackages: result.bestSellingPackages ?? [],
         totalRevenue: result.totalRevenue ?? 0,
       });
     } catch (e) {
@@ -190,6 +194,15 @@ export default function OwnerOverviewPage() {
   useEffect(() => {
     fetchRevenueTrend();
   }, [fetchRevenueTrend]);
+
+  const refreshOverview = useCallback(async () => {
+    await Promise.all([fetchData(), fetchRevenueTrend()]);
+  }, [fetchData, fetchRevenueTrend]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: refreshOverview,
+    notificationTypes: ["package_purchase", "review", "trainer_share"],
+  });
 
   const formatRevenue = (val) => {
     if (val >= 1_000_000_000) return `₫ ${(val / 1_000_000_000).toFixed(1)}B`;
@@ -276,6 +289,9 @@ export default function OwnerOverviewPage() {
   const upcomingPreview = data.upcomingBookings.slice(0, PREVIEW_LIMIT);
   const expiringPreview = data.expiringMembers.slice(0, PREVIEW_LIMIT);
   const newMembersPreview = data.newMembersToday.slice(0, PREVIEW_LIMIT);
+  const bestSellingPreview = [...data.bestSellingPackages]
+    .sort((a, b) => Number(b.soldCount || 0) - Number(a.soldCount || 0))
+    .slice(0, PREVIEW_LIMIT);
 
   const closeViewAll = () => setViewAllType(null);
 
@@ -337,14 +353,24 @@ export default function OwnerOverviewPage() {
         </div>
       )}
 
-      {/* ── Chọn chi nhánh ── */}
-      {gyms.length > 0 && (
-        <GymDropdown
-          gyms={gyms}
-          selectedGymId={selectedGymId}
-          onChange={setSelectedGymId}
-        />
-      )}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 14px",
+          borderRadius: 14,
+          background: "rgba(255,255,255,.06)",
+          border: "1px solid rgba(255,255,255,.1)",
+          color: "rgba(255,255,255,.9)",
+          marginBottom: 14,
+        }}
+      >
+        <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)", textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Đang xem
+        </span>
+        <strong>{selectedGymName || "Tất cả chi nhánh"}</strong>
+      </div>
 
       {/* ── Stat cards ── */}
       <div className="ov-gridStats">
@@ -504,7 +530,27 @@ export default function OwnerOverviewPage() {
             </div>
           )}
         </Panel>
-        <div />
+
+        <Panel title="Gói bán chạy nhất">
+          {loading ? (
+            <div className="ov-empty">Đang tải…</div>
+          ) : data.bestSellingPackages.length === 0 ? (
+            <div className="ov-empty">Chưa có dữ liệu bán gói</div>
+          ) : (
+            <div className="ov-list">
+              {bestSellingPreview.map((p, idx) => (
+                <div className="ov-row" key={`${p.packageId}-${idx}`}>
+                  <div className="ov-badge" style={{ minWidth: 42 }}>{idx + 1}</div>
+                  <div className="ov-rowMain">
+                    <div className="ov-rowTitle">{p.packageName}</div>
+                    <div className="ov-rowSub">{Number(p.revenue || 0).toLocaleString("vi-VN")} ₫</div>
+                  </div>
+                  <span className="ov-miniBtn">{p.soldCount} lượt bán</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
       </div>
 
       {viewAllConfig && (

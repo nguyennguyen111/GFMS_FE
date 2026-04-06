@@ -13,12 +13,17 @@ import {
   Activity,
   Star,
   LayoutDashboard,
+  Building2,
+  Check,
 } from "lucide-react";
 import "./Header.css";
 import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
+import useSelectedGym from "../../hooks/useSelectedGym";
 import { getCurrentUser } from "../../utils/auth";
+import { ownerGetMyGyms } from "../../services/ownerGymService";
+import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
 
 const readAuth = () => {
   const token = localStorage.getItem("accessToken");
@@ -61,12 +66,16 @@ export default function Header() {
   const [staffAccountOpen, setStaffAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [authTick, setAuthTick] = useState(0);
+  const [ownerGyms, setOwnerGyms] = useState([]);
 
   void authTick;
-  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath } =
+  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath, groupId } =
     readAuth();
+  const isOwner = groupId === 2;
+  const notificationPath = isMember ? "/member/notifications" : isOwner ? "/owner/notifications" : null;
+  const { selectedGymId, selectedGymName, setSelectedGym, clearSelectedGym } = useSelectedGym();
 
-  const notifications = useRealtimeNotifications();
+  const notifications = useRealtimeNotifications({ enabled: isMember });
 
   useEffect(() => {
     const setVar = () => {
@@ -117,6 +126,35 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    if (!isOwner || !token) {
+      setOwnerGyms([]);
+      return;
+    }
+
+    let alive = true;
+
+    const loadOwnerGyms = async () => {
+      try {
+        const res = await ownerGetMyGyms();
+        const gyms = Array.isArray(res?.data?.data) ? res.data.data : [];
+        if (!alive) return;
+        setOwnerGyms(gyms);
+        if (!selectedGymId && gyms.length === 1) {
+          setSelectedGym(gyms[0]);
+        }
+      } catch {
+        if (alive) setOwnerGyms([]);
+      }
+    };
+
+    loadOwnerGyms();
+
+    return () => {
+      alive = false;
+    };
+  }, [isOwner, selectedGymId, setSelectedGym, token]);
+
+  useEffect(() => {
     document.body.style.overflow = menuOpened ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
@@ -134,6 +172,15 @@ export default function Header() {
     localStorage.clear();
     window.dispatchEvent(new Event("authChanged"));
     go("/");
+  };
+
+  const handleSelectOwnerGym = (gym) => {
+    if (gym) {
+      setSelectedGym(gym);
+    } else {
+      clearSelectedGym();
+    }
+    go("/owner/overview");
   };
 
   const initials = useMemo(() => {
@@ -163,12 +210,14 @@ export default function Header() {
     </NavLink>
   );
 
-  const NotificationButton = () => (
+  const SimpleNotificationButton = () => (
     <button
       type="button"
       className="header-icon-btn"
       aria-label="Thông báo"
-      onClick={() => go("/member/notifications")}
+      onClick={() => {
+        if (notificationPath) go(notificationPath);
+      }}
     >
       <Bell size={18} />
       {notifications.unreadCount > 0 ? (
@@ -241,7 +290,12 @@ export default function Header() {
         type="button"
       >
         <User size={16} />
-        <span>{username}</span>
+        <span className="profile-btn__stack">
+          <span>{username}</span>
+          {isOwner ? (
+            <span className="profile-btn__sub">{selectedGymName || "Tất cả chi nhánh"}</span>
+          ) : null}
+        </span>
         <ChevronDown size={16} className="profile-caret" />
       </button>
 
@@ -254,7 +308,39 @@ export default function Header() {
             </button>
           ) : null}
 
-          {portalPath ? <div className="dropdown-divider" /> : null}
+          {isOwner ? (
+            <>
+              {portalPath ? <div className="dropdown-divider" /> : null}
+              <div className="profile-dropdown-sectionTitle">Quản lý chi nhánh</div>
+              <button
+                onClick={() => handleSelectOwnerGym(null)}
+                type="button"
+                className={`profile-dropdown-branch ${!selectedGymId ? "is-active" : ""}`}
+              >
+                <span className="profile-dropdown-branch__label">
+                  <Building2 size={16} />
+                  <span>Tất cả chi nhánh</span>
+                </span>
+                {!selectedGymId ? <Check size={15} /> : null}
+              </button>
+              {ownerGyms.map((gym) => (
+                <button
+                  key={gym.id}
+                  onClick={() => handleSelectOwnerGym(gym)}
+                  type="button"
+                  className={`profile-dropdown-branch ${Number(selectedGymId) === Number(gym.id) ? "is-active" : ""}`}
+                >
+                  <span className="profile-dropdown-branch__label">
+                    <Building2 size={16} />
+                    <span>{gym.name}</span>
+                  </span>
+                  {Number(selectedGymId) === Number(gym.id) ? <Check size={15} /> : null}
+                </button>
+              ))}
+            </>
+          ) : null}
+
+          {portalPath || isOwner ? <div className="dropdown-divider" /> : null}
 
           <button className="logout-btn" onClick={logout} type="button">
             <LogOut size={16} />
@@ -383,7 +469,8 @@ export default function Header() {
               </button>
             )}
 
-            {isMember ? <NotificationButton /> : null}
+            {isOwner && notificationPath ? <OwnerHeaderNotifications onNavigate={go} /> : null}
+            {!isOwner && isMember && notificationPath ? <SimpleNotificationButton /> : null}
             {isMember && <MemberDropdown />}
             {isLoggedInNonMember && <StaffAccountDropdown />}
 

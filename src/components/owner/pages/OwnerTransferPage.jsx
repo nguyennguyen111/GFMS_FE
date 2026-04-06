@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./OwnerTransferPage.css";
+import { useSearchParams } from "react-router-dom";
 import {
   ownerGetTransfers,
   ownerGetTransferDetail,
@@ -9,7 +10,9 @@ import {
   ownerCompleteTransfer,
 } from "../../../services/ownerTransferService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
-import { ownerGetEquipments } from "../../../services/ownerEquipmentService";
+import { ownerGetEquipments, ownerGetEquipmentDetail } from "../../../services/ownerEquipmentService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => {
   const map = {
@@ -23,6 +26,9 @@ const statusBadge = (status) => {
 
 export default function OwnerTransferPage() {
   const PAGE_SIZE = 10;
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const [searchParams] = useSearchParams();
+  const openedTransferRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [transfers, setTransfers] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -34,19 +40,51 @@ export default function OwnerTransferPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [myGyms, setMyGyms] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
+  const [equipmentUnitsByItem, setEquipmentUnitsByItem] = useState({});
 
   // Create form state
   const [createForm, setCreateForm] = useState({
-    fromGymId: "",
+    fromGymId: selectedGymId ? String(selectedGymId) : "",
     toGymId: "",
-    items: [{ equipmentId: "", quantity: "" }],
+    items: [{ equipmentId: "", quantity: "", selectedUnitIds: [] }],
     notes: "",
   });
 
   const [actionLoading, setActionLoading] = useState(false);
 
+  const resetCreateState = useCallback(() => {
+    setCreateForm({
+      fromGymId: selectedGymId ? String(selectedGymId) : "",
+      toGymId: "",
+      items: [{ equipmentId: "", quantity: "", selectedUnitIds: [] }],
+      notes: "",
+    });
+    setEquipmentUnitsByItem({});
+  }, [selectedGymId]);
+
+  const removeCreateItem = useCallback((removeIndex) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, index) => index !== removeIndex),
+    }));
+    setEquipmentUnitsByItem((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const numericKey = Number(key);
+        if (numericKey < removeIndex) next[numericKey] = value;
+        if (numericKey > removeIndex) next[numericKey - 1] = value;
+      });
+      return next;
+    });
+  }, []);
+
+  const closeDetailModal = useCallback(() => {
+    setShowDetailModal(false);
+    setDetail(null);
+  }, []);
+
   // Fetch transfers list
-  const fetchTransfers = async (targetPage = page, targetFilters = filters) => {
+  const fetchTransfers = useCallback(async (targetPage = page, targetFilters = filters) => {
     setLoading(true);
     try {
       const res = await ownerGetTransfers({
@@ -57,6 +95,13 @@ export default function OwnerTransferPage() {
       });
 
       let rows = res?.data?.data ?? [];
+
+      if (selectedGymId) {
+        rows = rows.filter((t) => (
+          String(t.fromGymId || t.fromGym?.id || "") === String(selectedGymId)
+          || String(t.toGymId || t.toGym?.id || "") === String(selectedGymId)
+        ));
+      }
 
       if (targetFilters.fromGymId) {
         rows = rows.filter((t) => String(t.fromGymId || t.fromGym?.id || "") === String(targetFilters.fromGymId));
@@ -91,7 +136,7 @@ export default function OwnerTransferPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, page, selectedGymId]);
 
   const applySearch = () => {
     const nextFilters = { ...filters, q: searchInput.trim() };
@@ -115,39 +160,119 @@ export default function OwnerTransferPage() {
   };
 
   // Fetch my gyms for dropdown
-  const fetchMyGyms = async () => {
+  const fetchMyGyms = useCallback(async () => {
     try {
       const res = await ownerGetMyGyms();
       setMyGyms(res?.data?.data ?? []);
     } catch (e) {
       console.error("Failed to fetch gyms:", e.message);
     }
-  };
+  }, []);
 
   // Fetch equipment list when fromGym changes
-  const fetchEquipmentByGym = async (gymId) => {
+  const fetchEquipmentByGym = useCallback(async (gymId) => {
     if (!gymId) {
       setEquipmentList([]);
+      setEquipmentUnitsByItem({});
       return;
     }
     try {
       const res = await ownerGetEquipments({ gymId, limit: 1000 });
-      setEquipmentList(res?.data?.data ?? []);
+      const data = Array.isArray(res?.data?.data) ? res.data.data : [];
+      setEquipmentList(data);
     } catch (e) {
       console.error("Failed to fetch equipment:", e.message);
       setEquipmentList([]);
     }
-  };
+  }, []);
+
+  const fetchEquipmentUnits = useCallback(async (equipmentId, gymId, itemIndex) => {
+    if (!equipmentId || !gymId) {
+      setEquipmentUnitsByItem((prev) => ({ ...prev, [itemIndex]: [] }));
+      return;
+    }
+    try {
+      const res = await ownerGetEquipmentDetail(equipmentId, { gymId });
+      const units = Array.isArray(res?.data?.data?.units) ? res.data.data.units : [];
+      const inStockUnits = units.filter(
+        (unit) => Number(unit.gymId) === Number(gymId)
+          && (unit.status === "active" || !unit.status)
+          && (!unit.usageStatus || unit.usageStatus === "in_stock")
+          && !unit.transferId
+      );
+      const fallbackUnits = units.filter(
+        (unit) => Number(unit.gymId) === Number(gymId)
+          && (unit.status === "active" || !unit.status)
+          && !unit.transferId
+      );
+      setEquipmentUnitsByItem((prev) => ({
+        ...prev,
+        [itemIndex]: (inStockUnits.length > 0 ? inStockUnits : fallbackUnits)
+          .sort((left, right) => String(left.assetCode || "").localeCompare(String(right.assetCode || ""))),
+      }));
+    } catch (e) {
+      console.error("Failed to fetch equipment units:", e.message);
+      setEquipmentUnitsByItem((prev) => ({ ...prev, [itemIndex]: [] }));
+    }
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    setShowCreate(false);
+    resetCreateState();
+  }, [resetCreateState]);
+
+  const toggleUnitSelection = useCallback((itemIndex, unitId) => {
+    setCreateForm((prev) => {
+      const nextItems = prev.items.map((item, index) => {
+        if (index !== itemIndex) return item;
+        const selectedUnitIds = Array.isArray(item.selectedUnitIds) ? item.selectedUnitIds.map(Number) : [];
+        const nextSelected = selectedUnitIds.includes(Number(unitId))
+          ? selectedUnitIds.filter((id) => id !== Number(unitId))
+          : [...selectedUnitIds, Number(unitId)];
+
+        return {
+          ...item,
+          selectedUnitIds: nextSelected,
+          quantity: String(nextSelected.length),
+        };
+      });
+
+      return { ...prev, items: nextItems };
+    });
+  }, []);
+
+  const setAllUnits = useCallback((itemIndex, mode) => {
+    setCreateForm((prev) => {
+      const nextItems = prev.items.map((item, index) => {
+        if (index !== itemIndex) return item;
+        const allUnits = equipmentUnitsByItem[itemIndex] || [];
+        const filteredUnitIds = allUnits.map((unit) => Number(unit.id));
+
+        const selectedUnitIds = mode === "all" ? filteredUnitIds : [];
+        return {
+          ...item,
+          selectedUnitIds,
+          quantity: String(selectedUnitIds.length),
+        };
+      });
+
+      return { ...prev, items: nextItems };
+    });
+  }, [equipmentUnitsByItem]);
 
   // Fetch detail when selected
-  const fetchDetail = async (id) => {
+  const fetchDetail = useCallback(async (id, options = {}) => {
     try {
+      const { openModal = true } = options;
       const res = await ownerGetTransferDetail(id);
       setDetail(res?.data?.data);
+      if (openModal) {
+        setShowDetailModal(true);
+      }
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
+  }, []);
 
   // Handle create transfer
   const handleCreate = async () => {
@@ -155,8 +280,8 @@ export default function OwnerTransferPage() {
       alert("Vui lòng chọn phòng tập đi và phòng tập đến");
       return;
     }
-    if (createForm.items.some((i) => !i.equipmentId || !i.quantity)) {
-      alert("Vui lòng điền đầy đủ thông tin thiết bị");
+    if (createForm.items.some((i) => !i.equipmentId || !Array.isArray(i.selectedUnitIds) || i.selectedUnitIds.length === 0)) {
+      alert("Vui lòng chọn đầy đủ thiết bị và đơn vị thiết bị cần chuyển");
       return;
     }
 
@@ -165,12 +290,16 @@ export default function OwnerTransferPage() {
       await ownerCreateTransfer({
         fromGymId: createForm.fromGymId,
         toGymId: createForm.toGymId,
-        items: createForm.items,
+        items: createForm.items.map((item) => ({
+          equipmentId: item.equipmentId,
+          quantity: item.selectedUnitIds.length,
+          selectedUnitIds: item.selectedUnitIds,
+        })),
         notes: createForm.notes,
       });
-      alert("Tạo phiếu chuyển kho thành công");
+      alert("Tạo phiếu chuyển kho và duyệt tự động thành công");
       setShowCreate(false);
-      setCreateForm({ fromGymId: "", toGymId: "", items: [{ equipmentId: "", quantity: "" }], notes: "" });
+      resetCreateState();
       setPage(1);
       fetchTransfers();
     } catch (e) {
@@ -198,10 +327,14 @@ export default function OwnerTransferPage() {
 
   // Handle reject
   const handleReject = async (id) => {
+    const reason = window.prompt("Nhập lý do từ chối phiếu chuyển kho:", "") || "";
     if (!window.confirm("Bạn có chắc muốn từ chối phiếu này?")) return;
     setActionLoading(true);
     try {
-      await ownerRejectTransfer(id);
+      await ownerRejectTransfer(id, {
+        gymId: selectedGymId || undefined,
+        reason: reason.trim() || undefined,
+      });
       alert("Từ chối thành công");
       fetchTransfers();
       if (detail?.id === id) fetchDetail(id);
@@ -214,11 +347,15 @@ export default function OwnerTransferPage() {
 
   // Handle complete
   const handleComplete = async (id) => {
+    if (!selectedGymId) {
+      alert("Vui lòng chọn chi nhánh nhận hàng trước khi xác nhận nhận hàng");
+      return;
+    }
     if (!window.confirm("Bạn có chắc muốn hoàn tất phiếu này?")) return;
     setActionLoading(true);
     try {
-      await ownerCompleteTransfer(id);
-      alert("Hoàn tất thành công");
+      await ownerCompleteTransfer(id, { gymId: selectedGymId });
+      alert("Xác nhận nhận hàng thành công");
       fetchTransfers();
       if (detail?.id === id) fetchDetail(id);
     } catch (e) {
@@ -230,22 +367,70 @@ export default function OwnerTransferPage() {
 
   useEffect(() => {
     fetchMyGyms();
-    // eslint-disable-next-line
-  }, []);
+  }, [fetchMyGyms]);
 
   useEffect(() => {
     fetchTransfers();
-    // eslint-disable-next-line
-  }, [page]);
+  }, [fetchTransfers, page]);
+
+  useEffect(() => {
+    const transferId = searchParams.get("transferId");
+
+    if (!transferId) {
+      openedTransferRef.current = null;
+      return;
+    }
+
+    if (openedTransferRef.current === transferId) {
+      return;
+    }
+
+    openedTransferRef.current = transferId;
+    fetchDetail(transferId);
+  }, [fetchDetail, searchParams]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchTransfers(page, filters);
+      if (showDetailModal && detail?.id) {
+        await fetchDetail(detail.id, { openModal: false });
+      }
+    },
+    events: ["transfer:changed"],
+  });
+
+  useEffect(() => {
+    const nextFromGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, fromGymId: "", toGymId: "" }));
+    setCreateForm((prev) => ({
+      ...prev,
+      fromGymId: nextFromGymId,
+      items: prev.items.map((item) => ({ ...item, selectedUnitIds: [], quantity: "" })),
+    }));
+    setEquipmentUnitsByItem({});
+    if (nextFromGymId) {
+      fetchEquipmentByGym(nextFromGymId);
+    } else {
+      setEquipmentList([]);
+    }
+  }, [fetchEquipmentByGym, selectedGymId]);
+
+  useEffect(() => {
+    if (!showCreate || !createForm.fromGymId) return;
+    fetchEquipmentByGym(createForm.fromGymId);
+  }, [createForm.fromGymId, fetchEquipmentByGym, showCreate]);
 
   return (
     <div className="otrf-page">
       <div className="otrf-head">
         <div>
           <h2>Chuyển kho</h2>
-          <p>Quản lý chuyển thiết bị giữa các cơ sở</p>
+          <p>{selectedGymName ? `Đang quản lý các phiếu chuyển kho liên quan đến chi nhánh ${selectedGymName}. Phiếu tạo mới sẽ xuất từ chi nhánh này, và chỉ chi nhánh nhận mới được xác nhận nhận hàng.` : "Quản lý chuyển thiết bị giữa các cơ sở. Phiếu tạo mới sẽ được duyệt tự động."}</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowCreate(true)}>
+        <button className="btn-primary" onClick={() => {
+          resetCreateState();
+          setShowCreate(true);
+        }}>
           + Tạo phiếu chuyển kho
         </button>
       </div>
@@ -324,7 +509,6 @@ export default function OwnerTransferPage() {
                     key={t.id}
                     onClick={() => {
                       fetchDetail(t.id);
-                      setShowDetailModal(true);
                     }}
                     style={{ cursor: 'pointer' }}
                   >
@@ -374,11 +558,11 @@ export default function OwnerTransferPage() {
 
       {/* Detail Modal */}
       {showDetailModal && detail && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+        <div className="modal-overlay" onClick={closeDetailModal}>
           <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Chi tiết phiếu chuyển kho #{detail.id}</h2>
-              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+              <button className="modal-close" onClick={closeDetailModal}>
                 ×
               </button>
             </div>
@@ -416,6 +600,15 @@ export default function OwnerTransferPage() {
                   </div>
                 )}
 
+                {detail.status === "approved" && Number(selectedGymId || 0) !== Number(detail.toGymId) && (
+                  <div className="detail-row detail-row--full">
+                    <span className="detail-label">Xác nhận:</span>
+                    <span className="detail-value">
+                      Phiếu này chỉ được xác nhận tại chi nhánh nhận hàng: {detail.toGym?.name || `#${detail.toGymId}`}
+                    </span>
+                  </div>
+                )}
+
                 <div className="detail-row detail-row--full">
                   <span className="detail-label">Thiết bị chuyển:</span>
                   <div className="detail-value">
@@ -432,7 +625,10 @@ export default function OwnerTransferPage() {
                           <tr key={idx}>
                             <td>{item.equipment?.name || "-"}</td>
                             <td>{item.equipment?.code || "-"}</td>
-                            <td>{item.quantity}</td>
+                            <td>
+                              {item.quantity}
+                              {Array.isArray(item.selectedUnits) && item.selectedUnits.length > 0 ? ` (${item.selectedUnits.map((unit) => unit.assetCode).join(", ")})` : ""}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -448,7 +644,7 @@ export default function OwnerTransferPage() {
                   <button
                     onClick={() => {
                       handleApprove(detail.id);
-                      setShowDetailModal(false);
+                      closeDetailModal();
                     }}
                     className="btn-success"
                     disabled={actionLoading}
@@ -458,7 +654,7 @@ export default function OwnerTransferPage() {
                   <button
                     onClick={() => {
                       handleReject(detail.id);
-                      setShowDetailModal(false);
+                      closeDetailModal();
                     }}
                     className="btn-danger"
                     disabled={actionLoading}
@@ -467,19 +663,31 @@ export default function OwnerTransferPage() {
                   </button>
                 </>
               )}
-              {detail.status === "approved" && (
-                <button
-                  onClick={() => {
-                    handleComplete(detail.id);
-                    setShowDetailModal(false);
-                  }}
-                  className="btn-success"
-                  disabled={actionLoading}
-                >
-                  ✓ Hoàn tất
-                </button>
+              {detail.status === "approved" && Number(selectedGymId || 0) === Number(detail.toGymId) && (
+                <>
+                  <button
+                    onClick={() => {
+                      handleReject(detail.id);
+                      closeDetailModal();
+                    }}
+                    className="btn-danger"
+                    disabled={actionLoading}
+                  >
+                    ✗ Từ chối nhận hàng
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleComplete(detail.id);
+                      closeDetailModal();
+                    }}
+                    className="btn-success"
+                    disabled={actionLoading}
+                  >
+                    ✓ Xác nhận nhận hàng
+                  </button>
+                </>
               )}
-              <button onClick={() => setShowDetailModal(false)} className="btn-cancel">
+              <button onClick={closeDetailModal} className="btn-cancel">
                 Đóng
               </button>
             </div>
@@ -489,11 +697,11 @@ export default function OwnerTransferPage() {
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+        <div className="modal-overlay" onClick={closeCreateModal}>
           <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Tạo phiếu chuyển kho</h2>
-              <button className="modal-close" onClick={() => setShowCreate(false)}>
+              <button className="modal-close" onClick={closeCreateModal}>
                 ×
               </button>
             </div>
@@ -506,13 +714,19 @@ export default function OwnerTransferPage() {
                     value={createForm.fromGymId}
                     onChange={(e) => {
                       const newGymId = e.target.value;
-                      setCreateForm({ ...createForm, fromGymId: newGymId });
+                      setCreateForm({
+                        ...createForm,
+                        fromGymId: newGymId,
+                        items: createForm.items.map((item) => ({ ...item, selectedUnitIds: [], quantity: "" })),
+                      });
+                      setEquipmentUnitsByItem({});
                       fetchEquipmentByGym(newGymId);
                     }}
                     required
                     className="form-select"
+                    disabled={Boolean(selectedGymId)}
                   >
-                    <option value="">-- Chọn gym --</option>
+                    {!selectedGymId && <option value="">-- Chọn gym --</option>}
                     {myGyms.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}
@@ -558,37 +772,90 @@ export default function OwnerTransferPage() {
                         onChange={(e) => {
                           const newItems = [...createForm.items];
                           newItems[idx].equipmentId = e.target.value;
+                          newItems[idx].selectedUnitIds = [];
+                          newItems[idx].quantity = "";
                           setCreateForm({ ...createForm, items: newItems });
+                          fetchEquipmentUnits(e.target.value, createForm.fromGymId, idx);
                         }}
                         required
                         className="form-select"
                       >
                         <option value="">-- Chọn thiết bị --</option>
-                        {equipmentList.map((eq) => (
+                        {equipmentList
+                          .filter((eq) => Number(eq?.unitSummary?.inStockQuantity ?? eq?.stock?.availableQuantity ?? 0) > 0)
+                          .map((eq) => (
                           <option key={eq.id} value={eq.id}>
-                            {eq.name} (Mã: {eq.code}) - Còn: {eq.stock?.availableQuantity || 0}
+                            {eq.name} (Mã: {eq.code}) - Còn: {eq.unitSummary?.inStockQuantity ?? eq.stock?.availableQuantity ?? 0}
                           </option>
                         ))}
                       </select>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Số lượng"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const newItems = [...createForm.items];
-                          newItems[idx].quantity = e.target.value;
-                          setCreateForm({ ...createForm, items: newItems });
-                        }}
-                        required
-                        className="form-input"
-                      />
+                      <div className="equipment-item-unit-picker">
+                        <div className="equipment-item-toolbar">
+                          <button
+                            type="button"
+                            className="equipment-item-toolbar__btn"
+                            onClick={() => setAllUnits(idx, "all")}
+                            disabled={!item.equipmentId || (equipmentUnitsByItem[idx] || []).length === 0}
+                          >
+                            Chọn tất cả
+                          </button>
+                          <button
+                            type="button"
+                            className="equipment-item-toolbar__btn equipment-item-toolbar__btn--ghost"
+                            onClick={() => setAllUnits(idx, "none")}
+                            disabled={(item.selectedUnitIds || []).length === 0}
+                          >
+                            Bỏ chọn
+                          </button>
+                        </div>
+                        <div className={`equipment-item-list ${!item.equipmentId ? "is-disabled" : ""}`}>
+                          {(equipmentUnitsByItem[idx] || [])
+                            .map((unit) => {
+                              const checked = Array.isArray(item.selectedUnitIds)
+                                ? item.selectedUnitIds.map(Number).includes(Number(unit.id))
+                                : false;
+
+                              return (
+                                <label key={unit.id} className={`equipment-item-option ${checked ? "is-selected" : ""}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleUnitSelection(idx, unit.id)}
+                                  />
+                                  <span>{unit.assetCode}</span>
+                                  <span className="equipment-item-option__meta">Đang ở kho</span>
+                                </label>
+                              );
+                            })}
+                          {item.equipmentId && (equipmentUnitsByItem[idx] || []).length === 0 ? (
+                            <div className="equipment-item-empty">Không có thiết bị trong kho phù hợp</div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="equipment-item-meta">
+                        <span className="equipment-item-meta__count">
+                          Có thể chuyển: {(equipmentUnitsByItem[idx] || []).length} thiết bị trong kho
+                        </span>
+                        <span className="equipment-item-meta__hint">
+                          Chỉ hiển thị thiết bị đang ở kho để chuyển
+                        </span>
+                      </div>
+                      {item.selectedUnitIds?.length > 0 && (
+                        <div className="equipment-item-selected">
+                          {(equipmentUnitsByItem[idx] || [])
+                            .filter((unit) => item.selectedUnitIds.includes(Number(unit.id)))
+                            .map((unit) => (
+                              <span key={unit.id} className="equipment-item-chip">
+                                {unit.assetCode}
+                              </span>
+                            ))}
+                        </div>
+                      )}
                       {createForm.items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => {
-                            const newItems = createForm.items.filter((_, i) => i !== idx);
-                            setCreateForm({ ...createForm, items: newItems });
+                            removeCreateItem(idx);
                           }}
                           className="btn-remove"
                         >
@@ -602,7 +869,7 @@ export default function OwnerTransferPage() {
                     onClick={() => {
                       setCreateForm({
                         ...createForm,
-                        items: [...createForm.items, { equipmentId: "", quantity: "" }],
+                        items: [...createForm.items, { equipmentId: "", quantity: "", selectedUnitIds: [] }],
                       });
                     }}
                     className="btn-add-item"
@@ -612,7 +879,7 @@ export default function OwnerTransferPage() {
                 </div>
 
                 <div className="form-actions">
-                  <button type="button" onClick={() => setShowCreate(false)} className="btn-cancel">
+                  <button type="button" onClick={closeCreateModal} className="btn-cancel">
                     Hủy
                   </button>
                   <button type="submit" className="btn-submit" disabled={actionLoading}>

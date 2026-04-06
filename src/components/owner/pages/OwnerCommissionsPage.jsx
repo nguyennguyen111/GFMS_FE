@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
@@ -16,7 +16,9 @@ import {
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import OwnerConfirmDialog from "../OwnerConfirmDialog";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import "./OwnerCommissionsPage.css";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusLabel = {
   pending: "Chờ chốt kỳ",
@@ -51,6 +53,7 @@ const toDateString = (date) => {
 };
 
 const OwnerCommissionsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [commissions, setCommissions] = useState([]);
@@ -92,6 +95,14 @@ const OwnerCommissionsPage = () => {
   const [dialog, setDialog] = useState(null);
   const [dialogBusy, setDialogBusy] = useState(false);
 
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPeriodForm((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPayByTrainerForm((prev) => ({ ...prev, gymId: scopedGymId, trainerId: selectedGymId ? "" : prev.trainerId }));
+    setRateForm((prev) => ({ ...prev, gymId: scopedGymId }));
+  }, [selectedGymId]);
+
   const closeDialog = () => {
     if (!dialogBusy) setDialog(null);
   };
@@ -124,15 +135,29 @@ const OwnerCommissionsPage = () => {
   const loadCommissions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await ownerGetCommissions(filters);
-      setCommissions(Array.isArray(response.data?.data) ? response.data.data : []);
+      const activeFilters = {
+        ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
+      };
+      const response = await ownerGetCommissions(activeFilters);
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      setCommissions(
+        selectedGymId
+          ? rows.filter((item) => String(item?.gymId || item?.Gym?.id || item?.gym?.id || "") === String(selectedGymId))
+          : rows
+      );
     } catch (error) {
       console.error("Lỗi khi tải hoa hồng:", error);
       setCommissions([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, selectedGymId]);
+
+  const filteredPeriods = useMemo(() => {
+    if (!selectedGymId) return periods;
+    return periods.filter((period) => String(period?.gymId || period?.Gym?.id || "") === String(selectedGymId));
+  }, [periods, selectedGymId]);
 
   const loadPeriods = useCallback(async () => {
     try {
@@ -144,12 +169,37 @@ const OwnerCommissionsPage = () => {
     }
   }, []);
 
+  const loadRateForGym = useCallback(async (gymId) => {
+    if (!gymId) return;
+    try {
+      const response = await ownerGetGymCommissionRate(gymId);
+      const ownerRate = Number(response.data?.data?.ownerRate ?? 0.15);
+      setRateForm((prev) => ({
+        ...prev,
+        gymId: prev.gymId || String(gymId),
+        ownerRate: String(Math.round(ownerRate * 100)),
+      }));
+    } catch (error) {
+      console.error("Lỗi khi tải tỷ lệ hoa hồng:", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadGyms();
     loadTrainers();
     loadCommissions();
     loadPeriods();
   }, [loadGyms, loadTrainers, loadCommissions, loadPeriods]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await Promise.all([loadCommissions(), loadPeriods()]);
+      if (rateForm.gymId) {
+        await loadRateForGym(rateForm.gymId);
+      }
+    },
+    events: ["commission:changed"],
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -395,9 +445,7 @@ const OwnerCommissionsPage = () => {
       return;
     }
     try {
-      const response = await ownerGetGymCommissionRate(rateForm.gymId);
-      const ownerRate = Number(response.data?.data?.ownerRate ?? 0.15);
-      setRateForm({ ...rateForm, ownerRate: String(Math.round(ownerRate * 100)) });
+      await loadRateForGym(rateForm.gymId);
     } catch (error) {
       console.error("Lỗi khi tải tỷ lệ hoa hồng:", error);
       showAlert(
@@ -483,6 +531,7 @@ const OwnerCommissionsPage = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Chi trả lương huấn luyện viên</h1>
+          {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
         </div>
       </div>
 
@@ -493,8 +542,9 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={filters.gymId}
             onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
-            <option value="">Tất cả gym</option>
+            <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả gym"}</option>
             {gyms.map((gym) => (
               <option key={gym.id} value={gym.id}>
                 {gym.name}
@@ -598,8 +648,8 @@ const OwnerCommissionsPage = () => {
             </tr>
           </thead>
           <tbody>
-            {periods.length > 0 ? (
-              periods.map((period) => (
+            {filteredPeriods.length > 0 ? (
+              filteredPeriods.map((period) => (
                 <tr key={period.id} className="period-row">
                   <td onClick={() => handleOpenPeriod(period)}>
                     {formatDate(period.startDate)} - {formatDate(period.endDate)}
@@ -643,6 +693,7 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={periodForm.gymId}
             onChange={(e) => setPeriodForm({ ...periodForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
@@ -697,6 +748,7 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={payByTrainerForm.gymId}
             onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
@@ -760,6 +812,7 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={rateForm.gymId}
             onChange={(e) => setRateForm({ ...rateForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
