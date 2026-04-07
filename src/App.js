@@ -16,6 +16,7 @@ import MemberBookingsPage from "./components/member/pages/MemberBookingsPage";
 import MemberCheckinPage from "./components/member/pages/MemberCheckinPage";
 import MemberMyPackagesPage from "./components/member/pages/MemberMyPackagesPage";
 import MemberPackageDetailPage from "./components/member/pages/MemberPackageDetailPage";
+import MemberPaymentSuccessPage from "./components/member/pages/MemberPaymentSuccessPage";
 
 import MemberProfilePage from "./components/member/pages/MemberProfilePage";
 import MemberNotificationsPage from "./components/member/pages/MemberNotificationsPage";
@@ -119,6 +120,7 @@ function App() {
           <Route path="my-packages" element={<MemberMyPackagesPage />} />
           <Route path="my-packages/:activationId" element={<MemberPackageDetailPage />} />
           <Route path="bookings" element={<MemberBookingsPage />} />
+          <Route path="payment-success" element={<MemberPaymentSuccessPage />} />
           <Route path="checkin/:id" element={<MemberCheckinPage />} />
           <Route path="booking/wizard" element={<MemberBookingWizard />} />
 

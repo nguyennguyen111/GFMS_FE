@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -10,7 +10,6 @@ import {
   Ticket,
 } from "lucide-react";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
-import { confirmPayosPayment } from "../../../services/paymentService";
 import "./MemberMyPackagesPage.css";
 
 const fmtMoney = (v) => {
@@ -40,7 +39,6 @@ const normalizeStatus = (x) => {
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,28 +65,6 @@ export default function MemberMyPackagesPage() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search || "");
-    const payosStatus = params.get("payos");
-    const orderCode = params.get("orderCode");
-
-    if (!payosStatus) return;
-
-    const runConfirm = async () => {
-      try {
-        if (payosStatus === "success" && orderCode) {
-          await confirmPayosPayment(orderCode);
-        }
-      } catch (e) {
-        setErr(e.response?.data?.message || "Xác nhận thanh toán PayOS thất bại.");
-      } finally {
-        load();
-        navigate(location.pathname, { replace: true });
-      }
-    };
-
-    runConfirm();
-  }, [location.pathname, location.search, navigate, load]);
 
   const mappedRows = useMemo(() => {
     return rows.map((x) => {

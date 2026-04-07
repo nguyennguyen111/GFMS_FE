@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import "./MemberBookingPage.css";
 import { memberGetMyBookings } from "../../../services/memberBookingService";
-import { confirmPayosPayment } from "../../../services/paymentService";
 import BookingDetailModal from "./BookingDetailModal";
 
 const DAY_NAMES = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
@@ -69,7 +68,6 @@ const getMemberSessionDisplay = (booking) => {
 };
 
 export default function MemberBookingsCalendarPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -90,28 +88,6 @@ export default function MemberBookingsCalendarPage() {
     loadBookings();
   }, [loadBookings]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search || "");
-    const payosStatus = params.get("payos");
-    const orderCode = params.get("orderCode");
-
-    if (!payosStatus) return;
-
-    const runConfirm = async () => {
-      try {
-        if (payosStatus === "success" && orderCode) {
-          await confirmPayosPayment(orderCode);
-        }
-      } catch (err) {
-        console.error("Confirm PayOS failed:", err);
-      } finally {
-        await loadBookings();
-        navigate(location.pathname, { replace: true });
-      }
-    };
-
-    runConfirm();
-  }, [location.pathname, location.search, navigate, loadBookings]);
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekCursor, i));
