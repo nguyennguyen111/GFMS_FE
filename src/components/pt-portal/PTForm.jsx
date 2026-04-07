@@ -382,7 +382,7 @@ const PTForm = () => {
                   {pt.avatarUrl ? <img src={pt.avatarUrl} alt="" /> : <span>Ảnh đại diện</span>}
                 </div>
                 <label className="ptf-uploadBtn">
-                  {uploadingAvatar ? "Đang upload..." : "Upload avatar"}
+                  {uploadingAvatar ? "Đang tải lên..." : "Tải ảnh đại diện lên"}
                   <input type="file" accept="image/*" onChange={onUploadAvatar} hidden />
                 </label>
               </div>
@@ -400,7 +400,7 @@ const PTForm = () => {
 
               <div className="ptf-uploadRow ptf-uploadRow--cover">
                 <label className="ptf-uploadBtn">
-                  {uploadingCover ? "Đang upload..." : "Upload ảnh cover"}
+                  {uploadingCover ? "Đang tải lên..." : "Tải ảnh bìa lên"}
                   <input type="file" accept="image/*" onChange={onUploadCover} hidden />
                 </label>
               </div>

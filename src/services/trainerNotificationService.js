@@ -1,8 +1,8 @@
 import axios from "../setup/axios";
 
-export const getTrainerNotifications = async (params) => {
+export const getTrainerNotifications = async (params = {}) => {
   const res = await axios.get("/api/trainer/notifications", { params });
-  return res.data;
+  return res.data || { items: [], unreadCount: 0 };
 };
 
 export const markTrainerNotificationRead = async (id) => {

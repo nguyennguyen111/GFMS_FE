@@ -81,6 +81,15 @@ function ReviewCard({ review }) {
       </div>
 
       <p className="member-reviews-content">{review?.comment}</p>
+      {review?.trainerReply ? (
+        <div className="member-reviews-reply">
+          <p className="member-reviews-reply-label">
+            Phản hồi từ PT
+            {review?.repliedAt ? ` · ${fmtDate(review.repliedAt)}` : ""}
+          </p>
+          <p className="member-reviews-reply-content">{review.trainerReply}</p>
+        </div>
+      ) : null}
     </article>
   );
 }

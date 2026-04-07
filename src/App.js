@@ -40,6 +40,7 @@ import PTFeedback from "./components/pt-portal/PTFeedback";
 import PTFinancePage from "./components/pt-portal/PTFinancePage";
 import PTDemoVideos from "./components/pt-portal/PTDemoVideos";
 import PTRequests from "./components/pt-portal/PTRequests";
+import PTNotificationsPage from "./components/pt-portal/PTNotificationsPage";
 import PTMessagesPage from "./components/pt-portal/PTMessagesPage";
 
 /* ================= MARKETPLACE ================= */
@@ -153,6 +154,7 @@ function App() {
           <Route path="payroll" element={<Navigate to="/pt/finance" replace />} />
           <Route path="wallet" element={<Navigate to="/pt/finance" replace />} />
           <Route path="requests" element={<PTRequests />} />
+          <Route path="notifications" element={<PTNotificationsPage />} />
 
           {/* PT pages (need :id) */}
           <Route path=":id/details" element={<PTDetails />} />

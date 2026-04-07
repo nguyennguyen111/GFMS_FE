@@ -148,6 +148,27 @@
 
 .ptr-empty{ padding:18px; color: rgba(255,255,255,0.65); font-weight:700; }
 
+.ptr-actionDone{
+  color: rgba(255,255,255,0.65);
+  font-weight: 800;
+}
+
+.ptr-pager{
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ptr-pagerInfo{
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 90px;
+  text-align: center;
+}
+
 .ptr-err{
   margin-top:6px;
   color: rgba(255,120,120,0.95);

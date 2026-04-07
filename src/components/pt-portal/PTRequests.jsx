@@ -11,13 +11,12 @@ import {
   ptGetAvailableTrainerShareRequests,
   ptClaimTrainerShareRequest,
 } from "../../services/ptTrainerShareService";
+import { connectSocket } from "../../services/socketClient";
 
 import "./PTRequests.css";
 
 const REQUEST_TYPES = [
   { value: "LEAVE", label: "Nghỉ phép" },
-  { value: "SHIFT_CHANGE", label: "Đổi ca" },
-  { value: "TRANSFER_BRANCH", label: "Chuyển chi nhánh" },
   { value: "OVERTIME", label: "Tăng ca" },
   { value: "BUSY_SLOT", label: "Báo bận khung giờ dạy" },
 ];
@@ -32,8 +31,6 @@ const STATUS_OPTIONS = [
 
 const emptyForms = {
   LEAVE: { fromDate: "", toDate: "", reason: "" },
-  SHIFT_CHANGE: { currentShiftId: "", targetShiftId: "", reason: "" },
-  TRANSFER_BRANCH: { toBranchId: "", expectedDate: "", reason: "" },
   OVERTIME: { date: "", fromTime: "", toTime: "", reason: "" },
 };
 
@@ -63,6 +60,7 @@ const formatDateTime = (v) => {
 };
 
 export default function PTRequests() {
+  const PAGE_SIZE = 8;
   const [activeType, setActiveType] = useState("LEAVE");
   const [forms, setForms] = useState(emptyForms);
 
@@ -75,6 +73,7 @@ export default function PTRequests() {
   const [loading, setLoading] = useState(false);
   const [shareRequests, setShareRequests] = useState([]);
   const [loadingShares, setLoadingShares] = useState(false);
+  const [page, setPage] = useState(1);
 
   const currentForm = useMemo(() => forms[activeType], [forms, activeType]);
 
@@ -98,18 +97,6 @@ export default function PTRequests() {
       return null;
     }
 
-    if (activeType === "SHIFT_CHANGE") {
-      if (!f.currentShiftId || !f.targetShiftId) return "Cần nhập mã ca hiện tại và ca đích";
-      if (String(f.currentShiftId) === String(f.targetShiftId)) return "Ca đích phải khác ca hiện tại";
-      return null;
-    }
-
-    if (activeType === "TRANSFER_BRANCH") {
-      if (!f.toBranchId) return "Cần nhập mã chi nhánh đích";
-      if (!f.expectedDate) return "Cần chọn ngày dự kiến";
-      return null;
-    }
-
     if (activeType === "OVERTIME") {
       if (!f.date) return "Cần chọn ngày";
       if (!f.fromTime || !f.toTime) return "Cần nhập giờ bắt đầu và kết thúc";
@@ -125,18 +112,6 @@ export default function PTRequests() {
 
     if (activeType === "LEAVE") {
       return { reason: f.reason, data: { fromDate: f.fromDate, toDate: f.toDate } };
-    }
-    if (activeType === "SHIFT_CHANGE") {
-      return {
-        reason: f.reason,
-        data: { currentShiftId: Number(f.currentShiftId), targetShiftId: Number(f.targetShiftId) },
-      };
-    }
-    if (activeType === "TRANSFER_BRANCH") {
-      return {
-        reason: f.reason,
-        data: { toBranchId: Number(f.toBranchId), expectedDate: f.expectedDate },
-      };
     }
     return {
       reason: f.reason,
@@ -154,6 +129,7 @@ export default function PTRequests() {
 
       const normalized = normalizeListResponse(data);
       setRequests(normalized.items);
+      setPage(1);
     } catch (err) {
       console.error(err);
       alert(err?.response?.data?.message || "Không tải được danh sách đơn");
@@ -192,6 +168,19 @@ export default function PTRequests() {
     }
   };
 
+  useEffect(() => {
+    const socket = connectSocket();
+    const onNewNotification = (payload) => {
+      if (String(payload?.notificationType || "").toLowerCase() !== "request_update") return;
+      fetchRequests();
+    };
+    socket.on("notification:new", onNewNotification);
+    return () => {
+      socket.off("notification:new", onNewNotification);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.requestType]);
+
   const handleSubmit = async () => {
     const errMsg = validate();
     if (errMsg) return alert(errMsg);
@@ -200,8 +189,6 @@ export default function PTRequests() {
       const payload = buildPayload();
 
       if (activeType === "LEAVE") await createLeaveRequest(payload);
-      if (activeType === "SHIFT_CHANGE") await createShiftChangeRequest(payload);
-      if (activeType === "TRANSFER_BRANCH") await createTransferBranchRequest(payload);
       if (activeType === "OVERTIME") await createOvertimeRequest(payload);
 
       alert("Đã tạo đơn");
@@ -223,6 +210,13 @@ export default function PTRequests() {
       alert(err?.response?.data?.message || "Hủy đơn thất bại");
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(requests.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRequests = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return requests.slice(start, start + PAGE_SIZE);
+  }, [requests, currentPage]);
 
   return (
     <div className="ptr-wrap">
@@ -293,59 +287,6 @@ export default function PTRequests() {
               </div>
             </div>
           )}
-
-          {activeType === "SHIFT_CHANGE" && (
-            <div className="ptr-grid2">
-              <div className="ptr-field">
-                <label>Mã ca hiện tại</label>
-                <input
-                  type="number"
-                  value={currentForm.currentShiftId}
-                  onChange={(e) => updateForm("currentShiftId", e.target.value)}
-                  placeholder="Ví dụ: 12"
-                />
-              </div>
-
-              <div className="ptr-field">
-                <label>Mã ca đích</label>
-                <input
-                  type="number"
-                  value={currentForm.targetShiftId}
-                  onChange={(e) => updateForm("targetShiftId", e.target.value)}
-                  placeholder="Ví dụ: 20"
-                />
-              </div>
-
-              <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
-              </div>
-            </div>
-          )}
-
-           {activeType === "TRANSFER_BRANCH" && (
-            <div className="ptr-grid2">
-              <div className="ptr-field">
-                <label>Mã chi nhánh đích</label>
-                <input
-                  type="number"
-                  value={currentForm.toBranchId}
-                  onChange={(e) => updateForm("toBranchId", e.target.value)}
-                  placeholder="Ví dụ: 3"
-                />
-              </div>
-
-              <div className="ptr-field">
-                <label>Ngày dự kiến</label>
-                <input type="date" value={currentForm.expectedDate} onChange={(e) => updateForm("expectedDate", e.target.value)} />
-              </div>
-
-              <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
-              </div>
-            </div>
-          )} 
 
           {activeType === "OVERTIME" && (
             <div className="ptr-grid2">
@@ -452,7 +393,7 @@ export default function PTRequests() {
                   </td>
                 </tr>
               ) : (
-                requests.map((r) => (
+                pagedRequests.map((r) => (
                   <tr key={r.id}>
                     <td>{REQUEST_TYPES.find((x) => x.value === r.requestType)?.label || r.requestType}</td>
                     <td>
@@ -466,7 +407,7 @@ export default function PTRequests() {
                           Hủy đơn
                         </button>
                       ) : (
-                        "-"
+                        <span className="ptr-actionDone">Hoàn tất</span>
                       )}
                     </td>
                   </tr>
@@ -475,6 +416,29 @@ export default function PTRequests() {
             </tbody>
           </table>
         </div>
+        {requests.length > PAGE_SIZE ? (
+          <div className="ptr-pager">
+            <button
+              type="button"
+              className="ptr-btn"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Trang trước
+            </button>
+            <span className="ptr-pagerInfo">
+              Trang {currentPage}/{totalPages}
+            </span>
+            <button
+              type="button"
+              className="ptr-btn"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Trang sau
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

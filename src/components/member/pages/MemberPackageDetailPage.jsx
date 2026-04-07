@@ -292,7 +292,7 @@ export default function MemberPackageDetailPage() {
                   </div>
                   <div className="mpd2-materialBody">
                     <div className="mpd2-materialTitle">
-                      {m.materialKind === "demo_video" ? "Video demo" : "Kế hoạch tập"}{" "}
+                      {m.materialKind === "demo_video" ? "Video hướng dẫn" : "Kế hoạch tập luyện"}{" "}
                       {m.title ? `· ${m.title}` : ""}
                     </div>
                     <div className="mpd2-materialMeta">

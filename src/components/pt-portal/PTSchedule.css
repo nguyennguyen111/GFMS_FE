@@ -172,6 +172,24 @@
   height: 44px; /* Chiều cao khớp với Header ngày */
 }
 
+.ptWeek__timeBody--dayRange {
+  position: relative;
+}
+
+.ptWeek__timeEndCap {
+  position: absolute;
+  left: 0;
+  right: 12px;
+  bottom: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray);
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(45%);
+}
+
 .ptWeek__timeRow {
   display: flex;
   align-items: flex-start;
@@ -229,7 +247,7 @@
   position: relative;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 100% 60px; /* Khớp với ROW_HEIGHT */
+  background-size: 100% 60px;
 }
 
 /* Slot Blocks (Ca làm việc) */

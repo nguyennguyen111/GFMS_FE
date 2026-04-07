@@ -212,15 +212,16 @@ const PTDemoVideos = () => {
     <div className="ptp-wrap">
       <div className="ptp-head">
         <div>
-          <h2 className="ptp-title">Video demo</h2>
+          <h2 className="ptp-title">Kế hoạch tập luyện</h2>
           <div className="ptp-sub">
-            Tải video minh họa để hội viên xem kỹ phong cách huấn luyện của bạn.
+            Quản lý thư viện video hướng dẫn và tài liệu kế hoạch tập luyện để gửi cho học viên.
           </div>
         </div>
       </div>
 
       <form className="ptp-card pt-demo-upload-card" onSubmit={onUpload}>
-        <div className="ptp-grid">
+        <h3 className="pt-demo-title">Thư viện video hướng dẫn</h3>
+        <div className="ptp-grid ptp-grid--single">
           <div className="ptp-row">
             <label>Tiêu đề video</label>
             <input
@@ -242,15 +243,122 @@ const PTDemoVideos = () => {
         </div>
         <div className="pt-demo-upload-action">
           <button type="submit" className="ptp-btn ptp-btn--primary" disabled={uploading}>
-            {uploading ? "Đang upload..." : "Upload video demo"}
+            {uploading ? "Đang lưu..." : "Lưu video vào thư viện"}
           </button>
         </div>
       </form>
 
+      <form className="ptp-card pt-demo-upload-card" onSubmit={onUploadPlan}>
+        <h3 className="pt-demo-title">Thư viện tài liệu kế hoạch (PDF/DOC/DOCX)</h3>
+        <div className="ptp-grid ptp-grid--single">
+          <div className="ptp-row">
+            <label>Tiêu đề kế hoạch tập luyện</label>
+            <input
+              className="ptp-input"
+              value={planTitle}
+              onChange={(e) => setPlanTitle(e.target.value)}
+              placeholder="Ví dụ: Kế hoạch tập 8 tuần giảm mỡ"
+            />
+          </div>
+          <div className="ptp-row">
+            <label>Chọn file kế hoạch (pdf/doc/docx)</label>
+            <input
+              className="ptp-input"
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(e) => setPlanFile(e.target.files?.[0] || null)}
+            />
+          </div>
+        </div>
+        <div className="pt-demo-upload-action">
+          <button type="submit" className="ptp-btn ptp-btn--primary" disabled={uploadingPlan}>
+            {uploadingPlan ? "Đang lưu..." : "Lưu tài liệu vào thư viện"}
+          </button>
+        </div>
+      </form>
+
+      {error ? <div className="ptp-error">{error}</div> : null}
+
+      {loading ? (
+        <div className="ptp-card pt-demo-loading-card">
+          Đang tải...
+        </div>
+      ) : videos.length === 0 ? (
+        <div className="ptp-empty">Chưa có video hướng dẫn nào.</div>
+      ) : (
+        <div className="pt-demo-grid">
+          {videos.map((v) => (
+            <div key={v.id} className="ptp-card pt-demo-item-card">
+              <video
+                src={v.url || v.fileUrl || v.videoUrl || v.src}
+                controls
+                className="pt-demo-video"
+                onLoadedMetadata={(e) => {
+                  const duration = e.currentTarget?.duration;
+                  if (!Number.isFinite(duration)) return;
+                  setDurationsById((prev) => {
+                    // chỉ set lần đầu để tránh render liên tục
+                    if (prev[v.id] != null) return prev;
+                    return { ...prev, [v.id]: duration };
+                  });
+                }}
+              />
+              <div className="pt-demo-title">{v.title || "Video hướng dẫn"}</div>
+              <div className="ptp-sub">
+                {Number.isFinite(durationsById[v.id])
+                  ? `Thời lượng: ${Math.round(Number(durationsById[v.id]))} giây`
+                  : v.duration
+                    ? `Thời lượng: ${Math.round(Number(v.duration))} giây`
+                    : "Thời lượng: không có"} |{" "}
+                {formatBytes(v.bytes)}
+              </div>
+              <div className="pt-demo-delete-action">
+                <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDelete(v.id)}>
+                  Xóa
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="ptp-card pt-demo-upload-card" style={{ marginTop: 12 }}>
+        <h3 className="pt-demo-title">Tài liệu kế hoạch tập luyện</h3>
+        {!plans.length ? (
+          <div className="ptp-sub">Chưa có file kế hoạch nào.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+            {plans.map((p) => (
+              <div key={p.id} className="ptp-card" style={{ padding: 10 }}>
+                <div style={{ fontWeight: 700 }}>{p.title || "Kế hoạch tập"}</div>
+                <div className="ptp-sub">{formatBytes(p.bytes)} {p.mimeType ? `| ${p.mimeType}` : ""}</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  {p.url || p.fileUrl ? (
+                    <a
+                      className="ptp-btn ptp-btn--small"
+                      href={p.url || p.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Xem/Tải file
+                    </a>
+                  ) : (
+                    <span className="ptp-sub">Chưa có link file</span>
+                  )}
+                  <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDeletePlan(p.id)}>
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <form className="ptp-card pt-demo-upload-card" onSubmit={onSendToMember}>
         <h3 className="pt-demo-title">Gửi tài liệu cho học viên (theo gói đang học)</h3>
         <div className="ptp-sub" style={{ marginBottom: 10 }}>
-          Chọn gói kích hoạt mà bạn được phụ trách, rồi gửi video demo hoặc file kế hoạch đã có ở trên.
+          Chọn gói kích hoạt bạn phụ trách rồi gửi mục từ thư viện bên trên.
         </div>
         <div className="ptp-grid">
           <div className="ptp-row">
@@ -281,8 +389,8 @@ const PTDemoVideos = () => {
                 setSendItemId("");
               }}
             >
-              <option value="demo_video">Video demo</option>
-              <option value="training_plan">File kế hoạch</option>
+              <option value="demo_video">Video hướng dẫn</option>
+              <option value="training_plan">Tài liệu kế hoạch</option>
             </select>
           </div>
           <div className="ptp-row">
@@ -318,7 +426,7 @@ const PTDemoVideos = () => {
                 {sentMaterials.map((m) => (
                   <div key={m.id} className="ptp-card" style={{ padding: 10 }}>
                     <div style={{ fontWeight: 700 }}>
-                      {m.materialKind === "demo_video" ? "Video" : "Kế hoạch"} · {m.title || "—"}
+                      {m.materialKind === "demo_video" ? "Video hướng dẫn" : "Tài liệu kế hoạch"} · {m.title || "—"}
                     </div>
                     <div className="ptp-sub">
                       {m.createdAt ? new Date(m.createdAt).toLocaleString("vi-VN") : ""}
@@ -342,112 +450,6 @@ const PTDemoVideos = () => {
           </div>
         ) : null}
       </form>
-
-      <form className="ptp-card pt-demo-upload-card" onSubmit={onUploadPlan}>
-        <div className="ptp-grid">
-          <div className="ptp-row">
-            <label>Tiêu đề kế hoạch tập luyện</label>
-            <input
-              className="ptp-input"
-              value={planTitle}
-              onChange={(e) => setPlanTitle(e.target.value)}
-              placeholder="Ví dụ: Kế hoạch tập 8 tuần giảm mỡ"
-            />
-          </div>
-          <div className="ptp-row">
-            <label>Chọn file kế hoạch (pdf/doc/docx)</label>
-            <input
-              className="ptp-input"
-              type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={(e) => setPlanFile(e.target.files?.[0] || null)}
-            />
-          </div>
-        </div>
-        <div className="pt-demo-upload-action">
-          <button type="submit" className="ptp-btn ptp-btn--primary" disabled={uploadingPlan}>
-            {uploadingPlan ? "Đang upload..." : "Upload kế hoạch tập luyện"}
-          </button>
-        </div>
-      </form>
-
-      {error ? <div className="ptp-error">{error}</div> : null}
-
-      {loading ? (
-        <div className="ptp-card pt-demo-loading-card">
-          Đang tải...
-        </div>
-      ) : videos.length === 0 ? (
-        <div className="ptp-empty">Chưa có video demo nào.</div>
-      ) : (
-        <div className="pt-demo-grid">
-          {videos.map((v) => (
-            <div key={v.id} className="ptp-card pt-demo-item-card">
-              <video
-                src={v.url || v.fileUrl || v.videoUrl || v.src}
-                controls
-                className="pt-demo-video"
-                onLoadedMetadata={(e) => {
-                  const duration = e.currentTarget?.duration;
-                  if (!Number.isFinite(duration)) return;
-                  setDurationsById((prev) => {
-                    // chỉ set lần đầu để tránh render liên tục
-                    if (prev[v.id] != null) return prev;
-                    return { ...prev, [v.id]: duration };
-                  });
-                }}
-              />
-              <div className="pt-demo-title">{v.title || "Video demo"}</div>
-              <div className="ptp-sub">
-                {Number.isFinite(durationsById[v.id])
-                  ? `Thời lượng: ${Math.round(Number(durationsById[v.id]))} giây`
-                  : v.duration
-                    ? `Thời lượng: ${Math.round(Number(v.duration))} giây`
-                    : "Thời lượng: không có"} |{" "}
-                {formatBytes(v.bytes)}
-              </div>
-              <div className="pt-demo-delete-action">
-                <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDelete(v.id)}>
-                  Xóa
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="ptp-card pt-demo-upload-card" style={{ marginTop: 12 }}>
-        <h3 className="pt-demo-title">Kế hoạch tập luyện</h3>
-        {!plans.length ? (
-          <div className="ptp-sub">Chưa có file kế hoạch nào.</div>
-        ) : (
-          <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-            {plans.map((p) => (
-              <div key={p.id} className="ptp-card" style={{ padding: 10 }}>
-                <div style={{ fontWeight: 700 }}>{p.title || "Kế hoạch tập"}</div>
-                <div className="ptp-sub">{formatBytes(p.bytes)} {p.mimeType ? `| ${p.mimeType}` : ""}</div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {p.url || p.fileUrl ? (
-                    <a
-                      className="ptp-btn ptp-btn--small"
-                      href={p.url || p.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Xem/Tải file
-                    </a>
-                  ) : (
-                    <span className="ptp-sub">Chưa có link file</span>
-                  )}
-                  <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDeletePlan(p.id)}>
-                    Xóa
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
