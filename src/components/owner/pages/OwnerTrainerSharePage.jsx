@@ -13,7 +13,7 @@ import ownerBookingService from "../../../services/ownerBookingService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import ownerMemberService from "../../../services/ownerMemberService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
-import { ownerGetPackages } from "../../../services/ownerPackageService";
+import { getRequests as ownerGetRequests } from "../../../services/ownerRequestService";
 import { connectSocket } from "../../../services/socketClient";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import axios from "../../../setup/axios";
@@ -22,8 +22,7 @@ import useSelectedGym from "../../../hooks/useSelectedGym";
 const STATUS_LABELS = {
  // Trainer Share statuses
  waiting_acceptance: { label: "Chờ chấp nhận", color: "info" },
- pending: { label: "Đang xử lý", color: "warning" },
- approved: { label: "Đã duyệt", color: "success" },
+ approved: { label: "Đã chấp nhận", color: "success" },
  shared: { label: "Lịch mượn huấn luyện viên", color: "info" },
  rejected: { label: "Từ chối", color: "danger" },
  rejected_by_partner: { label: "Đối tác từ chối", color: "danger" },
@@ -68,6 +67,26 @@ function Field({ label, required, hint, children }) {
  );
 }
 
+
+function getOccupiedBlockLabel(block) {
+ if (block?.busyRequested) {
+ return "PT báo bận khung giờ này";
+ }
+ if (block.type === "trainer_share") {
+ const targetGymName = block.toGymName || block.shareToGymName || block.toGym?.name || null;
+ return targetGymName ? `Mượn sang ${targetGymName}` : "Đang mượn sang gym khác";
+ }
+
+ if (block.memberName) {
+ return `Hội viên gắn kèm: ${block.memberName}`;
+ }
+
+ return STATUS_LABELS[block.status]?.label || "Đang bận";
+}
+
+function hasBusyRequestMarker(notesValue) {
+ return String(notesValue || "").includes("[PT_BUSY_REQUEST]");
+}
 function cleanQueryParams(params) {
  return Object.fromEntries(
  Object.entries(params).filter(([, value]) => {
@@ -87,6 +106,21 @@ function getDayKeyFromDate(dateValue) {
  const date = new Date(dateValue);
  if (Number.isNaN(date.getTime())) return null;
  return DAY_KEYS_BY_INDEX[date.getDay()] || null;
+}
+
+function normalizeDateValue(dateValue) {
+ if (!dateValue) return "";
+ const raw = String(dateValue).trim();
+ const exactYmd = raw.match(/^\d{4}-\d{2}-\d{2}$/);
+ if (exactYmd) return exactYmd[0];
+ const withTime = raw.match(/^(\d{4}-\d{2}-\d{2})T/);
+ if (withTime) return withTime[1];
+ const parsed = new Date(raw);
+ if (Number.isNaN(parsed.getTime())) return "";
+ const y = parsed.getFullYear();
+ const m = String(parsed.getMonth() + 1).padStart(2, "0");
+ const d = String(parsed.getDate()).padStart(2, "0");
+ return `${y}-${m}-${d}`;
 }
 
 function normalizeTimeValue(timeValue) {
@@ -112,13 +146,17 @@ function minutesToTime(totalMinutes) {
  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-function normalizeRanges(ranges = []) {
+function normalizeAvailableRanges(ranges = []) {
  return (Array.isArray(ranges) ? ranges : [])
  .map((range) => ({
  start: normalizeTimeValue(range?.start),
  end: normalizeTimeValue(range?.end),
  }))
  .filter((range) => range.start && range.end && range.start < range.end);
+}
+
+function normalizeRanges(ranges = []) {
+ return normalizeAvailableRanges(ranges);
 }
 
 function mergeBlocks(blocks = []) {
@@ -145,7 +183,7 @@ function mergeBlocks(blocks = []) {
 function subtractBusyBlocks(availableRanges = [], busyBlocks = []) {
  const mergedBusy = mergeBlocks(busyBlocks);
 
- return normalizeRanges(availableRanges).flatMap((range) => {
+ return normalizeAvailableRanges(availableRanges).flatMap((range) => {
  const startMinute = timeToMinutes(range.start);
  const endMinute = timeToMinutes(range.end);
  if (startMinute === null || endMinute === null || startMinute >= endMinute) return [];
@@ -181,231 +219,90 @@ function subtractBusyBlocks(availableRanges = [], busyBlocks = []) {
 
 function hasAnyWorkingHours(availableHours) {
  if (!availableHours || typeof availableHours !== "object") return false;
- return Object.values(availableHours).some((ranges) => normalizeRanges(ranges).length > 0);
+ return Object.values(availableHours).some((ranges) => normalizeAvailableRanges(ranges).length > 0);
 }
 
-function getEligiblePtPackages(packageActivations = [], trainerId) {
- const activePtPackages = (Array.isArray(packageActivations) ? packageActivations : []).filter((activation) =>
- activation?.Package?.packageType === 'personal_training' &&
- activation?.status === 'active' &&
- (activation?.sessionsRemaining > 0 || activation?.sessionsRemaining === null)
- );
+function buildHourlySlotsFromRanges(ranges = []) {
+ return normalizeAvailableRanges(ranges).flatMap((range) => {
+ const startMinute = timeToMinutes(range.start);
+ const endMinute = timeToMinutes(range.end);
+ if (startMinute === null || endMinute === null || startMinute >= endMinute) return [];
 
- const exactMatchPackages = activePtPackages.filter(
- (activation) => Number(activation?.Package?.trainerId) === Number(trainerId)
- );
-
- return {
- exactMatch: exactMatchPackages.length > 0,
- packages: exactMatchPackages.length > 0 ? exactMatchPackages : activePtPackages,
- };
-}
-
-// PT Package Info Component
-function PTPackageInfo({ memberId, trainerId, onPackageSelect, selectedPackageActivationId }) {
- const [ptPackages, setPtPackages] = useState([]);
- const [loading, setLoading] = useState(false);
- const [isSharedTrainerFallback, setIsSharedTrainerFallback] = useState(false);
-
- useEffect(() => {
- const loadPTPackages = async () => {
- if (!memberId || !trainerId) return;
- 
- setLoading(true);
- try {
- const response = await ownerMemberService.getMemberDetail(memberId);
- const member = response.data;
- 
- if (member && member.PackageActivations) {
- const eligible = getEligiblePtPackages(member.PackageActivations, trainerId);
- setPtPackages(eligible.packages);
- setIsSharedTrainerFallback(!eligible.exactMatch && eligible.packages.length > 0);
- 
- // Auto-select first package if available
- if (eligible.packages.length > 0 && !selectedPackageActivationId) {
- onPackageSelect(eligible.packages[0].id, eligible.packages[0].packageId);
- }
- } else {
- setPtPackages([]);
- setIsSharedTrainerFallback(false);
- }
- } catch (error) {
- setPtPackages([]);
- setIsSharedTrainerFallback(false);
- } finally {
- setLoading(false);
- }
- };
-
- loadPTPackages();
- }, [memberId, trainerId, selectedPackageActivationId, onPackageSelect]); // Added selectedPackageActivationId to deps
-
- if (loading) {
- return <div className="ots-pt-package-info" style={{padding: '12px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '10px', marginBottom: '12px'}}>
- <div style={{color: 'rgba(238, 242, 255, 0.7)'}}>Đang tải gói huấn luyện viên...</div>
- </div>;
+ const slots = [];
+ let cursor = startMinute;
+ while (cursor + 60 <= endMinute) {
+ const start = minutesToTime(cursor);
+ const end = minutesToTime(cursor + 60);
+ slots.push({ start, end, value: `${start}-${end}` });
+ cursor += 60;
  }
 
- if (ptPackages.length === 0) {
- return <div className="ots-pt-package-info" style={{padding: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', marginBottom: '12px'}}>
- <div style={{color: '#ef4444', fontWeight: 'bold'}}>Hội viên chưa có gói huấn luyện viên còn hiệu lực để đặt lịch</div>
- <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.6)', marginTop: '4px'}}>
- Vui lòng mua gói huấn luyện viên cho hội viên trước khi đặt lịch
- </div>
- </div>;
- }
-
- return (
- <div className="ots-pt-package-info" style={{marginBottom: '12px'}}>
- <label className="ots-field__label" style={{marginBottom: '8px', display: 'block'}}>
- Chọn gói huấn luyện viên <span className="ots-required">*</span>
- </label>
- {isSharedTrainerFallback && (
- <div className="ots-field__hint" style={{marginBottom: '8px', color: '#fbbf24'}}>
- Đang dùng gói PT gốc của hội viên để xếp lịch với PT thay thế.
- </div>
- )}
- {ptPackages.map((pa) => (
- <div 
- key={pa.id}
- onClick={() => onPackageSelect(pa.id, pa.packageId)}
- style={{
- padding: '12px',
- background: selectedPackageActivationId === pa.id 
- ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(139, 92, 246, 0.2) 100%)'
- : 'rgba(0, 0, 0, 0.3)',
- border: selectedPackageActivationId === pa.id
- ? '2px solid rgba(168, 85, 247, 0.6)'
- : '1px solid rgba(255, 255, 255, 0.1)',
- borderRadius: '10px',
- marginBottom: '8px',
- cursor: 'pointer',
- transition: 'all 0.2s ease'
- }}
- >
- <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
- <div>
- <div style={{fontWeight: 'bold', color: '#eef2ff', marginBottom: '4px'}}>
- {selectedPackageActivationId === pa.id && ' '}
- {pa.Package?.name || 'Gói huấn luyện viên'}
- </div>
- <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.7)'}}>
- Tổng: {pa.totalSessions || 0} buổi | Đã tập: {pa.sessionsUsed || 0} buổi
- </div>
- {pa.Package?.Trainer?.User?.username && (
- <div style={{fontSize: '0.78rem', color: 'rgba(238, 242, 255, 0.55)', marginTop: '4px'}}>
- PT gốc: {pa.Package.Trainer.User.username}
- </div>
- )}
- </div>
- <div style={{textAlign: 'right'}}>
- <div style={{fontSize: '1.3rem', fontWeight: 'bold', color: '#c084fc'}}>
- {pa.sessionsRemaining ?? 0}
- </div>
- <div style={{fontSize: '0.75rem', color: 'rgba(238, 242, 255, 0.5)'}}>buổi còn lại</div>
- </div>
- </div>
- </div>
- ))}
- </div>
- );
+ return slots;
+ });
 }
 
 const INITIAL_FORM = {
  trainerId: "",
  fromGymId: "",
  toGymId: "",
- memberId: "", // Optional: Nếu chọn member, khi approve sẽ tự động tạo booking
- scheduleMode: "single", // single, date_range, multiple_dates
+ memberId: "",
+ memberPackageActivationId: "",
+ scheduleMode: "single",
  startDate: "",
  endDate: "",
  startTime: "",
  endTime: "",
- multipleDates: [], // [{date: "2026-01-01", startTime: "09:00", endTime: "10:00"}]
- notes: "",
-};
-
-const INITIAL_BOOKING = {
- memberId: "",
- trainerId: "",
- gymId: "",
- packageActivationId: "",
- packageId: "",
- bookingMode: "single", // single, date_range, multiple_dates
- bookingDate: "",
- startDate: "", // For date range mode
- endDate: "", // For date range mode
- multipleDates: [], // For multiple_dates: [{date: "2026-01-01", startTime: "09:00", endTime: "10:00"}]
- startTime: "",
- endTime: "",
+ multipleDates: [],
  notes: "",
 };
 
 export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  const { selectedGymId, selectedGymName } = useSelectedGym();
  const isBookingsPage = pageMode === "bookings";
- const [activeTab, setActiveTab] = useState(isBookingsPage ? "bookings" : "shares"); // bookings or shares
- 
+ const [activeTab, setActiveTab] = useState(isBookingsPage ? "bookings" : "shares");
+
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState("");
  const [success, setSuccess] = useState("");
 
- // Trainer Shares
  const [shares, setShares] = useState([]);
  const [pagination, setPagination] = useState({});
- 
- // Received Trainer Share Requests (Owner B)
  const [receivedShares, setReceivedShares] = useState([]);
  const [receivedPagination, setReceivedPagination] = useState({});
  const [receivedFilters, setReceivedFilters] = useState({ q: "", status: "" });
  const [receivedCurrentPage, setReceivedCurrentPage] = useState(1);
 
- // Bookings
- const [bookings, setBookings] = useState([]);
- const [bookingPagination, setBookingPagination] = useState({});
-
  const [showModal, setShowModal] = useState(false);
- const [showBookingModal, setShowBookingModal] = useState(false);
- const [showScheduleModal, setShowScheduleModal] = useState(false); // Modal xem lịch PT
- const [showDetailModal, setShowDetailModal] = useState(false); // Modal xem chi tiết share
- const [selectedShare, setSelectedShare] = useState(null); // Share được chọn để xem chi tiết
- const [selectedShareForSchedule, setSelectedShareForSchedule] = useState(null); // Share được chọn để xem lịch
+ const [showScheduleModal, setShowScheduleModal] = useState(false);
+ const [showDetailModal, setShowDetailModal] = useState(false);
+ const [selectedShare, setSelectedShare] = useState(null);
+ const [selectedShareForSchedule, setSelectedShareForSchedule] = useState(null);
  const [editing, setEditing] = useState(null);
  const [form, setForm] = useState({ ...INITIAL_FORM });
- const [bookingForm, setBookingForm] = useState({ ...INITIAL_BOOKING });
- 
- // Trainer schedule for bookings
- const [trainerSchedule, setTrainerSchedule] = useState([]);
- const [loadingSchedule, setLoadingSchedule] = useState(false);
 
- // Trainer schedule for shares
  const [shareTrainerSchedule, setShareTrainerSchedule] = useState([]);
  const [loadingShareSchedule, setLoadingShareSchedule] = useState(false);
 
  const [filters, setFilters] = useState({ q: "", status: "" });
- const [bookingFilters, setBookingFilters] = useState({ 
- q: "", 
- status: "",
- trainerId: "",
- gymId: "",
- startDate: "",
- endDate: ""
- });
  const [currentPage, setCurrentPage] = useState(1);
- const [bookingCurrentPage, setBookingCurrentPage] = useState(1);
 
- // Lookups
  const [gyms, setGyms] = useState([]);
- const [bookingGyms, setBookingGyms] = useState([]); // Gym của owner cho booking form
- const [myGymIds, setMyGymIds] = useState([]); // IDs của các gym thuộc owner này
+ const [bookingGyms, setBookingGyms] = useState([]);
+ const [myGymIds, setMyGymIds] = useState([]);
  const [allOwnerTrainers, setAllOwnerTrainers] = useState([]);
  const [trainers, setTrainers] = useState([]);
  const [members, setMembers] = useState([]);
- const [packages, setPackages] = useState([]);
  const [loadingLookups, setLoadingLookups] = useState(false);
+ const [memberPackageOptions, setMemberPackageOptions] = useState([]);
+ const [memberBusySlots, setMemberBusySlots] = useState([]);
+ const [loadingMemberBusySlots, setLoadingMemberBusySlots] = useState(false);
  const [availabilityFilters, setAvailabilityFilters] = useState({ gymId: "", date: getTodayValue() });
  const [trainerAvailability, setTrainerAvailability] = useState([]);
  const [loadingAvailability, setLoadingAvailability] = useState(false);
+const [memberDailyBookings, setMemberDailyBookings] = useState([]);
+const [loadingMemberDailyBookings, setLoadingMemberDailyBookings] = useState(false);
+ const [eligibleTrainers, setEligibleTrainers] = useState([]);
+ const [loadingEligibleTrainers, setLoadingEligibleTrainers] = useState(false);
 
  useEffect(() => {
  const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -414,15 +311,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  toGymId: scopedGymId || prev.toGymId,
  memberId: scopedGymId && prev.toGymId && String(prev.toGymId) !== scopedGymId ? "" : prev.memberId,
  }));
- setBookingForm((prev) => ({
- ...prev,
- gymId: scopedGymId || prev.gymId,
- trainerId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.trainerId,
- memberId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.memberId,
- packageActivationId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.packageActivationId,
- packageId: scopedGymId && prev.gymId && String(prev.gymId) !== scopedGymId ? "" : prev.packageId,
- }));
- setBookingFilters((prev) => ({ ...prev, gymId: scopedGymId }));
  setAvailabilityFilters((prev) => ({ ...prev, gymId: scopedGymId || prev.gymId }));
  }, [selectedGymId]);
 
@@ -430,34 +318,22 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  setActiveTab(isBookingsPage ? "bookings" : "shares");
  }, [isBookingsPage]);
 
- // Filter trainers by selected fromGym (for share form)
  const availableTrainers = React.useMemo(() => {
  if (!form.fromGymId) return [];
- // Trainers đã được load theo gymId từ API, chỉ cần return trainers
- return trainers;
+ return trainers.filter((trainer) => String(trainer.gymId || trainer.Gym?.id || "") === String(form.fromGymId));
  }, [trainers, form.fromGymId]);
-
- // Filter trainers by selected gym (for booking form)
- const bookingAvailableTrainers = React.useMemo(() => {
- if (!bookingForm.gymId) return [];
- // Chỉ hiển thị PT thuộc gym được chọn
- // Trainer có thể có gymId hoặc Gym.id
- const filtered = trainers.filter(t => {
- const trainerGymId = t.gymId || t.Gym?.id;
- return trainerGymId && trainerGymId.toString() === bookingForm.gymId.toString();
- });
- return filtered;
- }, [trainers, bookingForm.gymId]);
 
  const availabilityTrainers = React.useMemo(() => {
  if (!availabilityFilters.gymId) return allOwnerTrainers;
- return allOwnerTrainers.filter((trainer) => {
+ const filtered = allOwnerTrainers.filter((trainer) => {
  const trainerGymId = trainer.gymId || trainer.Gym?.id;
  return trainerGymId && trainerGymId.toString() === availabilityFilters.gymId.toString();
  });
+ // Fallback: nếu filter chi nhánh không khớp dữ liệu trả về, vẫn hiển thị toàn bộ để không bị trống toàn màn hình
+ return filtered.length > 0 ? filtered : allOwnerTrainers;
  }, [allOwnerTrainers, availabilityFilters.gymId]);
 
- const visibleTrainerAvailability = trainerAvailability.filter(({ availableRanges }) => availableRanges.length > 0);
+ const visibleTrainerAvailability = trainerAvailability;
  const visibleShares = React.useMemo(() => {
  if (!selectedGymId) return shares;
  return shares.filter((share) => String(share?.toGymId || share?.toGym?.id || "") === String(selectedGymId));
@@ -468,7 +344,158 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  return receivedShares.filter((share) => String(share?.fromGymId || share?.FromGym?.id || "") === String(selectedGymId));
  }, [receivedShares, selectedGymId]);
 
- // Load trainers khi chọn fromGym (for share form)
+ const selectedTrainer = React.useMemo(
+ () => trainers.find((trainer) => String(trainer?.id || "") === String(form.trainerId || "")) || null,
+ [form.trainerId, trainers]
+ );
+
+const leadTimeError = React.useMemo(() => {
+ if (!form.startDate || !form.startTime) return "";
+ const normalizedStart = normalizeTimeValue(form.startTime);
+ if (!normalizedStart) return "";
+
+ const slotStart = new Date(`${form.startDate}T${normalizedStart}:00`);
+ if (Number.isNaN(slotStart.getTime())) return "";
+
+ const minimumAllowed = new Date(Date.now() + 5 * 60 * 60 * 1000);
+ if (slotStart < minimumAllowed) {
+  return "Thời gian tạo yêu cầu phải trước giờ mượn ít nhất 5 tiếng.";
+ }
+ return "";
+}, [form.startDate, form.startTime]);
+
+ const bookingsByDate = React.useMemo(() => {
+  const map = new Map();
+  (Array.isArray(shareTrainerSchedule) ? shareTrainerSchedule : []).forEach((daySchedule) => {
+   const dateKey = daySchedule?.date;
+   if (!dateKey) return;
+   const bookings = Array.isArray(daySchedule?.bookings)
+    ? daySchedule.bookings.filter((booking) => booking?.type !== "trainer_share")
+    : [];
+   map.set(dateKey, bookings);
+  });
+  return map;
+ }, [shareTrainerSchedule]);
+
+ const hasBookingConflictForSlot = useCallback((dateValue, startTime, endTime) => {
+  if (!dateValue || !startTime || !endTime) return false;
+  const bookings = bookingsByDate.get(dateValue) || [];
+  return bookings.some((booking) => startTime < booking.endTime && endTime > booking.startTime);
+ }, [bookingsByDate]);
+
+ const singleDateAllSlots = React.useMemo(() => {
+ const dayKey = getDayKeyFromDate(form.startDate);
+ if (!selectedTrainer || !dayKey) return [];
+  return buildHourlySlotsFromRanges(selectedTrainer.availableHours?.[dayKey] || []);
+ }, [form.startDate, selectedTrainer]);
+
+ const singleDateSlotOptions = React.useMemo(() => {
+ return singleDateAllSlots.filter((slot) => !hasBookingConflictForSlot(form.startDate, slot.start, slot.end));
+ }, [form.startDate, hasBookingConflictForSlot, singleDateAllSlots]);
+
+ const isSingleSlotBusy = useCallback((slot) => {
+  if (!slot?.start || !slot?.end) return false;
+  return hasBookingConflictForSlot(form.startDate, slot.start, slot.end);
+ }, [form.startDate, hasBookingConflictForSlot]);
+
+ const getGymSlotOptionsForDate = useCallback((dateValue) => {
+  const dayKey = getDayKeyFromDate(dateValue);
+  if (!dayKey) return [];
+  const slotMap = new Map();
+  availableTrainers.forEach((trainer) => {
+    buildHourlySlotsFromRanges(trainer?.availableHours?.[dayKey] || []).forEach((slot) => {
+      if (!slotMap.has(slot.value)) slotMap.set(slot.value, slot);
+    });
+  });
+  return Array.from(slotMap.values()).sort((a, b) => a.start.localeCompare(b.start));
+ }, [availableTrainers]);
+
+ const singleDateGymSlotOptions = React.useMemo(() => {
+  if (!form.startDate) return [];
+  return getGymSlotOptionsForDate(form.startDate);
+ }, [form.startDate, getGymSlotOptionsForDate]);
+
+const singleDateGymSlotDisplayOptions = React.useMemo(() => {
+  const base = Array.isArray(singleDateGymSlotOptions) ? [...singleDateGymSlotOptions] : [];
+  const normalizedStart = normalizeTimeValue(form.startTime);
+  const normalizedEnd = normalizeTimeValue(form.endTime);
+  if (!normalizedStart || !normalizedEnd) return base;
+  const selectedValue = `${normalizedStart}-${normalizedEnd}`;
+  const exists = base.some((slot) => String(slot?.value || "") === selectedValue);
+  if (!exists) {
+    base.unshift({
+      value: selectedValue,
+      start: normalizedStart,
+      end: normalizedEnd,
+      isCustom: true,
+    });
+  }
+  return base;
+}, [form.startTime, form.endTime, singleDateGymSlotOptions]);
+
+ useEffect(() => {
+  const run = async () => {
+    if (selectedTrainer) {
+      setEligibleTrainers([]);
+      return;
+    }
+
+    let targetRanges = [];
+    if (form.scheduleMode === "single" && form.startDate && form.startTime && form.endTime) {
+      targetRanges = [{ date: form.startDate, startTime: form.startTime, endTime: form.endTime }];
+    }
+
+    if (!targetRanges.length || !availableTrainers.length) {
+      setEligibleTrainers([]);
+      return;
+    }
+
+    setLoadingEligibleTrainers(true);
+    try {
+      const matched = [];
+      for (const trainer of availableTrainers) {
+        let isTrainerEligible = true;
+        for (const slot of targetRanges) {
+          const dayKey = getDayKeyFromDate(slot.date);
+          const daySlots = buildHourlySlotsFromRanges(trainer?.availableHours?.[dayKey] || []);
+          const hasConfiguredSlot = daySlots.some((s) => s.start === slot.startTime && s.end === slot.endTime);
+          if (!hasConfiguredSlot) {
+            isTrainerEligible = false;
+            break;
+          }
+
+          const scheduleRes = await ownerBookingService.getTrainerSchedule(trainer.id, slot.date, { includeAllGyms: true });
+          const occupied = Array.isArray(scheduleRes?.data) ? scheduleRes.data : [];
+          const hasConflict = occupied.some(
+            (item) => slot.startTime < item.endTime && slot.endTime > item.startTime
+          );
+          if (hasConflict) {
+            isTrainerEligible = false;
+            break;
+          }
+        }
+
+        if (isTrainerEligible) matched.push(trainer);
+      }
+
+      setEligibleTrainers(matched);
+    } catch {
+      setEligibleTrainers([]);
+    } finally {
+      setLoadingEligibleTrainers(false);
+    }
+  };
+
+  run();
+ }, [
+  availableTrainers,
+  form.scheduleMode,
+  form.startDate,
+  form.startTime,
+  form.endTime,
+  selectedTrainer,
+ ]);
+
  useEffect(() => {
  if (form.fromGymId) {
  const loadTrainersForGym = async () => {
@@ -476,113 +503,15 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  const res = await axios.get(`/api/owner/trainer-shares/available-trainers/${form.fromGymId}`);
  setTrainers(res.data?.trainers || []);
  } catch (err) {
+ setTrainers([]);
  }
  };
  loadTrainersForGym();
  } else {
- // Reset về tất cả trainers nếu không chọn gym
  loadLookups();
  }
  }, [form.fromGymId]);
 
- // Load trainers khi chọn gym (for booking form)
- useEffect(() => {
- if (bookingForm.gymId) {
- const loadTrainersForBooking = async () => {
- try {
- // Sử dụng endpoint có sẵn để lấy trainers của gym
- const res = await axios.get(`/api/owner/trainer-shares/available-trainers/${bookingForm.gymId}`);
- setTrainers(res.data?.trainers || []);
- } catch (err) {
- // Fallback: giữ nguyên trainers đã có
- }
- };
- loadTrainersForBooking();
- }
- }, [bookingForm.gymId]);
-
- // Load member PT packages when member and trainer are selected
- useEffect(() => {
- const loadMemberPTPackages = async () => {
- if (!bookingForm.memberId || !bookingForm.trainerId) {
- return;
- }
-
- try {
- const response = await ownerMemberService.getMemberDetail(bookingForm.memberId);
- const member = response.data;
- 
- if (member && member.PackageActivations) {
- const { packages: ptPackages } = getEligiblePtPackages(member.PackageActivations, bookingForm.trainerId);
-
- // Auto-select the first matching PT package
- if (ptPackages.length > 0 && !bookingForm.packageActivationId) {
- setBookingForm(prev => ({ 
- ...prev, 
- packageActivationId: ptPackages[0].id,
- packageId: ptPackages[0].packageId 
- }));
- }
- }
- } catch (error) {
- }
- };
-
- loadMemberPTPackages();
- }, [bookingForm.memberId, bookingForm.trainerId, bookingForm.packageActivationId]);
-
- // Load trainer schedule khi chọn trainer và ngày
- useEffect(() => {
- const loadSchedule = async () => {
- if (!bookingForm.trainerId) {
- setTrainerSchedule([]);
- return;
- }
-
- let datesToCheck = [];
-
- if (bookingForm.bookingMode === "single" && bookingForm.bookingDate) {
- datesToCheck = [bookingForm.bookingDate];
- } else if (bookingForm.bookingMode === "date_range" && bookingForm.startDate && bookingForm.endDate) {
- datesToCheck = getDatesBetween(bookingForm.startDate, bookingForm.endDate);
- } else if (bookingForm.bookingMode === "multiple_dates") {
- datesToCheck = bookingForm.multipleDates.filter(d => d.date).map(d => d.date);
- }
-
- if (datesToCheck.length === 0) {
- setTrainerSchedule([]);
- return;
- }
-
- setLoadingSchedule(true);
- try {
- // Load schedule cho tất cả các ngày
- const schedulePromises = datesToCheck.map(date =>
- ownerBookingService.getTrainerSchedule(bookingForm.trainerId, date)
- .then(res => ({ date, bookings: res.data || [] }))
- .catch(() => ({ date, bookings: [] }))
- );
-
- const allSchedules = await Promise.all(schedulePromises);
- setTrainerSchedule(allSchedules);
- } catch (err) {
- setTrainerSchedule([]);
- } finally {
- setLoadingSchedule(false);
- }
- };
- 
- loadSchedule();
- }, [
- bookingForm.trainerId, 
- bookingForm.bookingMode,
- bookingForm.bookingDate, 
- bookingForm.startDate, 
- bookingForm.endDate,
- bookingForm.multipleDates
- ]);
-
- // Load trainer schedule cho share form
  useEffect(() => {
  const loadShareSchedule = async () => {
  if (!form.trainerId) {
@@ -591,13 +520,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  }
 
  let datesToCheck = [];
-
- if (form.scheduleMode === "single" && form.startDate) {
+ if (form.startDate) {
  datesToCheck = [form.startDate];
- } else if (form.scheduleMode === "date_range" && form.startDate && form.endDate) {
- datesToCheck = getDatesBetween(form.startDate, form.endDate);
- } else if (form.scheduleMode === "multiple_dates") {
- datesToCheck = form.multipleDates.filter(d => d.date).map(d => d.date);
  }
 
  if (datesToCheck.length === 0) {
@@ -607,15 +531,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
 
  setLoadingShareSchedule(true);
  try {
- // Load schedule cho tất cả các ngày
- const schedulePromises = datesToCheck.map(date => {
+ const schedulePromises = datesToCheck.map((date) => {
  return ownerBookingService.getTrainerSchedule(form.trainerId, date, { includeAllGyms: true })
- .then(res => {
- return { date, bookings: res.data || [] };
- })
- .catch(err => {
- return { date, bookings: [] };
- });
+ .then((res) => ({ date, bookings: res.data || [] }))
+ .catch(() => ({ date, bookings: [] }));
  });
 
  const allSchedules = await Promise.all(schedulePromises);
@@ -626,38 +545,128 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  setLoadingShareSchedule(false);
  }
  };
- 
- loadShareSchedule();
- }, [
- form.trainerId, 
- form.scheduleMode,
- form.startDate, 
- form.endDate,
- form.multipleDates
- ]);
 
- // Load lookups (gyms, trainers, members, packages)
+ loadShareSchedule();
+ }, [form.trainerId, form.startDate]);
+
+useEffect(() => {
+  const loadMemberPackages = async () => {
+    if (!form.memberId || !form.toGymId) {
+      setMemberPackageOptions([]);
+      return;
+    }
+
+    try {
+      const fromDate = getTodayValue();
+      const response = await ownerBookingService.getMyBookings({
+        memberId: form.memberId,
+        gymId: form.toGymId,
+        fromDate,
+        limit: 100,
+      });
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      const validRows = rows
+        .filter((booking) => booking?.bookingDate && booking?.startTime && booking?.endTime)
+        .filter((booking) => !["cancelled", "no_show", "completed"].includes(String(booking?.status || "").toLowerCase()))
+        .map((booking) => ({
+          id: booking.id,
+          date: normalizeDateValue(booking.bookingDate),
+          startTime: normalizeTimeValue(booking.startTime),
+          endTime: normalizeTimeValue(booking.endTime),
+          packageActivationId: booking.packageActivationId || null,
+          packageId: booking.packageId || booking?.Package?.id || null,
+          packageName: booking?.Package?.name || null,
+          status: booking.status,
+          value: `${normalizeDateValue(booking.bookingDate)}|${normalizeTimeValue(booking.startTime)}|${normalizeTimeValue(booking.endTime)}`,
+        }))
+        .filter((slot) => slot.date && slot.startTime && slot.endTime && slot.startTime < slot.endTime);
+
+      const dedup = new Map();
+      validRows.forEach((slot) => {
+        if (!dedup.has(slot.value)) dedup.set(slot.value, slot);
+      });
+
+      const pkgMap = new Map();
+      validRows.forEach((slot) => {
+        const key = slot.packageActivationId || slot.packageId;
+        if (!key) return;
+        if (!pkgMap.has(String(key))) {
+          pkgMap.set(String(key), {
+            key: String(key),
+            packageActivationId: slot.packageActivationId || null,
+            packageId: slot.packageId || null,
+            packageName: slot.packageName || "Gói không rõ tên",
+          });
+        }
+      });
+      setMemberPackageOptions(Array.from(pkgMap.values()));
+    } catch {
+      setMemberPackageOptions([]);
+    }
+  };
+
+  loadMemberPackages();
+ }, [form.memberId, form.toGymId]);
+
+useEffect(() => {
+  const loadMemberBusySlots = async () => {
+    if (!form.memberId || !form.toGymId) {
+      setMemberBusySlots([]);
+      return;
+    }
+    setLoadingMemberBusySlots(true);
+    try {
+      const response = await ownerGetRequests({
+        page: 1,
+        limit: 200,
+        gymId: form.toGymId,
+      });
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      const mapped = rows
+        .filter((r) => String(r?.requestType || "").toUpperCase() === "BUSY_SLOT")
+        .filter((r) => ["PENDING", "APPROVED"].includes(String(r?.status || "").toUpperCase()))
+        .filter((r) => String(r?.requestData?.memberId || "") === String(form.memberId))
+        .map((r) => ({
+          id: r.id,
+          date: normalizeDateValue(r?.requestData?.bookingDate),
+          startTime: normalizeTimeValue(r?.requestData?.startTime),
+          endTime: normalizeTimeValue(r?.requestData?.endTime),
+          packageActivationId: r?.requestData?.packageActivationId || null,
+          packageId: r?.requestData?.packageId || null,
+          packageName: r?.requestData?.packageName || null,
+          status: String(r?.status || "").toUpperCase(),
+        }))
+        .filter((x) => x.date && x.startTime && x.endTime)
+        .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+      setMemberBusySlots(mapped);
+    } catch {
+      setMemberBusySlots([]);
+    } finally {
+      setLoadingMemberBusySlots(false);
+    }
+  };
+  loadMemberBusySlots();
+}, [form.memberId, form.toGymId]);
+
  const loadLookups = async () => {
  setLoadingLookups(true);
  try {
- const [gymsRes, trainersRes, membersRes, packagesRes, allGymsRes] = await Promise.all([
+ const [gymsRes, trainersRes, membersRes, allGymsRes] = await Promise.all([
  ownerGetMyGyms(),
- ownerTrainerService.getMyTrainers({ limit: 1000 }), // Lấy tất cả trainers của owner
+ ownerTrainerService.getMyTrainers({ limit: 1000 }),
  ownerMemberService.getMyMembers({ limit: 1000 }),
- ownerGetPackages(),
- axios.get('/api/owner/gyms/all'), // Lấy tất cả gyms để chọn khi tạo request
+ axios.get("/api/owner/gyms/all"),
  ]);
- 
+
  const myGyms = gymsRes?.data?.data || [];
  const allGyms = allGymsRes?.data?.data || [];
- 
- setGyms(allGyms); // Hiển thị tất cả gyms để chọn (cho share form)
- setBookingGyms(myGyms); // Hiển thị chỉ gym của owner (cho booking form)
- setMyGymIds(myGyms.map(g => g.id)); // Lưu IDs của gyms thuộc owner này
+
+ setGyms(allGyms);
+ setBookingGyms(myGyms);
+ setMyGymIds(myGyms.map((gym) => gym.id));
  setAllOwnerTrainers(trainersRes?.data || []);
  setTrainers(trainersRes?.data || []);
  setMembers(membersRes?.data || []);
- setPackages(packagesRes?.data?.data || []);
  setAvailabilityFilters((prev) => ({
  ...prev,
  gymId: prev.gymId || String(myGyms?.[0]?.id || ""),
@@ -676,12 +685,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  }
 
  const dayKey = getDayKeyFromDate(availabilityFilters.date);
- if (!dayKey) {
- setTrainerAvailability([]);
- return;
- }
-
- if (availabilityTrainers.length === 0) {
+ if (!dayKey || availabilityTrainers.length === 0) {
  setTrainerAvailability([]);
  return;
  }
@@ -716,7 +720,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  endTime: normalizeTimeValue(item.endTime),
  status: item.status,
  type: item.type,
+ busyRequested: Boolean(item.busyRequested) || hasBusyRequestMarker(item.notes),
  memberName: item.Member?.User?.username || null,
+ toGymName: item.toGym?.name || null,
  }))
  .filter((item) => item.startTime && item.endTime),
  availableRanges,
@@ -735,295 +741,178 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  }
  }, [activeTab, availabilityFilters.date, availabilityTrainers, isBookingsPage]);
 
- // Load trainer shares
+const loadMemberDailySchedule = useCallback(async () => {
+ if (!isBookingsPage || activeTab !== "bookings") return;
+ if (!availabilityFilters.date) {
+ setMemberDailyBookings([]);
+ return;
+ }
+
+ const scopedGymId = selectedGymId || availabilityFilters.gymId;
+ if (!scopedGymId) {
+ setMemberDailyBookings([]);
+ return;
+ }
+
+ setLoadingMemberDailyBookings(true);
+ try {
+ const bookingPromise = ownerBookingService.getMyBookings({
+ gymId: scopedGymId,
+ fromDate: availabilityFilters.date,
+ toDate: availabilityFilters.date,
+ limit: 120,
+ page: 1,
+ });
+ const timeoutPromise = new Promise((_, reject) =>
+ setTimeout(() => reject(new Error("Hết thời gian tải lịch tập hội viên")), 12000)
+ );
+ const response = await Promise.race([bookingPromise, timeoutPromise]);
+ const rows = Array.isArray(response?.data) ? response.data : [];
+ const filtered = rows
+ .filter((booking) => String(booking?.status || "").toLowerCase() !== "cancelled")
+ .sort((a, b) => {
+ const ta = `${normalizeDateValue(a?.bookingDate)} ${normalizeTimeValue(a?.startTime)}`;
+ const tb = `${normalizeDateValue(b?.bookingDate)} ${normalizeTimeValue(b?.startTime)}`;
+ return ta.localeCompare(tb);
+ });
+ setMemberDailyBookings(filtered);
+ } catch (err) {
+ setMemberDailyBookings([]);
+ setError(err?.response?.data?.message || "Không thể tải lịch tập hội viên");
+ } finally {
+ setLoadingMemberDailyBookings(false);
+ }
+}, [activeTab, availabilityFilters.date, availabilityFilters.gymId, isBookingsPage, selectedGymId]);
+
  const loadShares = useCallback(async (page = currentPage) => {
  try {
  setLoading(true);
  setError("");
  const params = cleanQueryParams({ ...filters, page, limit: 10 });
-
  const res = await ownerGetMyTrainerShares(params);
- 
  setShares(res.data?.data || []);
  setPagination(res.data?.pagination || {});
  } catch (err) {
- console.error('Error loading trainer shares:', err);
+ console.error("Error loading trainer shares:", err);
  setError(err.response?.data?.message || err.message || "Không thể tải danh sách");
  } finally {
  setLoading(false);
  }
  }, [currentPage, filters]);
 
- // Load received trainer share requests (Owner B)
  const loadReceivedShares = useCallback(async (page = receivedCurrentPage) => {
  try {
  setLoading(true);
  setError("");
  const params = cleanQueryParams({ ...receivedFilters, page, limit: 10 });
-
  const res = await ownerGetReceivedTrainerShares(params);
  setReceivedShares(res.data?.data || []);
  setReceivedPagination(res.data?.pagination || {});
  } catch (err) {
- console.error('Error loading received shares:', err);
+ console.error("Error loading received shares:", err);
  setError(err.response?.data?.message || err.message || "Không thể tải danh sách yêu cầu");
  } finally {
  setLoading(false);
  }
  }, [receivedCurrentPage, receivedFilters]);
 
- // View trainer schedule before accepting
- const handleViewTrainerSchedule = async (share) => {
- setSelectedShareForSchedule(share);
+ const loadScheduleForShare = useCallback(async (share) => {
  setLoadingShareSchedule(true);
- setShowScheduleModal(true);
 
  try {
- if (!share.trainerId || !share.startDate) {
+ if (!share?.trainerId || !share?.startDate) {
  setShareTrainerSchedule([]);
  return;
  }
 
- // Tính toán các ngày cần load
  const startDate = new Date(share.startDate);
  const endDate = share.endDate ? new Date(share.endDate) : new Date(share.startDate);
- 
- // Load schedule cho tất cả các ngày trong khoảng (tối đa 30 ngày)
  const schedulePromises = [];
  const currentDate = new Date(startDate);
  let dayCount = 0;
- 
+
  while (currentDate <= endDate && dayCount < 30) {
- const dateStr = currentDate.toISOString().split('T')[0];
+ const dateStr = currentDate.toISOString().split("T")[0];
  schedulePromises.push(
  ownerBookingService.getTrainerSchedule(share.trainerId, dateStr, { includeAllGyms: true })
- .then(res => ({ date: dateStr, bookings: res.data || [] }))
+ .then((res) => ({ date: dateStr, bookings: res.data || [] }))
  .catch(() => ({ date: dateStr, bookings: [] }))
  );
  currentDate.setDate(currentDate.getDate() + 1);
- dayCount++;
+ dayCount += 1;
  }
- 
+
  const allSchedules = await Promise.all(schedulePromises);
  setShareTrainerSchedule(allSchedules);
- } catch (err) {
+ } catch (_err) {
  setShareTrainerSchedule([]);
  } finally {
  setLoadingShareSchedule(false);
  }
+ }, []);
+
+ const handleViewTrainerSchedule = async (share) => {
+ setSelectedShareForSchedule(share);
+ setShowScheduleModal(true);
+ await loadScheduleForShare(share);
  };
 
- // Accept trainer share request (Owner B)
- const handleAcceptShare = async (id) => {
- if (!window.confirm("Bạn có chắc muốn chấp nhận yêu cầu này?")) return;
+ const handleAcceptShare = async (id, shareContext = null) => {
+ if (!window.confirm("Bạn có chắc muốn đồng ý cho đối tác mượn huấn luyện viên này?")) return;
 
  try {
  setError("");
  setSuccess("");
- await ownerAcceptTrainerShare(id);
- setSuccess("Đã chấp nhận yêu cầu thành công.");
- loadReceivedShares();
+ const res = await ownerAcceptTrainerShare(id);
+ const acceptedShare = res?.data?.data || res?.data || { ...(shareContext || {}), id, status: "approved" };
+ const nextShare = { ...(shareContext || {}), ...acceptedShare, status: "approved" };
+ setReceivedShares((prev) => prev.map((item) => (item.id === id ? { ...item, ...nextShare } : item)));
+ setSelectedShare((prev) => (prev?.id === id ? { ...prev, ...nextShare } : prev));
+ setSelectedShareForSchedule((prev) => (prev?.id === id ? { ...prev, ...nextShare } : prev));
+ setSuccess("Đã đồng ý cho đối tác mượn huấn luyện viên.");
+ await loadReceivedShares();
+ if (shareContext) {
+ setShowScheduleModal(true);
+ setSelectedShareForSchedule(nextShare);
+ await loadScheduleForShare(nextShare);
+ }
  } catch (err) {
- setError(err.response?.data?.message || "Không thể chấp nhận yêu cầu");
+ setError(err.response?.data?.message || "Không thể xác nhận yêu cầu mượn huấn luyện viên");
  }
  };
 
- // Reject trainer share request (Owner B)
  const handleRejectShare = async (id) => {
- const reason = window.prompt("Lý do từ chối (tùy chọn):");
- if (reason === null) return; // User cancelled
+const reason = window.prompt("Lý do từ chối yêu cầu mượn huấn luyện viên (tùy chọn):");
+ if (reason === null) return;
 
  try {
  setError("");
  setSuccess("");
  await ownerRejectTrainerShare(id, reason);
- setSuccess("Đã từ chối yêu cầu");
+ setSuccess("Đã từ chối yêu cầu mượn huấn luyện viên.");
  loadReceivedShares();
  } catch (err) {
- setError(err.response?.data?.message || "Không thể từ chối yêu cầu");
+ setError(err.response?.data?.message || "Không thể từ chối yêu cầu mượn huấn luyện viên");
  }
  };
-
- // Load bookings (including trainer shares for borrowed trainers)
- const loadBookings = useCallback(async (page = bookingCurrentPage) => {
- try {
- setLoading(true);
- setError("");
- const params = cleanQueryParams({
- q: bookingFilters.q,
- status: bookingFilters.status,
- gymId: selectedGymId ? String(selectedGymId) : bookingFilters.gymId,
- trainerId: bookingFilters.trainerId,
- fromDate: bookingFilters.startDate,
- toDate: bookingFilters.endDate,
- page,
- limit: 8,
- });
-
- // Load regular bookings
- const res = await ownerBookingService.getMyBookings(params);
- let bookingsData = res.data || res.data?.data || [];
- 
- // Load approved trainer shares to mark shared trainer bookings
- const mySharesRes = await ownerGetMyTrainerShares({ status: 'approved', limit: 1000 });
- const myApprovedShares = mySharesRes.data?.data || [];
- 
- // Create a set of shared trainer IDs for quick lookup
- const sharedTrainerIds = new Set(myApprovedShares.map(s => s.trainerId));
- 
- // Mark bookings that use shared trainers
- bookingsData = bookingsData.map(booking => ({
- ...booking,
- isSharedTrainer: sharedTrainerIds.has(booking.trainerId)
- }));
- 
- // Use approved shares requested by current owner (borrower side)
- let approvedShares = myApprovedShares;
-
- // Apply filters to trainer shares
- if (bookingFilters.trainerId) {
- approvedShares = approvedShares.filter(share => 
- share.trainerId && share.trainerId.toString() === bookingFilters.trainerId.toString()
- );
- }
-
- if (bookingFilters.gymId) {
- approvedShares = approvedShares.filter(share => 
- share.toGymId && share.toGymId.toString() === bookingFilters.gymId.toString()
- );
- }
-
- if (bookingFilters.startDate) {
- approvedShares = approvedShares.filter(share => {
- if (!share.startDate) return false;
- const shareStart = new Date(share.startDate);
- const filterStart = new Date(bookingFilters.startDate);
- return shareStart >= filterStart;
- });
- }
-
- if (bookingFilters.endDate) {
- approvedShares = approvedShares.filter(share => {
- if (!share.endDate && !share.startDate) return false;
- const shareEnd = new Date(share.endDate || share.startDate);
- const filterEnd = new Date(bookingFilters.endDate);
- return shareEnd <= filterEnd;
- });
- }
-
- // Nếu đã có booking thực tế cho khung giờ mượn PT thì ẩn dòng "Lịch mượn huấn luyện viên"
- const toDateOnly = (value) => {
- if (!value) return "";
- return String(value).split("T")[0];
- };
-
- const toMinutes = (timeValue) => {
- if (!timeValue) return null;
- const [h, m] = String(timeValue).split(":");
- const hh = Number(h);
- const mm = Number(m);
- if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
- return hh * 60 + mm;
- };
-
- approvedShares = approvedShares.filter((share) => {
- const shareDate = toDateOnly(share.startDate);
- const shareStart = toMinutes(share.startTime || "00:00:00");
- const shareEnd = toMinutes(share.endTime || "23:59:59");
-
- const hasRealBooking = bookingsData.some((booking) => {
- if (booking.type === "trainer_share") return false;
- if (String(booking.status || "").toLowerCase() === "cancelled") return false;
-
- const sameTrainer = String(booking.trainerId || "") === String(share.trainerId || "");
- const sameGym = String(booking.gymId || "") === String(share.toGymId || "");
- const sameDate = toDateOnly(booking.bookingDate) === shareDate;
- const sameMember = !share.memberId || String(booking.memberId || "") === String(share.memberId);
-
- if (!sameTrainer || !sameGym || !sameDate || !sameMember) return false;
-
- const bookingStart = toMinutes(booking.startTime || "00:00:00");
- const bookingEnd = toMinutes(booking.endTime || "23:59:59");
- if (shareStart === null || shareEnd === null || bookingStart === null || bookingEnd === null) {
- return true;
- }
-
- return bookingStart < shareEnd && bookingEnd > shareStart;
- });
-
- return !hasRealBooking;
- });
-
- // Convert approved shares to booking-like format for table/calendar display
- const shareBookings = approvedShares.map(share => ({
- ...share,
- id: `share-${share.id}`,
- type: 'trainer_share',
- status: 'shared',
- bookingDate: share.startDate,
- startTime: share.startTime || '00:00:00',
- endTime: share.endTime || '23:59:59',
- Member: { User: { username: 'Chia sẻ huấn luyện viên' } },
- Package: { name: share.shareType === 'temporary' ? 'Tạm thời' : 'Vĩnh viễn' }
- }));
-
- // Combine bookings and shares
- bookingsData = [...bookingsData, ...shareBookings].sort((a, b) => {
- const dateA = new Date(a.bookingDate);
- const dateB = new Date(b.bookingDate);
- return dateB - dateA; // Newest first
- });
- 
- setBookings(bookingsData);
- setBookingPagination(res.pagination || res.data?.pagination || {});
- } catch (err) {
- console.error('Error loading bookings:', err);
- setError(err.response?.data?.message || err.message || "Không thể tải danh sách booking");
- } finally {
- setLoading(false);
- }
- }, [bookingFilters, bookingCurrentPage, selectedGymId]);
 
  useEffect(() => {
  loadLookups();
  }, []);
 
  useEffect(() => {
- if (!isBookingsPage && activeTab !== "bookings") {
- return;
- }
- loadBookings();
- }, [
- bookingCurrentPage,
- isBookingsPage,
- activeTab,
- loadBookings,
- trainers.length
- ]);
+ loadTrainerAvailability();
+loadMemberDailySchedule();
+}, [loadMemberDailySchedule, loadTrainerAvailability]);
 
  useEffect(() => {
- loadTrainerAvailability();
- }, [loadTrainerAvailability]);
-
-useEffect(() => {
  if (!isBookingsPage) return undefined;
 
  const socket = connectSocket();
- const onBookingStatusChanged = (payload) => {
+ const onBookingStatusChanged = () => {
  if (activeTab !== "bookings") return;
-
- setBookings((prev) => {
- const exists = prev.some((item) => String(item.id) === String(payload?.bookingId));
- if (!exists) return prev;
- return prev.map((item) => (
- String(item.id) === String(payload?.bookingId)
- ? { ...item, status: payload?.status || item.status }
- : item
- ));
- });
-
- loadBookings();
  loadTrainerAvailability();
+loadMemberDailySchedule();
  };
 
  socket.on("booking:status-changed", onBookingStatusChanged);
@@ -1031,37 +920,25 @@ useEffect(() => {
  return () => {
  socket.off("booking:status-changed", onBookingStatusChanged);
  };
-}, [activeTab, isBookingsPage, loadBookings, loadTrainerAvailability]);
+}, [activeTab, isBookingsPage, loadMemberDailySchedule, loadTrainerAvailability]);
 
-const refreshTrainerShareData = useCallback(async () => {
+ const refreshTrainerShareData = useCallback(async () => {
  const tasks = [loadShares(currentPage), loadReceivedShares(receivedCurrentPage)];
 
  if (isBookingsPage && activeTab === "bookings") {
- tasks.push(loadBookings(bookingCurrentPage));
- tasks.push(loadTrainerAvailability());
+ tasks.push(loadTrainerAvailability(), loadMemberDailySchedule());
  }
 
  await Promise.all(tasks);
-}, [
- activeTab,
- bookingCurrentPage,
- currentPage,
- isBookingsPage,
- loadBookings,
- loadReceivedShares,
- loadShares,
- loadTrainerAvailability,
- receivedCurrentPage,
-]);
+}, [activeTab, currentPage, isBookingsPage, loadMemberDailySchedule, loadReceivedShares, loadShares, loadTrainerAvailability, receivedCurrentPage]);
 
-useOwnerRealtimeRefresh({
- enabled: activeTab === "requests" || activeTab === "received" || isBookingsPage,
+ useOwnerRealtimeRefresh({
+ enabled: activeTab === "shares" || activeTab === "received" || isBookingsPage,
  onRefresh: refreshTrainerShareData,
  events: ["notification:new", "trainer_share:changed"],
  notificationTypes: ["trainer_share"],
-});
+ });
 
- // Auto-clear success/error messages after 5 seconds
  useEffect(() => {
  if (success) {
  const timer = setTimeout(() => {
@@ -1086,302 +963,40 @@ useOwnerRealtimeRefresh({
  } else if (activeTab === "received") {
  loadReceivedShares();
  } else if (activeTab === "bookings") {
- loadBookings();
+ loadTrainerAvailability();
+loadMemberDailySchedule();
  }
- // eslint-disable-next-line
- }, [currentPage, receivedCurrentPage, bookingCurrentPage, activeTab]);
+}, [activeTab, currentPage, loadMemberDailySchedule, loadReceivedShares, loadShares, loadTrainerAvailability, receivedCurrentPage]);
 
- // Mở modal tạo mới share
  const handleCreate = () => {
  setEditing(null);
  setForm({ ...INITIAL_FORM, toGymId: selectedGymId ? String(selectedGymId) : "" });
  setShowModal(true);
  };
 
- // Mở modal tạo mới booking
- const handleCreateBooking = () => {
- setEditing(null);
- setBookingForm({ ...INITIAL_BOOKING, gymId: selectedGymId ? String(selectedGymId) : "" });
- setShowBookingModal(true);
- };
-
- const handleQuickBookFromAvailability = (trainer, range) => {
- const trainerGymId = trainer.gymId || trainer.Gym?.id || availabilityFilters.gymId || "";
- setEditing(null);
- setBookingForm({
- ...INITIAL_BOOKING,
- gymId: trainerGymId ? String(trainerGymId) : "",
- trainerId: trainer.id ? String(trainer.id) : "",
- bookingMode: "single",
- bookingDate: availabilityFilters.date || getTodayValue(),
- startTime: range.start,
- endTime: range.end,
- });
- setShowBookingModal(true);
- };
-
- // Mở modal sửa booking
- const handleEditBooking = async (booking) => {
- setEditing(booking);
- setBookingForm({
- ...INITIAL_BOOKING,
- memberId: booking.memberId || "",
- trainerId: booking.trainerId || "",
- gymId: booking.gymId || "",
- packageActivationId: booking.packageActivationId || "",
- packageId: booking.packageId || "",
- bookingMode: "single", // Edit mode chỉ cho phép sửa 1 ngày
- bookingDate: booking.bookingDate ? booking.bookingDate.slice(0, 10) : "",
- startTime: booking.startTime || "",
- endTime: booking.endTime || "",
- notes: booking.notes || "",
- });
- setShowBookingModal(true);
- };
-
- // Mở modal sửa
  const handleEdit = (share) => {
+ const normalizedSpecificSchedules = Array.isArray(share.specificSchedules)
+ ? share.specificSchedules
+ : [];
+ const primarySchedule = normalizedSpecificSchedules[0] || null;
+
  setEditing(share);
  setForm({
  ...INITIAL_FORM,
  trainerId: share.trainerId || "",
  fromGymId: share.fromGymId || "",
  toGymId: share.toGymId || "",
- startDate: share.startDate ? share.startDate.slice(0, 10) : "",
- endDate: share.endDate ? share.endDate.slice(0, 10) : "",
- startTime: share.startTime || "",
- endTime: share.endTime || "",
+ memberId: share.memberId || "",
+memberPackageActivationId: "",
+ startDate: primarySchedule?.date || (share.startDate ? share.startDate.slice(0, 10) : ""),
+ endDate: share.endDate ? share.endDate.slice(0, 10) : (primarySchedule?.date || ""),
+ startTime: primarySchedule?.startTime || share.startTime || "",
+ endTime: primarySchedule?.endTime || share.endTime || "",
  notes: share.notes || "",
- scheduleMode: share.scheduleMode || "all_days",
- specificSchedules: share.specificSchedules || [],
- weekdaySchedules: share.weekdaySchedules || {},
+scheduleMode: "single",
+multipleDates: [],
  });
  setShowModal(true);
- };
-
- // Submit booking form
- const handleBookingSubmit = async (e) => {
- e.preventDefault();
- setError("");
- setSuccess("");
-
- try {
- if (editing) {
- // Chỉ cho phép update 1 booking
- await ownerBookingService.updateBooking(editing.id, bookingForm);
- setSuccess("Cập nhật booking thành công!");
- } else {
- // Tạo booking mới - hỗ trợ nhiều ngày
- if (bookingForm.bookingMode === "single") {
- // Đặt 1 ngày
- await ownerBookingService.createBooking({
- memberId: bookingForm.memberId,
- trainerId: bookingForm.trainerId,
- gymId: bookingForm.gymId,
- packageActivationId: bookingForm.packageActivationId,
- packageId: bookingForm.packageId,
- bookingDate: bookingForm.bookingDate,
- startTime: bookingForm.startTime,
- endTime: bookingForm.endTime,
- notes: bookingForm.notes,
- });
- setSuccess("Đặt lịch tập thành công!");
- } else if (bookingForm.bookingMode === "date_range") {
- // Đặt nhiều ngày theo range
- const datesToBook = getDatesBetween(bookingForm.startDate, bookingForm.endDate);
- 
- if (datesToBook.length === 0) {
- setError("Không có ngày nào để đặt lịch!");
- return;
- }
-
- let successCount = 0;
- let failedCount = 0;
- const errors = [];
-
- for (const date of datesToBook) {
- try {
- await ownerBookingService.createBooking({
- memberId: bookingForm.memberId,
- trainerId: bookingForm.trainerId,
- gymId: bookingForm.gymId,
- packageActivationId: bookingForm.packageActivationId,
- packageId: bookingForm.packageId,
- bookingDate: date,
- startTime: bookingForm.startTime,
- endTime: bookingForm.endTime,
- notes: bookingForm.notes,
- });
- successCount++;
- } catch (err) {
- failedCount++;
- errors.push(`${date}: ${err.response?.data?.message || "Lỗi"}`);
- }
- }
-
- if (successCount > 0) {
- setSuccess(`Đặt lịch thành công ${successCount}/${datesToBook.length} ngày!`);
- }
- if (failedCount > 0) {
- setError(`Thất bại ${failedCount} ngày: ${errors.slice(0, 3).join(", ")}${errors.length > 3 ? "..." : ""}`);
- }
- } else if (bookingForm.bookingMode === "multiple_dates") {
- // Đặt nhiều ngày cụ thể - mỗi ngày có giờ riêng
- const datesToBook = bookingForm.multipleDates.filter(d => d.date && d.startTime && d.endTime);
- 
- if (datesToBook.length === 0) {
- setError("Vui lòng chọn ít nhất 1 ngày và điền đầy đủ giờ!");
- return;
- }
-
- let successCount = 0;
- let failedCount = 0;
- const errors = [];
-
- for (const dateItem of datesToBook) {
- try {
- await ownerBookingService.createBooking({
- memberId: bookingForm.memberId,
- trainerId: bookingForm.trainerId,
- gymId: bookingForm.gymId,
- packageActivationId: bookingForm.packageActivationId,
- packageId: bookingForm.packageId,
- bookingDate: dateItem.date,
- startTime: dateItem.startTime,
- endTime: dateItem.endTime,
- notes: bookingForm.notes,
- });
- successCount++;
- } catch (err) {
- failedCount++;
- errors.push(`${dateItem.date}: ${err.response?.data?.message || "Lỗi"}`);
- }
- }
-
- if (successCount > 0) {
- setSuccess(`Đặt lịch thành công ${successCount}/${datesToBook.length} ngày!`);
- }
- if (failedCount > 0) {
- setError(`Thất bại ${failedCount} ngày: ${errors.slice(0, 3).join(", ")}${errors.length > 3 ? "..." : ""}`);
- }
- }
- }
-
- setShowBookingModal(false);
- loadBookings();
- } catch (err) {
- setError(err.response?.data?.message || "Có lỗi xảy ra");
- }
- };
-
- // Helper function to get dates between two dates
- const getDatesBetween = (startDate, endDate) => {
- const dates = [];
- const currentDate = new Date(startDate);
- const end = new Date(endDate);
-
- while (currentDate <= end) {
- dates.push(currentDate.toISOString().split('T')[0]);
- currentDate.setDate(currentDate.getDate() + 1);
- }
-
- return dates;
- };
-
- const addHoursToTime = (timeStr, hoursToAdd = 2) => {
- if (!timeStr) return "";
- const parts = timeStr.split(":");
- if (parts.length < 2) return "";
- const hours = Number(parts[0]);
- const minutes = Number(parts[1]);
- if (Number.isNaN(hours) || Number.isNaN(minutes)) return "";
- const totalMinutes = hours * 60 + minutes + hoursToAdd * 60;
- const newHours = Math.floor(totalMinutes / 60) % 24;
- const newMinutes = totalMinutes % 60;
- return `${String(newHours).padStart(2, "0")}:${String(newMinutes).padStart(2, "0")}`;
- };
-
- const toTimeInputValue = (timeStr, fallback = "") => {
- if (!timeStr) return fallback;
- const parts = String(timeStr).split(":");
- if (parts.length < 2) return fallback;
- const hh = String(parts[0]).padStart(2, "0");
- const mm = String(parts[1]).padStart(2, "0");
- return `${hh}:${mm}`;
- };
-
- const handleShareAttendance = async (share, mode) => {
- if (!share?.memberId) {
- setError("Phiếu mượn huấn luyện viên chưa gắn hội viên. Vui lòng tạo booking thủ công ở tab Đặt lịch trước khi điểm danh.");
- return;
- }
-
- const statusText = mode === "present" ? "điểm danh có mặt" : "điểm danh vắng";
- if (!window.confirm(`Bạn có chắc muốn ${statusText} cho lịch mượn huấn luyện viên này?`)) return;
-
- const normalizedStart = toTimeInputValue(share.startTime, "08:00");
- const normalizedEnd = toTimeInputValue(share.endTime, addHoursToTime(normalizedStart, 2));
- const bookingDate = share.startDate ? String(share.startDate).slice(0, 10) : "";
-
- if (!bookingDate) {
- setError("Không xác định được ngày của lịch mượn huấn luyện viên");
- return;
- }
-
- try {
- setError("");
- setSuccess("");
-
- const created = await ownerBookingService.createBooking({
- memberId: share.memberId,
- trainerId: share.trainerId,
- gymId: share.toGymId,
- bookingDate,
- startTime: normalizedStart,
- endTime: normalizedEnd,
- notes: `Booking từ lịch mượn huấn luyện viên #${share.id}`,
- });
-
- const bookingId = created?.data?.id || created?.id;
- if (!bookingId) {
- throw new Error("Tạo booking thành công nhưng không nhận được bookingId");
- }
-
- if (mode === "present") {
- await ownerBookingService.updateBookingStatus(bookingId, "in_progress");
- setSuccess("Đã tạo booking từ lịch mượn huấn luyện viên và điểm danh Có mặt.");
- } else {
- await ownerBookingService.updateBookingStatus(bookingId, "no_show");
- setSuccess("Đã tạo booking từ lịch mượn huấn luyện viên và điểm danh Vắng.");
- }
-
- loadBookings();
- } catch (err) {
- setError(err.response?.data?.message || err.message || "Không thể điểm danh từ lịch mượn huấn luyện viên");
- }
- };
-
- const handleUpdateBookingStatus = async (id, newStatus) => {
- const statusTexts = {
- confirmed: "xác nhận",
- in_progress: "bắt đầu",
- completed: "hoàn thành",
- cancelled: "hủy",
- no_show: "đánh dấu vắng mặt",
- };
-
- const confirmText = `Bạn có chắc muốn ${statusTexts[newStatus]} booking này?`;
- if (!window.confirm(confirmText)) return;
-
- try {
- setError("");
- setSuccess("");
- await ownerBookingService.updateBookingStatus(id, newStatus);
- setSuccess(`Đã cập nhật trạng thái thành công`);
- loadBookings();
- } catch (err) {
- setError(err.response?.data?.message || "Không thể cập nhật trạng thái");
- }
  };
 
  // Submit form
@@ -1390,69 +1005,26 @@ useOwnerRealtimeRefresh({
  setError("");
  setSuccess("");
 
+if (leadTimeError) {
+setError(leadTimeError);
+return;
+}
+
  const today = new Date();
  today.setHours(0, 0, 0, 0);
 
- // Validate based on schedule mode
- if (form.scheduleMode === "single") {
  if (!form.startDate || !form.startTime || !form.endTime) {
  setError("Vui lòng nhập đầy đủ ngày và giờ");
  return;
  }
- // Check past date
  const selectedDate = new Date(form.startDate);
  if (selectedDate < today) {
  setError("Không thể chọn ngày trong quá khứ");
  return;
  }
- // Check endTime > startTime
  if (form.endTime <= form.startTime) {
  setError("Giờ kết thúc phải sau giờ bắt đầu");
  return;
- }
- } else if (form.scheduleMode === "date_range") {
- if (!form.startDate || !form.endDate || !form.startTime || !form.endTime) {
- setError("Vui lòng nhập đầy đủ khoảng thời gian và giờ");
- return;
- }
- // Check past dates
- const startDate = new Date(form.startDate);
- const endDate = new Date(form.endDate);
- if (startDate < today) {
- setError("Ngày bắt đầu không thể trong quá khứ");
- return;
- }
- if (endDate < startDate) {
- setError("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
- return;
- }
- // Check endTime > startTime
- if (form.endTime <= form.startTime) {
- setError("Giờ kết thúc phải sau giờ bắt đầu");
- return;
- }
- } else if (form.scheduleMode === "multiple_dates") {
- if (form.multipleDates.length === 0) {
- setError("Vui lòng thêm ít nhất một ngày");
- return;
- }
- const hasInvalid = form.multipleDates.some(d => !d.date || !d.startTime || !d.endTime);
- if (hasInvalid) {
- setError("Vui lòng điền đầy đủ ngày và giờ cho tất cả các mục");
- return;
- }
- // Check past dates and time validity
- for (const dateItem of form.multipleDates) {
- const selectedDate = new Date(dateItem.date);
- if (selectedDate < today) {
- setError(`Ngày ${dateItem.date} đã qua, vui lòng chọn ngày trong tương lai`);
- return;
- }
- if (dateItem.endTime <= dateItem.startTime) {
- setError(`Giờ kết thúc phải sau giờ bắt đầu cho ngày ${dateItem.date}`);
- return;
- }
- }
  }
 
  // Validate time conflict
@@ -1461,14 +1033,7 @@ useOwnerRealtimeRefresh({
  // Find time range for this day
  let dayTimeRange = null;
  
- if (form.scheduleMode === "multiple_dates") {
- const matchingDate = form.multipleDates.find(d => d.date === daySchedule.date);
- if (matchingDate) {
- dayTimeRange = { startTime: matchingDate.startTime, endTime: matchingDate.endTime };
- }
- } else {
  dayTimeRange = { startTime: form.startTime, endTime: form.endTime };
- }
 
  if (!dayTimeRange) return false;
 
@@ -1484,21 +1049,37 @@ useOwnerRealtimeRefresh({
  }
 
  try {
- if (!form.startDate && form.scheduleMode === "single") {
+ if (!form.startDate) {
  setError("Vui lòng chọn ngày mượn huấn luyện viên");
  return;
  }
 
+ if (editing) {
  const sharePayload = {
- ...form,
+ memberId: form.memberId || null,
+notes: form.notes || "",
  shareType: DEFAULT_SHARE_TYPE,
  commissionSplit: DEFAULT_COMMISSION_SPLIT,
  };
 
- if (editing) {
+ sharePayload.startDate = form.startDate;
+ sharePayload.endDate = form.startDate;
+ sharePayload.startTime = form.startTime;
+ sharePayload.endTime = form.endTime;
+
  await ownerUpdateTrainerShare(editing.id, sharePayload);
  setSuccess("Cập nhật yêu cầu thành công!");
  } else {
+    const sharePayload = {
+      ...form,
+      scheduleMode: "single",
+      endDate: form.startDate,
+      multipleDates: [],
+      memberId: form.memberId || null,
+      notes: form.notes || "",
+      shareType: DEFAULT_SHARE_TYPE,
+      commissionSplit: DEFAULT_COMMISSION_SPLIT,
+    };
  await ownerCreateTrainerShare(sharePayload);
  setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
  }
@@ -1531,21 +1112,21 @@ useOwnerRealtimeRefresh({
  return new Date(dateStr).toLocaleDateString("vi-VN");
  };
 
- const pageTitle = isBookingsPage ? "Đặt lịch tập" : "Chia sẻ huấn luyện viên";
+const pageTitle = isBookingsPage ? "Lịch rảnh huấn luyện viên" : "Chia sẻ huấn luyện viên";
  const pageSubtitle = isBookingsPage
- ? `Quản lý lịch tập với huấn luyện viên mượn${selectedGymName ? ` tại ${selectedGymName}` : " theo một trang riêng"}`
+? `Xem khung giờ làm việc và khung giờ còn trống của huấn luyện viên${selectedGymName ? ` tại ${selectedGymName}` : " theo chi nhánh"}`
  : `Quản lý yêu cầu mượn và cho mượn huấn luyện viên${selectedGymName ? ` cho ${selectedGymName}` : " giữa các phòng tập"}`;
 
  const primaryAction = isBookingsPage
- ? handleCreateBooking
+ ? null
  : activeTab === "shares"
  ? handleCreate
  : null;
 
  const primaryLabel = isBookingsPage
- ? "Đặt lịch mới"
+? ""
  : activeTab === "shares"
- ? "Tạo yêu cầu chia sẻ huấn luyện viên"
+? "Tạo yêu cầu xin mượn huấn luyện viên"
  : "";
 
  return (
@@ -1601,7 +1182,6 @@ useOwnerRealtimeRefresh({
  >
  <option value="">Tất cả</option>
  <option value="waiting_acceptance">Chờ chấp nhận</option>
- <option value="pending">Đang xử lý</option>
  <option value="approved">Đã chấp nhận</option>
  <option value="rejected">Từ chối</option>
  </select>
@@ -1690,9 +1270,6 @@ useOwnerRealtimeRefresh({
  </button>
  </>
  )}
- {share.status === "pending" && (
- <span className="ots-text--info"> Đang xử lý</span>
- )}
  {share.status === "approved" && (
  <span className="ots-text--success"> Đã chấp nhận</span>
  )}
@@ -1757,14 +1334,8 @@ useOwnerRealtimeRefresh({
  {visibleReceivedShares.filter(s => s.status === 'waiting_acceptance').length}
  </div>
  </div>
- <div className="ots-stat-card ots-stat-card--info">
- <div className="ots-stat-card__label">Đang xử lý</div>
- <div className="ots-stat-card__value">
- {visibleReceivedShares.filter(s => s.status === 'pending').length}
- </div>
- </div>
  <div className="ots-stat-card ots-stat-card--success">
- <div className="ots-stat-card__label">Đã được duyệt</div>
+ <div className="ots-stat-card__label">Đã chấp nhận</div>
  <div className="ots-stat-card__value">
  {visibleReceivedShares.filter(s => s.status === 'approved').length}
  </div>
@@ -1792,7 +1363,6 @@ useOwnerRealtimeRefresh({
  >
  <option value="">Tất cả trạng thái</option>
  <option value="waiting_acceptance">Chờ chấp nhận</option>
- <option value="pending">Đang xử lý</option>
  <option value="approved">Đã chấp nhận</option>
  <option value="rejected_by_partner">Đã từ chối</option>
  </select>
@@ -1851,7 +1421,6 @@ useOwnerRealtimeRefresh({
  <td>
  <span className={`ots-badge ${
  share.status === "waiting_acceptance" ? "ots-badge--warning" :
- share.status === "pending" ? "ots-badge--info" :
  share.status === "approved" ? "ots-badge--success" :
  share.status === "rejected_by_partner" ? "ots-badge--danger" :
  "ots-badge--danger"
@@ -1872,7 +1441,7 @@ useOwnerRealtimeRefresh({
  </button>
  <button
  className="ots-btn ots-btn--sm ots-btn--success"
- onClick={() => handleAcceptShare(share.id)}
+ onClick={() => handleAcceptShare(share.id, share)}
  title="Chấp nhận"
  >
  Chấp nhận
@@ -1884,18 +1453,6 @@ useOwnerRealtimeRefresh({
  >
  Từ chối
  </button>
- </>
- )}
- {share.status === "pending" && (
- <>
- <button
- className="ots-btn ots-btn--sm ots-btn--info"
- onClick={() => handleViewTrainerSchedule(share)}
- title="Xem lịch huấn luyện viên"
- >
- Lịch
- </button>
- <span className="ots-text--info"> Đang xử lý</span>
  </>
  )}
  {share.status === "approved" && (
@@ -1955,7 +1512,7 @@ useOwnerRealtimeRefresh({
  <div>
  <h3 className="ots-availability-panel__title">Lịch rảnh huấn luyện viên</h3>
  <p className="ots-availability-panel__subtitle">
- Xem khung giờ còn trống của từng PT theo chi nhánh và ngày cụ thể
+Xem khung giờ còn trống của từng huấn luyện viên theo chi nhánh và ngày cụ thể
  </p>
  </div>
  <div className="ots-availability-panel__filters">
@@ -1976,7 +1533,7 @@ useOwnerRealtimeRefresh({
  value={availabilityFilters.date}
  onChange={(e) => setAvailabilityFilters((prev) => ({ ...prev, date: e.target.value }))}
  />
- <button className="ots-btn ots-btn--secondary" onClick={loadTrainerAvailability}>
+<button className="ots-btn ots-btn--secondary" onClick={() => { loadTrainerAvailability(); loadMemberDailySchedule(); }}>
  Xem lịch rảnh
  </button>
  </div>
@@ -1987,7 +1544,7 @@ useOwnerRealtimeRefresh({
  {DAY_LABELS[getDayKeyFromDate(availabilityFilters.date)] || "Ngày đã chọn"}
  {availabilityFilters.date ? ` • ${formatDate(availabilityFilters.date)}` : ""}
  </span>
- <span>{visibleTrainerAvailability.length} PT có ca làm</span>
+<span>{visibleTrainerAvailability.length} huấn luyện viên trong danh sách</span>
  </div>
 
  {loadingAvailability ? (
@@ -2034,16 +1591,13 @@ useOwnerRealtimeRefresh({
  <div className="ots-availability-section__label">Khung giờ còn rảnh</div>
  <div className="ots-slot-list">
  {freeRanges.length ? freeRanges.map((range, index) => (
- <button
+<span
  key={`${trainer.id}-free-${index}`}
- type="button"
  className="ots-slot-pill ots-slot-pill--free ots-slot-pill--interactive"
- onClick={() => handleQuickBookFromAvailability(trainer, range)}
- title="Bấm để mở form đặt lịch với khung giờ này"
  >
  {range.start} - {range.end}
- </button>
- )) : <span className="ots-availability-muted">{availabilityState === "off" ? "PT không làm việc trong ngày này" : availabilityState === "unconfigured" ? "PT chưa cập nhật lịch làm việc" : "Không còn khung giờ trống trong ngày này"}</span>}
+</span>
+)) : <span className="ots-availability-muted">{availabilityState === "off" ? "Huấn luyện viên không làm việc trong ngày này" : availabilityState === "unconfigured" ? "Huấn luyện viên chưa cập nhật lịch làm việc" : "Không còn khung giờ trống trong ngày này"}</span>}
  </div>
  </div>
 
@@ -2051,252 +1605,61 @@ useOwnerRealtimeRefresh({
  <div className="ots-availability-section__label">Khung giờ đang bận</div>
  <div className="ots-slot-list ots-slot-list--stacked">
  {occupiedBlocks.length ? occupiedBlocks.map((block) => (
- <div key={`${trainer.id}-busy-${block.id}`} className="ots-slot-pill ots-slot-pill--busy">
+<div
+ key={`${trainer.id}-busy-${block.id}`}
+ className={`ots-slot-pill ots-slot-pill--busy ${block.busyRequested ? "ots-slot-pill--busy-requested" : ""}`}
+>
  <span>{block.startTime} - {block.endTime}</span>
- <span>
- {block.type === "trainer_share"
- ? "Đang chia sẻ PT"
- : block.memberName
- ? `Hội viên: ${block.memberName}`
- : STATUS_LABELS[block.status]?.label || "Đang bận"}
- </span>
+ <span>{getOccupiedBlockLabel(block)}</span>
  </div>
- )) : <span className="ots-availability-muted">Chưa có booking chiếm chỗ</span>}
+ )) : <span className="ots-availability-muted">Chưa có lịch chiếm chỗ</span>}
  </div>
  </div>
  </div>
  ))}
  </div>
  )}
- </div>
- {/* Filter */}
- <div className="ots-filters ots-filters--advanced">
- <input
- className="ots-filter-input"
- placeholder="Tìm theo tên member..."
- value={bookingFilters.q}
- onChange={(e) => setBookingFilters({ ...bookingFilters, q: e.target.value })}
- />
- <select
- className="ots-filter-select"
- value={bookingFilters.gymId}
- onChange={(e) => setBookingFilters({ ...bookingFilters, gymId: e.target.value })}
- disabled={Boolean(selectedGymId)}
- >
- <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả Gym"}</option>
- {bookingGyms.map((g) => (
- <option key={g.id} value={g.id}>{g.name}</option>
- ))}
- </select>
- <select
- className="ots-filter-select"
- value={bookingFilters.trainerId}
- onChange={(e) => setBookingFilters({ ...bookingFilters, trainerId: e.target.value })}
- >
- <option value="">Tất cả huấn luyện viên</option>
- {trainers.map((t) => (
- <option key={t.id} value={t.id}>{t.User?.username || `Huấn luyện viên #${t.id}`}</option>
- ))}
- </select>
- <select
- className="ots-filter-select"
- value={bookingFilters.status}
- onChange={(e) => setBookingFilters({ ...bookingFilters, status: e.target.value })}
- >
- <option value="">Tất cả trạng thái</option>
- <option value="pending">Chờ duyệt</option>
- <option value="confirmed">Đã xác nhận</option>
- <option value="in_progress">Đang diễn ra</option>
- <option value="completed">Hoàn thành</option>
- <option value="cancelled">Đã hủy</option>
- <option value="no_show">Vắng mặt</option>
- </select>
- <input
- type="date"
- className="ots-filter-input"
- placeholder="Từ ngày"
- value={bookingFilters.startDate}
- onChange={(e) => setBookingFilters({ ...bookingFilters, startDate: e.target.value })}
- />
- <input
- type="date"
- className="ots-filter-input"
- placeholder="Đến ngày"
- value={bookingFilters.endDate}
- onChange={(e) => setBookingFilters({ ...bookingFilters, endDate: e.target.value })}
- min={bookingFilters.startDate}
- />
- <button className="ots-btn ots-btn--primary" onClick={() => { setBookingCurrentPage(1); loadBookings(1); }}>
- Tìm
- </button>
  </div>
 
- {/* Bookings Table */}
- {loading ? (
- <div className="ots-loading">Đang tải...</div>
- ) : error ? (
- <div className="ots-empty">
- <p style={{ color: '#ff5555' }}>Lỗi: {error}</p>
- <button className="ots-btn ots-btn--primary" onClick={loadBookings}>
- Thử lại
- </button>
- </div>
- ) : bookings.length === 0 ? (
- <div className="ots-empty">
- <p>Chưa có booking nào</p>
- <button className="ots-btn ots-btn--primary" onClick={handleCreateBooking}>
- Đặt lịch đầu tiên
- </button>
- </div>
- ) : (
- <>
- <table className="ots-table">
- <thead>
- <tr>
- <th>ID</th>
- <th>Member</th>
- <th>Huấn luyện viên</th>
- <th>Gym</th>
- <th>Ngày</th>
- <th>Giờ</th>
- <th>Trạng thái</th>
- <th>Thao tác</th>
- </tr>
- </thead>
- <tbody>
- {bookings.map((booking) => {
- const isShared = booking.isSharedTrainer;
- const isTrainerShare = booking.type === 'trainer_share';
- return (
- <tr 
- key={booking.id} 
- className={`${isShared ? 'ots-row-shared' : ''}`}
- >
- <td>{booking.id}</td>
- <td>
- <strong>
- {booking.Member?.User?.username || "—"}
- </strong>
- </td>
- <td>{booking.Trainer?.User?.username || "—"}</td>
- <td>{booking.Gym?.name || "—"}</td>
- <td>{formatDate(booking.bookingDate)}</td>
- <td>
- {booking.startTime} - {booking.endTime}
- </td>
- <td>
- <StatusBadge status={booking.status} />
- </td>
- <td>
- <div className="ots-actions">
- {isTrainerShare && (
- <>
- <span className="ots-text--info">Lịch mượn huấn luyện viên</span>
- <button
- className="ots-btn ots-btn--xs ots-btn--warning"
- onClick={() => handleShareAttendance(booking, "present")}
- title="Điểm danh có mặt"
- >
- Có mặt
- </button>
- <button
- className="ots-btn ots-btn--xs ots-btn--danger"
- onClick={() => handleShareAttendance(booking, "absent")}
- title="Điểm danh vắng mặt"
- >
- Vắng
- </button>
- </>
- )}
- {/* Quick action buttons */}
- {!isTrainerShare && booking.status === "pending" && (
- <>
- <button
- className="ots-btn ots-btn--xs ots-btn--success"
- onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
- title="Xác nhận"
- >
- Xác nhận
- </button>
- <button
- className="ots-btn ots-btn--xs ots-btn--danger"
- onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
- title="Hủy"
- >
- Hủy
- </button>
- </>
- )}
- {!isTrainerShare && booking.status === "confirmed" && (
- <>
- <button
- className="ots-btn ots-btn--xs ots-btn--warning"
- onClick={() => handleUpdateBookingStatus(booking.id, 'in_progress')}
- title="Điểm danh có mặt"
- >
- Có mặt
- </button>
- <button
- className="ots-btn ots-btn--xs ots-btn--danger"
- onClick={() => handleUpdateBookingStatus(booking.id, 'no_show')}
- title="Điểm danh vắng mặt"
- >
- Vắng
- </button>
- </>
- )}
- {!isTrainerShare && booking.status === "in_progress" && (
- <button
- className="ots-btn ots-btn--xs ots-btn--success"
- onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
- title="Hoàn thành"
- >
- Hoàn thành
- </button>
- )}
- 
- {/* Edit button */}
- {!isTrainerShare && (booking.status === "pending" || booking.status === "confirmed") && (
- <button
- className="ots-btn ots-btn--xs ots-btn--secondary"
- onClick={() => handleEditBooking(booking)}
- title="Sửa"
- >
- Sửa
- </button>
- )}
- </div>
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
+<div className="ots-availability-panel">
+<div className="ots-availability-panel__header">
+  <div>
+    <h3 className="ots-availability-panel__title">Lịch tập hội viên</h3>
+    <p className="ots-availability-panel__subtitle">
+      Danh sách lịch tập của hội viên theo chi nhánh và ngày đã chọn
+    </p>
+  </div>
+</div>
 
- {/* Pagination */}
- {bookingPagination.totalPages > 1 && (
- <div className="ots-pagination">
- <button
- className="ots-btn ots-btn--sm"
- disabled={bookingCurrentPage === 1}
- onClick={() => setBookingCurrentPage(bookingCurrentPage - 1)}
- >
- Trước
- </button>
- <span>
- Trang {bookingCurrentPage} / {bookingPagination.totalPages}
- </span>
- <button
- className="ots-btn ots-btn--sm"
- disabled={bookingCurrentPage === bookingPagination.totalPages}
- onClick={() => setBookingCurrentPage(bookingCurrentPage + 1)}
- >
- Sau
- </button>
- </div>
- )}
- </>
- )}
+{loadingMemberDailyBookings ? (
+  <div className="ots-loading">Đang tải lịch tập hội viên...</div>
+) : memberDailyBookings.length === 0 ? (
+  <div className="ots-empty ots-empty--compact">
+    <p>Không có lịch tập hội viên trong ngày đã chọn.</p>
+  </div>
+) : (
+  <div className="ots-member-schedule-list">
+    {memberDailyBookings.map((booking) => {
+      const busyRequested = Boolean(booking?.busyRequested) || hasBusyRequestMarker(booking?.notes);
+      return (
+      <div key={booking.id} className={`ots-member-schedule-item ${busyRequested ? "is-busy-requested" : ""}`}>
+        <div className="ots-member-schedule-item__left">
+          <div className="ots-member-schedule-item__time">
+            {normalizeTimeValue(booking.startTime)} - {normalizeTimeValue(booking.endTime)}
+          </div>
+          <div className="ots-member-schedule-item__meta">
+            Hội viên: {booking.Member?.User?.username || (booking.memberId ? `#${booking.memberId}` : "Không rõ")} •
+            Huấn luyện viên: {booking.Trainer?.User?.username || (booking.trainerId ? ` #${booking.trainerId}` : " Không rõ")}
+          </div>
+        </div>
+        <div className={`ots-member-schedule-item__status ${busyRequested ? "is-busy-requested" : ""}`}>
+          {busyRequested ? "pt báo bận" : String(booking.status || "").toLowerCase()}
+        </div>
+      </div>
+    )})}
+  </div>
+)}
+</div>
  </>
  )}
 
@@ -2313,15 +1676,21 @@ useOwnerRealtimeRefresh({
  </div>
 
  <form onSubmit={handleSubmit} className="ots-form">
+ {editing && (
+ <div className="ots-field__hint" style={{ marginBottom: '12px', color: '#fbbf24' }}>
+Bạn chỉ có thể cập nhật hội viên tham chiếu, ghi chú và thời gian đối với phiếu 1 ngày hoặc theo khoảng ngày. Không đổi phòng tập nguồn, huấn luyện viên hoặc kiểu lịch ở màn hình sửa.
+ </div>
+ )}
+
  <Field label="Gym có huấn luyện viên (muốn xin mượn từ đây)" required>
  <select
  className="ots-select"
  value={form.fromGymId}
  onChange={(e) => setForm({ ...form, fromGymId: e.target.value, trainerId: '' })}
  required
- disabled={loadingLookups}
+ disabled={loadingLookups || Boolean(editing)}
  >
- <option value="">-- Chọn Gym có huấn luyện viên --</option>
+ <option value="">-- Chọn phòng tập cần mượn huấn luyện viên--</option>
  {gyms.filter(g => !myGymIds.includes(g.id)).map((g) => (
  <option key={g.id} value={g.id}>
  {g.name} ({g.address || g.location || 'N/A'})
@@ -2330,16 +1699,23 @@ useOwnerRealtimeRefresh({
  </select>
  </Field>
 
- <Field label="Trainer cần mượn" required>
+<Field label="Huấn luyện viên cần mượn" hint="Có thể để trống, nhưng cần chọn huấn luyện viên trước khi chọn khung giờ realtime 1 tiếng">
  <select
  className="ots-select"
  value={form.trainerId}
- onChange={(e) => setForm({ ...form, trainerId: e.target.value })}
- required
- disabled={!form.fromGymId || loadingLookups}
+ onChange={(e) =>
+  setForm({
+   ...form,
+   trainerId: e.target.value,
+   startTime: "",
+   endTime: "",
+   endDate: "",
+  })
+ }
+ disabled={!form.fromGymId || loadingLookups || Boolean(editing)}
  >
  <option value="">
- {!form.fromGymId ? "-- Chọn Gym trước --" : "-- Chọn Trainer --"}
+{!form.fromGymId ? "-- Chọn phòng tập trước --" : "-- Chọn huấn luyện viên --"}
  </option>
  {availableTrainers.map((t) => (
  <option key={t.id} value={t.id}>
@@ -2349,15 +1725,15 @@ useOwnerRealtimeRefresh({
  </select>
  </Field>
 
- <Field label="Gym nhận huấn luyện viên (Gym của tôi)" required>
+ <Field label="Phòng tập nhận huấn luyện viên " required>
  <select
  className="ots-select"
  value={form.toGymId}
- onChange={(e) => setForm({ ...form, toGymId: e.target.value, memberId: '' })}
+onChange={(e) => setForm({ ...form, toGymId: e.target.value, memberId: '', memberPackageActivationId: '' })}
  required
- disabled={loadingLookups || Boolean(selectedGymId)}
+ disabled={loadingLookups || Boolean(selectedGymId) || Boolean(editing)}
  >
- <option value="">-- Chọn Gym của tôi --</option>
+ <option value="">-- Chọn phòng tập --</option>
  {gyms.filter(g => myGymIds.includes(g.id)).map((g) => (
  <option key={g.id} value={g.id}>
  {g.name} ({g.address || g.location || 'N/A'})
@@ -2366,18 +1742,25 @@ useOwnerRealtimeRefresh({
  </select>
  </Field>
 
- <Field label="Hội viên (Tùy chọn - Tự động tạo booking khi chấp nhận)">
+<Field
+label="Chọn Hội Viên"
+>
  <select
  className="ots-select"
  value={form.memberId}
- onChange={(e) => setForm({ ...form, memberId: e.target.value })}
+ onChange={(e) => setForm({ ...form, memberId: e.target.value, memberPackageActivationId: '' })}
  disabled={loadingLookups || !form.toGymId}
  >
  <option value="">
- {!form.toGymId ? '-- Chọn Gym nhận huấn luyện viên trước --' : '-- Không chọn (chỉ mượn huấn luyện viên) --'}
+ {!form.toGymId ? '-- Chọn Gym nhận huấn luyện viên trước --' : '-- Không chọn hội viên cụ thể --'}
  </option>
  {form.toGymId && members
- .filter(m => m.gymId && m.gymId.toString() === form.toGymId.toString())
+ .filter(
+  (m) =>
+   m.gymId &&
+   m.gymId.toString() === form.toGymId.toString() &&
+   String(m.status || "").toLowerCase() === "active"
+ )
  .map((m) => (
  <option key={m.id} value={m.id}>
  {m.User?.username || 'N/A'} - {m.membershipNumber || 'N/A'}
@@ -2387,49 +1770,60 @@ useOwnerRealtimeRefresh({
  </select>
  </Field>
 
- <div className="ots-row">
- <Field label="Ngày bắt đầu" required>
- <input
- type="date"
- className="ots-input"
- value={form.startDate}
- onChange={(e) => setForm({ ...form, startDate: e.target.value })}
- required
- />
- </Field>
+{form.memberId && (
+<Field label="Chọn gói của hội viên">
+  <select
+    className="ots-select"
+    value={form.memberPackageActivationId}
+    onChange={(e) => setForm({ ...form, memberPackageActivationId: e.target.value })}
+  >
+    <option value="">-- Chọn gói --</option>
+    {memberPackageOptions.map((pkg) => (
+      <option key={pkg.key} value={pkg.packageActivationId || pkg.packageId}>
+        {pkg.packageName} {pkg.packageActivationId ? `(Activation #${pkg.packageActivationId})` : ""}
+      </option>
+    ))}
+  </select>
+</Field>
+)}
 
- <Field label="Ngày kết thúc">
- <input
- type="date"
- className="ots-input"
- value={form.endDate}
- onChange={(e) => setForm({ ...form, endDate: e.target.value })}
- />
- </Field>
- </div>
+{form.memberId && (
+<Field label="Slot PT đã báo bận (chọn nhanh)">
+  {loadingMemberBusySlots ? (
+    <div className="op-trainer-hint">Đang tải slot PT báo bận...</div>
+  ) : memberBusySlots.length === 0 ? (
+    <div className="op-trainer-hint">Chưa có slot PT báo bận cho hội viên này.</div>
+  ) : (
+    <div className="op-trainer-list">
+      {memberBusySlots
+        .filter((slot) => !form.memberPackageActivationId || String(slot.packageActivationId || slot.packageId || "") === String(form.memberPackageActivationId))
+        .map((slot) => (
+          <button
+            key={`busy-${slot.id}-${slot.date}-${slot.startTime}`}
+            type="button"
+            className="op-trainer-item is-selected"
+            onClick={() =>
+              setForm((prev) => ({
+                ...prev,
+                startDate: slot.date,
+                endDate: slot.date,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+              }))
+            }
+          >
+            <span className="op-trainer-text">
+              <strong>{formatDate(slot.date)}</strong> • {slot.startTime} - {slot.endTime}
+              {slot.packageName ? ` • ${slot.packageName}` : ""}
+            </span>
+          </button>
+        ))}
+    </div>
+  )}
+</Field>
+)}
 
- {/* Chế độ chọn lịch */}
- {!editing && (
- <Field label="Chế độ chọn lịch" required>
- <select
- className="ots-select"
- value={form.scheduleMode}
- onChange={(e) => setForm({ 
- ...form, 
- scheduleMode: e.target.value,
- startDate: "",
- endDate: "",
- startTime: "",
- endTime: "",
- multipleDates: []
- })}
- >
- <option value="single">Chọn 1 ngày</option>
- <option value="date_range">Chọn khoảng thời gian (cùng giờ mỗi ngày)</option>
- <option value="multiple_dates">Chọn nhiều ngày cụ thể (khác giờ)</option>
- </select>
- </Field>
- )}
+ {/* Chế độ lịch được cố định theo nghiệp vụ hiện tại */}
 
  {/* Single date mode */}
  {form.scheduleMode === "single" && (
@@ -2439,198 +1833,55 @@ useOwnerRealtimeRefresh({
  type="date"
  className="ots-input"
  value={form.startDate}
- onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: e.target.value })}
+ onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: e.target.value, startTime: "", endTime: "" })}
  min={new Date().toISOString().split('T')[0]}
  required
  />
  </Field>
  <div className="ots-row">
- <Field label="Giờ bắt đầu" required>
- <input
- type="time"
- className="ots-input"
- value={form.startTime || ''}
- onChange={(e) => {
- const startTime = e.target.value;
- const endTime = addHoursToTime(startTime, 2);
- setForm({ ...form, startTime, endTime });
- }}
- required
- />
- </Field>
- <Field label="Giờ kết thúc" required>
- <input
- type="time"
- className="ots-input"
- value={form.endTime || ''}
- onChange={(e) => setForm({ ...form, endTime: e.target.value })}
- required
- />
+<Field
+ label="Khung giờ PT"
+ required={Boolean(selectedTrainer)}
+ hint={
+  !selectedTrainer
+  ? "Không chọn huấn luyện viên: hệ thống hiển thị khung giờ tổng hợp của phòng tập nguồn"
+   : singleDateAllSlots.length === 0
+  ? "Huấn luyện viên không có ca làm việc trong ngày này"
+   : singleDateSlotOptions.length === 0
+   ? "Tất cả slot trong ngày này đã bận"
+   : undefined
+ }
+>
+<select
+  className="ots-select"
+  value={form.startTime && form.endTime ? `${normalizeTimeValue(form.startTime)}-${normalizeTimeValue(form.endTime)}` : ""}
+  onChange={(e) => {
+    const [startTime, endTime] = String(e.target.value || "").split("-");
+    setForm({ ...form, startTime: startTime || "", endTime: endTime || "" });
+  }}
+  disabled={!form.startDate || (selectedTrainer ? singleDateAllSlots.length === 0 : singleDateGymSlotDisplayOptions.length === 0)}
+  required
+>
+  <option value="">-- Chọn slot --</option>
+  {(selectedTrainer ? singleDateAllSlots : singleDateGymSlotDisplayOptions).map((slot) => {
+    const isBusy = selectedTrainer ? isSingleSlotBusy(slot) : false;
+    return (
+      <option key={slot.value} value={slot.value} disabled={isBusy}>
+        {slot.start} - {slot.end}{slot.isCustom ? " (theo slot hội viên)" : ""}{isBusy ? " (đã bận)" : ""}
+      </option>
+    );
+  })}
+</select>
+{!selectedTrainer && <small className="op-spec-empty-help">Khung giờ tổng hợp từ huấn luyện viên của phòng tập nguồn (1 tiếng/khung).</small>}
  </Field>
  </div>
  </>
  )}
 
- {/* Date range mode */}
- {form.scheduleMode === "date_range" && (
- <>
- <div className="ots-row">
- <Field label="Từ ngày" required>
- <input
- type="date"
- className="ots-input"
- value={form.startDate}
- onChange={(e) => setForm({ ...form, startDate: e.target.value })}
- min={new Date().toISOString().split('T')[0]}
- required
- />
- </Field>
- <Field label="Đến ngày" required>
- <input
- type="date"
- className="ots-input"
- value={form.endDate}
- onChange={(e) => setForm({ ...form, endDate: e.target.value })}
- min={form.startDate || new Date().toISOString().split('T')[0]}
- required
- />
- </Field>
- </div>
- {form.startDate && form.endDate && (
- <div className="ots-field">
- <div className="ots-field__hint" style={{color: '#3b82f6', fontWeight: 500}}>
- Sẽ mượn huấn luyện viên {getDatesBetween(form.startDate, form.endDate).length} ngày (cùng giờ)
- </div>
- </div>
- )}
- <div className="ots-row">
- <Field label="Giờ bắt đầu" required>
- <input
- type="time"
- className="ots-input"
- value={form.startTime || ''}
- onChange={(e) => {
- const startTime = e.target.value;
- const endTime = addHoursToTime(startTime, 2);
- setForm({ ...form, startTime, endTime });
- }}
- required
- />
- </Field>
- <Field label="Giờ kết thúc" required>
- <input
- type="time"
- className="ots-input"
- value={form.endTime || ''}
- onChange={(e) => setForm({ ...form, endTime: e.target.value })}
- required
- />
- </Field>
- </div>
- </>
- )}
-
- {/* Multiple specific dates mode */}
- {form.scheduleMode === "multiple_dates" && (
- <Field label="Chọn các ngày và giờ" required>
- <div className="ots-multiple-dates">
- <div className="ots-multiple-dates-list">
- {(form.multipleDates.length === 0 ? [{ date: "", startTime: "", endTime: "" }] : form.multipleDates).map((dateItem, index) => (
- <div key={index} className="ots-multiple-date-item">
- <input
- type="date"
- className="ots-input"
- value={dateItem.date || ""}
- onChange={(e) => {
- const newDates = [...form.multipleDates];
- if (newDates[index]) {
- newDates[index] = { ...newDates[index], date: e.target.value };
- } else {
- newDates[index] = { date: e.target.value, startTime: "", endTime: "" };
- }
- setForm({ ...form, multipleDates: newDates });
- }}
- min={new Date().toISOString().split('T')[0]}
- required
- />
- <input
- type="time"
- className="ots-input"
- value={dateItem.startTime || ""}
- onChange={(e) => {
- const startTime = e.target.value;
- const endTime = addHoursToTime(startTime, 2);
- const newDates = [...form.multipleDates];
- if (newDates[index]) {
- newDates[index] = { ...newDates[index], startTime, endTime };
- } else {
- newDates[index] = { date: "", startTime, endTime };
- }
- setForm({ ...form, multipleDates: newDates });
- }}
- placeholder="Giờ bắt đầu"
- required
- />
- <input
- type="time"
- className="ots-input"
- value={dateItem.endTime || ""}
- onChange={(e) => {
- const newDates = [...form.multipleDates];
- if (newDates[index]) {
- newDates[index] = { ...newDates[index], endTime: e.target.value };
- } else {
- newDates[index] = { date: "", startTime: "", endTime: e.target.value };
- }
- setForm({ ...form, multipleDates: newDates });
- }}
- placeholder="Giờ kết thúc"
- required
- />
- {form.multipleDates.length > 0 && (
- <button
- type="button"
- className="ots-btn ots-btn--sm ots-btn--danger"
- onClick={() => {
- const newDates = form.multipleDates.filter((_, i) => i !== index);
- setForm({ ...form, multipleDates: newDates });
- }}
- >
- Xóa
- </button>
- )}
- </div>
- ))}
- </div>
- <button
- type="button"
- className="ots-btn ots-btn--sm ots-btn--primary"
- onClick={() => {
- setForm({ 
- ...form, 
- multipleDates: [...form.multipleDates, { date: "", startTime: "", endTime: "" }] 
- });
- }}
- style={{marginTop: '8px'}}
- >
- + Thêm ngày
- </button>
- {form.multipleDates.filter(d => d.date).length > 0 && (
- <div className="ots-field__hint" style={{color: '#3b82f6', fontWeight: 500, marginTop: '8px'}}>
- Đã chọn {form.multipleDates.filter(d => d.date).length} ngày
- </div>
- )}
- </div>
- </Field>
- )}
+{/* Đã bỏ các chế độ date_range và multiple_dates */}
 
  {/* Hiển thị lịch trainer */}
- {form.trainerId && (
- form.scheduleMode === "single" ? form.startDate :
- form.scheduleMode === "date_range" ? (form.startDate && form.endDate) :
- form.scheduleMode === "multiple_dates" ? form.multipleDates.filter(d => d.date).length > 0 :
- false
- ) && (
+{form.trainerId && form.startDate && (
  <div className="ots-field">
  <label className="ots-field__label">
  Lịch đã đặt của huấn luyện viên {loadingShareSchedule && "(đang tải...)"}
@@ -2644,17 +1895,7 @@ useOwnerRealtimeRefresh({
  const filteredBookings = daySchedule.bookings?.filter(b => b.type !== 'trainer_share') || [];
  const hasBookings = filteredBookings.length > 0;
  
- // Tìm time range cho ngày này nếu ở mode multiple_dates
- let dayTimeRange = null;
- if (form.scheduleMode === "multiple_dates") {
- const matchingDate = form.multipleDates.find(d => d.date === daySchedule.date);
- if (matchingDate) {
- dayTimeRange = { startTime: matchingDate.startTime, endTime: matchingDate.endTime };
- }
- } else {
- // Dùng startTime/endTime chung
- dayTimeRange = { startTime: form.startTime, endTime: form.endTime };
- }
+const dayTimeRange = { startTime: form.startTime, endTime: form.endTime };
  
  return (
  <div key={dayIdx} className="ots-schedule-day">
@@ -2683,7 +1924,7 @@ useOwnerRealtimeRefresh({
  {s.startTime} - {s.endTime}
  </span>
  <span className="ots-schedule-type">
- {s.type === 'booking' ? ' Booking' : 'Có lịch'}
+ {s.type === 'booking' ? 'Lịch tập' : 'Có lịch'}
  </span>
  {s.Member && (
  <span className="ots-schedule-member">
@@ -2706,6 +1947,28 @@ useOwnerRealtimeRefresh({
  </div>
  )}
 
+{!selectedTrainer && (form.startTime && form.endTime) && (
+<div className="op-row">
+<label>Huấn luyện viên đang rảnh theo khung giờ đã chọn</label>
+{loadingEligibleTrainers ? (
+  <div className="op-trainer-hint">Đang kiểm tra realtime...</div>
+) : eligibleTrainers.length === 0 ? (
+  <div className="op-trainer-hint">Hiện chưa có huấn luyện viên nào rảnh khung giờ này.</div>
+) : (
+  <div className="op-trainer-list">
+    {eligibleTrainers.map((trainer) => (
+      <div key={trainer.id} className="op-trainer-item is-selected">
+        <span className="op-trainer-text">
+          <strong>{trainer?.User?.username || `Huấn luyện viên #${trainer.id}`}</strong>
+          {trainer?.User?.phone ? ` • ${trainer.User.phone}` : ""}
+        </span>
+      </div>
+    ))}
+  </div>
+)}
+</div>
+)}
+
  <Field label="Ghi chú">
  <textarea
  className="ots-textarea"
@@ -2716,6 +1979,12 @@ useOwnerRealtimeRefresh({
  />
  </Field>
 
+{leadTimeError && (
+<div className="ots-alert ots-alert--danger" style={{ marginTop: "0.5rem" }}>
+{leadTimeError}
+</div>
+)}
+
  <div className="ots-form__actions">
  <button
  type="button"
@@ -2724,7 +1993,7 @@ useOwnerRealtimeRefresh({
  >
  Hủy
  </button>
- <button type="submit" className="ots-btn ots-btn--primary">
+<button type="submit" className="ots-btn ots-btn--primary" disabled={Boolean(leadTimeError)}>
  {editing ? "Cập nhật" : "Tạo mới"}
  </button>
  </div>
@@ -2733,394 +2002,7 @@ useOwnerRealtimeRefresh({
  </div>
  )}
 
- {/* Modal Create/Edit Booking */}
- {showBookingModal && (
- <div className="ots-modal">
- <div className="ots-modal__backdrop" onClick={() => setShowBookingModal(false)} />
- <div className="ots-modal__content">
- <div className="ots-modal__header">
- <h2>{editing ? "Sửa booking" : "Đặt lịch tập mới"}</h2>
- <button className="ots-modal__close" onClick={() => setShowBookingModal(false)}>
- ×
- </button>
- </div>
-
- <form onSubmit={handleBookingSubmit} className="ots-form">
- <Field label="Gym" required>
- <select
- className="ots-select"
- value={bookingForm.gymId}
- onChange={(e) => setBookingForm({ ...bookingForm, gymId: e.target.value, trainerId: '', memberId: '', packageActivationId: '', packageId: '' })}
- required
- disabled={loadingLookups || Boolean(selectedGymId)}
- >
- <option value="">-- Chọn Gym --</option>
- {bookingGyms.map((g) => (
- <option key={g.id} value={g.id}>
- {g.name} ({g.address || g.location || "N/A"})
- </option>
- ))}
- </select>
- </Field>
-
- <Field label="Member" required>
- <select
- className="ots-select"
- value={bookingForm.memberId}
- onChange={(e) => setBookingForm({ ...bookingForm, memberId: e.target.value })}
- required
- disabled={loadingLookups}
- >
- <option value="">-- Chọn Member --</option>
- {members.filter((m) => !bookingForm.gymId || String(m.gymId || m.Gym?.id || "") === String(bookingForm.gymId)).map((m) => (
- <option key={m.id} value={m.id}>
- {m.User?.username || "N/A"} - {m.User?.email || ""}
- </option>
- ))}
- </select>
- </Field>
-
- <Field label="Huấn luyện viên" required>
- <select
- className="ots-select"
- value={bookingForm.trainerId}
- onChange={(e) => setBookingForm({ ...bookingForm, trainerId: e.target.value, packageActivationId: '', packageId: '' })}
- required
- disabled={!bookingForm.gymId || loadingLookups}
- >
- <option value="">
- {!bookingForm.gymId ? "-- Chọn Gym trước --" : "-- Chọn Trainer --"}
- </option>
- {bookingAvailableTrainers.map((t) => (
- <option key={t.id} value={t.id}>
- {t.User?.username || "N/A"} {t.specialization ? `(${t.specialization})` : ""}
- </option>
- ))}
- </select>
- </Field>
-
- {/* Display PT Package info when trainer is selected */}
- {bookingForm.memberId && bookingForm.trainerId && (
- <PTPackageInfo 
- memberId={bookingForm.memberId} 
- trainerId={bookingForm.trainerId}
- onPackageSelect={(packageActivationId, packageId) => {
- setBookingForm(prev => ({ 
- ...prev, 
- packageActivationId, 
- packageId 
- }));
- }}
- selectedPackageActivationId={bookingForm.packageActivationId}
- />
- )}
-
- <Field label="Gói tập">
- <select
- className="ots-select"
- value={bookingForm.packageId}
- onChange={(e) => setBookingForm({ ...bookingForm, packageId: e.target.value })}
- disabled={loadingLookups}
- style={{ display: 'none' }}
- >
- <option value="">-- Chọn gói (nếu có) --</option>
- {packages.map((p) => (
- <option key={p.id} value={p.id}>
- {p.name} - {p.price?.toLocaleString()} VND
- </option>
- ))}
- </select>
- </Field>
-
- {/* Chế độ đặt lịch */}
- {!editing && (
- <Field label="Chế độ đặt lịch" required>
- <select
- className="ots-select"
- value={bookingForm.bookingMode}
- onChange={(e) => setBookingForm({ 
- ...bookingForm, 
- bookingMode: e.target.value,
- bookingDate: "",
- startDate: "",
- endDate: "",
- multipleDates: []
- })}
- >
- <option value="single">Đặt 1 ngày</option>
- <option value="date_range">Đặt nhiều ngày (khoảng thời gian)</option>
- <option value="multiple_dates">Đặt nhiều ngày cụ thể</option>
- </select>
- </Field>
- )}
-
- {/* Single date mode */}
- {bookingForm.bookingMode === "single" && (
- <Field label="Ngày tập" required>
- <input
- type="date"
- className="ots-input"
- value={bookingForm.bookingDate}
- onChange={(e) => setBookingForm({ ...bookingForm, bookingDate: e.target.value })}
- required
- />
- </Field>
- )}
-
- {/* Date range mode */}
- {bookingForm.bookingMode === "date_range" && (
- <>
- <div className="ots-row">
- <Field label="Từ ngày" required>
- <input
- type="date"
- className="ots-input"
- value={bookingForm.startDate}
- onChange={(e) => setBookingForm({ ...bookingForm, startDate: e.target.value })}
- required
- />
- </Field>
- <Field label="Đến ngày" required>
- <input
- type="date"
- className="ots-input"
- value={bookingForm.endDate}
- onChange={(e) => setBookingForm({ ...bookingForm, endDate: e.target.value })}
- min={bookingForm.startDate}
- required
- />
- </Field>
- </div>
- {bookingForm.startDate && bookingForm.endDate && (
- <div className="ots-field">
- <div className="ots-field__hint" style={{color: '#3b82f6', fontWeight: 500}}>
- Sẽ đặt {getDatesBetween(bookingForm.startDate, bookingForm.endDate).length} ngày
- </div>
- </div>
- )}
- </>
- )}
-
- {/* Multiple specific dates mode */}
- {bookingForm.bookingMode === "multiple_dates" && (
- <Field label="Chọn các ngày và giờ" required>
- <div className="ots-multiple-dates">
- <div className="ots-multiple-dates-list">
- {(bookingForm.multipleDates.length === 0 ? [{ date: "", startTime: "", endTime: "" }] : bookingForm.multipleDates).map((dateItem, index) => (
- <div key={index} className="ots-multiple-date-item">
- <input
- type="date"
- className="ots-input"
- value={dateItem.date || ""}
- onChange={(e) => {
- const newDates = [...bookingForm.multipleDates];
- if (newDates[index]) {
- newDates[index] = { ...newDates[index], date: e.target.value };
- } else {
- newDates[index] = { date: e.target.value, startTime: "", endTime: "" };
- }
- setBookingForm({ ...bookingForm, multipleDates: newDates });
- }}
- required
- />
- <input
- type="time"
- className="ots-input"
- value={dateItem.startTime || ""}
- onChange={(e) => {
- const nextStartTime = e.target.value;
- const newDates = [...bookingForm.multipleDates];
- if (newDates[index]) {
- newDates[index] = { 
- ...newDates[index], 
- startTime: nextStartTime,
- endTime: addHoursToTime(nextStartTime, 2)
- };
- } else {
- newDates[index] = { 
- date: "", 
- startTime: nextStartTime, 
- endTime: addHoursToTime(nextStartTime, 2)
- };
- }
- setBookingForm({ ...bookingForm, multipleDates: newDates });
- }}
- placeholder="Giờ bắt đầu"
- required
- />
- <input
- type="time"
- className="ots-input"
- value={dateItem.endTime || ""}
- onChange={(e) => {
- const newDates = [...bookingForm.multipleDates];
- if (newDates[index]) {
- newDates[index] = { ...newDates[index], endTime: e.target.value };
- } else {
- newDates[index] = { date: "", startTime: "", endTime: e.target.value };
- }
- setBookingForm({ ...bookingForm, multipleDates: newDates });
- }}
- placeholder="Giờ kết thúc"
- required
- />
- {bookingForm.multipleDates.length > 0 && (
- <button
- type="button"
- className="ots-btn ots-btn--sm ots-btn--danger"
- onClick={() => {
- const newDates = bookingForm.multipleDates.filter((_, i) => i !== index);
- setBookingForm({ ...bookingForm, multipleDates: newDates });
- }}
- >
- Xóa
- </button>
- )}
- </div>
- ))}
- </div>
- <button
- type="button"
- className="ots-btn ots-btn--sm ots-btn--primary"
- onClick={() => {
- setBookingForm({ 
- ...bookingForm, 
- multipleDates: [...bookingForm.multipleDates, { date: "", startTime: "", endTime: "" }] 
- });
- }}
- style={{marginTop: '8px'}}
- >
- + Thêm ngày
- </button>
- {bookingForm.multipleDates.filter(d => d.date).length > 0 && (
- <div className="ots-field__hint" style={{color: '#3b82f6', fontWeight: 500, marginTop: '8px'}}>
- Đã chọn {bookingForm.multipleDates.filter(d => d.date).length} ngày
- </div>
- )}
- </div>
- </Field>
- )}
-
- {/* Hiển thị lịch đã book của trainer */}
- {bookingForm.trainerId && (
- bookingForm.bookingMode === "single" ? bookingForm.bookingDate :
- bookingForm.bookingMode === "date_range" ? (bookingForm.startDate && bookingForm.endDate) :
- bookingForm.bookingMode === "multiple_dates" ? bookingForm.multipleDates.filter(d => d.date).length > 0 :
- false
- ) && (
- <div className="ots-field">
- <label className="ots-field__label">
- Lịch đã đặt của huấn luyện viên {loadingSchedule && "(đang tải...)"}
- </label>
- <div className="ots-schedule-info">
- {loadingSchedule ? (
- <p style={{ color: '#94a3b8', fontSize: '14px' }}>Đang kiểm tra lịch...</p>
- ) : trainerSchedule.length === 0 ? (
- <p style={{ color: '#5fffc0', fontSize: '14px' }}> Huấn luyện viên trống lịch</p>
- ) : (
- <div className="ots-schedule-days">
- {trainerSchedule.map((daySchedule) => {
- const filteredBookings = daySchedule.bookings?.filter(b => b.type !== 'trainer_share') || [];
- return (
- <div key={daySchedule.date} className="ots-schedule-day">
- <div className="ots-schedule-day-header">
- <strong>{new Date(daySchedule.date + 'T00:00:00').toLocaleDateString('vi-VN', { 
- weekday: 'short', 
- day: '2-digit', 
- month: '2-digit' 
- })}</strong>
- {filteredBookings.length === 0 ? (
- <span style={{ color: '#5fffc0', fontSize: '13px' }}> Trống</span>
- ) : (
- <span style={{ color: '#ffc107', fontSize: '13px' }}>
- {filteredBookings.length} lịch
- </span>
- )}
- </div>
- {filteredBookings.length > 0 && (
- <div className="ots-schedule-list">
- {filteredBookings.map((sch) => (
- <div 
- key={sch.id} 
- className="ots-schedule-item"
- >
- <span className="ots-time">{sch.startTime} - {sch.endTime}</span>
- <span className="ots-member">
- ({sch.Member?.User?.username || "N/A"})
- </span>
- </div>
- ))}
- </div>
- )}
- </div>
- );
- })}
- </div>
- )}
- </div>
- </div>
- )}
-
- {/* Giờ bắt đầu - kết thúc: chỉ hiển thị cho mode single và date_range */}
- {(bookingForm.bookingMode === "single" || bookingForm.bookingMode === "date_range") && (
- <div className="ots-row">
- <Field label="Giờ bắt đầu" required>
- <input
- type="time"
- className="ots-input"
- value={bookingForm.startTime}
- onChange={(e) => {
- const nextStartTime = e.target.value;
- setBookingForm({ 
- ...bookingForm, 
- startTime: nextStartTime,
- endTime: addHoursToTime(nextStartTime, 2)
- });
- }}
- required
- />
- </Field>
-
- <Field label="Giờ kết thúc" required>
- <input
- type="time"
- className="ots-input"
- value={bookingForm.endTime}
- onChange={(e) => setBookingForm({ ...bookingForm, endTime: e.target.value })}
- required
- />
- </Field>
- </div>
- )}
-
- <Field label="Ghi chú">
- <textarea
- className="ots-textarea"
- rows="3"
- value={bookingForm.notes}
- onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
- placeholder="Ghi chú thêm..."
- />
- </Field>
-
- <div className="ots-form__actions">
- <button
- type="button"
- className="ots-btn ots-btn--secondary"
- onClick={() => setShowBookingModal(false)}
- >
- Hủy
- </button>
- <button type="submit" className="ots-btn ots-btn--primary">
- {editing ? "Cập nhật" : "Đặt lịch"}
- </button>
- </div>
- </form>
- </div>
- </div>
- )}
-
- {/* Modal xem lịch PT */}
+{/* Modal xem lịch huấn luyện viên */}
  {showScheduleModal && selectedShareForSchedule && (
  <div className="ots-modal">
  <div className="ots-modal__backdrop" onClick={() => setShowScheduleModal(false)} />
@@ -3149,12 +2031,9 @@ useOwnerRealtimeRefresh({
  
  <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.95rem' }}>
  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
- <span style={{ opacity: 0.9, minWidth: '90px' }}> Ngày:</span>
+<span style={{ opacity: 0.9, minWidth: '90px' }}> Ngày mượn:</span>
  <strong style={{ fontSize: '1rem' }}>
  {selectedShareForSchedule.startDate ? formatDate(selectedShareForSchedule.startDate) : 'N/A'}
- {selectedShareForSchedule.endDate && (
- <> → {formatDate(selectedShareForSchedule.endDate)}</>
- )}
  </strong>
  </div>
 
@@ -3383,11 +2262,10 @@ useOwnerRealtimeRefresh({
  type="button"
  className="ots-btn ots-btn--success"
  onClick={() => {
- setShowScheduleModal(false);
- handleAcceptShare(selectedShareForSchedule.id);
+ handleAcceptShare(selectedShareForSchedule.id, selectedShareForSchedule);
  }}
  >
- Chấp nhận yêu cầu
+Đồng ý cho mượn huấn luyện viên
  </button>
  <button
  type="button"
@@ -3436,13 +2314,8 @@ useOwnerRealtimeRefresh({
  </div>
 
  <div className="detail-row">
- <span className="detail-label">Ngày bắt đầu:</span>
+<span className="detail-label">Ngày mượn:</span>
  <span className="detail-value">{formatDate(selectedShare.startDate)}</span>
- </div>
-
- <div className="detail-row">
- <span className="detail-label">Ngày kết thúc:</span>
- <span className="detail-value">{formatDate(selectedShare.endDate)}</span>
  </div>
 
  {selectedShare.startTime && selectedShare.startTime !== '00:00:00' && (
@@ -3466,7 +2339,7 @@ useOwnerRealtimeRefresh({
 
  {selectedShare.Member && (
  <div className="detail-row">
- <span className="detail-label">Hội viên:</span>
+ <span className="detail-label">Hội viên gắn kèm:</span>
  <span className="detail-value">{selectedShare.Member?.User?.username || "—"}</span>
  </div>
  )}
