@@ -21,6 +21,8 @@ import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
 import useSelectedGym from "../../hooks/useSelectedGym";
+import useTrainerNotifications from "../../hooks/useTrainerNotifications";
+import useTrainerMessageUnread from "../../hooks/useTrainerMessageUnread";
 import { getCurrentUser } from "../../utils/auth";
 import { ownerGetMyGyms } from "../../services/ownerGymService";
 import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
@@ -50,6 +52,7 @@ const readAuth = () => {
     isLoggedInNonMember,
     portalPath,
     groupId,
+    isPT: groupId === 3,
   };
 };
 
@@ -69,13 +72,15 @@ export default function Header() {
   const [ownerGyms, setOwnerGyms] = useState([]);
 
   void authTick;
-  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath, groupId } =
+  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath, groupId, isPT } =
     readAuth();
   const isOwner = groupId === 2;
   const notificationPath = isMember ? "/member/notifications" : isOwner ? "/owner/notifications" : null;
   const { selectedGymId, selectedGymName, setSelectedGym, clearSelectedGym } = useSelectedGym();
 
   const notifications = useRealtimeNotifications({ enabled: isMember });
+  const trainerNotifications = useTrainerNotifications();
+  const trainerMessageUnread = useTrainerMessageUnread();
 
   useEffect(() => {
     const setVar = () => {
@@ -223,6 +228,34 @@ export default function Header() {
       {notifications.unreadCount > 0 ? (
         <span className="header-noti-dot" />
       ) : null}
+    </button>
+  );
+
+  const PTNotificationButton = () => (
+    <button
+      type="button"
+      className="header-icon-btn"
+      aria-label="Thông báo"
+      title="Thông báo"
+      onClick={() => go("/pt/notifications")}
+    >
+      <Bell size={18} />
+      {trainerNotifications.unreadCount > 0 ? (
+        <span className="header-noti-dot" />
+      ) : null}
+    </button>
+  );
+
+  const PTMessageButton = () => (
+    <button
+      type="button"
+      className="header-icon-btn"
+      aria-label="Tin nhắn"
+      title="Tin nhắn"
+      onClick={() => go("/pt/messages")}
+    >
+      <MessageCircle size={18} />
+      {trainerMessageUnread > 0 ? <span className="header-noti-dot" /> : null}
     </button>
   );
 
@@ -418,6 +451,26 @@ export default function Header() {
                   Bảng điều khiển
                 </button>
               ) : null}
+              {isPT ? (
+                <>
+                  <button
+                    className="profile-btn full-width-btn"
+                    onClick={() => go("/pt/notifications")}
+                    type="button"
+                  >
+                    <Bell size={16} />
+                    Thông báo
+                  </button>
+                  <button
+                    className="profile-btn full-width-btn"
+                    onClick={() => go("/pt/messages")}
+                    type="button"
+                  >
+                    <MessageCircle size={16} />
+                    Tin nhắn
+                  </button>
+                </>
+              ) : null}
               <button
                 className="logout-btn full-width-btn"
                 onClick={logout}
@@ -471,6 +524,12 @@ export default function Header() {
 
             {isOwner && notificationPath ? <OwnerHeaderNotifications onNavigate={go} /> : null}
             {!isOwner && isMember && notificationPath ? <SimpleNotificationButton /> : null}
+            {isPT ? (
+              <>
+                <PTNotificationButton />
+                <PTMessageButton />
+              </>
+            ) : null}
             {isMember && <MemberDropdown />}
             {isLoggedInNonMember && <StaffAccountDropdown />}
 

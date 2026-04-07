@@ -155,21 +155,6 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                   </>
                 ) : (
                   <>
-                    {ta && (
-                      <button
-                        type="button"
-                        className="ptAttModal__btn ptAttModal__btn--reset"
-                        disabled={loading}
-                        onClick={async () => {
-                          if (!onReset) return;
-                          await onReset();
-                          setIsEditing(false);
-                          if (refresh) await refresh();
-                        }}
-                      >
-                        {loading ? "..." : "↺ Chưa điểm danh"}
-                      </button>
-                    )}
                     <button
                       type="button"
                       className="ptAttModal__btn ptAttModal__btn--present"
@@ -186,6 +171,21 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                     >
                       {loading ? "..." : "✗ Vắng mặt"}
                     </button>
+                    {ta && (
+                      <button
+                        type="button"
+                        className="ptAttModal__btn ptAttModal__btn--reset"
+                        disabled={loading}
+                        onClick={async () => {
+                          if (!onReset) return;
+                          await onReset();
+                          setIsEditing(false);
+                          if (refresh) await refresh();
+                        }}
+                      >
+                        {loading ? "..." : "↺ Chưa điểm danh"}
+                      </button>
+                    )}
                   </>
                 )}
               </div>

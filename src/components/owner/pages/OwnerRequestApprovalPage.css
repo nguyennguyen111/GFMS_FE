@@ -178,3 +178,69 @@
   color: rgba(238, 242, 255, 0.7);
   font-size: 13px;
 }
+
+.owner-request-approval .owner-request-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.owner-request-approval .owner-request-modal__card {
+  width: min(560px, calc(100vw - 32px));
+  background: #0f1621;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.42);
+}
+
+.owner-request-approval .owner-request-modal__card h3 {
+  margin: 0 0 12px;
+  color: #ff8a00;
+}
+
+.owner-request-approval .owner-request-modal__card textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #eef2ff;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.owner-request-approval .owner-request-modal__card textarea:focus {
+  border-color: rgba(255, 138, 0, 0.75);
+}
+
+.owner-request-approval .owner-request-modal__actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.owner-request-approval .btn-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(238, 242, 255, 0.95);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.owner-request-approval .btn-confirm {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.85);
+  color: #ffd8d8;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}

@@ -18,6 +18,7 @@ const OwnerRequestApprovalPage = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [rejectModal, setRejectModal] = useState({ open: false, requestId: null, reason: "" });
   const latestRequestTotalRef = useRef(0);
 
   const getRequestGymIds = (request) => {
@@ -101,9 +102,19 @@ const OwnerRequestApprovalPage = () => {
   };
 
   const handleReject = async (requestId) => {
+    setRejectModal({ open: true, requestId, reason: "" });
+  };
+
+  const submitReject = async () => {
+    const reason = String(rejectModal.reason || "").trim();
+    if (!reason) {
+      alert("Vui lòng nhập lý do từ chối.");
+      return;
+    }
     try {
-      await rejectRequest(requestId, "Rejected by Gym Owner");
+      await rejectRequest(rejectModal.requestId, reason);
       await fetchRequests(pagination.page);
+      setRejectModal({ open: false, requestId: null, reason: "" });
     } catch (error) {
       console.error("Error rejecting request:", error);
     }
@@ -138,40 +149,43 @@ const OwnerRequestApprovalPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {requests.map((request) => (
-                    <tr key={request.id}>
-                      <td>{request.requesterUsername}</td>
-                      <td>
-                        <button type="button" className="type-badge type-badge-btn" disabled>
-                          {getRequestTypeLabel(request.requestType)}
-                        </button>
-                      </td>
-                      <td>{request.approverUsername || '—'}</td>
-                      <td className="reason-cell">
-                        <div className="request-content-wrap">
-                          <div><b>Lý do:</b> {request.reason || "N/A"}</div>
-                          <div><b>Nội dung:</b> {request.requestContent || "N/A"}</div>
-                        </div>
-                      </td>
-                      <td>
-                        {request.status === 'PENDING' && <span className="status-pending">Chờ duyệt</span>}
-                        {request.status === 'APPROVED' && <span className="status-approved">Đã duyệt</span>}
-                        {request.status === 'REJECTED' && <span className="status-rejected">Đã từ chối</span>}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          {request.status === 'PENDING' ? (
-                            <>
-                              <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
-                              <button className="btn-reject" onClick={() => handleReject(request.id)}>Từ chối</button>
-                            </>
-                          ) : (
-                            <span className="action-done">Hoàn tất</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {requests.map((request) => {
+                    const st = String(request.status || "").toLowerCase();
+                    return (
+                      <tr key={request.id}>
+                        <td>{request.requesterUsername}</td>
+                        <td>
+                          <button type="button" className="type-badge type-badge-btn" disabled>
+                            {getRequestTypeLabel(request.requestType)}
+                          </button>
+                        </td>
+                        <td>{request.approverUsername || "—"}</td>
+                        <td className="reason-cell">
+                          <div className="request-content-wrap">
+                            <div><b>Lý do:</b> {request.reason || "N/A"}</div>
+                            <div><b>Nội dung:</b> {request.requestContent || "N/A"}</div>
+                          </div>
+                        </td>
+                        <td>
+                          {st === "pending" && <span className="status-pending">Chờ duyệt</span>}
+                          {st === "approved" && <span className="status-approved">Đã duyệt</span>}
+                          {st === "rejected" && <span className="status-rejected">Đã từ chối</span>}
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            {st === "pending" ? (
+                              <>
+                                <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
+                                <button className="btn-reject" onClick={() => handleReject(request.id)}>Từ chối</button>
+                              </>
+                            ) : (
+                              <span className="action-done">Hoàn tất</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -198,6 +212,27 @@ const OwnerRequestApprovalPage = () => {
           </>
         )}
       </div>
+      {rejectModal.open ? (
+        <div className="owner-request-modal__backdrop" onClick={() => setRejectModal({ open: false, requestId: null, reason: "" })}>
+          <div className="owner-request-modal__card" onClick={(e) => e.stopPropagation()}>
+            <h3>Lý do từ chối</h3>
+            <textarea
+              value={rejectModal.reason}
+              onChange={(e) => setRejectModal((p) => ({ ...p, reason: e.target.value }))}
+              placeholder="Nhập lý do từ chối để PT nắm rõ..."
+              rows={4}
+            />
+            <div className="owner-request-modal__actions">
+              <button type="button" className="btn-cancel" onClick={() => setRejectModal({ open: false, requestId: null, reason: "" })}>
+                Hủy
+              </button>
+              <button type="button" className="btn-confirm" onClick={submitReject}>
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   </div>
 );

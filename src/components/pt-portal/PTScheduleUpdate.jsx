@@ -46,6 +46,81 @@ const buildCleanSchedule = (raw) => {
   return out;
 };
 
+const extractHHmm = (v) => {
+  const s = String(v ?? "").trim();
+  const m = s.match(/\b([01]\d|2[0-3]):([0-5]\d)\b/);
+  return m ? `${m[1]}:${m[2]}` : null;
+};
+
+const parseHHmmToMin = (hhmm) => {
+  const x = extractHHmm(hhmm);
+  if (!x) return null;
+  const [h, m] = x.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const parseGymOperating = (raw) => {
+  if (!raw) return null;
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const mf = obj.monFri || obj.mon_fri;
+  const we = obj.weekend;
+  if (!mf?.open || !mf?.close || !we?.open || !we?.close) return null;
+  const mo = parseHHmmToMin(mf.open);
+  const mc = parseHHmmToMin(mf.close);
+  const wo = parseHHmmToMin(we.open);
+  const wc = parseHHmmToMin(we.close);
+  if (mo === null || mc === null || wo === null || wc === null) return null;
+  if (mc <= mo || wc <= wo) return null;
+  return {
+    monFri: { open: extractHHmm(mf.open), close: extractHHmm(mf.close), openMin: mo, closeMin: mc },
+    weekend: { open: extractHHmm(we.open), close: extractHHmm(we.close), openMin: wo, closeMin: wc },
+  };
+};
+
+const dayLabelVi = {
+  monday: "Thứ 2",
+  tuesday: "Thứ 3",
+  wednesday: "Thứ 4",
+  thursday: "Thứ 5",
+  friday: "Thứ 6",
+  saturday: "Thứ 7",
+  sunday: "Chủ nhật",
+};
+
+const windowForDay = (dayKey, parsed) => {
+  if (!parsed) return null;
+  const monFriDays = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  return monFriDays.includes(dayKey) ? parsed.monFri : parsed.weekend;
+};
+
+const validateScheduleAgainstGym = (clean, gym) => {
+  const ohRaw = gym?.operatingHours;
+  if (ohRaw == null || ohRaw === "") return null;
+  const parsed = parseGymOperating(ohRaw);
+  if (!parsed) return null;
+  for (const d of DAY_KEYS) {
+    const win = windowForDay(d, parsed);
+    if (!win) continue;
+    for (const slot of clean[d] || []) {
+      const s = parseHHmmToMin(slot.start);
+      const e = parseHHmmToMin(slot.end);
+      if (s === null || e === null) continue;
+      if (s < win.openMin || e > win.closeMin) {
+        return `${dayLabelVi[d]}: khung ${slot.start}–${slot.end} ngoài giờ mở cửa phòng gym (${win.open}–${win.close}).`;
+      }
+    }
+  }
+  return null;
+};
+
 const PTScheduleUpdate = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -57,6 +132,7 @@ const PTScheduleUpdate = () => {
   const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState(EMPTY);
   const [msg, setMsg] = useState("");
+  const [gym, setGym] = useState(null);
 
   const user = useMemo(() => {
     try {
@@ -65,6 +141,8 @@ const PTScheduleUpdate = () => {
       return null;
     }
   }, []);
+
+  const gymHoursParsed = useMemo(() => parseGymOperating(gym?.operatingHours), [gym?.operatingHours]);
 
   useEffect(() => {
     if (!user) {
@@ -79,6 +157,7 @@ const PTScheduleUpdate = () => {
         const myId = String(me?.id);
 
         setPtId(myId);
+        setGym(me?.Gym || null);
 
         if (id && id !== "undefined" && String(id) !== myId) {
           navigate(`/pt/${myId}/schedule-update`, { replace: true });
@@ -146,6 +225,13 @@ const PTScheduleUpdate = () => {
 
       const clean = buildCleanSchedule(schedule);
 
+      const gymErr = validateScheduleAgainstGym(clean, gym);
+      if (gymErr) {
+        setMsg(`❌ ${gymErr}`);
+        setSaving(false);
+        return;
+      }
+
       await updatePTSchedule(ptId, clean);
 
       setMsg("✅ Lưu lịch rảnh thành công!");
@@ -193,6 +279,18 @@ const PTScheduleUpdate = () => {
             <div>
               <h1>Cập nhật lịch rảnh</h1>
               <div className="ptSU__sub">PT #{ptId}</div>
+              {gym?.name ? (
+                <div className="ptSU__sub" style={{ marginTop: 6 }}>
+                  Phòng gym: {gym.name}
+                  {gymHoursParsed ? (
+                    <span>
+                      {" "}
+                      — Giờ mở cửa: T2–T6 {gymHoursParsed.monFri.open}–{gymHoursParsed.monFri.close}; T7–CN{" "}
+                      {gymHoursParsed.weekend.open}–{gymHoursParsed.weekend.close}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="ptSU__actions">
