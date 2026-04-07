@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 // Import Services
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import ownerBookingService from "../../../services/ownerBookingService";
@@ -13,7 +13,33 @@ import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerBookingsPage.css";
 import "./OwnerRequestApprovalPage.css";
 
+const extractErrorMessage = (error, fallback = "Không thể duyệt yêu cầu này.") => {
+  const data = error?.response?.data;
+  const status = Number(error?.response?.status || 0);
+  const isGenericAxiosMessage = (value) =>
+    /request failed with status code\s+\d+/i.test(String(value || "").trim());
+  const candidates = [
+    data?.message,
+    data?.error,
+    data?.detail,
+    data?.reason,
+    data?.errors?.[0]?.message,
+    error?.message,
+  ];
+  const picked = candidates.find((item) => {
+    const text = String(item || "").trim();
+    if (!text) return false;
+    if (isGenericAxiosMessage(text)) return false;
+    return true;
+  });
+  if (!picked && status === 409) {
+    return "Không thể duyệt nội bộ vì không có huấn luyện viên phù hợp hoặc đang trùng lịch.";
+  }
+  return picked ? String(picked).trim() : fallback;
+};
+
 const OwnerBookingsPage = () => {
+  const navigate = useNavigate();
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const REQUEST_TYPE_LABELS = {
     LEAVE: "Nghỉ phép",
@@ -21,7 +47,7 @@ const OwnerBookingsPage = () => {
     TRANSFER_BRANCH: "Chuyển chi nhánh",
     OVERTIME: "Tăng ca",
     BECOME_TRAINER: "Đăng ký trở thành huấn luyện viên",
-    BUSY_SLOT: "Báo bận khung giờ dạy",
+    BUSY_SLOT: "Xin nghỉ đột xuất",
   };
 
   const SPECIALIZATION_OPTIONS = [
@@ -495,11 +521,29 @@ const OwnerBookingsPage = () => {
     notificationTypes: ["trainer_request"],
   });
 
-  const handleApprove = async (requestId) => {
+  const handleApprove = async (requestId, options = {}, requestRow = null) => {
     try {
-      await approveRequest(requestId, "Approved by Gym Owner");
+      if (String(options?.assignmentMode || "") === "borrow_only") {
+        const requestData = requestRow?.requestData || {};
+        const query = new URLSearchParams({
+          prefillBorrow: "1",
+          toGymId: String(requestData?.gymId || ""),
+          memberId: String(requestData?.memberId || ""),
+          memberPackageActivationId: String(requestData?.packageActivationId || ""),
+          startDate: String(requestData?.bookingDate || ""),
+          startTime: String(requestData?.startTime || ""),
+          endTime: String(requestData?.endTime || ""),
+          fromBusyRequestId: String(requestId || ""),
+        });
+        navigate(`/owner/trainers?${query.toString()}`);
+        return;
+      }
+      await approveRequest(requestId, "Approved by Gym Owner", options);
       await fetchRequests(requestPagination.page);
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      console.error(error);
+      alert(extractErrorMessage(error, "Không thể duyệt yêu cầu này."));
+    }
   };
 
   const handleReject = async (requestId) => {
@@ -533,13 +577,13 @@ const OwnerBookingsPage = () => {
       <div className="trainer-tabs-wrap">
           <button
             onClick={() => setActiveTab("management")}
-            className={`trainer-tab-btn ${activeTab === "management" ? "is-active" : ""}`}
+            className={`obp-tab-btn ${activeTab === "management" ? "is-active" : ""}`}
           >
             Quản lý huấn luyện viên
           </button>
           <button
             onClick={() => setActiveTab("approval")}
-            className={`trainer-tab-btn ${activeTab === "approval" ? "is-active" : ""}`}
+            className={`obp-tab-btn ${activeTab === "approval" ? "is-active" : ""}`}
           >
             Duyệt yêu cầu Huấn luyện viên
           </button>
@@ -552,7 +596,7 @@ const OwnerBookingsPage = () => {
               <h1 className="page-title">Quản lý huấn luyện viên {selectedGymName ? `- ${selectedGymName}` : ""}</h1>
               {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
             </div>
-            <button onClick={handleOpenCreateModal} className="search-button" style={{ marginBottom: 0 }}>
+            <button onClick={handleOpenCreateModal} className="obp-search-btn" style={{ marginBottom: 0 }}>
               + Thêm huấn luyện viên mới
             </button>
           </div>
@@ -576,7 +620,7 @@ const OwnerBookingsPage = () => {
                 <option key={gym.id} value={gym.id}>{gym.name}</option>
               ))}
             </select>
-            <button onClick={handleSearch} className="search-button">Tìm</button>
+            <button onClick={handleSearch} className="obp-search-btn">Tìm</button>
           </div>
 
           <div className="bookings-table-wrapper">
@@ -600,9 +644,9 @@ const OwnerBookingsPage = () => {
                       <td>{specializationToVietnamese(trainer.specialization || "") || "N/A"}</td>
                       <td>
                         <div className="trainer-actions">
-                          <button onClick={() => handleViewDetail(trainer)} className="btn-detail">Chi tiết</button>
-                          <button onClick={() => handleOpenEditModal(trainer)} className="btn-edit">Sửa</button>
-                          <button onClick={() => handleToggleStatus(trainer)} className="btn-deactivate">
+                          <button onClick={() => handleViewDetail(trainer)} className="obp-btn-detail">Chi tiết</button>
+                          <button onClick={() => handleOpenEditModal(trainer)} className="obp-btn-edit">Sửa</button>
+                          <button onClick={() => handleToggleStatus(trainer)} className="obp-btn-deactivate">
                             {trainer.isActive !== false ? "Ngừng hoạt động" : "Kích hoạt"}
                           </button>
                         </div>
@@ -617,9 +661,9 @@ const OwnerBookingsPage = () => {
           </div>
 
           <div className="pagination-controls">
-            <button disabled={pagination.page <= 1} onClick={() => loadTrainers(pagination.page - 1)} className="pagination-btn">Trước</button>
+            <button disabled={pagination.page <= 1} onClick={() => loadTrainers(pagination.page - 1)} className="obp-pagination-btn">Trước</button>
             <span className="pagination-info">Trang {pagination.page} / {pagination.totalPages || 1}</span>
-            <button disabled={pagination.page >= pagination.totalPages} onClick={() => loadTrainers(pagination.page + 1)} className="pagination-btn">Sau</button>
+            <button disabled={pagination.page >= pagination.totalPages} onClick={() => loadTrainers(pagination.page + 1)} className="obp-pagination-btn">Sau</button>
           </div>
         </>
       ) : (
@@ -668,10 +712,27 @@ const OwnerBookingsPage = () => {
                           </td>
                           <td>
                             <div className="action-buttons">
-                              <button className="btn-detail" onClick={() => handleOpenRequestDetail(request)}>Chi tiết đơn</button>
+                              <button className="obp-btn-detail" onClick={() => handleOpenRequestDetail(request)}>Chi tiết đơn</button>
                               {request.status === 'PENDING' ? (
                                 <>
-                                  <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
+                                  {String(request?.requestType || "").toUpperCase() === "BUSY_SLOT" ? (
+                                    <>
+                                      <button
+                                        className="btn-approve"
+                                        onClick={() => handleApprove(request.id, { assignmentMode: "internal_first" }, request)}
+                                      >
+                                        Duyệt & xếp PT nội bộ
+                                      </button>
+                                      <button
+                                        className="btn-approve"
+                                        onClick={() => handleApprove(request.id, { assignmentMode: "borrow_only" }, request)}
+                                      >
+                                        Duyệt & chuyển sang mượn PT
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
+                                  )}
                                   <button className="btn-reject" onClick={() => handleReject(request.id)}>Từ chối</button>
                                 </>
                               ) : (
@@ -691,7 +752,7 @@ const OwnerBookingsPage = () => {
                   <button
                     disabled={requestPagination.page <= 1}
                     onClick={() => fetchRequests(requestPagination.page - 1)}
-                    className="pagination-btn"
+                    className="obp-pagination-btn"
                   >
                     Trước
                   </button>
@@ -701,7 +762,7 @@ const OwnerBookingsPage = () => {
                   <button
                     disabled={requestPagination.page >= requestPagination.totalPages}
                     onClick={() => fetchRequests(requestPagination.page + 1)}
-                    className="pagination-btn"
+                    className="obp-pagination-btn"
                   >
                     Sau
                   </button>
@@ -1014,12 +1075,6 @@ const OwnerBookingsPage = () => {
                         {selectedRequest?.requestData?.packageActivationId
                           ? ` (Activation #${selectedRequest.requestData.packageActivationId})`
                           : ""}
-                      </span>
-                    </div>
-                    <div className="detail-item detail-item--block">
-                      <span className="detail-label">Mẹo thao tác nhanh:</span>
-                      <span className="detail-value">
-                        Dùng đúng ngày + khung giờ này để tạo phiếu xin mượn huấn luyện viên ở màn Chia sẻ huấn luyện viên.
                       </span>
                     </div>
                   </div>

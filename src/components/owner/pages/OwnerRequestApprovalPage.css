@@ -7,7 +7,7 @@
 .owner-request-approval .od2-h1 {
   font-size: 24px;
   font-weight: 800;
-  color: #ff8a00;
+  color: #b8dc00;
   text-transform: uppercase;
   margin-bottom: 20px;
 }
@@ -29,14 +29,14 @@
 
 /* Header của bảng */
 .owner-request-approval .approval-table thead {
-  background: rgba(255, 138, 0, 0.1);
+  background: rgba(184, 220, 0, 0.1);
 }
 
 .owner-request-approval .approval-table th {
   padding: 15px;
   font-size: 13px;
   text-transform: uppercase;
-  color: #ff8a00;
+  color: #b8dc00;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -154,8 +154,8 @@
 
 .owner-request-approval .pagination-btn {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -165,7 +165,7 @@
 }
 
 .owner-request-approval .pagination-btn:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 

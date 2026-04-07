@@ -5,7 +5,7 @@
   --oma-border2: rgba(255,255,255,0.18);
   --oma-text: #eef2ff;
   --oma-muted: rgba(238,242,255,0.70);
-  --oma-orange: #ff8a00;
+  --oma-orange: #b8dc00;
   --oma-orange2: #ffb000;
   --oma-cyan: #00baff;
   --oma-ok: #00e3a6;
@@ -152,8 +152,8 @@
 
 .pagination button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -163,7 +163,7 @@
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 

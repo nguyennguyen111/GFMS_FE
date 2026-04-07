@@ -16,7 +16,7 @@
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
-    radial-gradient(120% 160% at 0% 0%, rgba(255, 177, 0, 0.14) 0%, transparent 45%),
+    radial-gradient(120% 160% at 0% 0%, rgba(214, 255, 0, 0.14) 0%, transparent 45%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0%, rgba(0, 186, 255, 0.08) 100%);
   position: relative;
   overflow: hidden;
@@ -29,7 +29,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, #ffb100 0%, #ff8a00 52%, #00baff 100%);
+  background: linear-gradient(180deg, #d6ff00 0%, #b8dc00 52%, #00baff 100%);
 }
 
 .op-head > div {
@@ -41,7 +41,7 @@
   font-size: 32px;
   font-weight: 900;
   margin: 0 0 6px 0;
-  background: linear-gradient(135deg, #ffe4aa 0%, #ffb100 55%, #ff8a00 100%);
+  background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 55%, #b8dc00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -117,8 +117,8 @@
 
 .op-btn {
   padding: 10px 20px;
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
   color: #eef2ff;
   border-radius: 14px;
   cursor: pointer;
@@ -130,7 +130,7 @@
 }
 
 .op-btn:hover {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
   transform: translateY(-2px);
 }
 
@@ -168,8 +168,8 @@
 
 .op-btn--detail {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.16);
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: rgba(184, 220, 0, 0.16);
+  border: 1px solid rgba(184, 220, 0, 0.35);
   color: #ffd27a;
   border-radius: 12px;
   cursor: pointer;
@@ -179,7 +179,7 @@
 }
 
 .op-btn--detail:hover {
-  background: rgba(255, 138, 0, 0.24);
+  background: rgba(184, 220, 0, 0.24);
   transform: translateY(-2px);
 }
 
@@ -273,7 +273,7 @@
 .op-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08) !important;
+  background: rgba(184, 220, 0, 0.08) !important;
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -397,7 +397,7 @@
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(90deg, rgba(255, 177, 0, 0.12), rgba(0, 186, 255, 0.08));
+  background: linear-gradient(90deg, rgba(214, 255, 0, 0.12), rgba(0, 186, 255, 0.08));
   position: relative;
 }
 
@@ -408,7 +408,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, #ffb100 0%, #ff8a00 52%, #00baff 100%);
+  background: linear-gradient(180deg, #d6ff00 0%, #b8dc00 52%, #00baff 100%);
 }
 
 .op-modal__title {
@@ -418,8 +418,8 @@
 }
 
 .op-x {
-  border: 1px solid rgba(255, 177, 0, 0.5);
-  background: rgba(255, 177, 0, 0.16);
+  border: 1px solid rgba(214, 255, 0, 0.5);
+  background: rgba(214, 255, 0, 0.16);
   color: #ffd27a;
   font-size: 22px;
   width: 36px;
@@ -433,7 +433,7 @@
 }
 
 .op-x:hover {
-  background: rgba(255, 177, 0, 0.26);
+  background: rgba(214, 255, 0, 0.26);
 }
 
 .op-modal__body {
@@ -508,7 +508,7 @@
 
 .op-spec-item.is-selected {
   border-color: rgba(255, 176, 0, 0.46);
-  background: linear-gradient(90deg, rgba(255, 176, 0, 0.24), rgba(255, 138, 0, 0.16));
+  background: linear-gradient(90deg, rgba(255, 176, 0, 0.24), rgba(184, 220, 0, 0.16));
   color: #ffe8bf;
   box-shadow: 0 0 0 1px rgba(255, 176, 0, 0.16);
 }
@@ -715,8 +715,8 @@
 
 .op-pagination-btn {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -726,7 +726,7 @@
 }
 
 .op-pagination-btn:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 

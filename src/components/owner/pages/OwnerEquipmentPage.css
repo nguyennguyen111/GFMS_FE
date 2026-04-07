@@ -54,8 +54,8 @@
 
 .btn-primary {
   padding: 10px 16px;
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
   color: #eef2ff;
   border-radius: 14px;
   cursor: pointer;
@@ -64,7 +64,7 @@
 }
 
 .btn-primary:hover {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
   transform: translateY(-2px);
 }
 
@@ -91,7 +91,7 @@
 .oeq-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -242,8 +242,8 @@
 
 .oeq-paging button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -251,7 +251,7 @@
 }
 
 .oeq-paging button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
 }
 
 .oeq-paging button:disabled {
@@ -482,12 +482,12 @@
 }
 
 .oeq-unit-export--bulk {
-  background: rgba(255, 138, 0, 0.16);
-  border-color: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.16);
+  border-color: rgba(184, 220, 0, 0.28);
 }
 
 .oeq-unit-export--bulk:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.24);
+  background: rgba(184, 220, 0, 0.24);
 }
 
 .oeq-unit-code {
