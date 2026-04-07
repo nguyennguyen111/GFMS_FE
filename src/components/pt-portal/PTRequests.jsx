@@ -7,6 +7,10 @@ import {
   getMyRequests,
   cancelRequest,
 } from "../../services/ptRequestService";
+import {
+  ptGetAvailableTrainerShareRequests,
+  ptClaimTrainerShareRequest,
+} from "../../services/ptTrainerShareService";
 
 import "./PTRequests.css";
 
@@ -15,6 +19,7 @@ const REQUEST_TYPES = [
   { value: "SHIFT_CHANGE", label: "Đổi ca" },
   { value: "TRANSFER_BRANCH", label: "Chuyển chi nhánh" },
   { value: "OVERTIME", label: "Tăng ca" },
+  { value: "BUSY_SLOT", label: "Báo bận khung giờ dạy" },
 ];
 
 const STATUS_OPTIONS = [
@@ -68,6 +73,8 @@ export default function PTRequests() {
 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [shareRequests, setShareRequests] = useState([]);
+  const [loadingShares, setLoadingShares] = useState(false);
 
   const currentForm = useMemo(() => forms[activeType], [forms, activeType]);
 
@@ -155,10 +162,35 @@ export default function PTRequests() {
     }
   };
 
+  const fetchShareRequests = async () => {
+    setLoadingShares(true);
+    try {
+      const res = await ptGetAvailableTrainerShareRequests({ page: 1, limit: 20 });
+      setShareRequests(Array.isArray(res?.data?.data) ? res.data.data : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingShares(false);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchShareRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.requestType]);
+
+  const handleClaimShare = async (id) => {
+    if (!window.confirm("Bạn muốn nhận khung giờ này?")) return;
+    try {
+      await ptClaimTrainerShareRequest(id);
+      alert("Nhận khung giờ thành công");
+      await fetchShareRequests();
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Không thể nhận slot");
+    }
+  };
 
   const handleSubmit = async () => {
     const errMsg = validate();
@@ -351,6 +383,45 @@ export default function PTRequests() {
       </div>
 
       {/* LIST */}
+      <div className="ptr-card" style={{ marginBottom: 14 }}>
+        <p className="ptr-subtitle">Khung giờ mượn huấn luyện viên đang mở</p>
+        <div className="ptr-divider" />
+        <div className="ptr-tablewrap">
+          <table className="ptr-table">
+            <thead>
+              <tr>
+                <th>Gym cho mượn</th>
+                <th>Gym cần huấn luyện viên</th>
+                <th>Thời gian</th>
+                <th>Ghi chú</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingShares ? (
+                <tr><td colSpan={5} className="ptr-empty">Đang tải...</td></tr>
+              ) : shareRequests.length === 0 ? (
+                <tr><td colSpan={5} className="ptr-empty">Không có khung giờ mở</td></tr>
+              ) : (
+                shareRequests.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.fromGym?.name || `Gym #${s.fromGymId}`}</td>
+                    <td>{s.toGym?.name || `Gym #${s.toGymId}`}</td>
+                    <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${s.startTime}-${s.endTime})` : ""}</td>
+                    <td title={s.notes || ""}>{s.notes || "-"}</td>
+                    <td>
+                      <button className="ptr-btn primary" onClick={() => handleClaimShare(s.id)} type="button">
+                        Nhận khung giờ
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="ptr-card">
         <p className="ptr-subtitle">Đơn của tôi</p>
         <div className="ptr-divider" />

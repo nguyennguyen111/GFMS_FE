@@ -21,6 +21,7 @@ const OwnerBookingsPage = () => {
     TRANSFER_BRANCH: "Chuyển chi nhánh",
     OVERTIME: "Tăng ca",
     BECOME_TRAINER: "Đăng ký trở thành huấn luyện viên",
+    BUSY_SLOT: "Báo bận khung giờ dạy",
   };
 
   const SPECIALIZATION_OPTIONS = [
@@ -184,6 +185,19 @@ const OwnerBookingsPage = () => {
     return Object.entries(requestData)
       .filter(([key]) => key !== "application")
       .map(([key, value]) => ({ key, value: formatRequestDataValue(value) }));
+  };
+
+  const getGymNameById = (gymId) => {
+    const id = Number(gymId || 0);
+    if (!id) return null;
+    const matched = gyms.find((gym) => Number(gym.id) === id);
+    return matched?.name || null;
+  };
+
+  const toHm = (timeValue) => {
+    const s = String(timeValue || "");
+    if (!s) return "";
+    return s.slice(0, 5);
   };
 
   // --- Effect & Logic PT Management ---
@@ -955,6 +969,59 @@ const OwnerBookingsPage = () => {
                         ? selectedRequest.requestApplication.certificationLinks.join(" | ")
                         : "N/A"}
                     </span>
+                  </div>
+                </div>
+              ) : String(selectedRequest?.requestType || "").toUpperCase() === "BUSY_SLOT" ? (
+                <div className="detail-section">
+                  <h3 className="detail-section-title">Thông tin khung giờ báo bận</h3>
+                  <div className="detail-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Huấn luyện viên:</span>
+                      <span className="detail-value">{selectedRequest.requesterUsername || "N/A"}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Hội viên:</span>
+                      <span className="detail-value">
+                        {selectedRequest?.requestData?.memberName
+                          || (selectedRequest?.requestData?.memberId ? `Hội viên #${selectedRequest.requestData.memberId}` : "Chưa gắn hội viên")}
+                      </span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Ngày báo bận:</span>
+                      <span className="detail-value">{selectedRequest?.requestData?.bookingDate || "N/A"}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Khung giờ:</span>
+                      <span className="detail-value">
+                        {toHm(selectedRequest?.requestData?.startTime) && toHm(selectedRequest?.requestData?.endTime)
+                          ? `${toHm(selectedRequest.requestData.startTime)} - ${toHm(selectedRequest.requestData.endTime)}`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="detail-item detail-item--block">
+                      <span className="detail-label">Phòng tập:</span>
+                      <span className="detail-value">
+                        {selectedRequest?.requestData?.gymName
+                          || getGymNameById(selectedRequest?.requestData?.gymId)
+                          || (selectedRequest?.requestData?.gymId ? `Phòng tập #${selectedRequest.requestData.gymId}` : "N/A")}
+                      </span>
+                    </div>
+                    <div className="detail-item detail-item--block">
+                      <span className="detail-label">Gói hội viên:</span>
+                      <span className="detail-value">
+                        {selectedRequest?.requestData?.packageName
+                          || (selectedRequest?.requestData?.packageId ? `Gói #${selectedRequest.requestData.packageId}` : "N/A")}
+                        {selectedRequest?.requestData?.packageActivationId
+                          ? ` (Activation #${selectedRequest.requestData.packageActivationId})`
+                          : ""}
+                      </span>
+                    </div>
+                    <div className="detail-item detail-item--block">
+                      <span className="detail-label">Mẹo thao tác nhanh:</span>
+                      <span className="detail-value">
+                        Dùng đúng ngày + khung giờ này để tạo phiếu xin mượn huấn luyện viên ở màn Chia sẻ huấn luyện viên.
+                      </span>
+                    </div>
                   </div>
                 </div>
               ) : (
