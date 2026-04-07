@@ -23,8 +23,8 @@ const Pricing = ({ packages = [], loading }) => {
       <div className="pricing-container">
         <div className="pricing-header">
           <div>
-            <div className="pricing-label">Investment</div>
-            <h2 className="pricing-title">Gói tập phổ biến thật từ hệ thống</h2>
+            <div className="pricing-label">Package</div>
+            <h2 className="pricing-title">Gói tập phổ biến trong hệ thống</h2>
           </div>
           <button className="gfms-view-all-btn" onClick={() => navigate('/marketplace/gyms')}>
             Khám phá thêm <ArrowRight size={16} />
@@ -50,7 +50,7 @@ const Pricing = ({ packages = [], loading }) => {
                   <li className="feature-item"><Flame size={16} className="feature-check" /> {pkg.purchaseCount || 0} lượt mua</li>
                   <li className="feature-item"><Star size={16} className="feature-check" /> {(Number(pkg.avgRating || 0)).toFixed(1)} / 5 ({pkg.reviewCount || 0} đánh giá)</li>
                 </ul>
-                <button className={featured ? 'price-btn-primary' : 'price-btn-secondary'} onClick={() => navigate(`/marketplace/gyms/${pkg.gymId}`)}>
+                <button className={featured ? 'price-btn-primary' : 'price-btn-secondary'} onClick={() => navigate(`/marketplace/packages/${pkg.id}`)}>
                   Xem chi tiết
                 </button>
               </div>

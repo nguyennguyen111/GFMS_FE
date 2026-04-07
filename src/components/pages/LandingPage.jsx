@@ -47,7 +47,7 @@ const LandingPage = () => {
       <GymNetwork gyms={highlights.gyms} loading={loading} />
       <Trainers trainers={highlights.trainers} loading={loading} />
       <Pricing packages={highlights.packages} loading={loading} />
-      <CTA />
+      <CTA testimonials={highlights.testimonials} />
     </div>
   );
 };

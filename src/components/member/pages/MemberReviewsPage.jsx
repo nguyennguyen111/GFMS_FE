@@ -43,12 +43,17 @@ function ReviewCard({ review }) {
       ? packageName
       : trainerName;
 
+  const bookingDate = review?.Booking?.bookingDate ? fmtDate(review.Booking.bookingDate) : fmtDate(review?.createdAt);
+  const bookingTime = review?.Booking?.startTime && review?.Booking?.endTime
+    ? `${String(review.Booking.startTime).slice(0, 5)}-${String(review.Booking.endTime).slice(0, 5)}`
+    : "";
+
   const subLabel =
     reviewType === "gym"
-      ? `${fmtDate(review?.createdAt)} · Phòng tập`
+      ? `${bookingDate} · Phòng tập`
       : reviewType === "package"
-      ? `${fmtDate(review?.createdAt)} · Gói tập`
-      : `${fmtDate(review?.createdAt)} · ${packageName}`;
+      ? `${bookingDate} · Gói tập`
+      : `${bookingDate}${bookingTime ? ` · ${bookingTime}` : ""} · ${packageName}`;
 
   return (
     <article className="member-reviews-item">
@@ -257,10 +262,6 @@ export default function MemberReviewsPage() {
           <h1 className="member-reviews-title">
             ĐÁNH GIÁ <span>HỘI VIÊN</span>
           </h1>
-          <p className="member-reviews-sub">
-            Gửi cảm nhận sau buổi tập để nâng tầm trải nghiệm và chất lượng dịch
-            vụ tại GFMS. Chỉ mục đã hoàn thành thật mới được đánh giá.
-          </p>
         </div>
 
         {error ? <div className="m-error">{error}</div> : null}
@@ -433,7 +434,7 @@ export default function MemberReviewsPage() {
           <div className="member-reviews-metric-card">
             <span className="member-reviews-metric-value">{metrics.avg}/5</span>
             <span className="member-reviews-metric-label">
-              ĐIỂM TRUNG BÌNH HỘI VIÊN
+              ĐIỂM TRUNG BÌNH HỘI VIÊN ĐÁNH GIÁ
             </span>
           </div>
           <div className="member-reviews-metric-card">
