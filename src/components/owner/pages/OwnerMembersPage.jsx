@@ -442,6 +442,9 @@ const OwnerMembersPage = () => {
                               {packageInfo?.name || 'Gói không xác định'}
                             </div>
                             <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.75)'}}>
+                              ID gói: {packageInfo?.id || 'N/A'}
+                            </div>
+                            <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.75)'}}>
                               Hết hạn: {pa.expiryDate ? new Date(pa.expiryDate).toLocaleDateString('vi-VN') : 'Không có'}
                             </div>
                             <div style={{fontSize: '0.85rem', color: 'rgba(238, 242, 255, 0.75)'}}>

@@ -307,6 +307,24 @@
   color: #ff5e4d !important;
 }
 
+.ptWeek__block.is-busy-requested {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(245, 158, 11, 0.46) !important;
+  border-left-color: #f59e0b !important;
+}
+.ptWeek__block.is-busy-requested * {
+  color: #fbbf24 !important;
+}
+
+.ptWeek__block.is-shared {
+  background: rgba(139, 92, 246, 0.16) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  border-left-color: #8b5cf6 !important;
+}
+.ptWeek__block.is-shared * {
+  color: #c4b5fd !important;
+}
+
 /* Weekly Bar & Table Fallsbacks */
 .ptWeekBar {
   display: flex;

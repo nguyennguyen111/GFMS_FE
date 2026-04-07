@@ -21,7 +21,7 @@ const pickGymLabel = (booking) => {
   return g?.gymName || g?.name || (booking?.gymId ? `Cơ sở #${booking.gymId}` : "—");
 };
 
-export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onComplete, onReset, refresh }) {
+export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onComplete, onReset, onRequestBusySlot, refresh }) {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -36,6 +36,7 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
   const isCompleted = bookingStatus === "completed";
   const comm = String(booking?.commissionStatus || "").toLowerCase();
   const commissionLocked = comm === "calculated" || comm === "paid";
+  const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
 
   const handleAction = async (type) => {
     if (commissionLocked) return;
@@ -118,6 +119,16 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                     : "ptAttModal__actions"
                 }
               >
+                {booking && onRequestBusySlot && !isSharedSession ? (
+                  <button
+                    type="button"
+                    className="ptAttModal__btn ptAttModal__btn--edit"
+                    disabled={loading}
+                    onClick={onRequestBusySlot}
+                  >
+                    {loading ? "..." : "📨 Báo bận khung giờ này"}
+                  </button>
+                ) : null}
                 {ta && !isEditing ? (
                   <>
                     {!isCompleted && currentStatus === "present" && onComplete ? (

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
-import { getPTAttendanceSchedule, ptCheckIn, ptCheckOut, ptResetAttendance } from "../../services/ptAttendanceService";
+import { getPTAttendanceSchedule, ptCheckIn, ptCheckOut, ptResetAttendance, ptRequestBusySlot } from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
 import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
 import NiceModal from "../common/NiceModal";
@@ -215,9 +215,32 @@ const PTSchedule = () => {
     }
   };
 
+  const requestBusySlot = async () => {
+    if (!attBooking?.id) return;
+    const reason = window.prompt("Nhập lý do bận (không bắt buộc):", "");
+    if (reason === null) return;
+    setAttLoading(true);
+    try {
+      await ptRequestBusySlot({ bookingId: attBooking.id, reason: String(reason || "").trim() });
+      window.alert("Đã gửi yêu cầu báo bận cho chủ phòng tập.");
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không thể gửi yêu cầu báo bận.";
+      window.alert(msg);
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
-  const getStudentNameColor = (attendanceStatus) => {
+  const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession) => {
+    if (sharedSession) return '#a78bfa';
+    if (busyRequested) return '#f59e0b';
     if (attendanceStatus === 'present') return '#2ecc71';
     if (attendanceStatus === 'absent') return '#e74c3c';
     return '#3498db';
@@ -285,13 +308,17 @@ const PTSchedule = () => {
                       const startMin=parseTimeToMinutes(s.start);
                       const endMin=parseTimeToMinutes(s.end);
                       if(startMin>=endMin || startMin<START_HOUR*60) return null;
-                      
+
                       const booking=(attCache[toYMD(d.date)]||[]).find(b=>String(b.startTime||"").slice(0,5)===String(s.start||"").slice(0,5));
-                      
+
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
+                      const isBusyRequested = Boolean(booking?.busyRequested);
+                      const isSharedSession = String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
                       if (booking) {
-                        if (attendanceStatus === "present") statusClass = "is-present";
+                        if (isSharedSession) statusClass = "is-shared";
+                        else if (isBusyRequested) statusClass = "is-busy-requested";
+                        else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else statusClass = "is-pending";
                       }
@@ -310,11 +337,11 @@ const PTSchedule = () => {
                           onClick={()=>openAttendance(d.date,s)}
                         >
                           <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus) }}>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession) }}>
                             👤 {booking.Member?.User?.username || "Học viên"}
-                            {attendanceStatus && (
+                            {(attendanceStatus || isBusyRequested || isSharedSession) && (
                               <div className="mini-status">
-                                  {attendanceStatus === 'present' ? '✓ Có mặt' : attendanceStatus === 'absent' ? '✗ Vắng mặt' : ''}
+                                  {isSharedSession ? '↔ Lịch chia sẻ' : isBusyRequested ? '⚠ PT báo bận' : attendanceStatus === 'present' ? '✓ Có mặt' : attendanceStatus === 'absent' ? '✗ Vắng mặt' : ''}
                               </div>
                             )}
                           </div>}
@@ -392,6 +419,7 @@ const PTSchedule = () => {
         onCheckOut={() => updateStatus("absent")}
         onComplete={completeStatus}
         onReset={resetStatus}
+        onRequestBusySlot={requestBusySlot}
       />
 
       <NiceModal
