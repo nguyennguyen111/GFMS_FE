@@ -9,6 +9,7 @@ import {
   memberCreateBecomeTrainerRequest,
   memberGetBecomeTrainerRequests,
 } from "../../../services/memberProfileService";
+import { memberGetMyPackages } from "../../../services/memberPackageService";
 import { mpGetGyms } from "../../../services/marketplaceService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
@@ -215,6 +216,7 @@ export default function MemberProfilePage() {
 
   const [metrics, setMetrics] = useState([]);
   const [latestMetric, setLatestMetric] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
@@ -278,6 +280,23 @@ export default function MemberProfilePage() {
     }
   };
 
+
+  const loadPaymentHistory = async () => {
+    try {
+      const res = await memberGetMyPackages();
+      const raw = res?.data?.data;
+      const list = Array.isArray(raw) ? raw : [];
+      const sorted = [...list].sort((a, b) => {
+        const aTime = new Date(a?.Transaction?.transactionDate || a?.updatedAt || a?.createdAt || a?.activationDate || 0).getTime();
+        const bTime = new Date(b?.Transaction?.transactionDate || b?.updatedAt || b?.createdAt || b?.activationDate || 0).getTime();
+        return bTime - aTime;
+      });
+      setPaymentHistory(sorted);
+    } catch (_e) {
+      setPaymentHistory([]);
+    }
+  };
+
   const loadTrainerGyms = async () => {
     setTrainerGymsLoading(true);
     try {
@@ -328,6 +347,7 @@ export default function MemberProfilePage() {
     loadProfile();
     loadMetrics();
     loadTrainerGyms();
+    loadPaymentHistory();
     loadMyTrainerRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -663,9 +683,6 @@ export default function MemberProfilePage() {
         <h1 className="mprof-pageTitle">
           QUẢN LÝ <span>TÀI KHOẢN</span>
         </h1>
-        <p className="mprof-pageSub">
-          Theo dõi hồ sơ cá nhân, cập nhật thông tin tài khoản và quản lý chỉ số sức khỏe tại GFMS.
-        </p>
       </div>
 
       <div className="mprof-hero">
@@ -698,8 +715,6 @@ export default function MemberProfilePage() {
           <div className="mprof-meta">
             <span>{form.email || "—"}</span>
             <span>{form.phone || "—"}</span>
-            <span>{form.memberCode || user.memberCode || "MEMBER"}</span>
-            {user?.gym?.name ? <span>{user.gym.name}</span> : null}
           </div>
 
           <div className="mprof-badges">
@@ -848,21 +863,23 @@ export default function MemberProfilePage() {
 
             <section className="mprof-statusCard">
               <div className="mprof-statusHeader">
-                <label className="mprof-statusLabel">TRẠNG THÁI TÀI KHOẢN</label>
-                <h2 className="mprof-statusTitle">{getStatusText(form.status)}</h2>
+                <label className="mprof-statusLabel">LỊCH SỬ THANH TOÁN</label>
+                <h2 className="mprof-statusTitle">{paymentHistory.length} giao dịch</h2>
               </div>
 
-              <div className="mprof-statusFooter">
-                <div className="mprof-statusInfo">
-                  <span className="mprof-statusInfoLabel">CẬP NHẬT / HẾT HẠN</span>
-                  <span className="mprof-statusInfoValue">{membershipData.nextPayment}</span>
-                </div>
-
-                <div className="mprof-progressTrack">
-                  <div className="mprof-progressBar" style={{ width: `${membershipData.progress}%` }} />
-                </div>
-
-                <p className="mprof-planName">{membershipData.planName}</p>
+              <div className="mprof-paymentList">
+                {paymentHistory.length ? paymentHistory.map((item) => (
+                  <div className="mprof-paymentItem" key={item.id}>
+                    <div>
+                      <div className="mprof-paymentName">{item?.Package?.name || 'Gói tập'}</div>
+                      <div className="mprof-paymentMeta">{formatDate(item?.Transaction?.transactionDate || item?.activationDate)} • {String(item?.Transaction?.paymentMethod || '—').toUpperCase()} • {String(item?.Transaction?.transactionCode || item?.Transaction?.id || item?.id || '—').toUpperCase()}</div>
+                    </div>
+                    <div className="mprof-paymentRight">
+                      <strong>{Number(item?.Transaction?.amount || 0).toLocaleString('vi-VN')}đ</strong>
+                      <span>{String(item?.Transaction?.paymentStatus || item?.status || '—').toUpperCase()}</span>
+                    </div>
+                  </div>
+                )) : <div className="mprof-note" style={{marginTop:0}}>Chưa có lịch sử thanh toán.</div>}
               </div>
             </section>
 
@@ -902,10 +919,6 @@ export default function MemberProfilePage() {
                 <Info label="LẦN ĐĂNG NHẬP CUỐI" value={formatDateTime(form.lastLogin)} />
                 <Info label="GYM HIỆN TẠI" value={user?.gym?.name || "—"} />
                 <Info label="MÃ HỘI VIÊN" value={form.memberCode || "—"} />
-              </div>
-
-              <div className="mprof-note">
-                * Trang này đã ưu tiên lấy dữ liệu từ API profile member.
               </div>
             </section>
           </div>

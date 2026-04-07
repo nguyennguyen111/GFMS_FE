@@ -432,53 +432,6 @@ const MemberProgressPage = () => {
           </section>
         </div>
 
-        <div className="member-stats-grid">
-          <article className="member-card member-stat-card">
-            <div className="member-card-header">
-              <span className="member-card-label">SỐ BUỔI TẬP</span>
-              <Calendar size={16} className="member-muted-icon" />
-            </div>
-            <div className="member-stat-main">
-              <span className="member-stat-number">{stats.sessionsUsed}</span>
-              <span className="member-stat-total">/ {stats.totalSessions}</span>
-            </div>
-            <div className="member-progress-bar">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
-            </div>
-          </article>
-
-          <article className="member-card member-stat-card">
-            <div className="member-card-header">
-              <span className="member-card-label">THỜI GIAN TẬP</span>
-              <Timer size={16} className="member-muted-icon" />
-            </div>
-            <div className="member-stat-main">
-              <span className="member-stat-number">{totalWorkoutHours}</span>
-              <span className="member-stat-unit">GIỜ</span>
-            </div>
-            <p className="member-stat-delta">{workoutDelta}</p>
-          </article>
-
-          <article className="member-card member-stat-card">
-            <div className="member-card-header">
-              <span className="member-card-label">ĐIỂM THỂ LỰC</span>
-              <Zap size={16} className="member-muted-icon" />
-            </div>
-            <div className="member-stat-main">
-              <span className="member-stat-number">{fitnessScore}</span>
-              <span className="member-stat-badge">{fitnessRank}</span>
-            </div>
-            <div className="member-segmented-bar">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`segment ${index < segmentCount ? 'active' : ''}`}
-                ></div>
-              ))}
-            </div>
-          </article>
-        </div>
-
         <div className="member-bottom-grid"></div>
       </main>
     </div>
