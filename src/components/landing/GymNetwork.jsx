@@ -19,8 +19,8 @@ const GymNetwork = ({ gyms = [], loading }) => {
       <div className="gfms-network-container">
         <div className="gfms-network-header">
           <div>
-            <div className="gfms-network-label">Network</div>
-            <h2 className="gfms-network-title">Hệ thống phòng tập thịnh hành</h2>
+            <div className="gfms-network-label">Gym</div>
+            <h2 className="gfms-network-title">Hệ thống phòng tập hiện đại</h2>
           </div>
           <button className="gfms-view-all-btn" onClick={() => navigate("/marketplace/gyms") }>
             Tất cả cơ sở <ArrowRight size={16} />

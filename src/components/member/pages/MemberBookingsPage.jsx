@@ -160,9 +160,6 @@ export default function MemberBookingsCalendarPage() {
           <div className="mb-titleGroup">
             <span className="mb-kicker">Training Schedule</span>
             <h1 className="mb-title">Lịch tập trong tuần</h1>
-            <p className="mb-subtitle">
-              Theo dõi booking theo từng tuần, dễ xem và dễ quản lý lịch tập hơn.
-            </p>
           </div>
 
           <div className="mb-weekNav">

@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import AppToastHost from "./components/common/AppToastHost";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import LandingPage from "./components/pages/LandingPage";
 
@@ -50,6 +50,8 @@ import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerD
 import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
 import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
 import MemberBookingWizard from "./components/member/pages/bookingWizard/MemberBookingWizard";
+import SupportPage from "./components/pages/support/SupportPage";
+import FAQPage from "./components/pages/support/FAQPage";
 
 /* ================= SIGNING (PUBLIC) ================= */
 import SignContractPage from "./components/public/SignContractPage";
@@ -78,9 +80,21 @@ const AdminGuard = ({ children }) => {
   }
 };
 
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <AppToastHost />
       <Routes>
         {/* ===== PUBLIC SIGNING ===== */}
@@ -94,6 +108,8 @@ function App() {
           <Route path="/marketplace/trainers" element={<TrainerListPage />} />
           <Route path="/marketplace/trainers/:trainerId" element={<TrainerDetailsPage />} />
           <Route path="/marketplace/packages/:packageId" element={<PackageDetailsPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/faq" element={<FAQPage />} />
         </Route>
 
         {/* ===== AUTH ===== */}

@@ -174,7 +174,7 @@ export default function MemberMessagesPage() {
 
   return (
     <div className="mh-wrap mm2-page">
-      <div className="mh-head mm2-head"><div><span className="mm2-kicker">Trung tâm liên lạc</span><h2 className="mh-title mm2-title">Tin nhắn với PT</h2><div className="mh-sub mm2-desc">Gọn hơn, có cuộn, hỗ trợ ảnh, file, voice, vị trí và realtime typing.</div></div></div>
+      <div className="mh-head mm2-head"><div><span className="mm2-kicker">Trung tâm liên lạc</span><h2 className="mh-title mm2-title">Tin nhắn với PT</h2></div></div>
       {error ? <div className="m-error">{error}</div> : null}
       <div className="mm2-shell">
         <aside className="mm2-sidebar m-card">

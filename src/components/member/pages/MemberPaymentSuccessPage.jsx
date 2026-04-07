@@ -52,18 +52,19 @@ export default function MemberPaymentSuccessPage() {
     if (!["success", "cancelled", "error"].includes(phase)) return undefined;
 
     setCountdown(REDIRECT_SECONDS);
-    const timer = window.setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(timer);
-          navigate("/", { replace: true });
-          return 0;
-        }
-        return prev - 1;
-      });
+
+    const intervalId = window.setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
-    return () => window.clearInterval(timer);
+    const timeoutId = window.setTimeout(() => {
+      navigate("/", { replace: true });
+    }, REDIRECT_SECONDS * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+    };
   }, [phase, navigate]);
 
   const icon = useMemo(() => {
@@ -89,9 +90,7 @@ export default function MemberPaymentSuccessPage() {
         <h1 className="mps-title">{title}</h1>
         <p className="mps-message">{message}</p>
 
-        {orderCode ? (
-          <div className="mps-order">Mã giao dịch: <strong>{orderCode}</strong></div>
-        ) : null}
+        {orderCode ? <div className="mps-order">Mã giao dịch: <strong>{orderCode}</strong></div> : null}
 
         {phase !== "confirming" ? (
           <div className="mps-countdown">

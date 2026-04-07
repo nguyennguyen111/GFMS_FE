@@ -13,8 +13,8 @@ const Trainers = ({ trainers = [], loading }) => {
       <div className="trainers-container">
         <div className="trainers-header">
           <div>
-            <div className="trainers-label">Expertise</div>
-            <h2 className="trainers-title">Đội ngũ Master Trainer nổi bật</h2>
+            <div className="trainers-label">Trainer</div>
+            <h2 className="trainers-title">Đội ngũ Master Trainer</h2>
           </div>
           <button className="gfms-view-all-btn" onClick={() => navigate('/marketplace/trainers')}>
             Xem tất cả <ArrowRight size={16} />
