@@ -26,8 +26,8 @@
 
 .page-summary {
   padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(255, 177, 0, 0.16), rgba(255, 138, 0, 0.1));
-  border: 1px solid rgba(255, 177, 0, 0.3);
+  background: linear-gradient(135deg, rgba(214, 255, 0, 0.16), rgba(184, 220, 0, 0.1));
+  border: 1px solid rgba(214, 255, 0, 0.3);
   border-radius: 14px;
   font-size: 13px;
   color: #eef2ff;
@@ -73,8 +73,8 @@
 
 .search-button {
   padding: 10px 16px;
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
   color: #eef2ff;
   border-radius: 14px;
   cursor: pointer;
@@ -84,7 +84,7 @@
 }
 
 .search-button:hover {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
   transform: translateY(-2px);
 }
 
@@ -105,7 +105,7 @@
 .transactions-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -209,8 +209,8 @@
 
 .pagination-btn {
   padding: 8px 12px;
-  background: rgba(255, 177, 0, 0.2);
-  border: 1px solid rgba(255, 177, 0, 0.34);
+  background: rgba(214, 255, 0, 0.2);
+  border: 1px solid rgba(214, 255, 0, 0.34);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;

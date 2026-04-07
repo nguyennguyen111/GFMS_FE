@@ -821,22 +821,23 @@ button.ptd-kpiCard--clickable.mh-stat:focus-visible {
 .ptd-reschedulePanelHead p { margin: 0; opacity: .72; }
 .ptd-rescheduleCounter { padding: 10px 14px; border-radius: 999px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); font-weight: 800; }
 .ptd-rescheduleList { display:flex; flex-direction:column; gap:14px; }
-.ptd-rescheduleItem { display:flex; justify-content:space-between; gap:16px; padding:16px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
+.ptd-rescheduleItem { display:flex; flex-direction:column; gap:12px; padding:16px 18px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
 .ptd-rescheduleMain { flex:1; min-width: 0; }
 .ptd-rescheduleName { font-weight:900; margin-bottom:6px; }
 .ptd-rescheduleMeta, .ptd-rescheduleReason { opacity:.78; font-size: 13px; line-height:1.6; }
-.ptd-rescheduleSide { min-width: 220px; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
-.ptd-rescheduleStatus { padding:8px 12px; border-radius:999px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+.ptd-rescheduleSide { min-width: 0; width: 100%; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.ptd-rescheduleStatus { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:12px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; border:1px solid rgba(255,255,255,.16); }
 .ptd-rescheduleStatus--pending { background: rgba(255,255,255,.08); }
 .ptd-rescheduleStatus--approved { background: rgba(214,255,0,.12); color:#d6ff00; }
 .ptd-rescheduleStatus--rejected { background: rgba(255,115,81,.12); color:#ff9a84; }
-.ptd-rescheduleActions { display:flex; gap:10px; }
+.ptd-rescheduleActions { display:flex; gap:10px; flex-wrap: wrap; }
 .ptd-rescheduleBtn { min-height: 40px; padding: 0 14px; border-radius: 12px; border:none; cursor:pointer; font-weight:800; }
 .ptd-rescheduleBtn--ghost { background: rgba(255,255,255,.08); color:#fff; }
-.ptd-rescheduleReason--small { text-align:right; }
+.ptd-rescheduleReason--small { text-align:left; }
 .ptd-rescheduleEmpty { padding:18px; border-radius:18px; background: rgba(255,255,255,.03); opacity:.7; }
 @media (max-width: 860px) {
-  .ptd-rescheduleItem { flex-direction: column; }
-  .ptd-rescheduleSide { min-width: 0; align-items: flex-start; }
+  .ptd-rescheduleItem { padding:14px 14px; }
+  .ptd-rescheduleActions { width: 100%; }
+  .ptd-rescheduleBtn { flex: 1 1 140px; }
   .ptd-rescheduleReason--small { text-align:left; }
 }

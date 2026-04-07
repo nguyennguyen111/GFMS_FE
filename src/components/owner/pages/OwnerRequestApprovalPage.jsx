@@ -12,7 +12,7 @@ const OwnerRequestApprovalPage = () => {
     TRANSFER_BRANCH: "Chuyển chi nhánh",
     OVERTIME: "Tăng ca",
     BECOME_TRAINER: "Đăng ký trở thành huấn luyện viên",
-    BUSY_SLOT: "Báo bận khung giờ dạy",
+    BUSY_SLOT: "Xin nghỉ đột xuất",
   };
 
   const [requests, setRequests] = useState([]);

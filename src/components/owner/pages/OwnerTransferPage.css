@@ -52,7 +52,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   color-scheme: dark;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d6ff00'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 16px;
@@ -159,7 +159,7 @@
 .otrf-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 177, 0, 0.1);
+  background: rgba(214, 255, 0, 0.1);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -184,7 +184,7 @@
 }
 
 .otrf-table tbody tr.active {
-  background: rgba(255, 177, 0, 0.08);
+  background: rgba(214, 255, 0, 0.08);
 }
 
 .otrf-badge {
@@ -233,8 +233,8 @@
 
 .pagination button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -244,7 +244,7 @@
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 
@@ -409,8 +409,8 @@
 .equipment-item-toolbar__btn {
   padding: 7px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 177, 0, 0.24);
-  background: rgba(255, 177, 0, 0.12);
+  border: 1px solid rgba(214, 255, 0, 0.24);
+  background: rgba(214, 255, 0, 0.12);
   color: #ffd27a;
   font-size: 12px;
   font-weight: 700;
@@ -543,10 +543,10 @@
 .btn-add-item {
   width: 100%;
   padding: 10px 16px;
-  background: rgba(255, 177, 0, 0.12);
-  border: 1px dashed rgba(255, 177, 0, 0.32);
+  background: rgba(214, 255, 0, 0.12);
+  border: 1px dashed rgba(214, 255, 0, 0.32);
   border-radius: 8px;
-  color: #ffb100;
+  color: #d6ff00;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
@@ -555,8 +555,8 @@
 }
 
 .btn-add-item:hover {
-  background: rgba(255, 177, 0, 0.17);
-  border-color: rgba(255, 177, 0, 0.42);
+  background: rgba(214, 255, 0, 0.17);
+  border-color: rgba(214, 255, 0, 0.42);
   border-style: solid;
 }
 
@@ -614,8 +614,8 @@
 
 .otrf-btn-add-item {
   padding: 8px 16px !important;
-  background: linear-gradient(90deg, rgba(255, 177, 0, 0.22), rgba(255, 138, 0, 0.15)) !important;
-  border: 1px solid rgba(255, 177, 0, 0.35) !important;
+  background: linear-gradient(90deg, rgba(214, 255, 0, 0.22), rgba(184, 220, 0, 0.15)) !important;
+  border: 1px solid rgba(214, 255, 0, 0.35) !important;
   color: #ffcf70 !important;
   margin-top: 10px !important;
   font-size: 13px !important;
@@ -676,7 +676,7 @@
 .detail-table th {
   padding: 10px 12px;
   text-align: left;
-  background: rgba(255, 177, 0, 0.1);
+  background: rgba(214, 255, 0, 0.1);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -697,7 +697,7 @@
 }
 
 .detail-table tbody tr:hover {
-  background: rgba(255, 177, 0, 0.06);
+  background: rgba(214, 255, 0, 0.06);
 }
 
 /* Modal Responsive */

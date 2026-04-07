@@ -18,6 +18,7 @@ import { connectSocket } from "../../../services/socketClient";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import axios from "../../../setup/axios";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { useSearchParams } from "react-router-dom";
 
 const STATUS_LABELS = {
  // Trainer Share statuses
@@ -86,6 +87,12 @@ function getOccupiedBlockLabel(block) {
 
 function hasBusyRequestMarker(notesValue) {
  return String(notesValue || "").includes("[PT_BUSY_REQUEST]");
+}
+
+function getMemberScheduleStatus(statusValue) {
+ const key = String(statusValue || "").toLowerCase();
+ const mapped = STATUS_LABELS[key]?.label || key || "Không xác định";
+ return { key, label: mapped };
 }
 function cleanQueryParams(params) {
  return Object.fromEntries(
@@ -258,6 +265,7 @@ const INITIAL_FORM = {
 
 export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
  const { selectedGymId, selectedGymName } = useSelectedGym();
+ const [searchParams] = useSearchParams();
  const isBookingsPage = pageMode === "bookings";
  const [activeTab, setActiveTab] = useState(isBookingsPage ? "bookings" : "shares");
 
@@ -317,6 +325,35 @@ const [loadingMemberDailyBookings, setLoadingMemberDailyBookings] = useState(fal
  useEffect(() => {
  setActiveTab(isBookingsPage ? "bookings" : "shares");
  }, [isBookingsPage]);
+
+useEffect(() => {
+  if (isBookingsPage) return;
+  const shouldPrefillBorrow = searchParams.get("prefillBorrow") === "1";
+  if (!shouldPrefillBorrow) return;
+
+  const toGymId = String(searchParams.get("toGymId") || selectedGymId || "");
+  const memberId = String(searchParams.get("memberId") || "");
+  const memberPackageActivationId = String(searchParams.get("memberPackageActivationId") || "");
+  const startDate = normalizeDateValue(searchParams.get("startDate"));
+  const startTime = normalizeTimeValue(searchParams.get("startTime"));
+  const endTime = normalizeTimeValue(searchParams.get("endTime"));
+
+  setEditing(null);
+  setActiveTab("shares");
+  setShowModal(true);
+  setForm((prev) => ({
+    ...prev,
+    ...INITIAL_FORM,
+    toGymId,
+    memberId,
+    memberPackageActivationId,
+    startDate,
+    endDate: startDate,
+    startTime,
+    endTime,
+    note: prev.note || "",
+  }));
+}, [isBookingsPage, searchParams, selectedGymId]);
 
  const availableTrainers = React.useMemo(() => {
  if (!form.fromGymId) return [];
@@ -1130,7 +1167,7 @@ const pageTitle = isBookingsPage ? "Lịch rảnh huấn luyện viên" : "Chia 
  : "";
 
  return (
- <div className="ots-page">
+<div className={`ots-page ${activeTab === "bookings" ? "ots-page--bookings" : ""}`}>
  <div className="ots-header">
  <div>
  <h1 className="ots-title">{pageTitle}</h1>
@@ -1504,10 +1541,10 @@ const pageTitle = isBookingsPage ? "Lịch rảnh huấn luyện viên" : "Chia 
  </>
  )}
 
- {activeTab === "bookings" && (
- <>
- {/* Trainer Availability */}
- <div className="ots-availability-panel">
+{activeTab === "bookings" && (
+<div className="ots-bookings-layout">
+{/* Trainer Availability */}
+<div className="ots-availability-panel ots-availability-panel--trainer">
  <div className="ots-availability-panel__header">
  <div>
  <h3 className="ots-availability-panel__title">Lịch rảnh huấn luyện viên</h3>
@@ -1565,15 +1602,6 @@ Xem khung giờ còn trống của từng huấn luyện viên theo chi nhánh v
  {trainer.specialization ? ` • ${trainer.specialization}` : ""}
  </div>
  </div>
- <span className={`ots-availability-badge ${availabilityState === "free" ? "is-free" : availabilityState === "busy" ? "is-busy" : "is-neutral"}`}>
- {availabilityState === "free"
- ? `${freeRanges.length} khung rảnh`
- : availabilityState === "busy"
- ? "Kín lịch"
- : availabilityState === "off"
- ? "Nghỉ ngày này"
- : "Chưa cài lịch"}
- </span>
  </div>
 
  <div className="ots-availability-section">
@@ -1619,9 +1647,9 @@ Xem khung giờ còn trống của từng huấn luyện viên theo chi nhánh v
  ))}
  </div>
  )}
- </div>
+</div>
 
-<div className="ots-availability-panel">
+<div className="ots-availability-panel ots-availability-panel--member">
 <div className="ots-availability-panel__header">
   <div>
     <h3 className="ots-availability-panel__title">Lịch tập hội viên</h3>
@@ -1641,6 +1669,7 @@ Xem khung giờ còn trống của từng huấn luyện viên theo chi nhánh v
   <div className="ots-member-schedule-list">
     {memberDailyBookings.map((booking) => {
       const busyRequested = Boolean(booking?.busyRequested) || hasBusyRequestMarker(booking?.notes);
+      const scheduleStatus = getMemberScheduleStatus(booking?.status);
       return (
       <div key={booking.id} className={`ots-member-schedule-item ${busyRequested ? "is-busy-requested" : ""}`}>
         <div className="ots-member-schedule-item__left">
@@ -1652,15 +1681,17 @@ Xem khung giờ còn trống của từng huấn luyện viên theo chi nhánh v
             Huấn luyện viên: {booking.Trainer?.User?.username || (booking.trainerId ? ` #${booking.trainerId}` : " Không rõ")}
           </div>
         </div>
-        <div className={`ots-member-schedule-item__status ${busyRequested ? "is-busy-requested" : ""}`}>
-          {busyRequested ? "pt báo bận" : String(booking.status || "").toLowerCase()}
+        <div
+          className={`ots-member-schedule-item__status ${busyRequested ? "is-busy-requested" : ""} ${!busyRequested ? `is-${scheduleStatus.key}` : ""}`}
+        >
+          {busyRequested ? "PT báo bận" : scheduleStatus.label}
         </div>
       </div>
     )})}
   </div>
 )}
 </div>
- </>
+ </div>
  )}
 
  {/* Modal Create/Edit Share */}
@@ -1752,7 +1783,7 @@ label="Chọn Hội Viên"
  disabled={loadingLookups || !form.toGymId}
  >
  <option value="">
- {!form.toGymId ? '-- Chọn Gym nhận huấn luyện viên trước --' : '-- Không chọn hội viên cụ thể --'}
+{!form.toGymId ? '-- Chọn Gym nhận huấn luyện viên trước --' : '-- Chọn hội viên cần mượn huấn luyện viên --'}
  </option>
  {form.toGymId && members
  .filter(
