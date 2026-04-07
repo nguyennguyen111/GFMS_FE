@@ -22,11 +22,11 @@ export const getRequests = async (params = {}) => {
 };
 
 // Duyệt yêu cầu
-export const approveRequest = async (requestId, approveNote) => {
+export const approveRequest = async (requestId, approveNote, options = {}) => {
   try {
     const response = await axios.patch(
       `${BASE}/${requestId}/approve`, 
-      { approveNote }
+      { approveNote, assignmentMode: options?.assignmentMode }
     );
     return response.data;  // Trả về yêu cầu đã duyệt
   } catch (error) {

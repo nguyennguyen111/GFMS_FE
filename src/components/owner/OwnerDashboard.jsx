@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import "../member/member-pages.css";
 import "./OwnerDashboard.css";
 import "./OwnerThemeOverrides.css";
 import Header from "../header/Header";
@@ -101,7 +102,7 @@ export default function OwnerDashboard() {
   return (
     <>
     <Header />
-    <div className="od2-layout">
+    <div className="od2-layout owner-app">
       <aside className={`od2-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="od2-brand">
         </div>
@@ -142,7 +143,7 @@ export default function OwnerDashboard() {
           <button className="od2-ghostBtn" onClick={handleLogout}>
             {!collapsed ? "Đăng xuất" : "⎋"}
           </button>
-          {!collapsed && <div className="od2-footHint">v1 • Owner</div>}
+          
         </div>
       </aside>
 
