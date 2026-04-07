@@ -131,8 +131,10 @@ export default function OwnerOverviewPage() {
   const [error, setError] = useState(null);
   const [revenueTrendLoading, setRevenueTrendLoading] = useState(false);
   const [revenueTrendError, setRevenueTrendError] = useState(null);
+  const [revenueHighlightsLoading, setRevenueHighlightsLoading] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState("day");
   const [revenueTrend, setRevenueTrend] = useState([]);
+  const [revenueHighlights, setRevenueHighlights] = useState({ todayRevenue: 0, monthRevenue: 0 });
   const [viewAllType, setViewAllType] = useState(null);
   const [gyms, setGyms] = useState([]);
   const [data, setData] = useState({
@@ -195,9 +197,36 @@ export default function OwnerOverviewPage() {
     fetchRevenueTrend();
   }, [fetchRevenueTrend]);
 
+  const fetchRevenueHighlights = useCallback(async () => {
+    try {
+      setRevenueHighlightsLoading(true);
+      const [dayResult, monthResult] = await Promise.all([
+        ownerDashboardService.getRevenueTrend("day", selectedGymId),
+        ownerDashboardService.getRevenueTrend("month", selectedGymId),
+      ]);
+      const daySeries = Array.isArray(dayResult?.series) ? dayResult.series : [];
+      const monthSeries = Array.isArray(monthResult?.series) ? monthResult.series : [];
+      const todayPoint = daySeries.length ? daySeries[daySeries.length - 1] : null;
+      const monthPoint = monthSeries.length ? monthSeries[monthSeries.length - 1] : null;
+
+      setRevenueHighlights({
+        todayRevenue: Number(todayPoint?.total || 0),
+        monthRevenue: Number(monthPoint?.total || 0),
+      });
+    } catch {
+      setRevenueHighlights({ todayRevenue: 0, monthRevenue: 0 });
+    } finally {
+      setRevenueHighlightsLoading(false);
+    }
+  }, [selectedGymId]);
+
+  useEffect(() => {
+    fetchRevenueHighlights();
+  }, [fetchRevenueHighlights]);
+
   const refreshOverview = useCallback(async () => {
-    await Promise.all([fetchData(), fetchRevenueTrend()]);
-  }, [fetchData, fetchRevenueTrend]);
+    await Promise.all([fetchData(), fetchRevenueTrend(), fetchRevenueHighlights()]);
+  }, [fetchData, fetchRevenueTrend, fetchRevenueHighlights]);
 
   useOwnerRealtimeRefresh({
     onRefresh: refreshOverview,
@@ -216,12 +245,15 @@ export default function OwnerOverviewPage() {
       {
         label: "Doanh thu (₫)",
         data: revenueTrend.map((item) => Number(item.total || 0)),
-        tension: 0.35,
+        tension: 0.42,
         fill: true,
-        borderColor: "rgba(244,137,21,0.95)",
-        backgroundColor: "rgba(244,137,21,0.12)",
-        pointRadius: 3,
-        pointHoverRadius: 4,
+        borderColor: "rgba(255,166,77,0.95)",
+        backgroundColor: "rgba(255,166,77,0.18)",
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        pointBackgroundColor: "rgba(255,193,120,1)",
+        pointBorderColor: "rgba(18,22,32,1)",
+        pointBorderWidth: 1.5,
       },
     ],
   }), [revenueTrend]);
@@ -233,6 +265,11 @@ export default function OwnerOverviewPage() {
       legend: { display: false },
       tooltip: {
         enabled: true,
+        backgroundColor: "rgba(16,20,30,0.96)",
+        borderColor: "rgba(255,255,255,0.14)",
+        borderWidth: 1,
+        titleColor: "rgba(255,255,255,0.95)",
+        bodyColor: "rgba(255,255,255,0.9)",
         callbacks: {
           label: (context) => `Doanh thu: ₫ ${Number(context.parsed.y || 0).toLocaleString("vi-VN")}`,
         },
@@ -240,15 +277,16 @@ export default function OwnerOverviewPage() {
     },
     scales: {
       x: {
-        ticks: { color: "rgba(255,255,255,0.7)" },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        ticks: { color: "rgba(255,255,255,0.76)", maxTicksLimit: 8 },
+        grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
       },
       y: {
         ticks: {
-          color: "rgba(255,255,255,0.7)",
+          color: "rgba(255,255,255,0.72)",
+          maxTicksLimit: 6,
           callback: (value) => `₫ ${Number(value).toLocaleString("vi-VN")}`,
         },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
       },
     },
   }), []);
@@ -281,7 +319,7 @@ export default function OwnerOverviewPage() {
     {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
-      hint: "Giao dịch đã hoàn thành",
+      hint: "Doanh thu chia sẻ từ PT",
       icon: "💳",
     },
   ];
@@ -380,7 +418,7 @@ export default function OwnerOverviewPage() {
       </div>
 
       <Panel
-        title="Tổng quan doanh thu"
+        title="Doanh thu (ngày/tháng)"
         right={
           <div className="ov-segment">
             {revenuePeriodOptions.map((option) => (
@@ -395,6 +433,20 @@ export default function OwnerOverviewPage() {
           </div>
         }
       >
+        <div className="ov-revenueHighlights">
+          <div className="ov-revenueChip">
+            <div className="ov-revenueChipLabel">Doanh thu hôm nay</div>
+            <div className="ov-revenueChipValue">
+              {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.todayRevenue || 0).toLocaleString("vi-VN")}`}
+            </div>
+          </div>
+          <div className="ov-revenueChip ov-revenueChip--month">
+            <div className="ov-revenueChipLabel">Doanh thu tháng này</div>
+            <div className="ov-revenueChipValue">
+              {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.monthRevenue || 0).toLocaleString("vi-VN")}`}
+            </div>
+          </div>
+        </div>
         {revenueTrendLoading ? (
           <div className="ov-empty">Đang tải biểu đồ doanh thu…</div>
         ) : revenueTrendError ? (
