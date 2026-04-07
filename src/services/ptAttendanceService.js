@@ -46,3 +46,8 @@ export const ptResetAttendance = async ({ bookingId }) => {
   const res = await axios.post(`${BASE}/attendance/reset`, { bookingId }, ptConfig());
   return res.data;
 };
+
+export const ptRequestBusySlot = async ({ bookingId, reason }) => {
+  const res = await axios.post(`${BASE}/attendance/request-busy-slot`, { bookingId, reason }, ptConfig());
+  return res.data;
+};

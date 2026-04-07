@@ -263,6 +263,14 @@
   background: rgba(255, 255, 255, .04);
 }
 
+.ots-row-clickable {
+  cursor: pointer;
+}
+
+.ots-row-clickable:hover {
+  background: rgba(255, 177, 0, .08) !important;
+}
+
 .ots-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -341,6 +349,113 @@
 .ots-empty p {
   margin: 0 0 16px 0;
   opacity: 0.8;
+}
+
+.ots-empty--compact {
+  padding: 24px 16px;
+}
+
+.ots-member-booking-browser {
+  margin: 18px 0 20px;
+  padding: 18px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+}
+
+.ots-member-booking-browser__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ots-member-booking-browser__header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ots-member-booking-browser__header p {
+  margin: 0;
+  color: rgba(238, 242, 255, 0.65);
+  font-size: 13px;
+}
+
+.ots-member-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.ots-member-card {
+  text-align: left;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(145deg, rgba(10, 16, 28, 0.98), rgba(8, 13, 24, 0.98));
+  color: #eef2ff;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.ots-member-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 177, 0, 0.35);
+  box-shadow: 0 10px 24px rgba(0,0,0,.2);
+}
+
+.ots-member-card.is-active {
+  border-color: rgba(255, 177, 0, 0.55);
+  box-shadow: 0 0 0 2px rgba(255, 177, 0, 0.12);
+  background: linear-gradient(145deg, rgba(255, 177, 0, 0.14), rgba(8, 13, 24, 0.98));
+}
+
+.ots-member-card__name {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.ots-member-card__meta,
+.ots-member-card__package,
+.ots-member-card__gym {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.72);
+}
+
+.ots-member-card__package {
+  color: #ffd27a;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.ots-member-card__gym {
+  margin-top: 4px;
+}
+
+.ots-selected-member-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 177, 0, 0.08);
+  border: 1px solid rgba(255, 177, 0, 0.2);
+}
+
+.ots-selected-member-bar strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ots-selected-member-bar span,
+.ots-selected-member-bar__hint {
+  color: rgba(238, 242, 255, 0.74);
+  font-size: 13px;
 }
 
 /* Pagination */
@@ -506,12 +621,17 @@
 
 .ots-field__control {
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ots-input,
 .ots-select,
 .ots-textarea {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   background: rgba(6, 12, 24, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -773,9 +893,25 @@
 
 .ots-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-items: start;
+  width: 100%;
+}
+
+.ots-row > * {
+  min-width: 0;
+}
+
+.ots-form .ots-row .ots-field {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ots-form .ots-row .ots-select,
+.ots-form .ots-row .ots-input {
+  width: 100%;
+  max-width: 100%;
 }
 
 .ots-form__actions {
@@ -830,6 +966,12 @@
   .ots-filters input,
   .ots-filters select {
     min-width: 100%;
+  }
+
+  .ots-member-booking-browser__header,
+  .ots-selected-member-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -1094,6 +1236,13 @@
   min-width: 100px;
 }
 
+.ots-multiple-date-slot {
+  flex: 1;
+  min-width: 140px;
+  min-height: 42px;
+  justify-content: center;
+}
+
 .ots-multiple-date-item .ots-btn {
   flex-shrink: 0;
 }
@@ -1311,9 +1460,9 @@
 
 .ots-slot-pill--busy {
   justify-content: space-between;
-  color: #ffd7d7;
-  background: rgba(255, 80, 80, 0.12);
-  border: 1px solid rgba(255, 80, 80, 0.18);
+  color: rgba(255, 237, 213, 0.98);
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.28);
 }
 
 .ots-slot-pill--interactive {
@@ -1584,6 +1733,82 @@
   border-left: 3px solid rgba(168, 85, 247, 0.8) !important;
 }
 
+.ots-member-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ots-member-schedule-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.36));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.ots-member-schedule-item:hover {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.62), rgba(15, 23, 42, 0.5));
+  transform: translateY(-1px);
+}
+
+.ots-member-schedule-item.is-busy-requested {
+  border-color: rgba(245, 158, 11, 0.62);
+  background: linear-gradient(145deg, rgba(120, 53, 15, 0.42), rgba(69, 26, 3, 0.3));
+}
+
+.ots-member-schedule-item__left {
+  min-width: 0;
+  flex: 1;
+}
+
+.ots-member-schedule-item__time {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.01em;
+}
+
+.ots-member-schedule-item__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ots-member-schedule-item__status {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: rgba(241, 245, 249, 0.95);
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.38);
+}
+
+.ots-member-schedule-item__status.is-busy-requested {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(245, 158, 11, 0.52);
+  color: rgba(255, 251, 235, 0.96);
+}
+
+.ots-slot-pill--busy-requested {
+  border-color: rgba(245, 158, 11, 0.72) !important;
+  background: linear-gradient(145deg, rgba(120, 53, 15, 0.48), rgba(69, 26, 3, 0.34)) !important;
+  color: rgba(255, 251, 235, 0.98) !important;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .ots-stats-grid {
@@ -1619,6 +1844,23 @@
 
   .ots-booking-trainer {
     display: none;
+  }
+
+  .ots-member-schedule-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .ots-member-schedule-item__meta {
+    white-space: normal;
+  }
+
+  .ots-member-schedule-item__status {
+    align-self: flex-start;
+    font-size: 10px;
+    padding: 5px 9px;
   }
 }
 
