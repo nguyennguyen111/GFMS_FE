@@ -11,10 +11,10 @@ import {
   Languages,
   GraduationCap,
   Briefcase,
-  Star,
 } from "lucide-react";
 import { mpGetTrainerDetail } from "../../../../services/marketplaceService";
 import ImageWithFallback from "../../../common/ImageWithFallback";
+import PublicFeedbackSection from "../../../common/PublicFeedbackSection";
 import "./TrainerDetailsPage.css";
 
 const safe = (v, fallback = "—") => (v === null || v === undefined || v === "" ? fallback : v);
@@ -193,15 +193,15 @@ export default function TrainerDetailsPage() {
               <div className="td-metrics">
                 <div className="td-metric">
                   <span>RATING</span>
-                  <b>{Number(trainer.rating || 4.8).toFixed(1)}</b>
+                  <b>{Number(trainer.avgRating || trainer.rating || 0).toFixed(1)} ({Number(trainer.reviewCount || 0)})</b>
                 </div>
                 <div className="td-metric">
                   <span>KINH NGHIỆM</span>
                   <b>{safe(trainer.experienceYears, 0)} năm</b>
                 </div>
                 <div className="td-metric">
-                  <span>TỔNG BUỔI</span>
-                  <b>{safe(trainer.totalSessions, 0)}</b>
+                  <span>HỌC VIÊN</span>
+                  <b>{safe(trainer.studentsCount || trainer.clientsCount, 0)}</b>
                 </div>
                 <div className="td-metric">
                   <span>BÁO TRƯỚC</span>
@@ -242,6 +242,13 @@ export default function TrainerDetailsPage() {
               </div>
               <Schedule availableHours={trainer.availableHours} />
             </div>
+
+            <PublicFeedbackSection
+              title="Feedback về huấn luyện viên"
+              subtitle="Các đánh giá gần đây từ hội viên đã tập cùng PT này."
+              items={trainer.feedback || []}
+              className="td-feedbackSection"
+            />
           </div>
 
           <div className="td-right">
@@ -312,6 +319,7 @@ export default function TrainerDetailsPage() {
             </div>
           </div>
         </section>
+
       </div>
     </div>
   );

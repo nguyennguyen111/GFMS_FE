@@ -81,9 +81,7 @@ export default function MemberNotificationsPage() {
     <div className="mh-wrap mn-page">
       <div className="mh-head mn-head">
         <div className="mn-head-left">
-          <span className="mn-sub-label">Trung tâm điều khiển</span>
-          <h2 className="mh-title mn-title">Thông báo realtime</h2>
-          <div className="mh-sub mn-desc">Nhận thông báo mua gói, hoàn thành buổi tập, tin nhắn PT và mọi cập nhật quan trọng dành cho hội viên.</div>
+          <span className="mn-sub-label">Thông báo</span>
         </div>
 
         <div className="mn-filter-tabs">
