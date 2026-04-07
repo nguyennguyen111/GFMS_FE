@@ -54,6 +54,16 @@ const PTLayout = () => {
               </NavLink>
 
               <NavLink
+                to="/pt/messages"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Tin nhắn
+              </NavLink>
+
+              <NavLink
                 to={profileLink}
                 className={({ isActive }) =>
                   `pt-shell__link ${isActive ? "is-active" : ""}`
@@ -90,7 +100,7 @@ const PTLayout = () => {
                 }
               >
                 <span className="pt-shell__dot" />
-                Video demo
+                Kế hoạch tập luyện
               </NavLink>
 
               <NavLink

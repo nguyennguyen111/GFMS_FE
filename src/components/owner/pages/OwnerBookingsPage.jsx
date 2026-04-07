@@ -170,6 +170,7 @@ const OwnerBookingsPage = () => {
   const [showRequestDetailModal, setShowRequestDetailModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const latestRequestTotalRef = useRef(0);
+  const [rejectModal, setRejectModal] = useState({ open: false, requestId: null, reason: "" });
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -547,17 +548,19 @@ const OwnerBookingsPage = () => {
   };
 
   const handleReject = async (requestId) => {
-    try {
-      const rejectReason = window.prompt("Nhập lý do từ chối đơn này:", "");
-      if (rejectReason === null) return;
-      const note = String(rejectReason || "").trim();
-      if (!note) {
-        alert("Vui lòng nhập lý do từ chối.");
-        return;
-      }
+    setRejectModal({ open: true, requestId, reason: "" });
+  };
 
-      await rejectRequest(requestId, note);
+  const submitReject = async () => {
+    const reason = String(rejectModal.reason || "").trim();
+    if (!reason) {
+      alert("Vui lòng nhập lý do từ chối.");
+      return;
+    }
+    try {
+      await rejectRequest(rejectModal.requestId, reason);
       await fetchRequests(requestPagination.page);
+      setRejectModal({ open: false, requestId: null, reason: "" });
     } catch (error) { console.error(error); }
   };
 
@@ -769,6 +772,31 @@ const OwnerBookingsPage = () => {
                 </div>
               )}
             </div>
+            {rejectModal.open ? (
+              <div className="owner-request-modal__backdrop" onClick={() => setRejectModal({ open: false, requestId: null, reason: "" })}>
+                <div className="owner-request-modal__card" onClick={(e) => e.stopPropagation()}>
+                  <h3>Lý do từ chối</h3>
+                  <textarea
+                    value={rejectModal.reason}
+                    onChange={(e) => setRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
+                    placeholder="Nhập lý do từ chối để PT nắm rõ..."
+                    rows={4}
+                  />
+                  <div className="owner-request-modal__actions">
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      onClick={() => setRejectModal({ open: false, requestId: null, reason: "" })}
+                    >
+                      Hủy
+                    </button>
+                    <button type="button" className="btn-confirm" onClick={submitReject}>
+                      Xác nhận từ chối
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
