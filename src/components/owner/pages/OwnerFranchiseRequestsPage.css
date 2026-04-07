@@ -63,13 +63,13 @@
 }
 
 .ofr-btn--primary {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
 }
 
 .ofr-btn--primary:hover {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
-  box-shadow: 0 8px 20px rgba(255, 138, 0, 0.3);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
+  box-shadow: 0 8px 20px rgba(184, 220, 0, 0.3);
 }
 
 .ofr-btn--secondary {
@@ -138,7 +138,7 @@
 }
 
 .ofr-table thead {
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
 }
 
 .ofr-table th {
