@@ -5,7 +5,6 @@ import {
   getMyPTCommissions,
   getMyPTPayrollPeriods,
   getMyPTPayrollPeriodCommissions,
-  exportMyPTCommissions,
   requestPTWithdrawal,
   getMyPTWalletSummary,
   getMyPTWithdrawals,
@@ -192,29 +191,6 @@ const PTPayrollPage = () => {
       calculatedAmount: sum(calculated),
     };
   }, [commissions]);
-
-  const handleExport = async () => {
-    try {
-      const res = await exportMyPTCommissions(filters);
-      const contentType = res.headers?.["content-type"] || "";
-      const blob = new Blob([res.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "pt_commissions.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("Lỗi khi xuất file:", e);
-      setFeedbackModal({
-        title: "Không xuất được file",
-        message: "Đã có lỗi khi tải Excel. Vui lòng thử lại.",
-        tone: "danger",
-      });
-    }
-  };
 
   const availableBalance = Number(walletSummary.availableBalance || 0);
 
@@ -581,7 +557,6 @@ const PTPayrollPage = () => {
           showPopperArrow={false}
         />
         <button className="ptp-btn" onClick={loadCommissions}>Lọc</button>
-        <button className="ptp-btn" onClick={handleExport}>Xuất Excel</button>
       </div>
 
       <div className="ptpay-section">

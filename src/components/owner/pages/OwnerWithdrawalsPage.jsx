@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ownerGetWithdrawals,
-  ownerExportWithdrawals,
   ownerApproveWithdrawal,
   ownerRejectWithdrawal,
+  ownerAutoApproveWithdrawals,
 } from "../../../services/ownerWithdrawalService";
 import { connectSocket } from "../../../services/socketClient";
 import NiceModal from "../../common/NiceModal";
@@ -28,6 +28,7 @@ const OwnerWithdrawalsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [actionModal, setActionModal] = useState(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [autoApproving, setAutoApproving] = useState(false);
   const [alertModal, setAlertModal] = useState(null);
 
   const getWithdrawalGymId = useCallback((item) => item?.Trainer?.gymId || item?.Trainer?.Gym?.id || null, []);
@@ -118,29 +119,30 @@ const OwnerWithdrawalsPage = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleAutoApprove = async () => {
+    setAutoApproving(true);
     try {
-      const res = await ownerExportWithdrawals({
-        ...filters,
-        gymId: selectedGymId ? String(selectedGymId) : undefined,
+      const res = await ownerAutoApproveWithdrawals({
+        gymId: selectedGymId ? Number(selectedGymId) : undefined,
+        notes: "Duyệt tự động bởi owner",
       });
-      const contentType = res.headers?.["content-type"] || "";
-      const blob = new Blob([res.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "withdrawals.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const approvedCount = Number(res?.data?.data?.approvedCount || 0);
+      const skippedCount = Number(res?.data?.data?.skippedCount || 0);
+      setNotice(
+        approvedCount > 0
+          ? `Đã tự động duyệt ${approvedCount} yêu cầu${skippedCount > 0 ? `, bỏ qua ${skippedCount} yêu cầu` : ""}.`
+          : "Không có yêu cầu chờ duyệt để tự động xử lý."
+      );
+      await loadWithdrawals();
     } catch (e) {
-      console.error("Lỗi khi export:", e);
+      console.error("Lỗi duyệt tự động:", e);
       setAlertModal({
-        title: "Xuất file thất bại",
-        message: "Không thể tải file Excel. Vui lòng thử lại.",
+        title: "Duyệt tự động thất bại",
+        message: e.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
         tone: "danger",
       });
+    } finally {
+      setAutoApproving(false);
     }
   };
 
@@ -186,8 +188,8 @@ const OwnerWithdrawalsPage = () => {
         <button className="search-button" onClick={loadWithdrawals}>
           Lọc
         </button>
-        <button className="search-button" onClick={handleExport}>
-          Xuất Excel
+        <button className="search-button" onClick={handleAutoApprove} disabled={autoApproving || loading}>
+          {autoApproving ? "Đang duyệt tự động..." : "Duyệt tự động tất cả"}
         </button>
       </div>
 

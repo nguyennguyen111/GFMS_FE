@@ -530,13 +530,13 @@ const OwnerCommissionsPage = () => {
     <div className="owner-commissions-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Chi trả lương huấn luyện viên</h1>
+          <h1 className="page-title">Doanh thu từ PT</h1>
           {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
         </div>
       </div>
 
       <div className="commissions-header">
-        <div className="section-title">Hoa hồng theo buổi hoàn thành</div>
+        <div className="section-title">Doanh thu theo buổi từ PT</div>
         <div className="commissions-filters">
           <select
             className="filter-select"
@@ -804,7 +804,7 @@ const OwnerCommissionsPage = () => {
       </div>
       </div>
 
-      <div className="owner-section-heading">Cài đặt — Tỷ lệ hoa hồng theo gym</div>
+      <div className="owner-section-heading">Cài đặt — Tỷ lệ chia sẻ theo gym</div>
       <div className="period-card">
         <div className="period-card-title">Tỷ lệ hoa hồng theo gym</div>
         <div className="period-form">

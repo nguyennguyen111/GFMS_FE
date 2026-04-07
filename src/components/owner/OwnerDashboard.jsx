@@ -68,7 +68,7 @@ export default function OwnerDashboard() {
       title: "Tài chính",
       items: [
         { label: "Giao dịch", to: "/owner/transactions", key: "transactions", },
-        { label: "Hoa hồng", to: "/owner/commissions", key: "commissions",  },
+        { label: "Doanh thu từ PT", to: "/owner/commissions", key: "commissions",  },
         { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals",  },
       ],
     },
