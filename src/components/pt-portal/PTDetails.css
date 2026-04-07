@@ -8,7 +8,12 @@
 }
 
 .pt-details-page .pt-title {
-  background: linear-gradient(90deg, var(--m-gold, #ffb100), var(--m-gold2, #ff8a00));
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--m-gold, #d6ff00), var(--m-gold2, #b8dc00));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -27,21 +32,16 @@
   align-items: flex-start;
   gap: 14px;
   margin-bottom: 14px;
-}
-
-.pt-title {
-  margin: 0;
-  font-size: 34px;
-  font-weight: 900;
-  color: var(--m-gold, #FFB100);
-  letter-spacing: 0.2px;
+  padding-top: 2px;
 }
 
 .pt-subtitle {
-  margin: 6px 0 0;
-  color: var(--m-muted, rgba(255, 255, 255, 0.68));
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.4;
+  font-weight: 500;
+  max-width: min(520px, 100%);
 }
 
 /* Actions */
@@ -385,4 +385,32 @@
 
 .pt-details-page .pt-card--span2 {
   grid-column: 1 / -1;
+}
+
+.pt-details-page .pt-stat__label {
+  color: rgba(238, 242, 255, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.pt-details-page .pt-chip-title {
+  color: rgba(238, 242, 255, 0.82);
+  font-weight: 800;
+}
+
+.pt-details-page .pt-card__title {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.pt-details-page .pt-label {
+  color: rgba(214, 255, 0, 0.92);
+  font-size: 13px;
+}
+
+.pt-details-page .pt-value {
+  color: rgba(248, 250, 255, 0.92);
+  font-size: 14px;
+  line-height: 1.45;
 }

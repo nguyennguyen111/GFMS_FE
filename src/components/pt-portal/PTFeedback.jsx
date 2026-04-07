@@ -56,7 +56,6 @@ const PTFeedback = () => {
       <div className="ptp-head">
         <div>
           <h2 className="ptp-title">Đánh giá từ học viên</h2>
-          <div className="ptp-sub">Xem đánh giá của hội viên và phản hồi trực tiếp.</div>
         </div>
       </div>
 
