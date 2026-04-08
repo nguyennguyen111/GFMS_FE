@@ -226,26 +226,29 @@ const PTPackageBlock = ({ compositeKey, pkg }) => {
 
 const PTMemberCard = ({ member, onOpenDetail }) => (
   <div className="ptp-memberCard">
-    <div className="ptp-studentCard__main ptp-memberCard__profile">
-      {member.avatar ? (
-        <img className="ptp-studentCard__avatarImg" src={member.avatar} alt={member.name || "Học viên"} />
-      ) : (
-        <div className="ptp-studentCard__avatar" aria-hidden>
-          {String(member.name || "?")
-            .trim()
-            .slice(0, 2)
-            .toUpperCase()}
+    <div className="ptp-memberCard__head">
+      <div className="ptp-studentCard__main ptp-memberCard__profile">
+        {member.avatar ? (
+          <img className="ptp-studentCard__avatarImg" src={member.avatar} alt={member.name || "Học viên"} />
+        ) : (
+          <div className="ptp-studentCard__avatar" aria-hidden>
+            {String(member.name || "?")
+              .trim()
+              .slice(0, 2)
+              .toUpperCase()}
+          </div>
+        )}
+        <div className="ptp-studentCard__info">
+          <div className="ptp-studentCard__name">{member.name}</div>
+          <div className="ptp-studentCard__phone">{member.phone}</div>
+          {member.packages.length > 1 ? (
+            <div className="ptp-memberCard__hint">{member.packages.length} gói đang tập với bạn</div>
+          ) : null}
         </div>
-      )}
-      <div className="ptp-studentCard__info">
-        <div className="ptp-studentCard__name">{member.name}</div>
-        <div className="ptp-studentCard__phone">{member.phone}</div>
-        {member.packages.length > 1 ? (
-          <div className="ptp-memberCard__hint">{member.packages.length} gói đang tập với bạn</div>
-        ) : null}
       </div>
+      <span className="ptp-memberCard__pill">Đang học</span>
     </div>
-    <div className="ptp-memberCard__summary">
+    <div className="ptp-memberCard__summary ptp-memberCard__foot">
       <div className="ptp-memberCard__summaryRow">
         <span>Tổng gói</span>
         <strong>{member.packages.length}</strong>
@@ -264,8 +267,8 @@ const PTMemberDetailModal = ({ member, onClose }) => {
       <div className="ptp-modal__card" onClick={(e) => e.stopPropagation()}>
         <div className="ptp-modal__head">
           <h3>Chi tiết học viên</h3>
-          <button type="button" className="ptp-modal__close" onClick={onClose}>
-            Đóng
+          <button type="button" className="ptp-modal__close" onClick={onClose} aria-label="Đóng">
+            ×
           </button>
         </div>
         <div className="ptp-modal__member">

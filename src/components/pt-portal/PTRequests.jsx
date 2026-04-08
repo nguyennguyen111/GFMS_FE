@@ -12,6 +12,7 @@ import {
   ptClaimTrainerShareRequest,
 } from "../../services/ptTrainerShareService";
 import { connectSocket } from "../../services/socketClient";
+import NiceModal from "../common/NiceModal";
 
 import "./PTRequests.css";
 
@@ -74,6 +75,29 @@ export default function PTRequests() {
   const [shareRequests, setShareRequests] = useState([]);
   const [loadingShares, setLoadingShares] = useState(false);
   const [page, setPage] = useState(1);
+  const [modalState, setModalState] = useState(null);
+
+  const showAlert = (message, title = "Thông báo", tone = "info") => {
+    setModalState({ kind: "alert", title, message, tone });
+  };
+
+  const askConfirm = (message, title = "Xác nhận") =>
+    new Promise((resolve) => {
+      setModalState({
+        kind: "confirm",
+        title,
+        message,
+        tone: "info",
+        onConfirm: () => {
+          setModalState(null);
+          resolve(true);
+        },
+        onClose: () => {
+          setModalState(null);
+          resolve(false);
+        },
+      });
+    });
 
   const currentForm = useMemo(() => forms[activeType], [forms, activeType]);
 
@@ -94,6 +118,7 @@ export default function PTRequests() {
     if (activeType === "LEAVE") {
       if (!f.fromDate || !f.toDate) return "Vui lòng chọn ngày bắt đầu và kết thúc";
       if (f.fromDate > f.toDate) return "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc";
+      if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }
 
@@ -101,6 +126,7 @@ export default function PTRequests() {
       if (!f.date) return "Cần chọn ngày";
       if (!f.fromTime || !f.toTime) return "Cần nhập giờ bắt đầu và kết thúc";
       if (f.fromTime >= f.toTime) return "Giờ bắt đầu phải trước giờ kết thúc";
+      if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }
 
@@ -132,7 +158,7 @@ export default function PTRequests() {
       setPage(1);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Không tải được danh sách đơn");
+      showAlert(err?.response?.data?.message || "Không tải được danh sách đơn", "Lỗi", "danger");
     } finally {
       setLoading(false);
     }
@@ -157,14 +183,14 @@ export default function PTRequests() {
   }, [filters.status, filters.requestType]);
 
   const handleClaimShare = async (id) => {
-    if (!window.confirm("Bạn muốn nhận khung giờ này?")) return;
+    if (!(await askConfirm("Bạn muốn nhận khung giờ này?", "Xác nhận nhận khung giờ"))) return;
     try {
       await ptClaimTrainerShareRequest(id);
-      alert("Nhận khung giờ thành công");
+      showAlert("Nhận khung giờ thành công", "Thành công", "success");
       await fetchShareRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Không thể nhận slot");
+      showAlert(err?.response?.data?.message || "Không thể nhận slot", "Lỗi", "danger");
     }
   };
 
@@ -183,7 +209,7 @@ export default function PTRequests() {
 
   const handleSubmit = async () => {
     const errMsg = validate();
-    if (errMsg) return alert(errMsg);
+    if (errMsg) return showAlert(errMsg, "Thiếu thông tin");
 
     try {
       const payload = buildPayload();
@@ -191,23 +217,23 @@ export default function PTRequests() {
       if (activeType === "LEAVE") await createLeaveRequest(payload);
       if (activeType === "OVERTIME") await createOvertimeRequest(payload);
 
-      alert("Đã tạo đơn");
+      showAlert("Đã tạo đơn", "Thành công", "success");
       resetForm();
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Tạo đơn thất bại");
+      showAlert(err?.response?.data?.message || "Tạo đơn thất bại", "Lỗi", "danger");
     }
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Hủy đơn này?")) return;
+    if (!(await askConfirm("Hủy đơn này?", "Xác nhận hủy đơn"))) return;
     try {
       await cancelRequest(id);
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Hủy đơn thất bại");
+      showAlert(err?.response?.data?.message || "Hủy đơn thất bại", "Lỗi", "danger");
     }
   };
 
@@ -283,7 +309,7 @@ export default function PTRequests() {
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
                 <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Nhập lý do" />
               </div>
             </div>
           )}
@@ -307,7 +333,7 @@ export default function PTRequests() {
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
                 <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Nhập lý do" />
               </div>
             </div>
           )}
@@ -440,6 +466,37 @@ export default function PTRequests() {
           </div>
         ) : null}
       </div>
+
+      <NiceModal
+        open={Boolean(modalState)}
+        onClose={() => {
+          if (modalState?.kind === "confirm") {
+            modalState?.onClose?.();
+            return;
+          }
+          setModalState(null);
+        }}
+        tone={modalState?.tone || "info"}
+        title={modalState?.title || "Thông báo"}
+        footer={
+          modalState?.kind === "confirm" ? (
+            <>
+              <button type="button" className="nice-modal__btn nice-modal__btn--ghost" onClick={modalState?.onClose}>
+                Hủy
+              </button>
+              <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={modalState?.onConfirm}>
+                Xác nhận
+              </button>
+            </>
+          ) : (
+            <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
+              Đã hiểu
+            </button>
+          )
+        }
+      >
+        <p>{modalState?.message}</p>
+      </NiceModal>
     </div>
   );
 }
