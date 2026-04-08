@@ -260,11 +260,9 @@ export default function MemberReviewsPage() {
       <div className="member-reviews-hero">
         <div className="member-reviews-head">
           <h1 className="member-reviews-title">
-            ĐÁNH GIÁ <span>HỘI VIÊN</span>
+            ĐÁNH GIÁ 
           </h1>
         </div>
-
-        {error ? <div className="m-error">{error}</div> : null}
         {success ? <div className="m-badge is-on">{success}</div> : null}
 
         <div className="member-reviews-grid">

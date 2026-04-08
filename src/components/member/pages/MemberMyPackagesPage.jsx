@@ -285,8 +285,6 @@ export default function MemberMyPackagesPage() {
         </div>
       </div>
 
-      {err && <div className="mp3-alert">{err}</div>}
-
       {loading ? (
         <div className="mp3-empty">
           <div className="mp3-emptyTitle">Đang tải danh sách gói...</div>
