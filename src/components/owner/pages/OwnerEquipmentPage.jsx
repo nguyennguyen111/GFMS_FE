@@ -3,6 +3,7 @@ import "./OwnerEquipmentPage.css";
 import { ownerGetEquipments, ownerGetEquipmentDetail, ownerMarkEquipmentUnitInStock, ownerMarkEquipmentUnitsInStock } from "../../../services/ownerEquipmentService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
 
 const formatDateTime = (value) => {
   if (!value) return "-";
@@ -172,7 +173,7 @@ export default function OwnerEquipmentPage() {
         gymId: selectedGymId || undefined,
         page,
         limit: 10,
-        onlyInUse: true,
+        onlyInUse: false,
       });
       const data = res?.data?.data ?? [];
       const metaFrom = res?.data?.meta;
@@ -364,7 +365,7 @@ export default function OwnerEquipmentPage() {
                   <td><strong>{r.name}</strong></td>
                   <td>{r.code}</td>
                   <td>{r.Gym?.name || "-"}</td>
-                  <td>{r.EquipmentCategory?.name || "-"}</td>
+                  <td>{translateEquipmentCategoryName(r.EquipmentCategory?.name, r.EquipmentCategory?.code) || "-"}</td>
                   <td>{totalQuantity}</td>
                   <td>{inUseQuantity}</td>
                   <td>{maintenanceQuantity}</td>
@@ -415,7 +416,12 @@ export default function OwnerEquipmentPage() {
                     </div>
                     <div className="oeq-detail-card">
                       <div className="oeq-detail-label">Danh mục</div>
-                      <div className="oeq-detail-value">{detail.category?.name || detail.EquipmentCategory?.name || "-"}</div>
+                      <div className="oeq-detail-value">
+                        {translateEquipmentCategoryName(
+                          detail.category?.name || detail.EquipmentCategory?.name,
+                          detail.category?.code || detail.EquipmentCategory?.code
+                        ) || "-"}
+                      </div>
                     </div>
                     <div className="oeq-detail-card oeq-detail-card--full">
                       <div className="oeq-detail-label">Mô tả</div>

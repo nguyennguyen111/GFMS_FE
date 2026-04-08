@@ -36,15 +36,15 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (relatedType === "quotation" || notificationType === "quotation") {
-    return withQuery("/owner/quotations", "quotationId", relatedId);
+    return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "purchaseorder" || notificationType === "purchaseorder") {
-    return withQuery("/owner/purchase-orders", "purchaseOrderId", relatedId);
+    return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "receipt" || notificationType === "receipt") {
-    return withQuery("/owner/receipts", "receiptId", relatedId);
+    return withQuery("/owner/receipts", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "transfer" || notificationType === "transfer") {
