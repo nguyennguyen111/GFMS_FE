@@ -15,7 +15,7 @@ const Hero = () => {
 
       <div className="hero-content">
         <div className="hero-label">
-          GFMS Franchise Gym System
+          GFMS Franchise Management System
         </div>
 
         <h1 className="hero-title">

@@ -191,7 +191,7 @@ const RegisterPage = () => {
   const isFormEmpty = !email || !phone || !username || !password || !confirmPassword || !agreeTerms;
 
   return (
-    <div className="register-page">
+    <div className="register-page auth-compact">
       <div className="register-page__glow register-page__glow--left" />
       <div className="register-page__glow register-page__glow--right" />
 

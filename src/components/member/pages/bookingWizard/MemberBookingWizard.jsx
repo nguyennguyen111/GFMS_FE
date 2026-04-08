@@ -62,8 +62,16 @@ export default function MemberBookingWizard() {
         ]);
 
         const gymData = gRes?.data?.DT || null;
-        const packageData = Array.isArray(pRes?.data?.DT) ? pRes.data.DT : [];
-        const trainerData = Array.isArray(tRes?.data?.DT) ? tRes.data.DT : [];
+        const packageData = Array.isArray(pRes?.data?.DT?.items)
+          ? pRes.data.DT.items
+          : Array.isArray(pRes?.data?.DT)
+          ? pRes.data.DT
+          : [];
+        const trainerData = Array.isArray(tRes?.data?.DT?.items)
+          ? tRes.data.DT.items
+          : Array.isArray(tRes?.data?.DT)
+          ? tRes.data.DT
+          : [];
 
         setGym(gymData);
         setPackages(packageData);

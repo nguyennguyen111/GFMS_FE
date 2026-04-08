@@ -4,7 +4,7 @@ import Footer from "../components/footer/Footer";
 
 export default function MemberWebLayout() {
   return (
-    <div className="site member-app">
+    <div className="site site--compact member-app">
       <Header />
       <main className="site-main">
         <div className="site-container">
