@@ -1,15 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./OwnerReceiptsPage.css";
-import { ownerGetReceipts, ownerGetReceiptDetail } from "../../../services/ownerPurchaseService";
+import { ownerGetPurchaseRequests } from "../../../services/ownerPurchaseService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => {
   const map = {
-    pending: "Chờ xác nhận",
+    shipping: "Đang chuyển thiết bị",
     completed: "Đã hoàn tất",
-    cancelled: "Đã hủy",
   };
   return map[status] || status;
 };
@@ -17,8 +15,6 @@ const statusBadge = (status) => {
 export default function OwnerReceiptsPage() {
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const PAGE_SIZE = 10;
-  const [searchParams] = useSearchParams();
-  const openedReceiptRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [receipts, setReceipts] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -26,8 +22,6 @@ export default function OwnerReceiptsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [detail, setDetail] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchReceipts = useCallback(async (targetPage = page, targetSearch = searchTerm, targetStatus = statusFilter) => {
     setLoading(true);
@@ -40,13 +34,12 @@ export default function OwnerReceiptsPage() {
         gymId: selectedGymId ? String(selectedGymId) : undefined,
       };
 
-      const res = await ownerGetReceipts(params);
+      const res = await ownerGetPurchaseRequests(params);
       const data = res?.data?.data ?? [];
-      setReceipts(
-        selectedGymId
-          ? data.filter((receipt) => String(receipt?.gym?.id || receipt?.purchaseOrder?.gym?.id || receipt?.gymId || "") === String(selectedGymId))
-          : data
+      const flowRows = (Array.isArray(data) ? data : []).filter((row) =>
+        ["shipping", "completed"].includes(String(row.status || ""))
       );
+      setReceipts(flowRows);
       setMeta(res?.data?.meta ?? { page: targetPage, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
@@ -76,16 +69,6 @@ export default function OwnerReceiptsPage() {
     setPage(1);
   };
 
-  const fetchDetail = useCallback(async (receiptId) => {
-    try {
-      const res = await ownerGetReceiptDetail(receiptId);
-      setDetail(res?.data?.data);
-      setShowDetailModal(true);
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    }
-  }, []);
-
   useEffect(() => {
     fetchReceipts();
   }, [fetchReceipts]);
@@ -93,27 +76,21 @@ export default function OwnerReceiptsPage() {
   useOwnerRealtimeRefresh({
     onRefresh: async () => {
       await fetchReceipts(page, searchTerm, statusFilter);
-      if (detail?.id) {
-        await fetchDetail(detail.id);
-      }
     },
     events: ["notification:new"],
-    notificationTypes: ["receipt", "purchaseorder"],
+    notificationTypes: ["purchase_request"],
   });
 
-  useEffect(() => {
-    const receiptId = searchParams.get("receiptId");
-    if (!receiptId || openedReceiptRef.current === receiptId) return;
-    openedReceiptRef.current = receiptId;
-    fetchDetail(receiptId);
-  }, [fetchDetail, searchParams]);
+  const totalAmount = useMemo(
+    () => receipts.reduce((sum, r) => sum + (Number(r.quantity || 0) * Number(r.expectedUnitPrice || 0)), 0),
+    [receipts]
+  );
 
   return (
     <div className="or-page">
       <div className="or-head">
         <div>
           <h2>Phiếu nhận hàng</h2>
-          <p>Theo dõi phiếu nhận hàng từ đơn mua {selectedGymName ? `của ${selectedGymName}` : ""}</p>
         </div>
       </div>
 
@@ -125,7 +102,7 @@ export default function OwnerReceiptsPage() {
           onKeyDown={(e) => {
             if (e.key === "Enter") applySearch();
           }}
-          placeholder="Tìm theo mã phiếu hoặc mã đơn mua"
+          placeholder="Tìm theo mã yêu cầu hoặc thiết bị"
         />
         <select
           className="or-status-select"
@@ -141,10 +118,8 @@ export default function OwnerReceiptsPage() {
           }}
         >
           <option value="all">Tất cả trạng thái</option>
-          <option value="draft">Nháp</option>
-          <option value="pending">Chờ duyệt</option>
-          <option value="approved">Đã duyệt</option>
-          <option value="rejected">Bị từ chối</option>
+          <option value="shipping">Đang chuyển thiết bị</option>
+          <option value="completed">Đã hoàn tất</option>
         </select>
         <button className="or-filter-btn" onClick={applySearch}>Tìm kiếm</button>
         <button className="or-filter-btn or-filter-btn-reset" onClick={resetSearch}>Đặt lại</button>
@@ -160,40 +135,42 @@ export default function OwnerReceiptsPage() {
               <thead>
                 <tr>
                   <th>Mã phiếu</th>
-                  <th>Đơn mua</th>
+                  <th>Thiết bị</th>
                   <th>Phòng tập</th>
+                  <th>Số lượng</th>
+                  <th>Thành tiền</th>
                   <th>Trạng thái</th>
-                  <th>Ngày tạo</th>
+                  <th>Ngày cập nhật</th>
                 </tr>
               </thead>
               <tbody>
                 {receipts.map((receipt) => (
-                  <tr
-                    key={receipt.id}
-                    onClick={() => {
-                      fetchDetail(receipt.id);
-                    }}
-                  >
+                  <tr key={receipt.id}>
                     <td>{receipt.code || `#${receipt.id}`}</td>
-                    <td>{receipt.purchaseOrder?.code || (receipt.purchaseOrder?.id ? `#${receipt.purchaseOrder.id}` : "-")}</td>
+                    <td>{receipt.equipment?.name || "-"}</td>
                     <td>{receipt.gym?.name || "-"}</td>
+                    <td>{Number(receipt.quantity || 0)}</td>
+                    <td>{(Number(receipt.quantity || 0) * Number(receipt.expectedUnitPrice || 0)).toLocaleString("vi-VN")} đ</td>
                     <td>
                       <span className={`or-badge or-badge-${receipt.status}`}>
                         {statusBadge(receipt.status)}
                       </span>
                     </td>
-                    <td>{new Date(receipt.createdAt).toLocaleDateString("vi-VN")}</td>
+                    <td>{receipt.updatedAt ? new Date(receipt.updatedAt).toLocaleDateString("vi-VN") : "-"}</td>
                   </tr>
                 ))}
                 {receipts.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="or-empty">
+                    <td colSpan={7} className="or-empty">
                       Không có phiếu nhận hàng
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+          <div style={{ marginTop: 10, opacity: 0.85 }}>
+            Tổng giá trị giao nhận hiển thị: <b>{totalAmount.toLocaleString("vi-VN")} đ</b>
           </div>
 
           <div className="pagination">
@@ -216,72 +193,6 @@ export default function OwnerReceiptsPage() {
             </button>
           </div>
         </div>
-
-        {/* Detail Modal */}
-        {showDetailModal && detail && (
-          <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Chi tiết phiếu nhận hàng #{detail.id}</h3>
-                <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
-              </div>
-              <div className="modal-body">
-                <div className="detail-grid">
-                  <div className="detail-row">
-                    <span className="detail-label">Mã phiếu</span>
-                    <span className="detail-value">{detail.code || `#${detail.id}`}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Đơn mua</span>
-                    <span className="detail-value">{detail.purchaseOrder?.code || (detail.purchaseOrder?.id ? `#${detail.purchaseOrder.id}` : "-")}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Phòng tập</span>
-                    <span className="detail-value">{detail.gym?.name || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Nhà cung cấp</span>
-                    <span className="detail-value">{detail.supplier?.name || detail.purchaseOrder?.supplier?.name || "-"}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Trạng thái</span>
-                    <span className="detail-value">
-                      <span className={`or-badge or-badge-${detail.status}`}>
-                        {statusBadge(detail.status)}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="detail-row detail-row--full">
-                    <span className="detail-label">Ghi chú</span>
-                    <span className="detail-value">{detail.notes || "-"}</span>
-                  </div>
-                </div>
-
-                <h4 style={{ marginTop: "20px", marginBottom: "12px", color: "#f1f5f9" }}>Danh sách thiết bị</h4>
-                <div className="or-items-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Thiết bị</th>
-                        <th>Số lượng</th>
-                        <th>Đơn giá</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.items?.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.equipment?.name || "-"}</td>
-                          <td>{item.quantity}</td>
-                          <td>{Number(item.unitPrice || 0).toLocaleString("vi-VN")} đ</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
