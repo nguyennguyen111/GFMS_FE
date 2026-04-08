@@ -306,7 +306,7 @@ export default function GymDetailsPage() {
             </Card>
 
             <PublicFeedbackSection
-              title="Feedback về phòng gym này"
+              title="Feedback"
               subtitle="Các đánh giá nổi bật của hội viên về gym và các gói tập thuộc cơ sở này."
               items={gym.feedback || []}
               className="gd-feedbackSection"
@@ -360,11 +360,11 @@ export default function GymDetailsPage() {
               )}
 
               <button className="gd-cta2" onClick={requireLoginThenGoBooking}>
-                Đặt lịch PT ngay
+                Đặt lịch ngay
               </button>
 
               <div className="gd-ctaNote">
-                Chọn PT và lịch tập trong bước tiếp theo.
+                Chọn Gói tập, PT và lịch tập trong bước tiếp theo.
               </div>
             </Card>
           </div>

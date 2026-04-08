@@ -61,7 +61,7 @@ const CTA = ({ testimonials = [] }) => {
                 ) : null}
               </>
             ) : (
-              <div className="cta-empty">Chưa có feedback đủ tốt để hiển thị trên landing page.</div>
+              <div className="cta-empty">Chưa có feedback nào.</div>
             )}
           </div>
         </div>
