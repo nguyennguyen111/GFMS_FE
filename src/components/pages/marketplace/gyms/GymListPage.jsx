@@ -372,10 +372,6 @@ export default function GymListPage() {
                         <Phone size={15} />
                         {gym.phone || "Chưa cập nhật"}
                       </span>
-                      <span className="market-meta__item">
-                        <Clock3 size={15} />
-                        {gym.operatingHours || "Chưa cập nhật"}
-                      </span>
                     </div>
 
                     <div className="market-card__footer">

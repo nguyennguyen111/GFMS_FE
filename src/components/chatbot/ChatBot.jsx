@@ -1,24 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Activity,
   Bot,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Dumbbell,
-  Loader2,
   MessageCircle,
-  Package,
   Send,
-  Sparkles,
   X,
 } from "lucide-react";
 import "./ChatBot.css";
-import { aiChat, aiConfirmAction } from "../../services/aiService";
+import { aiChat } from "../../services/aiService";
 import { getCurrentUser, getAccessToken, isLoggedIn } from "../../utils/auth";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const CHATBOT_SESSION_KEY = "gfms_ai_chat_session_v5";
 
 const readAuthState = () => {
   const user = getCurrentUser();
@@ -48,7 +43,7 @@ const readAuthState = () => {
     username: user.username || user.email || "bạn",
     isMember,
     userId: user.id || null,
-    authKey: isMember ? `member:${user.id || user.username || "unknown"}` : "guest",
+    authKey: isMember ? `member:${user.id || user.username || "unknown"}` : `user:${user.id || user.username || "unknown"}`,
   };
 };
 
@@ -68,116 +63,55 @@ const buildPageContext = (pathname) => {
   return ctx;
 };
 
-const normalizeSuggestions = (suggestions) => {
-  if (!Array.isArray(suggestions)) return [];
-  return suggestions
-    .map((item) => {
-      if (!item) return null;
-      if (typeof item === "string") return { type: "message", label: item, value: item };
-      if (item.type === "action") {
-        return { type: "action", label: item.label || "Mở", action: item.action || null };
-      }
-      return {
-        type: "message",
-        label: item.label || item.value || "",
-        value: item.value || item.label || "",
-      };
-    })
-    .filter(Boolean);
-};
-
 const createWelcomeMessage = (auth) => ({
   id: uid(),
   role: "assistant",
   content: auth.isMember
-    ? `Chào ${auth.username}, mình là GFMS AI Assistant. Mình có thể xem gói của bạn, lịch sắp tới, tư vấn ăn uống theo chỉ số gần nhất và hỗ trợ đặt lịch PT đúng flow gym → gói tập → PT.`
-    : "Chào bạn, mình là GFMS AI Assistant. Bạn có thể hỏi tự nhiên như ăn gì, gym nào hợp, gói nào ổn, PT nào phù hợp hoặc nhập BMI để mình tư vấn sát hơn.",
-  suggestions: normalizeSuggestions(
-    auth.isMember
-      ? [
-          { type: "message", label: "Gói của tôi", value: "Gói của tôi" },
-          { type: "message", label: "Lịch sắp tới", value: "Lịch sắp tới của tôi" },
-          { type: "message", label: "Tôi nên ăn gì?", value: "Tôi nên ăn gì?" },
-        ]
-      : [
-          { type: "message", label: "Tính BMI cho tôi", value: "Tôi cao 170cm nặng 65kg, hãy tính BMI và tư vấn cho tôi" },
-          { type: "message", label: "Gợi ý gym cho tôi", value: "Gợi ý gym cho tôi" },
-          { type: "message", label: "Tôi nên ăn gì?", value: "Tôi nên ăn gì?" },
-        ]
-  ),
+    ? `Chào ${auth.username}, mình là trợ lý GFMS.`
+    : "Chào bạn, mình là trợ lý GFMS.",
   cards: null,
-  proposedAction: null,
-  requiresConfirmation: false,
-  bmiSummary: null,
+  actions: [],
 });
-
-const buildQuickActions = (isMember) =>
-  isMember
-    ? [
-        {
-          icon: <Package size={14} />,
-          label: "Gói của tôi",
-          mode: "message",
-          prompt: "Gói của tôi",
-        },
-        {
-          icon: <CalendarDays size={14} />,
-          label: "Lịch sắp tới",
-          mode: "message",
-          prompt: "Lịch sắp tới của tôi",
-        },
-        {
-          icon: <Activity size={14} />,
-          label: "BMI / dinh dưỡng",
-          mode: "message",
-          prompt: "Tôi nên ăn gì?",
-        },
-      ]
-    : [
-        {
-          icon: <Sparkles size={14} />,
-          label: "Tính BMI",
-          mode: "focus-bmi",
-        },
-        {
-          icon: <Dumbbell size={14} />,
-          label: "Gym phù hợp",
-          mode: "message",
-          prompt: "Gợi ý gym cho tôi",
-        },
-        {
-          icon: <Package size={14} />,
-          label: "Gói phù hợp",
-          mode: "message",
-          prompt: "Gợi ý gói tập phù hợp",
-        },
-        {
-          icon: <Activity size={14} />,
-          label: "Ăn gì",
-          mode: "message",
-          prompt: "Tôi nên ăn gì?",
-        },
-      ];
 
 const isNearBottom = (element, threshold = 120) => {
   if (!element) return true;
   return element.scrollHeight - element.scrollTop - element.clientHeight < threshold;
 };
 
-function HorizontalCardList({ cards, onAction, loading }) {
+function ActionButtons({ actions, onAction }) {
+  if (!Array.isArray(actions) || !actions.length) return null;
+
+  return (
+    <div className="gfms-ai-inline-actions">
+      {actions.map((action, index) => (
+        <button
+          key={`${action?.type || "action"}-${action?.label || index}-${index}`}
+          type="button"
+          className="gfms-ai-inline-action-btn"
+          onClick={() => onAction(action)}
+        >
+          {action?.label || "Mở"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HorizontalCardList({ cards, onAction }) {
   const railRef = useRef(null);
   if (!cards?.items?.length) return null;
 
   const scrollByCard = (dir) => {
     const rail = railRef.current;
     if (!rail) return;
-    rail.scrollBy({ left: dir * 260, behavior: "smooth" });
+    rail.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
 
   return (
     <div className="gfms-ai-card-block">
-      {cards.title && <div className="gfms-ai-card-block-title">{cards.title}</div>}
-      {cards.items.length > 1 && (
+      {cards.title ? <div className="gfms-ai-card-block-title">{cards.title}</div> : null}
+
+      {cards.items.length > 1 ? (
         <div className="gfms-ai-card-controls">
           <button type="button" className="gfms-ai-icon-btn" onClick={() => scrollByCard(-1)}>
             <ChevronLeft size={16} />
@@ -186,37 +120,85 @@ function HorizontalCardList({ cards, onAction, loading }) {
             <ChevronRight size={16} />
           </button>
         </div>
-      )}
+      ) : null}
+
       <div ref={railRef} className="gfms-ai-card-rail">
-        {cards.items.map((item) => (
-          <div key={item.id || item.title} className="gfms-ai-mini-card">
-            {item.badge && <div className="gfms-ai-mini-badge">{item.badge}</div>}
-            <div className="gfms-ai-mini-title">{item.title}</div>
-            {item.subtitle ? <div className="gfms-ai-mini-subtitle">{item.subtitle}</div> : null}
-            {item.meta ? <div className="gfms-ai-mini-meta">{item.meta}</div> : null}
-            {item.action ? (
-              <button
-                type="button"
-                className="gfms-ai-mini-action"
-                onClick={() => onAction(item.action)}
-                disabled={loading}
+        {cards.items.map((item) => {
+          const clickable = typeof item?.action === "object" && item.action;
+          return (
+            <article
+              key={item.id || item.title}
+              className={`gfms-ai-card ${clickable ? "is-clickable" : ""}`}
+              onClick={clickable ? () => onAction(item.action) : undefined}
+              role={clickable ? "button" : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              onKeyDown={
+                clickable
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") onAction(item.action);
+                    }
+                  : undefined
+              }
+            >
+              <div
+                className="gfms-ai-card-image"
+                style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
               >
-                {item.actionLabel || "Xem chi tiết"}
-              </button>
-            ) : null}
-          </div>
-        ))}
+                {!item.imageUrl ? <div className="gfms-ai-card-image-fallback">{item.title?.[0] || "G"}</div> : null}
+                {item.badge ? <span className="gfms-ai-card-badge">{item.badge}</span> : null}
+              </div>
+
+              <div className="gfms-ai-card-body">
+                <div className="gfms-ai-card-title">{item.title}</div>
+                {item.subtitle ? <div className="gfms-ai-card-subtitle">{item.subtitle}</div> : null}
+                {item.meta ? <div className="gfms-ai-card-meta">{item.meta}</div> : null}
+
+                {Array.isArray(item.tags) && item.tags.length ? (
+                  <div className="gfms-ai-card-tags">
+                    {item.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="gfms-ai-card-tag">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {item.action ? (
+                  <button
+                    type="button"
+                    className="gfms-ai-card-action"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAction(item.action);
+                    }}
+                  >
+                    {item.actionLabel || item.action?.label || "Xem chi tiết"}
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+function TypingDots() {
+  return (
+    <div className="gfms-ai-typing-dots" aria-label="Đang trả lời">
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
 export default function ChatBot() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const inputRef = useRef(null);
   const messagesRef = useRef(null);
-  const bmiRef = useRef(null);
 
   const [authState, setAuthState] = useState(readAuthState());
   const [open, setOpen] = useState(false);
@@ -224,33 +206,26 @@ export default function ChatBot() {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([createWelcomeMessage(readAuthState())]);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [latestBmi, setLatestBmi] = useState(null);
-  const [bmiExpanded, setBmiExpanded] = useState(true);
-  const [bmiForm, setBmiForm] = useState({
-    heightCm: "170",
-    weightKg: "65",
-    goal: "Cải thiện sức khỏe",
-  });
 
-  const resetGuestSession = () => {
-    const guest = readAuthState();
-    setAuthState(guest);
-    setMessages([createWelcomeMessage(guest)]);
-    setLoading(false);
-    setText("");
-    setShowScrollToBottom(false);
-    setLatestBmi(null);
-    setBmiExpanded(true);
+  const persistSession = (nextMessages, nextAuthKey = authState.authKey) => {
+    try {
+      sessionStorage.setItem(
+        `${CHATBOT_SESSION_KEY}:${nextAuthKey}`,
+        JSON.stringify({
+          messages: nextMessages,
+        })
+      );
+    } catch {}
   };
 
   const resetSessionForAuth = (nextAuth) => {
+    const welcome = [createWelcomeMessage(nextAuth)];
     setAuthState(nextAuth);
-    setMessages([createWelcomeMessage(nextAuth)]);
+    setMessages(welcome);
     setLoading(false);
     setText("");
     setShowScrollToBottom(false);
-    setLatestBmi(null);
-    setBmiExpanded(!nextAuth.isMember);
+    persistSession(welcome, nextAuth.authKey);
   };
 
   useEffect(() => {
@@ -274,35 +249,19 @@ export default function ChatBot() {
   }, []);
 
   useEffect(() => {
-    const next = readAuthState();
+    try {
+      const raw = sessionStorage.getItem(`${CHATBOT_SESSION_KEY}:${authState.authKey}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.messages) && parsed.messages.length) {
+        setMessages(parsed.messages);
+      }
+    } catch {}
+  }, [authState.authKey]);
 
-    if (next.authKey !== authState.authKey) {
-      resetSessionForAuth(next);
-      return;
-    }
-
-    if (!next.isMember) {
-      setMessages((prev) => {
-        const hasMemberOnlyText = prev.some((m) => {
-          const c = String(m?.content || "").toLowerCase();
-          return (
-            c.includes("gói của bạn") ||
-            c.includes("lịch sắp tới") ||
-            c.includes("buổi gần nhất của bạn") ||
-            c.includes("đặt lịch pt đúng flow")
-          );
-        });
-
-        if (hasMemberOnlyText) {
-          return [createWelcomeMessage(next)];
-        }
-
-        return prev;
-      });
-    }
-  }, [location.pathname, open]); // sync lại khi đổi trang hoặc mở box
-
-  const quickActions = useMemo(() => buildQuickActions(authState.isMember), [authState.isMember]);
+  useEffect(() => {
+    persistSession(messages);
+  }, [messages]);
 
   useEffect(() => {
     const box = messagesRef.current;
@@ -322,32 +281,34 @@ export default function ChatBot() {
 
   const appendMessage = (msg) => {
     setMessages((prev) => [...prev, { id: uid(), ...msg }]);
-    if (msg?.bmiSummary?.bmi) {
-      setLatestBmi(msg.bmiSummary);
-      setBmiExpanded(false);
-      setBmiForm((prev) => ({
-        ...prev,
-        heightCm: String(msg.bmiSummary.heightCm || prev.heightCm),
-        weightKg: String(msg.bmiSummary.weightKg || prev.weightKg),
-        goal: msg.bmiSummary.goal || prev.goal,
+  };
+
+  const getSanitizedHistory = (currentMessages, nextUserMsg) => {
+    return [...currentMessages, nextUserMsg]
+      .filter((m) => ["user", "assistant"].includes(m.role))
+      .slice(-10)
+      .map((m) => ({
+        role: m.role,
+        content: m.content,
       }));
-    }
   };
 
-  const handleNavigateAction = (action) => {
-    const path = action?.payload?.path;
-    if (path) navigate(path);
-  };
+  const runAction = async (action) => {
+    if (!action?.type) return;
 
-  const runAction = (action) => {
-    if (!action) return;
     if (action.type === "NAVIGATE_TO_PAGE") {
-      handleNavigateAction(action);
+      const path = action?.payload?.path || "/";
+      navigate(path);
+      setOpen(false);
       return;
     }
+
     if (action.type === "AI_SET_PROMPT") {
       const prompt = action?.payload?.prompt;
-      if (prompt) sendMessage(prompt);
+      if (prompt) {
+        setText(prompt);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
     }
   };
 
@@ -362,40 +323,9 @@ export default function ChatBot() {
     const message = String(rawText || "").trim();
     if (!message || loading) return;
 
-    const blockedGuestMemberPrompts = [
-      "gói của tôi",
-      "lịch sắp tới của tôi",
-      "lịch của tôi",
-      "tôi muốn đặt lịch pt",
-      "đặt lịch pt",
-    ];
-
-    if (!currentAuth.isMember) {
-      const lower = message.toLowerCase();
-      if (blockedGuestMemberPrompts.some((x) => lower.includes(x))) {
-        appendMessage({
-          role: "assistant",
-          content:
-            "Phần này dành cho member đã đăng nhập. Bạn có thể hỏi BMI, ăn uống, gym phù hợp hoặc gói tập phù hợp trước nhé.",
-          suggestions: normalizeSuggestions([
-            { type: "message", label: "Tính BMI cho tôi", value: "Tôi cao 170cm nặng 65kg, hãy tính BMI và tư vấn cho tôi" },
-            { type: "message", label: "Gợi ý gym cho tôi", value: "Gợi ý gym cho tôi" },
-          ]),
-          cards: null,
-          proposedAction: null,
-          requiresConfirmation: false,
-          bmiSummary: latestBmi,
-        });
-        return;
-      }
-    }
-
-    const pageContext = buildPageContext(location.pathname);
     const nextUserMsg = { id: uid(), role: "user", content: message };
-    const nextHistory = [...messages, nextUserMsg].slice(-14).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    const pageContext = buildPageContext(location.pathname);
+    const nextHistory = getSanitizedHistory(messages, nextUserMsg);
 
     setMessages((prev) => [...prev, nextUserMsg]);
     setText("");
@@ -410,24 +340,24 @@ export default function ChatBot() {
         return;
       }
 
+      const actions = Array.isArray(data?.actions)
+        ? data.actions
+        : data?.proposedAction
+        ? [data.proposedAction]
+        : [];
+
       appendMessage({
         role: "assistant",
         content: data?.reply || "Mình chưa thể phản hồi lúc này.",
-        suggestions: normalizeSuggestions(data?.suggestions || []),
         cards: data?.cards || null,
-        proposedAction: data?.proposedAction || null,
-        requiresConfirmation: !!data?.requiresConfirmation,
-        bmiSummary: data?.bmiSummary || null,
+        actions,
       });
     } catch (e) {
       appendMessage({
         role: "assistant",
         content: e?.response?.data?.EM || e?.message || "Đã có lỗi khi gọi AI assistant.",
-        suggestions: [],
         cards: null,
-        proposedAction: null,
-        requiresConfirmation: false,
-        bmiSummary: null,
+        actions: [],
       });
     } finally {
       setLoading(false);
@@ -435,242 +365,74 @@ export default function ChatBot() {
     }
   };
 
-  const handleConfirm = async (action) => {
-    const currentAuth = readAuthState();
-    if (!currentAuth.isMember) {
-      resetGuestSession();
-      return;
-    }
+  const statusText = authState.isMember ? `Đang hỗ trợ ${authState.username}` : "Hỗ trợ giải đáp thắc mắc";
 
-    if (!action || loading) return;
-    setLoading(true);
+  const emptyHints = useMemo(
+    () =>
+      authState.isMember
+        ? ["Lịch tuần này của tôi", "Gói của tôi", "Gợi ý PT phù hợp"]
+        : ["Gợi ý vài gym phù hợp", "Tôi nên ăn gì", "Tôi muốn tìm PT cho người mới"],
+    [authState.isMember]
+  );
 
-    try {
-      const data = await aiConfirmAction(action);
-      appendMessage({
-        role: "assistant",
-        content: data?.reply || "Thao tác đã được thực hiện.",
-        suggestions: normalizeSuggestions(
-          data?.followUpAction
-            ? [{ type: "action", label: data.followUpAction.label || "Mở trang liên quan", action: data.followUpAction }]
-            : []
-        ),
-        cards: null,
-        proposedAction: null,
-        requiresConfirmation: false,
-        bmiSummary: null,
-      });
-    } catch (e) {
-      appendMessage({
-        role: "assistant",
-        content: e?.response?.data?.EM || e?.message || "Không thể xác nhận thao tác này.",
-        suggestions: [],
-        cards: null,
-        proposedAction: null,
-        requiresConfirmation: false,
-        bmiSummary: null,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSuggestionClick = (item) => {
-    if (!item) return;
-    if (item.type === "action" && item.action) {
-      runAction(item.action);
-      return;
-    }
-    sendMessage(item.value || item.label);
-  };
-
-  const handleBmiSubmit = (e) => {
-    e.preventDefault();
-    const { heightCm, weightKg, goal } = bmiForm;
-    if (!heightCm || !weightKg) return;
-    sendMessage(`Tôi cao ${heightCm}cm nặng ${weightKg}kg, mục tiêu ${goal}, hãy tính BMI và tư vấn cho tôi`);
-  };
-
-  const heroText = latestBmi?.bmi
-    ? `BMI ${latestBmi.bmi} • ${latestBmi.classification?.label || ""}${latestBmi.goal ? ` • ${latestBmi.goal}` : ""}`
-    : authState.isMember
-      ? "Hiểu gói tập, lịch tập và PT của bạn"
-      : "Tư vấn gym, gói tập, PT và BMI tự nhiên hơn";
+  const showIntroHero = messages.length === 1 && messages[0]?.role === "assistant";
 
   return (
     <div className="gfms-ai-chatbox-root">
-      {!open && (
+      {!open ? (
         <button className="gfms-ai-fab" onClick={() => setOpen(true)} type="button">
           <MessageCircle size={20} />
-          <span>AI</span>
+          <span>Trợ lý AI</span>
         </button>
-      )}
+      ) : null}
 
-      {open && (
+      {open ? (
         <div className="gfms-ai-panel">
           <div className="gfms-ai-header">
             <div className="gfms-ai-header-left">
               <div className="gfms-ai-badge">
-                <Bot size={16} />
+                <Bot size={17} />
               </div>
               <div>
                 <div className="gfms-ai-title">GFMS AI Assistant</div>
-                <div className="gfms-ai-subtitle">{heroText}</div>
+                <div className="gfms-ai-subtitle">{statusText}</div>
               </div>
             </div>
+
             <button className="gfms-ai-close" onClick={() => setOpen(false)} type="button">
               <X size={18} />
             </button>
           </div>
 
-          <div className="gfms-ai-quick-actions">
-            {quickActions.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className="gfms-ai-chip"
-                onClick={() => {
-                  if (item.mode === "action") runAction(item.action);
-                  else if (item.mode === "focus-bmi") {
-                    setBmiExpanded(true);
-                    bmiRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                  } else {
-                    sendMessage(item.prompt);
-                  }
-                }}
-                disabled={loading}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {!authState.isMember && (
-            <div className="gfms-ai-hero">
-              <div className="gfms-ai-hero-top">
-                <div>
-                  <div className="gfms-ai-hero-title">
-                    {latestBmi?.bmi ? "BMI cá nhân hóa" : "Bắt đầu nhanh với BMI"}
-                  </div>
-                  <div className="gfms-ai-hero-subtitle">
-                    {latestBmi?.bmi
-                      ? `${buildBmiSummaryLineInline(latestBmi)}`
-                      : "Nhập chiều cao, cân nặng và mục tiêu để AI tư vấn sát hơn."}
-                  </div>
-                </div>
-                <button type="button" className="gfms-ai-hero-cta" onClick={() => setBmiExpanded((prev) => !prev)}>
-                  {bmiExpanded ? "Thu gọn" : latestBmi?.bmi ? "Cập nhật" : "Mở nhanh"}
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="gfms-ai-messages" ref={messagesRef} onScroll={handleScroll}>
-            {!authState.isMember && bmiExpanded && (
-              <div className="gfms-ai-message is-assistant is-static-card" ref={bmiRef}>
-                <div className="gfms-ai-bubble gfms-ai-bmi-bubble">
-                  <div className="gfms-ai-bmi-card-title">Tính BMI nhanh</div>
-                  <form className="gfms-ai-bmi-form" onSubmit={handleBmiSubmit}>
-                    <div className="gfms-ai-bmi-grid">
-                      <label>
-                        <span>Chiều cao (cm)</span>
-                        <input
-                          value={bmiForm.heightCm}
-                          onChange={(e) => setBmiForm((prev) => ({ ...prev, heightCm: e.target.value }))}
-                          inputMode="numeric"
-                        />
-                      </label>
-                      <label>
-                        <span>Cân nặng (kg)</span>
-                        <input
-                          value={bmiForm.weightKg}
-                          onChange={(e) => setBmiForm((prev) => ({ ...prev, weightKg: e.target.value }))}
-                          inputMode="numeric"
-                        />
-                      </label>
-                    </div>
-                    <label>
-                      <span>Mục tiêu</span>
-                      <select value={bmiForm.goal} onChange={(e) => setBmiForm((prev) => ({ ...prev, goal: e.target.value }))}>
-                        <option>Cải thiện sức khỏe</option>
-                        <option>Giảm mỡ</option>
-                        <option>Tăng cân</option>
-                        <option>Tăng cơ</option>
-                      </select>
-                    </label>
-                    <button type="submit" className="gfms-ai-bmi-submit" disabled={loading}>
-                      <Sparkles size={16} />
-                      <span>Tính BMI và tư vấn cho tôi</span>
-                    </button>
-                  </form>
-                </div>
+            {showIntroHero ? (
+              <div className="gfms-ai-hero">
+                <div className="gfms-ai-hero-icon"><Bot size={22} /></div>
+                <div className="gfms-ai-hero-title">Xin chào, mình là GFMS AI</div>
+                <div className="gfms-ai-hero-subtitle">Mình có thể giúp gì cho bạn?</div>
               </div>
-            )}
+            ) : null}
 
-            {messages.map((msg) => (
-              <div key={msg.id} className={`gfms-ai-message ${msg.role === "user" ? "is-user" : "is-assistant"}`}>
+            {messages.map((msg, index) => (
+              showIntroHero && index === 0 ? null : <div key={msg.id} className={`gfms-ai-message ${msg.role === "user" ? "is-user" : "is-assistant"}`}>
                 <div className="gfms-ai-bubble">
-                  <p>{msg.content}</p>
-
-                  {msg.cards ? <HorizontalCardList cards={msg.cards} onAction={runAction} loading={loading} /> : null}
-
-                  {!!msg.suggestions?.length && (
-                    <div className="gfms-ai-suggestions">
-                      {msg.suggestions.map((s, index) => (
-                        <button
-                          key={`${s.label}-${index}`}
-                          type="button"
-                          className={`gfms-ai-suggestion-btn ${s.type === "action" ? "is-action" : ""}`}
-                          onClick={() => handleSuggestionClick(s)}
-                          disabled={loading}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {!!msg.proposedAction && !msg.requiresConfirmation && (
-                    <div className="gfms-ai-action-card">
-                      <button type="button" className="gfms-ai-action-btn" onClick={() => runAction(msg.proposedAction)}>
-                        <span>{msg.proposedAction?.label || "Mở trang"}</span>
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  )}
-
-                  {!!msg.proposedAction && !!msg.requiresConfirmation && authState.isMember && (
-                    <div className="gfms-ai-action-card confirm-mode">
-                      <div className="gfms-ai-action-note">
-                        Thao tác này sẽ ghi dữ liệu thật vào hệ thống và chỉ chạy khi bạn xác nhận.
-                      </div>
-                      <button
-                        type="button"
-                        className="gfms-ai-confirm-btn"
-                        onClick={() => handleConfirm(msg.proposedAction)}
-                        disabled={loading}
-                      >
-                        {loading ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
-                        <span>{msg.proposedAction?.label || "Xác nhận"}</span>
-                      </button>
-                    </div>
-                  )}
+                  <p className="gfms-ai-message-text">{msg.content}</p>
+                  {msg.cards ? <HorizontalCardList cards={msg.cards} onAction={runAction} /> : null}
+                  {msg.role === "assistant" ? <ActionButtons actions={msg.actions} onAction={runAction} /> : null}
                 </div>
               </div>
             ))}
 
-            {loading && (
+            {loading ? (
               <div className="gfms-ai-message is-assistant">
                 <div className="gfms-ai-bubble typing">
-                  <Loader2 size={16} className="spin" />
-                  <span>GFMS AI đang xử lý...</span>
+                  <TypingDots />
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
-          {showScrollToBottom && (
+          {showScrollToBottom ? (
             <button
               type="button"
               className="gfms-ai-scroll-bottom"
@@ -678,33 +440,28 @@ export default function ChatBot() {
             >
               <ChevronRight size={16} style={{ transform: "rotate(90deg)" }} />
             </button>
-          )}
+          ) : null}
 
-          <form className="gfms-ai-input-wrap" onSubmit={(e) => { e.preventDefault(); sendMessage(text); }}>
+          <form
+            className="gfms-ai-input-wrap"
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendMessage(text);
+            }}
+          >
             <input
               ref={inputRef}
               className="gfms-ai-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={
-                authState.isMember
-                  ? "Ví dụ: gói của tôi, mai có lịch không, tôi nên ăn gì, tôi muốn đặt lịch PT"
-                  : "Ví dụ: ăn gì, gym nào hợp, gói nào ổn, PT nào hợp với tôi"
-              }
+              placeholder="Nhập tin nhắn..."
             />
             <button className="gfms-ai-send" type="submit" disabled={loading || !text.trim()}>
               <Send size={18} />
             </button>
           </form>
         </div>
-      )}
+      ) : null}
     </div>
   );
-}
-
-function buildBmiSummaryLineInline(bmiContext) {
-  if (!bmiContext?.bmi) return "";
-  const parts = [`BMI hiện tại ${bmiContext.bmi}`, bmiContext.classification?.label || null];
-  if (bmiContext.goal) parts.push(bmiContext.goal);
-  return parts.filter(Boolean).join(" • ");
 }
