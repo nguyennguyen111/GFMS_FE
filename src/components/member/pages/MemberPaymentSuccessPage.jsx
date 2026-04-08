@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock3, Home, LoaderCircle, XCircle } from "lucide-react";
 import { confirmPayosPayment } from "../../../services/paymentService";
+import { showAppToast } from "../../../utils/appToast";
 import "./MemberPaymentSuccessPage.css";
 
 const REDIRECT_SECONDS = 5;
@@ -26,7 +27,10 @@ export default function MemberPaymentSuccessPage() {
 
     const run = async () => {
       if (payosStatus !== "success" || !orderCode) {
-        if (mounted) setPhase("cancelled");
+        if (mounted) {
+          setPhase("cancelled");
+          showAppToast({ type: "warning", title: "Thanh toán chưa hoàn tất", message: "Giao dịch PayOS đã bị hủy hoặc chưa hoàn tất." });
+        }
         return;
       }
 
@@ -35,10 +39,12 @@ export default function MemberPaymentSuccessPage() {
         if (!mounted) return;
         setPhase("success");
         setMessage("Thanh toán thành công. Gói tập của bạn đã được kích hoạt và thông báo đã được gửi.");
+        showAppToast({ type: "success", title: "Thanh toán thành công", message: "PayOS đã xác nhận giao dịch và kích hoạt gói tập của bạn." });
       } catch (error) {
         if (!mounted) return;
         setPhase("error");
-        setMessage(error?.response?.data?.message || "Không thể xác nhận giao dịch PayOS.");
+        setMessage(error?.response?.data?.message || error?.response?.data?.detail || "Không thể xác nhận giao dịch PayOS.");
+        showAppToast({ type: "error", title: "Xác nhận PayOS thất bại", message: error?.response?.data?.message || error?.response?.data?.detail || "Không thể xác nhận giao dịch PayOS." });
       }
     };
 
@@ -58,7 +64,7 @@ export default function MemberPaymentSuccessPage() {
     }, 1000);
 
     const timeoutId = window.setTimeout(() => {
-      navigate("/", { replace: true });
+      navigate("/member/my-packages", { replace: true });
     }, REDIRECT_SECONDS * 1000);
 
     return () => {
@@ -95,17 +101,17 @@ export default function MemberPaymentSuccessPage() {
         {phase !== "confirming" ? (
           <div className="mps-countdown">
             <Clock3 size={16} />
-            <span>Tự động quay về trang chủ sau {countdown}s</span>
+            <span>Tự động chuyển đến gói của tôi sau {countdown}s</span>
           </div>
         ) : null}
 
         <div className="mps-actions">
-          <button type="button" className="mps-btn primary" onClick={() => navigate("/", { replace: true })}>
+          <button type="button" className="mps-btn primary" onClick={() => navigate("/member/my-packages", { replace: true })}>
             <Home size={16} />
-            <span>Về landing page</span>
+            <span>Xem gói của tôi</span>
           </button>
-          <button type="button" className="mps-btn" onClick={() => navigate("/member/my-packages", { replace: true })}>
-            Xem gói tập của tôi
+          <button type="button" className="mps-btn" onClick={() => navigate("/member/bookings", { replace: true })}>
+            Xem lịch của tôi
           </button>
         </div>
       </div>

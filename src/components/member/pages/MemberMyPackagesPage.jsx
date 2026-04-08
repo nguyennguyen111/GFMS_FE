@@ -323,50 +323,6 @@ export default function MemberMyPackagesPage() {
               </div>
             )}
           </section>
-
-          <section className="mp3-section is-history">
-            <div className="mp3-sectionHead">
-              <div className="mp3-sectionTitleWrap">
-                <h2 className="mp3-sectionTitle">Past History</h2>
-                <div className="mp3-sectionLine" />
-              </div>
-              <div className="mp3-sectionCount">archived</div>
-            </div>
-
-            {archiveRows.length === 0 ? (
-              <div className="mp3-empty small">Chưa có lịch sử gói đã lưu trữ.</div>
-            ) : (
-              <div className="mp3-historyList">
-                {archiveRows.map((x) => (
-                  <div
-                    key={x.id}
-                    className="mp3-historyRow"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/member/my-packages/${x.id}`)}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/member/my-packages/${x.id}`)}
-                  >
-                    <div className="mp3-historyNameWrap">
-                      <div className="mp3-historyLabel">Package name</div>
-                      <div className="mp3-historyName">{x.Package?.name || "—"}</div>
-                    </div>
-
-                    <div className="mp3-historyStatusWrap">
-                      <div className="mp3-historyLabel">Status</div>
-                      <span className={`mp3-historyBadge ${x.__status}`}>
-                        {x.__status === "archived" ? "COMPLETED" : x.__status.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div className="mp3-historyDateWrap">
-                      <div className="mp3-historyLabel">Date</div>
-                      <div className="mp3-historyDate">{fmtDate(x.expiryDate)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
         </>
       )}
     </div>

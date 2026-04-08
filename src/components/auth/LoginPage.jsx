@@ -198,7 +198,7 @@ const LoginPage = () => {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    <div className="login-page">
+    <div className="login-page auth-compact">
       <div className="login-page__glow login-page__glow--left" />
       <div className="login-page__glow login-page__glow--right" />
 
