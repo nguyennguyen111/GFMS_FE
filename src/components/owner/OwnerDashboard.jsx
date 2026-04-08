@@ -11,7 +11,6 @@ import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
 import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
 import OwnerInventoryPage from "./pages/OwnerInventoryPage";
 import OwnerTransferPage from "./pages/OwnerTransferPage";
-import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
 import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
@@ -101,10 +100,9 @@ export default function OwnerDashboard() {
       title: "Mua hàng",
       items: [
         { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests",  },
-        { label: "Báo giá", to: "/owner/quotations", key: "quotations", },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", },
         { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", },
-        { label: "Thanh toán PO", to: "/owner/procurement-payments", key: "procurement-payments",  },
+        { label: "Thanh toán thiết bị", to: "/owner/procurement-payments", key: "procurement-payments",  },
       ],
     },
     {
@@ -205,7 +203,7 @@ export default function OwnerDashboard() {
 
             {/* Purchasing */}
             <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
-            <Route path="/quotations" element={<OwnerQuotationsPage />} />
+            <Route path="/quotations" element={<Navigate to="/owner/purchase-requests" replace />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
             <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />
