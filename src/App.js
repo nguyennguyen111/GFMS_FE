@@ -1,3 +1,4 @@
+import "./App.css";
 import React, { useEffect } from "react";
 import AppToastHost from "./components/common/AppToastHost";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
