@@ -6,6 +6,10 @@ import ownerBookingService from "../../../services/ownerBookingService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import { approveRequest, rejectRequest, getRequests } from "../../../services/ownerRequestService";
 import { specializationToVietnamese } from "../../../utils/specializationI18n";
+import {
+  TRAINER_SPECIALIZATION_OPTIONS,
+  TRAINER_SPECIALIZATION_MAX,
+} from "../../../constants/trainerSpecializations";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 import { showAppConfirm } from "../../../utils/appDialog";
@@ -51,22 +55,7 @@ const OwnerBookingsPage = () => {
     BUSY_SLOT: "Xin nghỉ đột xuất",
   };
 
-  const SPECIALIZATION_OPTIONS = [
-    "Yoga",
-    "Pilates",
-    "HIIT",
-    "CrossFit",
-    "Thể hình",
-    "Tăng sức mạnh",
-    "Tập chức năng",
-    "Giảm mỡ",
-    "Huấn luyện dinh dưỡng",
-    "Phục hồi chức năng",
-    "Quyền anh",
-    "Tập cardio",
-    "Chạy bộ",
-    "Đạp xe",
-  ];
+  const SPECIALIZATION_OPTIONS = TRAINER_SPECIALIZATION_OPTIONS;
 
   const parseSpecializationSelections = (input) => {
     if (Array.isArray(input)) return input.filter(Boolean);
@@ -78,13 +67,14 @@ const OwnerBookingsPage = () => {
 
   const normalizeSpecializations = (input) => {
     const tokens = parseSpecializationSelections(input);
+    const allowed = new Set(SPECIALIZATION_OPTIONS);
 
     if (!tokens.length) return { ok: false, message: "Vui lòng nhập ít nhất 1 chuyên môn" };
-    if (tokens.length > 6) return { ok: false, message: "Tối đa 6 chuyên môn" };
+    if (tokens.length > TRAINER_SPECIALIZATION_MAX) {
+      return { ok: false, message: `Tối đa ${TRAINER_SPECIALIZATION_MAX} chuyên môn` };
+    }
 
-    const invalid = tokens.find(
-      (token) => token.length < 2 || token.length > 60 || /[^A-Za-z0-9\u00C0-\u1EF9\s+&/()-]/.test(token)
-    );
+    const invalid = tokens.find((token) => !allowed.has(token));
     if (invalid) return { ok: false, message: `Chuyên môn không hợp lệ: ${invalid}` };
 
     const unique = [...new Map(tokens.map((v) => [v.toLowerCase(), v])).values()];
@@ -160,7 +150,6 @@ const OwnerBookingsPage = () => {
     certification: "",
     certificationLinksText: "",
     certificateFiles: [],
-    hourlyRate: "",
     availableHours: {},
   });
 
@@ -294,7 +283,7 @@ const OwnerBookingsPage = () => {
     setShowCreateModal(false);
     setNewTrainer({
       targetUserId: "", gymId: selectedGymId ? String(selectedGymId) : "", specializationSelections: [],
-      certification: "", certificationLinksText: "", certificateFiles: [], hourlyRate: "", availableHours: {},
+      certification: "", certificationLinksText: "", certificateFiles: [], availableHours: {},
     });
   };
 
@@ -345,7 +334,6 @@ const OwnerBookingsPage = () => {
         specialization: spec.value,
         certification: newTrainer.certification,
         certificationLinks: certLinks.value,
-        hourlyRate: newTrainer.hourlyRate,
         availableHours: newTrainer.availableHours,
       });
 
@@ -367,9 +355,10 @@ const OwnerBookingsPage = () => {
   };
 
   const handleOpenEditModal = (trainer) => {
+    const allowed = new Set(SPECIALIZATION_OPTIONS);
     const initialSelections = parseSpecializationSelections(
       specializationToVietnamese(trainer?.specialization || "")
-    );
+    ).filter((s) => allowed.has(s));
 
     setSelectedTrainer({
       ...trainer,
@@ -1021,10 +1010,6 @@ const OwnerBookingsPage = () => {
                       setNewTrainer({ ...newTrainer, certificateFiles: Array.from(e.target.files || []) })
                     }
                   />
-                </div>
-                <div className="form-group">
-                  <label>Giá/giờ (đ)</label>
-                  <input type="number" className="form-input" value={newTrainer.hourlyRate} onChange={(e) => setNewTrainer({ ...newTrainer, hourlyRate: e.target.value })}/>
                 </div>
                 <div className="form-actions">
                   <button type="button" onClick={handleCloseCreateModal} className="btn-cancel">Hủy</button>

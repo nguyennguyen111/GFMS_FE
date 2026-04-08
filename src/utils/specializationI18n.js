@@ -1,4 +1,19 @@
 const PAIRS = [
+  // 5 chuyên môn HLV (canonical — đúng chính tả checkbox)
+  ["giảm mỡ & định hình toàn thân", "Giảm mỡ & định hình toàn thân"],
+  ["tăng khối cơ & phát triển toàn diện", "Tăng khối cơ & phát triển toàn diện"],
+  ["sức mạnh & phát triển thể hình", "Sức mạnh & phát triển thể hình"],
+  ["thể lực & nâng cao thể trạng", "Thể lực & nâng cao thể trạng"],
+  [
+    "tư thế và vận động hỗ trợ chiều cao",
+    "Tư thế và vận động hỗ trợ chiều cao",
+  ],
+  // Tên gói cũ / marketing → chuyên môn tương ứng
+  ["siết mỡ toàn thân", "Giảm mỡ & định hình toàn thân"],
+  ["tăng cơ toàn diện", "Tăng khối cơ & phát triển toàn diện"],
+  ["sức mạnh & thể hình", "Sức mạnh & phát triển thể hình"],
+  ["cải thiện thể trạng", "Thể lực & nâng cao thể trạng"],
+  ["cải thiện chiều cao", "Tư thế và vận động hỗ trợ chiều cao"],
   ["functional training", "Tập chức năng"],
   ["strength training", "Tăng sức mạnh"],
   ["personal training", "HLV cá nhân"],
