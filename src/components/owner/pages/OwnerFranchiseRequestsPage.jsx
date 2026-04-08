@@ -9,6 +9,7 @@ import {
   ownerDeleteFranchiseRequest,
 } from "../../../services/ownerFranchiseService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 const STATUS_LABELS = {
   pending: { label: "Chờ duyệt", color: "warning" },
@@ -179,7 +180,13 @@ export default function OwnerFranchiseRequestsPage() {
 
   // Xóa request
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa yêu cầu này?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xóa",
+      message: "Bạn có chắc muốn xóa yêu cầu này?",
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
 
     try {
       setError("");

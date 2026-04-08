@@ -6,6 +6,181 @@
   overflow-x: hidden;
 }
 
+.og-hero {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: 340px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(160deg, rgba(20, 22, 26, 0.96), rgba(8, 10, 12, 0.98));
+}
+
+.og-hero__bg {
+  position: absolute;
+  inset: 0;
+}
+
+.og-hero__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  filter: saturate(0.95) brightness(0.62);
+}
+
+.og-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(211, 254, 62, 0.2), rgba(211, 254, 62, 0) 45%),
+    linear-gradient(180deg, rgba(10, 12, 14, 0.18), rgba(10, 12, 14, 0.86));
+}
+
+.og-hero__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 340px;
+  padding: 26px 28px;
+  gap: 14px;
+}
+
+.og-hero__status {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(211, 254, 62, 0.32);
+  background: rgba(211, 254, 62, 0.14);
+  color: #d3fe3e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.og-hero__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #d3fe3e;
+  box-shadow: 0 0 0 6px rgba(211, 254, 62, 0.2);
+}
+
+.og-hero__title {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 56px);
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.og-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+.og-hero__meta strong {
+  color: rgba(211, 254, 62, 0.92);
+  font-weight: 700;
+}
+
+.og-hero__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.og-hero__actions .btn-view,
+.og-hero__actions .btn-edit {
+  min-width: 140px !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+.og-hero__switcher {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 14, 18, 0.55);
+  width: fit-content;
+}
+
+.og-hero__switch-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(211, 254, 62, 0.35);
+  background: rgba(211, 254, 62, 0.14);
+  color: #d3fe3e;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.og-hero__switch-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(211, 254, 62, 0.22);
+}
+
+.og-hero__switch-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.86);
+  letter-spacing: 0.03em;
+}
+
+.og-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.og-metric-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(165deg, rgba(30, 34, 40, 0.88), rgba(16, 19, 24, 0.9));
+  padding: 18px;
+}
+
+.og-metric-card h4 {
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.og-metric-value {
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.og-metric-card p {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+
 .page-header {
   margin-bottom: 24px;
   display: flex;
@@ -909,6 +1084,30 @@
 @media (max-width: 768px) {
   .owner-gyms-page {
     padding: 12px;
+  }
+
+  .og-hero,
+  .og-hero__content {
+    min-height: 300px;
+  }
+
+  .og-hero__content {
+    padding: 18px;
+  }
+
+  .og-hero__meta {
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  .og-hero__switcher {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .og-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .gyms-grid {
