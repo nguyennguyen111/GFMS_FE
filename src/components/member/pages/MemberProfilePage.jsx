@@ -13,6 +13,7 @@ import { memberGetMyPackages } from "../../../services/memberPackageService";
 import { mpGetGyms } from "../../../services/marketplaceService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
+import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecializations";
 
 const safeParse = (s) => {
   try {
@@ -161,24 +162,6 @@ const buildActivitiesFromMetrics = (rows = []) => {
     };
   });
 };
-
-const TRAINER_SPECIALIZATION_OPTIONS = [
-  "Yoga",
-  "Pilates",
-  "HIIT",
-  "CrossFit",
-  "Thể hình",
-  "Tăng sức mạnh",
-  "Tập chức năng",
-  "Giảm mỡ",
-  "Huấn luyện dinh dưỡng",
-  "Phục hồi chức năng",
-  "Quyền anh",
-  "Tập cardio",
-  "Bơi lội",
-  "Chạy bộ",
-  "Đạp xe",
-];
 
 const normalizeCertificateLinks = (input) => {
   const raw = Array.isArray(input)
