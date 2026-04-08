@@ -1,6 +1,6 @@
 
 import React from "react";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 import Header from "../components/header/Header";
 import Footer from "../components/footer/Footer";
 import { getTrainerId } from "../components/pt-portal/ptStorage";
@@ -11,11 +11,17 @@ import "./PTLayout.css";
 const PTLayout = () => {
   const trainerId = getTrainerId();
   const params = useParams();
+  const location = useLocation();
   const routeId = params?.id ? Number(params.id) : null;
   const effectiveId = routeId || trainerId;
 
   const scheduleLink = effectiveId ? `/pt/${effectiveId}/schedule` : "/pt/dashboard";
   const profileLink = effectiveId ? `/pt/${effectiveId}/details` : "/pt/profile";
+  const isScheduleActive = Boolean(
+    effectiveId &&
+      (location.pathname === `/pt/${effectiveId}/schedule` ||
+        location.pathname === `/pt/${effectiveId}/schedule-update`)
+  );
 
   return (
     <div className="site pt-app">
@@ -75,9 +81,7 @@ const PTLayout = () => {
 
               <NavLink
                 to={scheduleLink}
-                className={({ isActive }) =>
-                  `pt-shell__link ${isActive ? "is-active" : ""}`
-                }
+                className={() => `pt-shell__link ${isScheduleActive ? "is-active" : ""}`}
               >
                 <span className="pt-shell__dot" />
                 Lịch làm việc
