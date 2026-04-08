@@ -15,6 +15,7 @@ const OwnerGymsPage = () => {
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [page, setPage] = useState(1);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const pageSize = 4;
   const [selectedGym, setSelectedGym] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -34,6 +35,10 @@ const OwnerGymsPage = () => {
   useEffect(() => {
     setPage(1);
   }, [gyms.length]);
+
+  useEffect(() => {
+    setFeaturedIndex(0);
+  }, [selectedGymId, gyms.length]);
 
   const syncGymState = useCallback((nextGyms) => {
     const scopedGyms = selectedGymId
@@ -262,6 +267,14 @@ const OwnerGymsPage = () => {
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const visibleGyms = gyms.slice(startIndex, startIndex + pageSize);
+  const featuredGym = selectedGymId
+    ? (gyms[0] || null)
+    : (gyms[Math.min(featuredIndex, Math.max(0, gyms.length - 1))] || gyms[0] || null);
+  const canSlideFeatured = !selectedGymId && gyms.length > 1;
+  const totalMembers = gyms.reduce((sum, gym) => sum + Number(gym?.totalMembers || 0), 0);
+  const totalTrainers = gyms.reduce((sum, gym) => sum + Number(gym?.totalTrainers || 0), 0);
+  const totalPackages = gyms.reduce((sum, gym) => sum + Number(gym?.totalPackages || 0), 0);
+  const activeGyms = gyms.filter((gym) => String(gym?.status || "").toLowerCase() === "active").length;
 
   return (
     <div className="owner-gyms-page">
@@ -274,98 +287,85 @@ const OwnerGymsPage = () => {
         </div>
       </div>
 
-      <div className="gyms-grid">
-        {gyms.length === 0 ? (
+      {featuredGym ? (
+        <section className="og-hero">
+          <div className="og-hero__bg">
+            {getGymImage(featuredGym) ? (
+              <img src={getGymImage(featuredGym)} alt={featuredGym.name} className="og-hero__image" />
+            ) : null}
+          </div>
+          <div className="og-hero__overlay" />
+          <div className="og-hero__content">
+            <div className="og-hero__status">
+              <span className="og-hero__status-dot" />
+              {String(featuredGym?.status || "").toLowerCase() === "active" ? "Đang hoạt động" : "Tạm ngưng"}
+            </div>
+            <h2 className="og-hero__title">{featuredGym.name}</h2>
+            <div className="og-hero__meta">
+              <div><strong>Địa chỉ:</strong> {featuredGym.address || "Chưa cập nhật"}</div>
+              <div><strong>Điện thoại:</strong> {featuredGym.phone || "Chưa cập nhật"}</div>
+              <div><strong>Email:</strong> {featuredGym.email || "Chưa cập nhật"}</div>
+            </div>
+            <div className="og-hero__actions">
+              <button onClick={() => handleViewDetail(featuredGym)} className="btn-view">Chi tiết</button>
+              <button onClick={() => handleOpenEditModal(featuredGym)} className="btn-edit">Chỉnh sửa</button>
+            </div>
+            {canSlideFeatured ? (
+              <div className="og-hero__switcher">
+                <button
+                  type="button"
+                  className="og-hero__switch-btn"
+                  onClick={() => setFeaturedIndex((prev) => (prev - 1 + gyms.length) % gyms.length)}
+                >
+                  ←
+                </button>
+                <span className="og-hero__switch-label">
+                  Chi nhánh {featuredIndex + 1}/{gyms.length}
+                </span>
+                <button
+                  type="button"
+                  className="og-hero__switch-btn"
+                  onClick={() => setFeaturedIndex((prev) => (prev + 1) % gyms.length)}
+                >
+                  →
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="og-metrics">
+        <article className="og-metric-card">
+          <h4>Tổng hội viên</h4>
+          <div className="og-metric-value">{totalMembers}</div>
+          <p>Toàn hệ thống phòng tập của bạn</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Huấn luyện viên hoạt động</h4>
+          <div className="og-metric-value">{totalTrainers}</div>
+          <p>Đang phục vụ tại các chi nhánh</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Gói tập đang mở</h4>
+          <div className="og-metric-value">{totalPackages}</div>
+          <p>Gói tập có thể bán/đăng ký</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Chi nhánh hoạt động</h4>
+          <div className="og-metric-value">{activeGyms}/{gyms.length || 0}</div>
+          <p>Trạng thái tổng quan hệ thống</p>
+        </article>
+      </section>
+
+      {gyms.length === 0 ? (
+        <div className="gyms-grid">
           <div className="no-gyms">
             <div className="no-gyms-icon">🏋️</div>
             <p>{selectedGymName ? `Không tìm thấy chi nhánh ${selectedGymName}` : "Bạn chưa có phòng tập nào"}</p>
           </div>
-        ) : (
-          visibleGyms.map((gym) => (
-            <div key={gym.id} className="gym-card">
-              <div className="gym-image-container">
-                {getGymImage(gym) ? (
-                  <img 
-                    src={getGymImage(gym)} 
-                    alt={gym.name} 
-                    className="gym-image"
-                  />
-                ) : (
-                  <div className="gym-image-placeholder">
-                    <span className="gym-placeholder-icon">🏋️‍♂️</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="gym-card-header">
-                <h3 className="gym-name">{gym.name}</h3>
-                {getStatusBadge(gym.status)}
-              </div>
-              
-              <div className="gym-info">
-                <div className="info-item">
-                  <span className="info-icon">📍</span>
-                  <span className="info-text">{gym.address || "Chưa có địa chỉ"}</span>
-                </div>
-                
-                <div className="info-item">
-                  <span className="info-icon">📞</span>
-                  <span className="info-text">{gym.phone || "Chưa có số điện thoại"}</span>
-                </div>
-                
-                <div className="info-item">
-                  <span className="info-icon">✉️</span>
-                  <span className="info-text">{gym.email || "Chưa có email"}</span>
-                </div>
-              </div>
-
-              <div className="gym-stats">
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalMembers || 0}</div>
-                  <div className="stat-label">Hội viên</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalTrainers || 0}</div>
-                  <div className="stat-label">Huấn luyện viên</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalPackages || 0}</div>
-                  <div className="stat-label">Gói tập</div>
-                </div>
-              </div>
-
-              <div className="gym-actions">
-                <button onClick={() => handleViewDetail(gym)} className="btn-view">
-                  Chi tiết
-                </button>
-                <button onClick={() => handleOpenEditModal(gym)} className="btn-edit">
-                  Chỉnh sửa
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {gyms.length > pageSize && (
-        <div className="pagination">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          >
-            Trước
-          </button>
-          <span>
-            Trang {currentPage} / {totalPages}
-          </span>
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-          >
-            Sau
-          </button>
         </div>
-      )}
+      ) : null}
 
       {/* Modal Chi tiết */}
       {showDetailModal && selectedGym && (

@@ -13,6 +13,7 @@ import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import { ownerGetEquipments, ownerGetEquipmentDetail } from "../../../services/ownerEquipmentService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 const statusBadge = (status) => {
   const map = {
@@ -311,7 +312,13 @@ export default function OwnerTransferPage() {
 
   // Handle approve
   const handleApprove = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn duyệt phiếu này?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận duyệt phiếu",
+      message: "Bạn có chắc muốn duyệt phiếu này?",
+      confirmText: "Duyệt",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
     setActionLoading(true);
     try {
       await ownerApproveTransfer(id);
@@ -327,8 +334,24 @@ export default function OwnerTransferPage() {
 
   // Handle reject
   const handleReject = async (id) => {
-    const reason = window.prompt("Nhập lý do từ chối phiếu chuyển kho:", "") || "";
-    if (!window.confirm("Bạn có chắc muốn từ chối phiếu này?")) return;
+    const reasonResult = await showAppConfirm({
+      title: "Từ chối phiếu chuyển kho",
+      message: "Nhập lý do từ chối phiếu chuyển kho:",
+      confirmText: "Tiếp tục",
+      cancelText: "Hủy",
+      requireInput: true,
+      inputDefaultValue: "",
+      inputPlaceholder: "Nhập lý do từ chối",
+    });
+    if (!reasonResult.confirmed) return;
+    const reason = String(reasonResult.value || "");
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận từ chối",
+      message: "Bạn có chắc muốn từ chối phiếu này?",
+      confirmText: "Từ chối",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
     setActionLoading(true);
     try {
       await ownerRejectTransfer(id, {
@@ -351,7 +374,13 @@ export default function OwnerTransferPage() {
       alert("Vui lòng chọn chi nhánh nhận hàng trước khi xác nhận nhận hàng");
       return;
     }
-    if (!window.confirm("Bạn có chắc muốn hoàn tất phiếu này?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận hoàn tất",
+      message: "Bạn có chắc muốn hoàn tất phiếu này?",
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
     setActionLoading(true);
     try {
       await ownerCompleteTransfer(id, { gymId: selectedGymId });

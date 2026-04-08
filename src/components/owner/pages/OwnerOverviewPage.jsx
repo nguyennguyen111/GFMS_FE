@@ -319,7 +319,7 @@ export default function OwnerOverviewPage() {
     {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
-      hint: "Doanh thu chia sẻ từ PT",
+      hint: "Doanh thu chia sẻ từ huấn luyện viên",
       icon: "💳",
     },
   ];
