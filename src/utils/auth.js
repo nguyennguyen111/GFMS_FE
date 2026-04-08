@@ -1,6 +1,7 @@
 const USER_KEY = "user";
 const TOKEN_KEY = "accessToken";
 const EXTRA_AUTH_KEYS = ["role", "username", "roles"];
+const CHATBOT_SESSION_PREFIX = "gfms_ai_chat_session_";
 
 function emitAuthChanged() {
   window.dispatchEvent(new Event("authChanged"));
@@ -62,6 +63,14 @@ export function clearCurrentUser() {
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TOKEN_KEY);
   EXTRA_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
+
+  try {
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (String(key).startsWith(CHATBOT_SESSION_PREFIX)) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  } catch {}
 
   if (window.axios?.defaults?.headers?.common) {
     delete window.axios.defaults.headers.common.Authorization;

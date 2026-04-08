@@ -6,42 +6,42 @@
 }
 
 .gfms-ai-fab {
-  min-width: 64px;
-  height: 64px;
+  min-width: 148px;
+  height: 58px;
+  border: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-primary), #d2ff09);
-  color: #111;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  padding: 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 18px;
+  gap: 10px;
+  color: #101010;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #d5ff1f, #baff00);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
 }
 
 .gfms-ai-panel {
-  position: relative;
-  width: min(440px, calc(100vw - 20px));
-  height: min(780px, calc(100vh - 110px));
-  background:
-    radial-gradient(circle at top left, rgba(202, 255, 0, 0.12), transparent 40%),
-    linear-gradient(180deg, rgba(28, 28, 28, 0.98), rgba(12, 12, 12, 0.98));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 30px;
-  backdrop-filter: blur(18px);
+  width: min(430px, calc(100vw - 20px));
+  height: min(760px, calc(100vh - 96px));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(197, 255, 0, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(136, 255, 0, 0.08), transparent 36%),
+    linear-gradient(180deg, rgba(14, 14, 14, 0.96), rgba(9, 9, 9, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(18px);
 }
 
 .gfms-ai-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 12px;
+  padding: 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -52,120 +52,101 @@
 }
 
 .gfms-ai-badge {
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
-  background: rgba(202, 255, 0, 0.14);
-  color: var(--color-primary);
-  border: 1px solid rgba(202, 255, 0, 0.18);
+  background: linear-gradient(180deg, rgba(204, 255, 0, 0.18), rgba(204, 255, 0, 0.08));
+  color: #d9ff35;
+  border: 1px solid rgba(204, 255, 0, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .gfms-ai-title {
   color: #fff;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   font-weight: 800;
   line-height: 1.1;
 }
 
 .gfms-ai-subtitle {
-  color: rgba(255, 255, 255, 0.66);
-  font-size: 0.84rem;
-  margin-top: 4px;
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.9rem;
 }
 
-.gfms-ai-close,
-.gfms-ai-icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+.gfms-ai-close {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
-.gfms-ai-quick-actions {
+.gfms-ai-messages {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 18px 16px;
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 12px 16px 8px;
-  scrollbar-width: none;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
 }
 
-.gfms-ai-quick-actions::-webkit-scrollbar,
-.gfms-ai-card-rail::-webkit-scrollbar,
 .gfms-ai-messages::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  width: 6px;
 }
 
-.gfms-ai-quick-actions::-webkit-scrollbar-thumb,
-.gfms-ai-card-rail::-webkit-scrollbar-thumb,
 .gfms-ai-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-}
-
-.gfms-ai-chip {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-weight: 700;
 }
 
 .gfms-ai-hero {
-  margin: 4px 16px 10px;
-  padding: 14px 16px;
-  border-radius: 22px;
-  background: linear-gradient(90deg, rgba(202, 255, 0, 0.18), rgba(202, 255, 0, 0.06));
-  border: 1px solid rgba(202, 255, 0, 0.14);
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 12px 12px 20px;
 }
 
-.gfms-ai-hero-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.gfms-ai-hero-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #d9ff35;
+  background: linear-gradient(180deg, rgba(204, 255, 0, 0.15), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(204, 255, 0, 0.18);
 }
 
 .gfms-ai-hero-title {
   color: #fff;
-  font-size: 1rem;
+  font-size: 1.28rem;
   font-weight: 800;
 }
 
 .gfms-ai-hero-subtitle {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.86rem;
-  margin-top: 4px;
+  max-width: 320px;
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.5;
+  font-size: 0.96rem;
 }
 
-.gfms-ai-hero-cta {
-  border-radius: 16px;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.18);
-  color: #eef8b7;
-  font-weight: 800;
-}
-
-.gfms-ai-messages {
-  position: relative;
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 14px 112px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  scroll-behavior: smooth;
+.gfms-ai-hero-hints {
+  margin-top: 6px;
+  max-width: 330px;
+  color: rgba(255, 255, 255, 0.56);
+  line-height: 1.55;
+  font-size: 0.9rem;
 }
 
 .gfms-ai-message {
@@ -181,294 +162,314 @@
 }
 
 .gfms-ai-bubble {
-  max-width: 92%;
-  padding: 16px;
+  max-width: 90%;
   border-radius: 24px;
+  padding: 14px 15px;
+  color: #f7f7f7;
+  line-height: 1.65;
+}
+
+.gfms-ai-message.is-assistant .gfms-ai-bubble {
+  background: linear-gradient(180deg, rgba(43, 43, 43, 0.96), rgba(24, 24, 24, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-top-left-radius: 12px;
 }
 
 .gfms-ai-message.is-user .gfms-ai-bubble {
-  background: linear-gradient(135deg, rgba(154, 190, 0, 0.48), rgba(104, 124, 0, 0.92));
-  border-color: rgba(202, 255, 0, 0.12);
+  background: linear-gradient(135deg, rgba(210, 255, 14, 0.96), rgba(170, 230, 0, 0.96));
+  color: #111;
+  border-top-right-radius: 12px;
+  box-shadow: 0 10px 26px rgba(179, 255, 0, 0.18);
 }
 
+.gfms-ai-message-text,
 .gfms-ai-bubble p {
   margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.6;
-  font-size: 0.98rem;
-}
-
-.gfms-ai-bmi-bubble {
-  width: 100%;
-  max-width: 100%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05));
-}
-
-.gfms-ai-bmi-card-title,
-.gfms-ai-card-block-title {
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  margin-bottom: 12px;
-}
-
-.gfms-ai-bmi-form,
-.gfms-ai-bmi-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.gfms-ai-bmi-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.gfms-ai-bmi-form span {
-  font-size: 0.84rem;
-  color: rgba(255, 255, 255, 0.76);
-  font-weight: 700;
-}
-
-.gfms-ai-bmi-form input,
-.gfms-ai-bmi-form select,
-.gfms-ai-input {
-  width: 100%;
-  min-height: 46px;
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  padding: 0 14px;
-  outline: none;
-}
-
-.gfms-ai-bmi-submit,
-.gfms-ai-send,
-.gfms-ai-confirm-btn,
-.gfms-ai-mini-action,
-.gfms-ai-action-btn {
-  border-radius: 16px;
-  border: none;
-  font-weight: 800;
-}
-
-.gfms-ai-bmi-submit {
-  margin-top: 6px;
-  min-height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: linear-gradient(90deg, var(--color-primary), #d2ff09);
-  color: #111;
-}
-
-.gfms-ai-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.gfms-ai-suggestion-btn {
-  padding: 9px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 0.9rem;
-}
-
-.gfms-ai-suggestion-btn.is-action {
-  border-color: rgba(202, 255, 0, 0.18);
-  color: #e9f9a4;
-}
-
-.gfms-ai-card-block {
-  position: relative;
-  margin-top: 14px;
-}
-
-.gfms-ai-card-controls {
-  position: absolute;
-  right: 0;
-  top: -4px;
-  display: flex;
-  gap: 8px;
-}
-
-.gfms-ai-card-rail {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-top: 6px;
-  scroll-snap-type: x mandatory;
-}
-
-.gfms-ai-mini-card {
-  min-width: 220px;
-  max-width: 220px;
-  padding: 14px;
-  border-radius: 20px;
-  scroll-snap-align: start;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.gfms-ai-mini-badge {
-  align-self: flex-start;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(202, 255, 0, 0.14);
-  color: #e5ff72;
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.gfms-ai-mini-title {
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-}
-
-.gfms-ai-mini-subtitle {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.9rem;
-}
-
-.gfms-ai-mini-meta {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.84rem;
-  line-height: 1.5;
-  min-height: 38px;
-}
-
-.gfms-ai-mini-action {
-  margin-top: auto;
-  min-height: 40px;
-  background: rgba(202, 255, 0, 0.14);
-  color: #ebff8d;
-}
-
-.gfms-ai-action-card {
-  margin-top: 14px;
-}
-
-.gfms-ai-action-btn,
-.gfms-ai-confirm-btn {
-  width: 100%;
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.gfms-ai-action-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.gfms-ai-action-card.confirm-mode {
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.gfms-ai-action-note {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.86rem;
-  line-height: 1.5;
-  margin-bottom: 10px;
-}
-
-.gfms-ai-confirm-btn {
-  background: linear-gradient(90deg, var(--color-primary), #d2ff09);
-  color: #111;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .gfms-ai-bubble.typing {
   display: inline-flex;
   align-items: center;
+}
+
+.gfms-ai-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gfms-ai-typing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  animation: gfms-ai-dot 1.1s infinite ease-in-out;
+}
+
+.gfms-ai-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.gfms-ai-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.gfms-ai-card-block {
+  margin-top: 12px;
+}
+
+.gfms-ai-card-block-title {
+  margin-bottom: 10px;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.gfms-ai-card-controls {
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
 }
 
-.gfms-ai-input-wrap {
+.gfms-ai-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.gfms-ai-card-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(250px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+}
+
+.gfms-ai-card-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.gfms-ai-card-rail::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.gfms-ai-card {
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  scroll-snap-align: start;
+}
+
+.gfms-ai-card-image {
+  position: relative;
+  height: 136px;
+  background: linear-gradient(135deg, rgba(202, 255, 0, 0.22), rgba(255, 255, 255, 0.08));
+  background-size: cover;
+  background-position: center;
+}
+
+.gfms-ai-card-image-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: rgba(17, 17, 17, 0.7);
+}
+
+.gfms-ai-card-badge {
   position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #121212;
+  background: rgba(211, 255, 9, 0.96);
+}
+
+.gfms-ai-card-body {
+  padding: 14px;
+}
+
+.gfms-ai-card-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.gfms-ai-card-subtitle {
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.gfms-ai-card-meta {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+.gfms-ai-card-tags {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gfms-ai-card-tag {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+
+.gfms-ai-input-wrap {
+  margin: 12px 14px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border-radius: 22px;
-  background: rgba(9, 9, 9, 0.94);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(12, 12, 12, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 36px rgba(0, 0, 0, 0.26);
 }
 
 .gfms-ai-input {
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.gfms-ai-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
 }
 
 .gfms-ai-send {
   width: 48px;
   height: 48px;
+  flex: 0 0 48px;
+  border: 0;
   border-radius: 16px;
-  background: linear-gradient(90deg, var(--color-primary), #d2ff09);
-  color: #111;
   display: grid;
   place-items: center;
+  color: #111;
+  background: linear-gradient(135deg, #d4ff0e, #baff00);
+}
+
+.gfms-ai-send:disabled {
+  opacity: 0.45;
 }
 
 .gfms-ai-scroll-bottom {
   position: absolute;
-  right: 16px;
+  right: 18px;
   bottom: 92px;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border: 0;
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  background: rgba(20, 20, 20, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: #111;
+  background: rgba(212, 255, 14, 0.95);
 }
 
-.spin {
-  animation: gfms-ai-spin 1s linear infinite;
+@keyframes gfms-ai-dot {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
 }
 
-@keyframes gfms-ai-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .gfms-ai-chatbox-root {
-    right: 0;
-    bottom: 0;
+    right: 10px;
+    bottom: 10px;
   }
 
   .gfms-ai-panel {
-    width: min(100vw, 100vw);
-    height: min(100vh, 100vh);
-    border-radius: 24px 24px 0 0;
+    width: min(100vw - 12px, 430px);
+    height: min(100vh - 20px, 760px);
+    border-radius: 24px;
   }
 
   .gfms-ai-bubble {
-    max-width: 96%;
+    max-width: 94%;
   }
+
+  .gfms-ai-title {
+    font-size: 1.2rem;
+  }
+
+  .gfms-ai-subtitle {
+    font-size: 0.82rem;
+  }
+}
+
+.gfms-ai-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.gfms-ai-inline-action-btn,
+.gfms-ai-card-action {
+  border: 1px solid rgba(212, 255, 14, 0.26);
+  background: rgba(212, 255, 14, 0.12);
+  color: #eaff9c;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.gfms-ai-inline-action-btn:hover,
+.gfms-ai-card-action:hover,
+.gfms-ai-card.is-clickable:hover {
+  transform: translateY(-1px);
+  border-color: rgba(212, 255, 14, 0.5);
+  background: rgba(212, 255, 14, 0.18);
+}
+
+.gfms-ai-card.is-clickable {
+  cursor: pointer;
+}
+
+.gfms-ai-card-action {
+  margin-top: 12px;
+  width: 100%;
 }

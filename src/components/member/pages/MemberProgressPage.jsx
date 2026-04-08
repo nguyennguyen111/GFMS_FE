@@ -311,8 +311,6 @@ const MemberProgressPage = () => {
           <h1 className="member-hero-title">TIẾN ĐỘ & BMI</h1>
         </header>
 
-        {error ? <div className="member-error-box">{error}</div> : null}
-
         <div className="member-top-grid">
           <section className="member-card member-input-card member-equal-card">
             <div className="member-card-header">

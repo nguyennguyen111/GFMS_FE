@@ -62,25 +62,36 @@ import SignContractPage from "./components/public/SignContractPage";
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
-    const raw = localStorage.getItem("user");
-    if (!raw) return <Navigate to="/login" replace />;
-
-    const data = JSON.parse(raw);
-
-    // Support both shapes:
-    // - stored directly: { id, email, groupId, ... }
-    // - wrapped: { user: { ... } }
-    const storedUser = data?.user ?? data;
-
+    const storedUser = readStoredUser();
+    if (!storedUser) return <Navigate to="/login" replace />;
     const groupId = Number(storedUser?.groupId ?? storedUser?.group_id);
-
-    // groupId = 1 là Admin
     if (groupId !== 1) return <Navigate to="/" replace />;
-
     return children;
   } catch {
     return <Navigate to="/login" replace />;
   }
+};
+
+const readStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    const token = localStorage.getItem("accessToken");
+    if (!raw || !token) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.user ?? parsed;
+  } catch {
+    return null;
+  }
+};
+
+const RoleGuard = ({ allowedGroupIds = [], children }) => {
+  const user = readStoredUser();
+  const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
+
+  if (!user || !groupId) return <Navigate to="/login" replace />;
+  if (!allowedGroupIds.includes(groupId)) return <Navigate to="/" replace />;
+
+  return children;
 };
 
 
@@ -132,11 +143,25 @@ function App() {
         />
 
         {/* ===== OWNER ===== */}
-        <Route path="/owner/*" element={<OwnerDashboard />} />
+        <Route
+          path="/owner/*"
+          element={
+            <RoleGuard allowedGroupIds={[2]}>
+              <OwnerDashboard />
+            </RoleGuard>
+          }
+        />
 
         {/* ===== MEMBER ===== */}
-        <Route path="/member" element={<WebsiteLayout />}>
-          <Route index element={<Navigate to="home" replace />} />
+        <Route
+          path="/member"
+          element={
+            <RoleGuard allowedGroupIds={[4]}>
+              <WebsiteLayout />
+            </RoleGuard>
+          }
+        >
+          <Route index element={<Navigate to="bookings" replace />} />
           <Route path="my-packages" element={<MemberMyPackagesPage />} />
           <Route path="my-packages/:activationId" element={<MemberPackageDetailPage />} />
           <Route path="bookings" element={<MemberBookingsPage />} />
@@ -153,7 +178,14 @@ function App() {
         </Route>
 
         {/* ===== PT ===== */}
-        <Route path="/pt" element={<PTLayout />}>
+        <Route
+          path="/pt"
+          element={
+            <RoleGuard allowedGroupIds={[3]}>
+              <PTLayout />
+            </RoleGuard>
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<PTDashboard />} />
 
