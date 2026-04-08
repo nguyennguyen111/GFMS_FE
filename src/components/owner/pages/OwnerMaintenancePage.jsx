@@ -10,6 +10,7 @@ import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import { ownerGetEquipments, ownerGetEquipmentDetail } from "../../../services/ownerEquipmentService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
@@ -205,7 +206,13 @@ export default function OwnerMaintenancePage() {
   };
 
   const doCancel = async () => {
-    if (!window.confirm("Hủy yêu cầu bảo trì này?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận hủy",
+      message: "Hủy yêu cầu bảo trì này?",
+      confirmText: "Xác nhận",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     try {
       await ownerCancelMaintenance(selectedId);
       setSelectedId(null);

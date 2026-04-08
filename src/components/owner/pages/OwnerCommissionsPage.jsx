@@ -329,7 +329,7 @@ const OwnerCommissionsPage = () => {
 
       const trainerBreakdown = (prev.trainers || []).map((t) => ({
         trainerId: t.trainerId,
-        username: t.username || `PT #${t.trainerId}`,
+        username: t.username || `Huấn luyện viên #${t.trainerId}`,
         email: t.email || "",
         sessions: t.sessions,
         amountLabel: formatMoney(t.amount),
@@ -398,7 +398,7 @@ const OwnerCommissionsPage = () => {
 
       const trainer = trainers.find((t) => Number(t.id) === Number(trainerId));
       const gym = gyms.find((g) => Number(g.id) === Number(gymId));
-      const username = trainer?.User?.username || `PT #${trainerId}`;
+      const username = trainer?.User?.username || `Huấn luyện viên #${trainerId}`;
       const email = trainer?.User?.email || "";
 
       setDialog({
@@ -530,13 +530,13 @@ const OwnerCommissionsPage = () => {
     <div className="owner-commissions-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Doanh thu từ PT</h1>
+          <h1 className="page-title">Doanh thu từ huấn luyện viên</h1>
           {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
         </div>
       </div>
 
       <div className="commissions-header">
-        <div className="section-title">Doanh thu theo buổi từ PT</div>
+        <div className="section-title">Doanh thu theo buổi từ huấn luyện viên</div>
         <div className="commissions-filters">
           <select
             className="filter-select"

@@ -1,6 +1,7 @@
 import "./App.css";
 import React, { useEffect } from "react";
 import AppToastHost from "./components/common/AppToastHost";
+import AppDialogHost from "./components/common/AppDialogHost";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import LandingPage from "./components/pages/LandingPage";
@@ -98,6 +99,7 @@ function App() {
     <Router>
       <ScrollToTop />
       <AppToastHost />
+      <AppDialogHost />
       <Routes>
         {/* ===== PUBLIC SIGNING ===== */}
         <Route path="/sign-contract" element={<SignContractPage />} />

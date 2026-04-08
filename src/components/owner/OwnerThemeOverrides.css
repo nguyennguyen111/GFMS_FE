@@ -39,6 +39,10 @@
 .owner-app .od2-content .ofr-title,
 .owner-app .od2-content .ots-title,
 .owner-app .od2-content .queue-title,
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title,
 .owner-app .od2-content [class$="-head"] h2 {
 	color: var(--owner-text) !important;
 }
@@ -49,6 +53,21 @@
 .owner-app .od2-content .ov-hint,
 .owner-app .od2-content [class$="-head"] p {
 	color: var(--owner-muted) !important;
+}
+
+/* Hide subtitle text lines under page headers only */
+.owner-app .od2-content .page-subtitle,
+.owner-app .od2-content .op-sub,
+.owner-app .od2-content .op2-sub,
+.owner-app .od2-content .oma-sub,
+.owner-app .od2-content .ots-subtitle,
+.owner-app .od2-content .ots-availability-panel__subtitle,
+.owner-app .od2-content .oeq-head p,
+.owner-app .od2-content .oinv-head p,
+.owner-app .od2-content .otrf-head p,
+.owner-app .od2-content .owner-purchase-subtitle,
+.owner-app .od2-content .mh-sub.mn-desc {
+	display: none !important;
 }
 
 .owner-app .od2-content .page-header,
@@ -370,12 +389,27 @@
 .owner-app .od2-content .ots-title,
 .owner-app .od2-content .op2-title,
 .owner-app .od2-content .ofr-title,
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title,
 .owner-app .od2-content .owner-request-approval .od2-h1 {
 	background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 52%, #b8dc00 100%) !important;
 	-webkit-background-clip: text !important;
 	background-clip: text !important;
 	-webkit-text-fill-color: transparent !important;
 	color: transparent !important;
+}
+
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title {
+	font-size: 32px !important;
+	line-height: 1.18 !important;
+	font-weight: 900 !important;
+	letter-spacing: -0.01em !important;
+	margin: 0 !important;
 }
 
 .owner-app .od2-content .info-card.highlight,
@@ -539,4 +573,137 @@
 .owner-app .od2-content .owner-bookings-page .pagination-btn:hover:not(:disabled) {
 	background: linear-gradient(90deg, rgba(214, 255, 0, 0.35), rgba(184, 220, 0, 0.2)) !important;
 	transform: translateY(-2px) !important;
+}
+
+/* ===============================
+   Owner unified layout (all pages)
+   =============================== */
+.owner-app .od2-content > * {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.owner-app .od2-content [class*="table-container"],
+.owner-app .od2-content [class*="table-wrapper"],
+.owner-app .od2-content [class*="table-wrap"] {
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(180deg, rgba(15, 18, 24, 0.98), rgba(12, 15, 21, 0.97)) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36) !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.owner-app .od2-content [class*="-page"],
+.owner-app .od2-content [class*="container"],
+.owner-app .od2-content [class*="panel"],
+.owner-app .od2-content [class*="grid"],
+.owner-app .od2-content [class*="layout"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.owner-app .od2-content img,
+.owner-app .od2-content video,
+.owner-app .od2-content canvas,
+.owner-app .od2-content svg {
+  max-width: 100%;
+}
+
+.owner-app .od2-content table thead tr {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.owner-app .od2-content table thead th {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+}
+
+.owner-app .od2-content table tbody tr {
+  background: transparent !important;
+  transition: background-color 0.16s ease;
+}
+
+.owner-app .od2-content table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.owner-app .od2-content table tbody td {
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.owner-app .od2-content [class*="status-badge"],
+.owner-app .od2-content [class*="badge"] {
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+}
+
+.owner-app .od2-content [class*="status-active"],
+.owner-app .od2-content [class*="badge-active"],
+.owner-app .od2-content [class*="status-approved"],
+.owner-app .od2-content [class*="badge-approved"] {
+  color: #d6ff00 !important;
+  border-color: rgba(214, 255, 0, 0.3) !important;
+  background: rgba(214, 255, 0, 0.1) !important;
+}
+
+.owner-app .od2-content [class*="status-inactive"],
+.owner-app .od2-content [class*="badge-rejected"],
+.owner-app .od2-content [class*="status-rejected"],
+.owner-app .od2-content [class*="status-cancelled"] {
+  color: #ff7b5a !important;
+  border-color: rgba(255, 123, 90, 0.3) !important;
+  background: rgba(255, 123, 90, 0.12) !important;
+}
+
+.owner-app .od2-content [class*="pagination"],
+.owner-app .od2-content .pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.owner-app .od2-content [class*="pagination"] button,
+.owner-app .od2-content .pagination-controls button,
+.owner-app .od2-content .obp-pagination-btn,
+.owner-app .od2-content .pagination-btn {
+  min-width: 32px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.owner-app .od2-content [class*="pagination"] button.active,
+.owner-app .od2-content .pagination-controls button.active,
+.owner-app .od2-content .obp-pagination-btn.active,
+.owner-app .od2-content .pagination-btn.active {
+  border-color: rgba(214, 255, 0, 0.52) !important;
+  background: linear-gradient(180deg, rgba(214, 255, 0, 0.34), rgba(184, 220, 0, 0.26)) !important;
+  color: #1f2a00 !important;
+}
+
+.owner-app .od2-content [class*="pagination"] button:disabled,
+.owner-app .od2-content .pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

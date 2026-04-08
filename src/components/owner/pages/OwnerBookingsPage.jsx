@@ -8,6 +8,7 @@ import { approveRequest, rejectRequest, getRequests } from "../../../services/ow
 import { specializationToVietnamese } from "../../../utils/specializationI18n";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 // Import CSS
 import "./OwnerBookingsPage.css";
@@ -140,7 +141,7 @@ const OwnerBookingsPage = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "approval" ? "approval" : "management");
 
-  // --- PT Management State (Giữ nguyên từ file 1) ---
+  // --- Huấn luyện viên Management State (Giữ nguyên từ file 1) ---
   const [trainers, setTrainers] = useState([]);
   const [filters, setFilters] = useState({ q: "", gymId: selectedGymId ? String(selectedGymId) : "" });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
@@ -166,11 +167,16 @@ const OwnerBookingsPage = () => {
   // --- Approval State (Giữ nguyên từ file 2) ---
   const [requests, setRequests] = useState([]);
   const [loadingReq, setLoadingReq] = useState(true);
-  const [requestPagination, setRequestPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [requestPagination, setRequestPagination] = useState({ page: 1, limit: 5, total: 0, totalPages: 1 });
   const [showRequestDetailModal, setShowRequestDetailModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const latestRequestTotalRef = useRef(0);
   const [rejectModal, setRejectModal] = useState({ open: false, requestId: null, reason: "" });
+  const [internalAssignModal, setInternalAssignModal] = useState({
+    open: false,
+    request: null,
+    selectedTrainerId: null,
+  });
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -227,7 +233,7 @@ const OwnerBookingsPage = () => {
     return s.slice(0, 5);
   };
 
-  // --- Effect & Logic PT Management ---
+  // --- Effect & Logic Huấn luyện viên Management ---
   useEffect(() => {
     loadGyms();
     loadTrainers();
@@ -453,7 +459,13 @@ const OwnerBookingsPage = () => {
       } catch (error) { console.error(error); }
     }
 
-    if (!window.confirm(`Bạn có chắc muốn ${action} huấn luyện viên "${trainer.User?.username}"?`)) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận thao tác",
+      message: `Bạn có chắc muốn ${action} huấn luyện viên "${trainer.User?.username}"?`,
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
 
     try {
       const response = await ownerTrainerService.toggleTrainerStatus(trainer.id);
@@ -479,7 +491,7 @@ const OwnerBookingsPage = () => {
       const filteredData = selectedGymId
         ? nextData.filter((request) => getRequestGymIds(request).includes(Number(selectedGymId)))
         : nextData;
-      const nextPagination = response.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 };
+      const nextPagination = response.pagination || { page: 1, limit: 5, total: 0, totalPages: 1 };
       const hasNewIncomingRequest =
         latestRequestTotalRef.current > 0 && Number(nextPagination.total) > Number(latestRequestTotalRef.current);
 
@@ -524,6 +536,21 @@ const OwnerBookingsPage = () => {
 
   const handleApprove = async (requestId, options = {}, requestRow = null) => {
     try {
+      if (String(options?.assignmentMode || "") === "internal_first" && requestRow) {
+        const candidates = Array.isArray(requestRow?.requestData?.internalReplacementCandidates)
+          ? requestRow.requestData.internalReplacementCandidates
+          : [];
+        const defaultCandidateId =
+          Number(requestRow?.requestData?.internalReplacementTrainerId || 0)
+          || Number(candidates?.[0]?.id || 0)
+          || null;
+        setInternalAssignModal({
+          open: true,
+          request: requestRow,
+          selectedTrainerId: defaultCandidateId,
+        });
+        return;
+      }
       if (String(options?.assignmentMode || "") === "borrow_only") {
         const requestData = requestRow?.requestData || {};
         const query = new URLSearchParams({
@@ -572,6 +599,23 @@ const OwnerBookingsPage = () => {
   const handleCloseRequestDetail = () => {
     setShowRequestDetailModal(false);
     setSelectedRequest(null);
+  };
+
+  const confirmInternalAssign = async () => {
+    const requestId = Number(internalAssignModal?.request?.id || 0);
+    if (!requestId) return;
+    try {
+      const selectedTrainerId = Number(internalAssignModal?.selectedTrainerId || 0);
+      await approveRequest(requestId, "Approved by Gym Owner", {
+        assignmentMode: "internal_first",
+        selectedTrainerId: selectedTrainerId > 0 ? selectedTrainerId : undefined,
+      });
+      setInternalAssignModal({ open: false, request: null, selectedTrainerId: null });
+      await fetchRequests(requestPagination.page);
+    } catch (error) {
+      console.error(error);
+      alert(extractErrorMessage(error, "Không thể duyệt yêu cầu này."));
+    }
   };
 
   return (
@@ -724,13 +768,13 @@ const OwnerBookingsPage = () => {
                                         className="btn-approve"
                                         onClick={() => handleApprove(request.id, { assignmentMode: "internal_first" }, request)}
                                       >
-                                        Duyệt & xếp PT nội bộ
+                                        Duyệt & xếp huấn luyện viên nội bộ
                                       </button>
                                       <button
                                         className="btn-approve"
                                         onClick={() => handleApprove(request.id, { assignmentMode: "borrow_only" }, request)}
                                       >
-                                        Duyệt & chuyển sang mượn PT
+                                        Duyệt & chuyển sang mượn huấn luyện viên
                                       </button>
                                     </>
                                   ) : (
@@ -779,7 +823,7 @@ const OwnerBookingsPage = () => {
                   <textarea
                     value={rejectModal.reason}
                     onChange={(e) => setRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
-                    placeholder="Nhập lý do từ chối để PT nắm rõ..."
+                    placeholder="Nhập lý do từ chối để huấn luyện viên nắm rõ..."
                     rows={4}
                   />
                   <div className="owner-request-modal__actions">
@@ -797,11 +841,117 @@ const OwnerBookingsPage = () => {
                 </div>
               </div>
             ) : null}
+
+            {internalAssignModal.open ? (
+              <div
+                className="owner-request-modal__backdrop"
+                onClick={() => setInternalAssignModal({ open: false, request: null, selectedTrainerId: null })}
+              >
+                <div className="owner-request-modal__card obp-internal-assign-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Bảng xếp lịch huấn luyện viên nội bộ</h3>
+                  <div className="obp-internal-assign-grid">
+                    <div className="obp-internal-assign-row">
+                      <span>Huấn luyện viên báo bận</span>
+                      <b>{internalAssignModal?.request?.requesterUsername || "N/A"}</b>
+                    </div>
+                    <div className="obp-internal-assign-row obp-internal-assign-row--column">
+                      <span>Chọn huấn luyện viên nội bộ</span>
+                      {Array.isArray(internalAssignModal?.request?.requestData?.internalReplacementCandidates)
+                      && internalAssignModal.request.requestData.internalReplacementCandidates.length > 0 ? (
+                        <select
+                          className="obp-internal-assign-select"
+                          value={String(internalAssignModal?.selectedTrainerId || "")}
+                          onChange={(e) =>
+                            setInternalAssignModal((prev) => ({
+                              ...prev,
+                              selectedTrainerId: Number(e.target.value || 0) || null,
+                            }))
+                          }
+                        >
+                          {internalAssignModal.request.requestData.internalReplacementCandidates.map((candidate) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {(candidate?.name || `Huấn luyện viên #${candidate?.id}`)}
+                              {candidate?.specialization ? ` - ${specializationToVietnamese(candidate.specialization)}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <b>Chưa có</b>
+                      )}
+                    </div>
+                    <div className="obp-internal-assign-row">
+                      <span>Hội viên</span>
+                      <b>
+                        {internalAssignModal?.request?.requestData?.memberName
+                          || (internalAssignModal?.request?.requestData?.memberId
+                            ? `Hội viên #${internalAssignModal.request.requestData.memberId}`
+                            : "N/A")}
+                      </b>
+                    </div>
+                    <div className="obp-internal-assign-row">
+                      <span>Ngày mượn</span>
+                      <b>{internalAssignModal?.request?.requestData?.bookingDate || "N/A"}</b>
+                    </div>
+                    <div className="obp-internal-assign-row">
+                      <span>Khung giờ</span>
+                      <b>
+                        {toHm(internalAssignModal?.request?.requestData?.startTime) && toHm(internalAssignModal?.request?.requestData?.endTime)
+                          ? `${toHm(internalAssignModal.request.requestData.startTime)} - ${toHm(internalAssignModal.request.requestData.endTime)}`
+                          : "N/A"}
+                      </b>
+                    </div>
+                    <div className="obp-internal-assign-row">
+                      <span>Phòng tập</span>
+                      <b>
+                        {internalAssignModal?.request?.requestData?.gymName
+                          || getGymNameById(internalAssignModal?.request?.requestData?.gymId)
+                          || (internalAssignModal?.request?.requestData?.gymId
+                            ? `Phòng tập #${internalAssignModal.request.requestData.gymId}`
+                            : "N/A")}
+                      </b>
+                    </div>
+                  </div>
+                  {!internalAssignModal?.request?.requestData?.internalReplacementAvailable ? (
+                    <div className="obp-internal-assign-warning">
+                      Hiện chưa có huấn luyện viên nội bộ phù hợp. Bạn có thể chọn chuyển sang mượn huấn luyện viên.
+                    </div>
+                  ) : null}
+                  <div className="owner-request-modal__actions">
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      onClick={() => setInternalAssignModal({ open: false, request: null, selectedTrainerId: null })}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-approve"
+                      onClick={async () => {
+                        const req = internalAssignModal?.request;
+                        setInternalAssignModal({ open: false, request: null, selectedTrainerId: null });
+                        await handleApprove(req?.id, { assignmentMode: "borrow_only" }, req);
+                      }}
+                    >
+                      Chuyển sang mượn huấn luyện viên
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-confirm"
+                      onClick={confirmInternalAssign}
+                      disabled={!internalAssignModal?.request?.requestData?.internalReplacementAvailable}
+                    >
+                      Xác nhận xếp huấn luyện viên nội bộ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
 
-      {/* --- RENDER CÁC MODALS PT MANAGEMENT (Giữ nguyên logic) --- */}
+      {/* --- RENDER CÁC MODALS HUẤN LUYỆN VIÊN MANAGEMENT (Giữ nguyên logic) --- */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={handleCloseCreateModal}>
           <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
@@ -1021,7 +1171,7 @@ const OwnerBookingsPage = () => {
 
               {String(selectedRequest?.requestType || "").toUpperCase() === "BECOME_TRAINER" ? (
                 <div className="detail-section">
-                  <h3 className="detail-section-title">Thông tin ứng tuyển PT</h3>
+                  <h3 className="detail-section-title">Thông tin ứng tuyển huấn luyện viên</h3>
                   <div className="detail-item detail-item--block">
                     <span className="detail-label">Phòng gym:</span>
                     <span className="detail-value">
@@ -1135,7 +1285,7 @@ const OwnerBookingsPage = () => {
         </div>
       )}
 
- {/* Modal Chi tiết PT */}
+ {/* Modal Chi tiết huấn luyện viên */}
       {showDetailModal && trainerDetail && (
         <div className="modal-overlay" onClick={handleCloseDetailModal}>
           <div className="modal-content trainer-detail-modal" onClick={(e) => e.stopPropagation()}>

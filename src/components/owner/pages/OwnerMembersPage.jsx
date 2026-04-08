@@ -4,6 +4,8 @@ import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import "./OwnerMembersPage.css";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppToast } from "../../../utils/appToast";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 const OwnerMembersPage = () => {
   const { selectedGymId, selectedGymName } = useSelectedGym();
@@ -15,6 +17,20 @@ const OwnerMembersPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const notify = useCallback((message, type = "info", title = "Thông báo") => {
+    showAppToast({ message: String(message || ""), type, title });
+  }, []);
+
+  const confirmAction = useCallback(async (message) => {
+    const result = await showAppConfirm({
+      title: "Xác nhận thao tác",
+      message: String(message || ""),
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+    });
+    return Boolean(result?.confirmed);
+  }, []);
+
   const [availableUsers, setAvailableUsers] = useState([]);
   const [newMember, setNewMember] = useState({ targetUserId: "", gymId: "" });
   const [editMember, setEditMember] = useState({ id: "", gymId: "", status: "active" });
@@ -100,7 +116,7 @@ const OwnerMembersPage = () => {
       setShowCreateModal(true);
     } catch (error) {
       console.error("Lỗi khi load danh sách users:", error);
-      alert(error.response?.data?.message || "Không thể tải danh sách users");
+      notify(error.response?.data?.message || "Không thể tải danh sách users", "error", "Không thành công");
     }
   }, [selectedGymId]);
 
@@ -112,36 +128,34 @@ const OwnerMembersPage = () => {
   const handleCreateMember = useCallback(async (e) => {
     e.preventDefault();
     if (!newMember.targetUserId || !newMember.gymId) {
-      alert("Vui lòng chọn user và phòng tập");
+      notify("Vui lòng chọn user và phòng tập", "error", "Thiếu dữ liệu");
       return;
     }
 
     try {
       await ownerMemberService.createMember(newMember);
-      alert("Tạo hội viên thành công!");
+      notify("Tạo hội viên thành công!", "success", "Thành công");
       handleCloseCreateModal();
       // Reset về trang 1 và reload
       loadMembers(1);
     } catch (error) {
       console.error("Lỗi khi tạo hội viên:", error);
-      alert(error.response?.data?.message || "Tạo hội viên thất bại");
+      notify(error.response?.data?.message || "Tạo hội viên thất bại", "error", "Không thành công");
     }
   }, [newMember, handleCloseCreateModal, loadMembers]);
 
   const handleDeleteMember = useCallback(async (id, username) => {
-    if (!window.confirm(`Xác nhận xóa hội viên "${username}"? Hành động này không thể hoàn tác.`)) {
-      return;
-    }
-
+    const confirmed = await confirmAction(`Xác nhận xóa hội viên "${username}"? Hành động này không thể hoàn tác.`);
+    if (!confirmed) return;
     try {
       await ownerMemberService.deleteMember(id);
-      alert("Đã xóa hội viên thành công!");
+      notify("Đã xóa hội viên thành công!", "success", "Thành công");
       loadMembers(1);
     } catch (error) {
       console.error("Lỗi khi xóa hội viên:", error);
-      alert(error.response?.data?.message || "Xóa hội viên thất bại");
+      notify(error.response?.data?.message || "Xóa hội viên thất bại", "error", "Không thành công");
     }
-  }, [loadMembers]);
+  }, [confirmAction, loadMembers, notify]);
 
   const handleRemoveMemberPackages = useCallback(async (member) => {
     if (!member?.id) return;
@@ -151,27 +165,23 @@ const OwnerMembersPage = () => {
       : 0;
 
     if (activePackages === 0) {
-      alert("Hội viên hiện không có gói đang hoạt động.");
+      notify("Hội viên hiện không có gói đang hoạt động.", "info", "Thông tin");
       return;
     }
 
     const memberName = member.User?.username || "hội viên";
-    const confirmed = window.confirm(
-      `Xác nhận xóa ${activePackages} gói đang hoạt động của "${memberName}"?`
-    );
-
+    const confirmed = await confirmAction(`Xác nhận xóa ${activePackages} gói đang hoạt động của "${memberName}"?`);
     if (!confirmed) return;
-
     try {
       await ownerMemberService.updateMember(member.id, { currentPackageId: null });
-      alert("Đã xóa gói thành công. Bạn có thể xóa hội viên nếu không còn booking.");
+      notify("Đã xóa gói thành công. Bạn có thể xóa hội viên nếu không còn booking.", "success", "Thành công");
       await loadMembers(pagination.page);
       await handleViewDetail(member.id);
     } catch (error) {
       console.error("Lỗi khi xóa gói của hội viên:", error);
-      alert(error.response?.data?.message || "Xóa gói thất bại");
+      notify(error.response?.data?.message || "Xóa gói thất bại", "error", "Không thành công");
     }
-  }, [handleViewDetail, loadMembers, pagination.page]);
+  }, [confirmAction, handleViewDetail, loadMembers, notify, pagination.page]);
 
   const handleOpenEditModal = useCallback((member) => {
     setEditMember({
@@ -195,12 +205,12 @@ const OwnerMembersPage = () => {
         gymId: editMember.gymId,
         status: editMember.status,
       });
-      alert("Cập nhật hội viên thành công!");
+      notify("Cập nhật hội viên thành công!", "success", "Thành công");
       handleCloseEditModal();
       loadMembers(pagination.page);
     } catch (error) {
       console.error("Lỗi khi cập nhật hội viên:", error);
-      alert(error.response?.data?.message || "Cập nhật hội viên thất bại");
+      notify(error.response?.data?.message || "Cập nhật hội viên thất bại", "error", "Không thành công");
     }
   }, [editMember, handleCloseEditModal, loadMembers, pagination.page]);
 
@@ -208,26 +218,18 @@ const OwnerMembersPage = () => {
     const isActivating = member.status !== "active";
     const action = isActivating ? "hoạt động" : "ngừng hoạt động";
 
-    if (!window.confirm(`Bạn có chắc muốn ${action} hội viên "${member.User?.username}"?`)) {
-      return;
-    }
-
+    const confirmed = await confirmAction(`Bạn có chắc muốn ${action} hội viên "${member.User?.username}"?`);
+    if (!confirmed) return;
     try {
       const response = await ownerMemberService.toggleMemberStatus(member.id);
-      alert(response.message || `Đã ${action} hội viên thành công!`);
-      
-      // Close detail modal if open
-      if (showModal) {
-        handleCloseModal();
-      }
-      
-      // Reload members to update status
+      notify(response.message || `Đã ${action} hội viên thành công!`, "success", "Thành công");
+      if (showModal) handleCloseModal();
       await loadMembers(pagination.page);
     } catch (error) {
       console.error(`Lỗi khi ${action} hội viên:`, error);
-      alert(error.response?.data?.message || `Lỗi khi ${action} hội viên`);
+      notify(error.response?.data?.message || `Lỗi khi ${action} hội viên`, "error", "Không thành công");
     }
-  }, [showModal, handleCloseModal, loadMembers, pagination.page]);
+  }, [confirmAction, showModal, handleCloseModal, loadMembers, notify, pagination.page]);
 
   const getStatusText = (status) => {
     const statusMap = {

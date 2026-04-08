@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "../member/member-pages.css";
 import "./OwnerDashboard.css";
@@ -28,11 +28,27 @@ import OwnerReviewsPage from "./pages/OwnerReviewsPage";
 import OwnerNotificationsPage from "./pages/OwnerNotificationsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
 import useSelectedGym from "../../hooks/useSelectedGym";
+import { showAppToast } from "../../utils/appToast";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const { selectedGymName } = useSelectedGym();
+
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message) => {
+      showAppToast({
+        type: "info",
+        title: "Thông báo",
+        message: String(message || ""),
+      });
+    };
+
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
@@ -68,7 +84,7 @@ export default function OwnerDashboard() {
       title: "Tài chính",
       items: [
         { label: "Giao dịch", to: "/owner/transactions", key: "transactions", },
-        { label: "Doanh thu từ PT", to: "/owner/commissions", key: "commissions",  },
+        { label: "Doanh thu từ huấn luyện viên", to: "/owner/commissions", key: "commissions",  },
         { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals",  },
       ],
     },
