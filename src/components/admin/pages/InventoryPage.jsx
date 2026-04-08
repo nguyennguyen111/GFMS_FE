@@ -18,7 +18,34 @@ export default function InventoryPage() {
     try {
       const res = await getStocks({ q: search || undefined });
       const data = res?.data?.data ?? res?.data ?? [];
-      setItems(Array.isArray(data) ? data : data.items ?? []);
+      const rows = Array.isArray(data) ? data : data.items ?? [];
+      const grouped = Object.values(
+        rows.reduce((acc, row) => {
+          const equipmentId = Number(row.equipmentId || row.equipment?.id || 0);
+          const key = equipmentId || `code:${row.equipmentCode || row.equipment?.code || row.id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              key,
+              equipmentName: row.equipment?.name || row.equipmentName || "-",
+              equipmentCode: row.equipment?.code || row.equipmentCode || "-",
+              quantity: 0,
+              availableQuantity: 0,
+              reservedQuantity: 0,
+              damagedQuantity: 0,
+              maintenanceQuantity: 0,
+              minStockLevel: row.minStockLevel ?? "-",
+              reorderPoint: row.reorderPoint ?? "-",
+            };
+          }
+          acc[key].quantity += Number(row.quantity || 0);
+          acc[key].availableQuantity += Number(row.availableQuantity || 0);
+          acc[key].reservedQuantity += Number(row.reservedQuantity || 0);
+          acc[key].damagedQuantity += Number(row.damagedQuantity || 0);
+          acc[key].maintenanceQuantity += Number(row.maintenanceQuantity || 0);
+          return acc;
+        }, {})
+      );
+      setItems(grouped);
     } catch (e) {
       setErr(e?.response?.data?.message || e.message || "Load failed");
     } finally {
@@ -57,27 +84,25 @@ export default function InventoryPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Gym</th>
               <th>Thiết bị</th>
               <th>Mã</th>
-              <th>Quantity</th>
-              <th>Available</th>
-              <th>Reserved</th>
-              <th>Damaged</th>
-              <th>Maintenance</th>
-              <th>Min</th>
-              <th>Reorder</th>
+              <th>Số lượng</th>
+              <th>Khả dụng</th>
+              <th>Giữ chỗ</th>
+              <th>Hỏng</th>
+              <th>Bảo trì</th>
+              <th>Tồn tối thiểu</th>
+              <th>Điểm đặt lại</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td className="empty" colSpan={10}>Không có dữ liệu</td></tr>
+              <tr><td className="empty" colSpan={9}>Không có dữ liệu</td></tr>
             ) : (
               items.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.gym?.name || r.gymName || r.gymId}</td>
-                  <td>{r.equipment?.name || r.equipmentName || "-"}</td>
-                  <td>{r.equipment?.code || r.equipmentCode || "-"}</td>
+                <tr key={r.key}>
+                  <td>{r.equipmentName || "-"}</td>
+                  <td>{r.equipmentCode || "-"}</td>
                   <td>{r.quantity ?? 0}</td>
                   <td>{r.availableQuantity ?? 0}</td>
                   <td>{r.reservedQuantity ?? 0}</td>

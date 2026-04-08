@@ -5,6 +5,7 @@ import axios from "../../../setup/axios";
 import {
   createEquipment,
   discontinueEquipment,
+  getSuppliers,
   getEquipmentCategories,
   getEquipments,
   updateEquipment,
@@ -14,17 +15,17 @@ import {
   setPrimaryEquipmentImage,
   deleteEquipmentImage,
 } from "../../../services/equipmentSupplierInventoryService";
+import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
 
 const emptyForm = {
   name: "",
   code: "",
   description: "",
   categoryId: "",
-  brand: "",
-  model: "",
-  unit: "piece",
-  minStockLevel: 0,
-  maxStockLevel: 0,
+  unit: "VND",
+  price: 0,
+  quantity: 0,
+  preferredSupplierId: "",
   status: "active",
 };
 
@@ -34,6 +35,7 @@ export default function EquipmentPage() {
 
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // filters
   const [q, setQ] = useState("");
@@ -60,11 +62,12 @@ export default function EquipmentPage() {
     setLoading(true);
     setErr("");
     try {
-      const [catRes] = await Promise.all([getEquipmentCategories()]);
+      const [catRes, supRes] = await Promise.all([getEquipmentCategories(), getSuppliers({ page: 1, limit: 500, status: "active" })]);
       setCategories(catRes?.data?.data ?? catRes?.data ?? []);
+      setSuppliers(supRes?.data?.data ?? supRes?.data ?? []);
       await fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Load init failed");
+      setErr(e?.response?.data?.message || e?.message || "Tải dữ liệu ban đầu thất bại");
     } finally {
       setLoading(false);
     }
@@ -86,7 +89,7 @@ export default function EquipmentPage() {
       const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
       setItems(normalized);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Load failed");
+      setErr(e?.response?.data?.message || e?.message || "Tải danh sách thất bại");
     } finally {
       setLoading(false);
     }
@@ -115,11 +118,10 @@ export default function EquipmentPage() {
       code: row.code ?? "",
       description: row.description ?? "",
       categoryId: row.categoryId ? String(row.categoryId) : "",
-      brand: row.brand ?? "",
-      model: row.model ?? "",
-      unit: row.unit ?? "piece",
-      minStockLevel: Number(row.minStockLevel ?? 0),
-      maxStockLevel: Number(row.maxStockLevel ?? 0),
+      unit: "VND",
+      price: Number(row.price ?? 0),
+      quantity: 0,
+      preferredSupplierId: row.preferredSupplierId ? String(row.preferredSupplierId) : "",
       status: row.status ?? "active",
     });
     setErr("");
@@ -139,11 +141,12 @@ export default function EquipmentPage() {
         code: form.code?.trim() || null,
         description: form.description?.trim() || null,
         categoryId: form.categoryId ? Number(form.categoryId) : null,
-        brand: form.brand?.trim() || null,
-        model: form.model?.trim() || null,
-        unit: form.unit?.trim() || "piece",
-        minStockLevel: Number(form.minStockLevel ?? 0) || 0,
-        maxStockLevel: Number(form.maxStockLevel ?? 0) || 0,
+        preferredSupplierId: form.preferredSupplierId ? Number(form.preferredSupplierId) : null,
+        unit: "VND",
+        price: Number(form.price ?? 0) || 0,
+        quantity: Number(form.quantity ?? 0) || 0,
+        minStockLevel: 0,
+        maxStockLevel: 0,
         status: form.status === "discontinued" ? "discontinued" : "active",
       };
 
@@ -152,13 +155,16 @@ export default function EquipmentPage() {
         return;
       }
 
-      if (mode === "create") await createEquipment(payload);
-      else await updateEquipment(editingId, payload);
+      if (mode === "create") {
+        await createEquipment(payload);
+      } else {
+        await updateEquipment(editingId, payload);
+      }
 
       closeModal();
       fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Save failed");
+      setErr(e?.response?.data?.message || e?.message || "Lưu thất bại");
     }
   };
 
@@ -206,7 +212,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Master data thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
+            Danh mục thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
           </div>
         </div>
 
@@ -232,15 +238,15 @@ export default function EquipmentPage() {
           <option value="all">Tất cả danh mục</option>
           {(categories || []).map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} {c.code ? `(${c.code})` : ""}
+              {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
             </option>
           ))}
         </select>
 
         <select className="eq-select" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
-          <option value="active">Active</option>
-          <option value="discontinued">Discontinued</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="discontinued">Ngừng sử dụng</option>
         </select>
 
         <button className="eq-btn" onClick={onSearch} disabled={loading}>
@@ -260,8 +266,7 @@ export default function EquipmentPage() {
               <th>Tên</th>
               <th>Danh mục</th>
               <th>Đơn vị</th>
-              <th>Min</th>
-              <th>Max</th>
+              <th>Giá bán</th>
               <th>Trạng thái</th>
               <th style={{ width: 320 }}>Hành động</th>
             </tr>
@@ -270,13 +275,16 @@ export default function EquipmentPage() {
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td className="eq-empty" colSpan={10}>
+                <td className="eq-empty" colSpan={9}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
               visibleItems.map((row) => {
-                const cat = row.categoryName || catMap.get(Number(row.categoryId))?.name || "-";
+                const catObj = catMap.get(Number(row.categoryId));
+                const catRawName = row.categoryName || catObj?.name || "";
+                const catRawCode = catObj?.code || "";
+                const cat = translateEquipmentCategoryName(catRawName, catRawCode) || "-";
                 const isActive = row.status === "active";
                 return (
                   <tr key={row.id}>
@@ -290,7 +298,7 @@ export default function EquipmentPage() {
                           alt={row.name}
                         />
                       ) : (
-                        <div className="eq-thumb placeholder">No Image</div>
+                        <div className="eq-thumb placeholder">Chưa có ảnh</div>
                       )}
                     </td>
 
@@ -305,11 +313,10 @@ export default function EquipmentPage() {
                     </td>
                     <td>{cat}</td>
                     <td>{row.unit || "-"}</td>
-                    <td>{row.minStockLevel ?? 0}</td>
-                    <td>{row.maxStockLevel ?? 0}</td>
+                    <td>{Number(row.price || 0).toLocaleString("vi-VN")} đ</td>
                     <td>
                       <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
-                        {isActive ? "Active" : "Discontinued"}
+                        {isActive ? "Đang hoạt động" : "Ngừng sử dụng"}
                       </span>
                     </td>
                     <td className="eq-actions">
@@ -395,7 +402,7 @@ export default function EquipmentPage() {
                     <option value="">-- Chọn --</option>
                     {(categories || []).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} {c.code ? `(${c.code})` : ""}
+                        {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
                       </option>
                     ))}
                   </select>
@@ -403,32 +410,47 @@ export default function EquipmentPage() {
 
                 <label className="eq-field">
                   <span className="eq-label">Đơn vị</span>
+                  <input className="eq-input" value="VND" readOnly />
+                </label>
+
+                <label className="eq-field">
+                  <span className="eq-label">Giá bán (VNĐ)</span>
                   <input
                     className="eq-input"
-                    value={form.unit}
-                    onChange={(e) => setForm((s) => ({ ...s, unit: e.target.value }))}
-                    placeholder="VD: piece / set"
+                    type="number"
+                    min="0"
+                    value={form.price}
+                    onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
+                    placeholder="VD: 25000000"
                   />
                 </label>
 
                 <label className="eq-field">
-                  <span className="eq-label">Brand</span>
+                  <span className="eq-label">Số lượng</span>
                   <input
                     className="eq-input"
-                    value={form.brand}
-                    onChange={(e) => setForm((s) => ({ ...s, brand: e.target.value }))}
-                    placeholder="VD: Life Fitness"
+                    type="number"
+                    min="0"
+                    value={form.quantity}
+                    onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
+                    placeholder="VD: 10"
                   />
                 </label>
 
-                <label className="eq-field">
-                  <span className="eq-label">Model</span>
-                  <input
-                    className="eq-input"
-                    value={form.model}
-                    onChange={(e) => setForm((s) => ({ ...s, model: e.target.value }))}
-                    placeholder="VD: T5"
-                  />
+                <label className="eq-field eq-col2">
+                  <span className="eq-label">Nhà cung cấp</span>
+                  <select
+                    className="eq-select"
+                    value={form.preferredSupplierId}
+                    onChange={(e) => setForm((s) => ({ ...s, preferredSupplierId: e.target.value }))}
+                  >
+                    <option value="">-- Chọn nhà cung cấp --</option>
+                    {(suppliers || []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.code ? `(${s.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="eq-field eq-col2">
@@ -438,29 +460,7 @@ export default function EquipmentPage() {
                     rows={3}
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                    placeholder="VD: High-end commercial treadmill..."
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Min stock</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.minStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Max stock</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.maxStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
+                    placeholder="VD: Thiết bị cao cấp cho phòng gym..."
                   />
                 </label>
 
@@ -471,11 +471,11 @@ export default function EquipmentPage() {
                     value={form.status}
                     onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
                   >
-                    <option value="active">active</option>
-                    <option value="discontinued">discontinued</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="discontinued">Ngừng sử dụng</option>
                   </select>
                   <div className="eq-hint">
-                    * Discontinued: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
+                    * Ngừng sử dụng: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
                   </div>
                 </label>
               </div>
@@ -528,7 +528,7 @@ export default function EquipmentPage() {
                       setGallery(res?.data?.data ?? res?.data ?? []);
                       await fetchList(); // để refresh ảnh đại diện ngoài bảng
                     } catch (err2) {
-                      alert(err2?.response?.data?.message || err2?.message || "Upload failed");
+                      alert(err2?.response?.data?.message || err2?.message || "Tải ảnh lên thất bại");
                     } finally {
                       setUploading(false);
                       e.target.value = "";
@@ -546,7 +546,7 @@ export default function EquipmentPage() {
                     <div key={img.id} className={`eq-card-img ${img.isPrimary ? "primary" : ""}`}>
                       <img src={absUrl(img.url)} alt={img.altText || "equipment"} />
 
-                      {img.isPrimary ? <div className="eq-badge2">Primary</div> : null}
+                      {img.isPrimary ? <div className="eq-badge2">Ảnh đại diện</div> : null}
 
                       <div className="eq-img-actions">
                         {!img.isPrimary ? (
@@ -561,8 +561,8 @@ export default function EquipmentPage() {
                               } catch (err3) {
                                 alert(
                                   err3?.response?.data?.message ||
-                                    err3?.message ||
-                                    "Set primary failed"
+                                  err3?.message ||
+                                    "Đặt ảnh đại diện thất bại"
                                 );
                               }
                             }}
@@ -586,7 +586,7 @@ export default function EquipmentPage() {
                               alert(
                                 err4?.response?.data?.message ||
                                   err4?.message ||
-                                  "Delete image failed"
+                                  "Xoá ảnh thất bại"
                               );
                             }
                           }}

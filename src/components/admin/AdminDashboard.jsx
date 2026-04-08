@@ -38,11 +38,7 @@ export default function AdminDashboard() {
       { section: "Thiết bị & Kho" },
       { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
-      {
-        label: "Mua sắm (yêu cầu → báo giá → PO → nhận hàng → TT)",
-        to: "/admin/purchase-workflow",
-        key: "purchase-workflow",
-      },
+      { label: "Yêu cầu bán thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
       { label: "Tồn kho", to: "/admin/stocks", key: "stocks" },
       { label: "Nhật ký kho", to: "/admin/inventory-logs", key: "invlogs" },
 
