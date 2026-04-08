@@ -245,14 +245,14 @@ export default function OwnerPackagesPage() {
           .map((trainer) => trainer?.User?.username)
           .filter(Boolean);
 
-        setDetailTrainerName(names.length > 0 ? names.join(", ") : `Co ${trainers.length} PT phu hop`);
+        setDetailTrainerName(names.length > 0 ? names.join(", ") : `Có ${trainers.length} huấn luyện viên phù hợp`);
       } catch {
         setDetailTrainerName("—");
       }
       return;
     }
 
-    setDetailTrainerName(`PT #${pkg.trainerId}`);
+    setDetailTrainerName(`Huấn luyện viên #${pkg.trainerId}`);
 
     try {
       const detailRes = await ownerTrainerService.getTrainerDetail(pkg.trainerId);
@@ -275,7 +275,7 @@ export default function OwnerPackagesPage() {
         setDetailTrainerName(matchedTrainer.User.username);
       }
     } catch {
-      // Keep fallback PT #id if lookup fails.
+      // Keep fallback trainer id if lookup fails.
     }
   };
 
@@ -557,7 +557,7 @@ export default function OwnerPackagesPage() {
                   className="op-input"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="VD: Gói PT 12 buổi"
+                  placeholder="VD: Gói huấn luyện viên 12 buổi"
                 />
               </div>
 
@@ -682,7 +682,7 @@ export default function OwnerPackagesPage() {
                                     {isSelected ? '☑' : '☐'}
                                   </span>
                                   <span className="op-trainer-text">
-                                    <strong>{trainer?.User?.username || `PT #${trainer.id}`}</strong>
+                                    <strong>{trainer?.User?.username || `Huấn luyện viên #${trainer.id}`}</strong>
                                     {trainer?.User?.phone ? ` • ${trainer.User.phone}` : ""}
                                   </span>
                                 </button>

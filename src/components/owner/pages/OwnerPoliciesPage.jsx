@@ -10,6 +10,7 @@ import {
 } from "../../../services/ownerPolicyService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 // ===== helpers =====
 const toISO = (d) => (d ? String(d).slice(0, 10) : "");
@@ -276,7 +277,13 @@ export default function OwnerPoliciesPage() {
       alert("System policy không xoá ở Owner.");
       return;
     }
-    if (!window.confirm(`Xoá policy #${p.id}?`)) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xóa policy",
+      message: `Xoá policy #${p.id}?`,
+      confirmText: "Xóa",
+      cancelText: "Hủy",
+    });
+    if (!confirmResult.confirmed) return;
 
     try {
       await ownerDeletePolicy(p.id);
