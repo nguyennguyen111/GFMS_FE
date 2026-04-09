@@ -489,7 +489,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 3000;
   padding: 14px;
   animation: fadeIn 0.2s ease;
 }
@@ -507,13 +507,15 @@
 
 .ots-modal__content {
   position: relative;
-  background: linear-gradient(145deg, rgba(25, 32, 48, 0.98) 0%, rgba(18, 24, 38, 0.98) 100%);
-  border: 1px solid rgba(214, 255, 0, 0.22);
-  border-radius: 16px;
-  box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(214, 255, 0, 0.1);
-  max-width: 760px;
+  background:
+    radial-gradient(120% 120% at 10% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
+    linear-gradient(170deg, rgba(12, 12, 12, 0.98) 0%, rgba(8, 8, 8, 0.99) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  max-width: 740px;
   width: 100%;
-  max-height: 86vh;
+  max-height: 78vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
 }
@@ -533,27 +535,30 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 18px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(214, 255, 0, 0.08) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
 }
 
 .ots-modal__header h2 {
   font-size: 18px;
-  font-weight: 900;
-  background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 52%, #b8dc00 100%);
+  font-weight: 800;
+  background: linear-gradient(135deg, #f2ffb5 0%, #d8ff55 55%, #b7ec22 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
   letter-spacing: -0.01em;
+  min-width: 0;
+  max-width: calc(100% - 52px);
+  overflow-wrap: anywhere;
 }
 
 .ots-modal__close {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 20px;
+  color: #e8ffad;
   cursor: pointer;
   line-height: 1;
   padding: 0;
@@ -568,33 +573,34 @@
 }
 
 .ots-modal__close:hover {
-  background: rgba(255, 80, 80, 0.14);
-  border-color: rgba(255, 80, 80, 0.28);
-  color: #fff;
-  transform: rotate(90deg);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.36);
+  color: #f6ffd8;
+  transform: translateY(-1px);
 }
 
 /* Form */
 .ots-form {
-  padding: 18px;
+  padding: 12px 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ots-field {
   margin-bottom: 0;
-  padding: 12px 14px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  padding: 10px 10px 11px;
+  background: linear-gradient(145deg, rgba(20, 20, 20, 0.92), rgba(14, 14, 14, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  border-radius: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .ots-field:focus-within {
-  border-color: rgba(214, 255, 0, 0.38);
+  border-color: rgba(214, 255, 0, 0.36);
   box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.1);
-  background: linear-gradient(145deg, rgba(214, 255, 0, 0.08), rgba(214, 255, 0, 0.03));
+  background: linear-gradient(145deg, rgba(24, 24, 24, 0.95), rgba(16, 16, 16, 0.95));
 }
 
 .ots-field__label {
@@ -602,7 +608,7 @@
   margin-bottom: 7px;
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(233, 255, 178, 0.94);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -614,7 +620,7 @@
 
 .ots-field__hint {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(222, 240, 170, 0.68);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -632,10 +638,11 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 10px 12px;
-  background: rgba(6, 12, 24, 0.9);
+  min-height: 40px;
+  padding: 8px 10px;
+  background: linear-gradient(145deg, rgba(9, 9, 9, 0.96), rgba(5, 5, 5, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #fff;
+  color: #efffcb;
   border-radius: 12px;
   font-size: 14px;
   font-family: inherit;
@@ -650,7 +657,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   color-scheme: dark;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d6ff00'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d8ff55'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;
@@ -658,23 +665,23 @@
 }
 
 .ots-select option {
-  background: rgba(10, 15, 25, 0.98);
-  color: #fff;
+  background: #101605;
+  color: #f1ffd1;
   padding: 10px;
   font-weight: 500;
 }
 
 .ots-input::placeholder,
 .ots-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(219, 238, 170, 0.45);
 }
 
 .ots-input:focus,
 .ots-select:focus,
 .ots-textarea:focus {
-  background: rgba(8, 14, 28, 0.98);
-  border-color: rgba(214, 255, 0, 0.52);
-  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.14), 0 8px 24px rgba(214, 255, 0, 0.08);
+  background: linear-gradient(145deg, rgba(14, 14, 14, 0.98), rgba(8, 8, 8, 0.98));
+  border-color: rgba(214, 255, 0, 0.5);
+  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.12), 0 8px 22px rgba(214, 255, 0, 0.06);
 }
 
 .ots-input:disabled,
@@ -725,7 +732,7 @@
 
 .ots-textarea {
   resize: vertical;
-  min-height: 96px;
+  min-height: 74px;
   line-height: 1.5;
 }
 
@@ -893,7 +900,7 @@
 
 .ots-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   width: 100%;
@@ -918,12 +925,46 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 16px;
-  padding: 14px 18px;
-  margin: 0 -18px -18px;
-  background: rgba(0, 0, 0, 0.25);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0 0 16px 16px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  margin: 0 -12px -12px;
+  background: linear-gradient(180deg, rgba(12, 12, 12, 0.8), rgba(7, 7, 7, 0.94));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 0 20px 20px;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  backdrop-filter: blur(6px);
+}
+
+.ots-form__actions .ots-btn {
+  min-width: 116px;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.ots-form__actions .ots-btn--secondary {
+  background: rgba(33, 40, 12, 0.65);
+  border-color: rgba(190, 236, 40, 0.22);
+  color: #d9ef9b;
+}
+
+.ots-form__actions .ots-btn--secondary:hover {
+  background: rgba(44, 53, 16, 0.8);
+  border-color: rgba(190, 236, 40, 0.35);
+}
+
+.ots-form__actions .ots-btn--primary {
+  background: linear-gradient(135deg, #d8ff55 0%, #b7ec22 100%);
+  border-color: rgba(216, 255, 85, 0.65);
+  color: #1f2b06;
+  font-weight: 800;
+}
+
+.ots-form__actions .ots-btn--primary:hover {
+  background: linear-gradient(135deg, #e7ff88 0%, #c8f53a 100%);
+  border-color: rgba(231, 255, 136, 0.8);
 }
 
 /* Responsive */
