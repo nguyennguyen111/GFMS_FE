@@ -124,9 +124,7 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
       >
         <Bell size={18} />
         {notifications.unreadCount > 0 ? (
-          <span className="ohn-badge">
-            {notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}
-          </span>
+          <span className="ohn-badge" />
         ) : null}
       </button>
 

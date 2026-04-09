@@ -138,15 +138,21 @@ export default function OwnerDashboard() {
             <div key={sec.title} className="od2-section">
               {!collapsed && <div className="od2-secTitle">{sec.title}</div>}
               {sec.items.map((item) => (
+                (() => {
+                  const fallbackGlyph = String(item.label || "").trim().charAt(0).toUpperCase();
+                  const navIcon = item.icon || (collapsed ? fallbackGlyph : null);
+                  return (
                 <NavLink
                   key={item.key}
                   to={item.to}
                   className={({ isActive }) => `od2-item ${isActive ? "is-active" : ""}`}
                 >
-                  <span className="od2-ico" aria-hidden>{item.icon}</span>
+                  {navIcon ? <span className="od2-ico" aria-hidden>{navIcon}</span> : null}
                   {!collapsed && <span className="od2-label">{item.label}</span>}
                   {!collapsed && <span className="od2-pillDot" />}
                 </NavLink>
+                  );
+                })()
               ))}
             </div>
           ))}
@@ -161,16 +167,6 @@ export default function OwnerDashboard() {
       </aside>
 
       <main className="od2-main">
-        {collapsed && (
-          <button
-            className="od2-menuFab"
-            onClick={() => setCollapsed(false)}
-            title="Mở menu"
-            aria-label="Mở menu"
-          >
-            ☰
-          </button>
-        )}
         <div className="od2-content">
           <div className="od2-branchBanner">
             <span className="od2-branchBanner__label">Chi nhánh đang quản lý</span>
