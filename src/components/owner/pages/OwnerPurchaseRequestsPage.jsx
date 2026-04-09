@@ -141,9 +141,10 @@ export default function OwnerPurchaseRequestsPage() {
 
         return {
           ...row,
-          equipment: firstItem?.equipment || null,
-          quantity: firstItem?.quantity ?? null,
+          equipment: row.equipment || firstItem?.equipment || null,
+          quantity: row.quantity ?? firstItem?.quantity ?? null,
           reasonCode: reasonFromNote || null,
+          fulfillmentPlan: detail?.fulfillmentPlan || row?.fulfillmentPlan || null,
         };
       });
 
@@ -459,11 +460,10 @@ export default function OwnerPurchaseRequestsPage() {
           className="owner-purchase-filter-select"
         >
           <option value="">Tất cả trạng thái</option>
-          <option value="pending">Chờ admin</option>
-          <option value="quoted">Đã báo giá</option>
-          <option value="approved">Đã duyệt</option>
+          <option value="submitted">Đã gửi</option>
           <option value="rejected">Từ chối</option>
           <option value="converted">Đã tạo báo giá</option>
+          <option value="fulfilled_from_stock">Đã cấp từ kho</option>
         </select>
         <select
           value={filters.gymId}
@@ -492,6 +492,8 @@ export default function OwnerPurchaseRequestsPage() {
               <th>Thiết bị</th>
               <th>SL</th>
               <th>Lý do</th>
+              <th>Cấp từ kho</th>
+              <th>Cần mua</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
@@ -499,13 +501,13 @@ export default function OwnerPurchaseRequestsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="owner-purchase-empty">
+                <td colSpan={9} className="owner-purchase-empty">
                   Đang tải…
                 </td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="owner-purchase-empty">
+                <td colSpan={9} className="owner-purchase-empty">
                   Chưa có yêu cầu.
                 </td>
               </tr>
@@ -517,6 +519,8 @@ export default function OwnerPurchaseRequestsPage() {
                   <td>{r.equipment?.name}</td>
                   <td>{r.quantity}</td>
                   <td>{reasonLabelMap[r.reasonCode] || "—"}</td>
+                  <td>{r.issueQty ?? r.fulfillmentPlan?.issueQty ?? r.fulfillmentPlan?.stockUsedQuantity ?? "—"}</td>
+                  <td>{r.purchaseQty ?? r.fulfillmentPlan?.purchaseQty ?? r.fulfillmentPlan?.purchaseQuantity ?? "—"}</td>
                   <td>
                     <span className={`owner-purchase-status status-${r.status || "pending"}`}>
                       {statusLabel[r.status] || r.status}

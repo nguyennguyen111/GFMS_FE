@@ -118,7 +118,7 @@
 	outline: none;
 }
 
-.owner-app .od2-content button,
+.owner-app .od2-content button:not(.ofr-dropItem),
 .owner-app .od2-content .op-btn,
 .owner-app .od2-content .op2-btn,
 .owner-app .od2-content .ofr-btn,
@@ -133,7 +133,7 @@
 	border-radius: var(--owner-radius-sm) !important;
 }
 
-.owner-app .od2-content button:hover,
+.owner-app .od2-content button:not(.ofr-dropItem):hover,
 .owner-app .od2-content .op-btn:hover,
 .owner-app .od2-content .op2-btn:hover,
 .owner-app .od2-content .ofr-btn:hover,

@@ -6,6 +6,13 @@
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
 }
 
+/* Nhúng trong khung admin — tránh nền/vh trùng lặp */
+.fr-page--enterprise {
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+}
+
 .fr-header {
   display: flex;
   align-items: flex-end;
@@ -530,4 +537,251 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* ========== Enterprise shell: summary, toolbar, table, pagination ========== */
+.fr-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 138, 0, 0.06), rgba(255, 255, 255, 0.03));
+}
+
+.fr-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.fr-summary__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.fr-summary__value {
+  font-size: 20px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.fr-toolbar--enterprise {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 20px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1024px) {
+  .fr-toolbar--enterprise {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fr-toolbar__right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  align-items: flex-end;
+}
+
+.fr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.fr-field--narrow {
+  min-width: 88px;
+}
+
+.fr-fieldLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.fr-fieldHint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(238, 242, 255, 0.45);
+}
+
+.fr-card--enterprise {
+  border-radius: 20px;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.fr-empty--loading {
+  padding: 48px 24px;
+  text-align: center;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.fr-table--enterprise {
+  min-width: 920px;
+}
+
+.fr-table--enterprise th,
+.fr-table--enterprise td {
+  padding: 11px 10px;
+  font-size: 13px;
+}
+
+.fr-th--id,
+.fr-table--enterprise td:first-child {
+  width: 72px;
+}
+
+.fr-th--num {
+  width: 112px;
+  text-align: right;
+}
+
+.fr-table--enterprise td:nth-child(5) {
+  text-align: right;
+}
+
+.fr-th--status {
+  width: 128px;
+}
+
+.fr-th--contract {
+  min-width: 200px;
+  width: 240px;
+}
+
+.fr-th--gym {
+  width: 72px;
+  text-align: center;
+}
+
+.fr-table--enterprise td:nth-child(8) {
+  text-align: center;
+}
+
+.fr-th--actions {
+  width: 280px;
+  min-width: 260px;
+}
+
+.fr-th--hideSm,
+.fr-td--hideSm {
+  max-width: 180px;
+}
+
+@media (max-width: 1200px) {
+  .fr-th--hideSm,
+  .fr-td--hideSm {
+    display: none;
+  }
+}
+
+.fr-btn--sm {
+  padding: 7px 10px;
+  border-radius: 11px;
+  font-size: 11px;
+}
+
+.fr-btnRow--enterprise {
+  gap: 6px;
+  max-width: 100%;
+}
+
+.fr-done--inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 170, 0.35);
+  background: rgba(0, 255, 170, 0.08);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.fr-stepper--compact {
+  gap: 6px;
+}
+
+.fr-stepper--compact .fr-step {
+  gap: 5px;
+}
+
+.fr-stepper--compact .fr-dot {
+  width: 7px;
+  height: 7px;
+}
+
+.fr-stepper--compact .fr-stepLabel {
+  font-size: 10px;
+}
+
+.fr-stepper--compact .fr-line {
+  width: 14px;
+}
+
+.fr-menu--wide {
+  width: min(280px, 86vw);
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
+
+.fr-menuHeading {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(238, 242, 255, 0.45);
+}
+
+.fr-menuHeading:not(:first-child) {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+}
+
+.fr-paginationBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.fr-paginationBar__info {
+  font-size: 13px;
+  color: rgba(238, 242, 255, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.fr-paginationBar__info strong {
+  color: #eef2ff;
+}
+
+.fr-paginationBar__dot {
+  margin: 0 8px;
+  opacity: 0.45;
+}
+
+.fr-paginationBar__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

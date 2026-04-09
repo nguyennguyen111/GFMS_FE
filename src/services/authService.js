@@ -1,39 +1,22 @@
 // src/services/authService.js
 import axios from "../setup/axios";
+import { clearAuthSession, getAccessToken, setAuthSession } from "./authSession";
+import { disconnectSocket } from "./socketClient";
 
 export const registerNewUser = (email, phone, username, password) => {
   return axios.post("/auth/register", { email, phone, username, password });
 };
 
-export const loginUser = async (email, password) => {
-  const res = await axios.post("/auth/login", { email, password });
+/** Chỉ gọi API; LoginPage (hoặc nơi khác) tự lưu session sau khi EC === 0 */
+export const loginUser = (email, password, rememberMe = false) =>
+  axios.post("/auth/login", { email, password, rememberMe });
 
-  const data = res?.data;
-  if (!data || data.EC !== 0) return res; // login fail
+/** Google Identity: gửi ID token (JWT) lên BE /auth/google — không tự ghi localStorage; LoginPage xử lý giống login thường */
+export const loginWithGoogle = (credential, rememberMe = false) =>
+  axios.post("/auth/google", { credential, rememberMe });
 
-  const DT = data.DT || {};
-  const accessToken = DT.accessToken;
-  const user = DT.user;
-  const roles = DT.roles;
-
-  // ✅ lưu token đúng key Header đang đọc
-  if (accessToken) localStorage.setItem("accessToken", accessToken);
-
-  // ✅ lưu user
-  if (user) localStorage.setItem("user", JSON.stringify(user));
-
-  // ✅ resolve role (ưu tiên roles, fallback groupId)
-  const role = resolveRole(roles, user);
-  localStorage.setItem("role", role);
-
-  // ✅ username để hiển thị trên header
-  localStorage.setItem("username", user?.username || user?.email || "Tài khoản");
-
-  // ✅ báo cho Header cập nhật ngay
-  window.dispatchEvent(new Event("authChanged"));
-
-  return res;
-};
+export const refreshAuthToken = () => axios.post("/auth/refresh");
+export const getCurrentUserProfile = () => axios.get("/auth/me");
 
 export const forgotPassword = (email) => {
   return axios.post("/auth/forgot-password", { email });
@@ -49,14 +32,68 @@ export const resetPassword = (email, otp, newPassword) => {
 };
 
 export const logoutUser = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("user");
-  localStorage.removeItem("role");
-  localStorage.removeItem("username");
-  window.dispatchEvent(new Event("authChanged"));
+  return axios
+    .post("/auth/logout")
+    .catch(() => null)
+    .finally(() => {
+      disconnectSocket();
+      clearAuthSession();
+    });
 };
 
-function resolveRole(roles, user) {
+export const applyAuthPayload = (dt, options = {}) => {
+  const user = dt?.user || null;
+  const roles = dt?.roles || [];
+  const role = resolveRole(roles, user || {});
+  const accessToken = dt?.accessToken || options?.fallbackToken || "";
+  if (!user || !accessToken) return false;
+  setAuthSession({ token: accessToken, user, roles, role });
+  return true;
+};
+
+const withTimeout = (promise, timeoutMs = 8000) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Auth bootstrap timeout")), timeoutMs);
+    }),
+  ]);
+
+let bootstrapInFlight = null;
+
+const runBootstrapAuthSession = async () => {
+  const inMemoryToken = getAccessToken();
+
+  // Avoid double-refresh race on hard reload:
+  // if token is lost after F5, call refresh directly instead of /me -> 401 -> interceptor refresh.
+  if (inMemoryToken) {
+    try {
+      const meRes = await withTimeout(getCurrentUserProfile(), 8000);
+      if (applyAuthPayload(meRes?.data?.DT, { fallbackToken: inMemoryToken })) return true;
+    } catch (_) {
+      // continue refresh path
+    }
+  }
+
+  try {
+    const refreshRes = await withTimeout(refreshAuthToken(), 8000);
+    if (applyAuthPayload(refreshRes?.data?.DT)) return true;
+  } catch (_) {
+    // Keep current client session; explicit logout is responsible for clearing it.
+    return false;
+  }
+  return false;
+};
+
+export const bootstrapAuthSession = async () => {
+  if (bootstrapInFlight) return bootstrapInFlight;
+  bootstrapInFlight = runBootstrapAuthSession().finally(() => {
+    bootstrapInFlight = null;
+  });
+  return bootstrapInFlight;
+};
+
+export function resolveRole(roles, user) {
   // 1) roles dạng array object/string -> dò chữ
   if (Array.isArray(roles) && roles.length) {
     const s = JSON.stringify(roles).toLowerCase();

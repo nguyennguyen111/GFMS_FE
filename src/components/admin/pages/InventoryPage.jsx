@@ -47,7 +47,7 @@ export default function InventoryPage() {
       );
       setItems(grouped);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load failed");
+      setErr(e?.response?.data?.message || e.message || "Tải dữ liệu thất bại");
     } finally {
       setLoading(false);
     }

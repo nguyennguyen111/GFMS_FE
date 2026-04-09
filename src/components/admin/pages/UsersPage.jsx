@@ -4,8 +4,72 @@ import { getUsers, createUser, updateUser, deleteUser, getGroups } from "../../.
 
 const DEFAULT_LIMIT = 10;
 
+const USER_STATUS_VI = { active: "Hoạt động", inactive: "Ngưng", suspended: "Tạm khoá" };
+
 function safeTrim(v) {
   return (v ?? "").toString().trim();
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,32}$/;
+const PHONE_RE = /^[0-9]{10,11}$/;
+
+/** Gộp nhóm trùng tên (và trùng id) phòng BE/DB lặp — tránh dropdown dài lặp lại */
+function normalizeGroupOptions(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const byId = new Map();
+  for (const g of list) {
+    const id = Number(g.id);
+    if (!Number.isFinite(id)) continue;
+    if (!byId.has(id)) byId.set(id, g);
+  }
+  const byName = new Map();
+  for (const g of byId.values()) {
+    const key = safeTrim(g.name).toLowerCase() || `__id_${g.id}`;
+    const prev = byName.get(key);
+    if (!prev || Number(g.id) < Number(prev.id)) byName.set(key, g);
+  }
+  return Array.from(byName.values()).sort((a, b) => Number(a.id) - Number(b.id));
+}
+
+function validateCreateUserForm(form) {
+  const email = safeTrim(form.email);
+  const username = safeTrim(form.username);
+  const password = String(form.password || "");
+  const phone = safeTrim(form.phone);
+
+  if (!email) return "Email là bắt buộc.\nĐịnh dạng: ten@gmail.com (có @ và tên miền).";
+  if (!EMAIL_RE.test(email)) return "Email không đúng định dạng.\nVí dụ: user.name@gmail.com";
+  if (!username) return "Tên đăng nhập là bắt buộc.\nQuy tắc: 3–32 ký tự, chỉ chữ (a-z), số và dấu _.";
+  if (!USERNAME_RE.test(username)) {
+    return "Tên đăng nhập không hợp lệ.\nCần 3–32 ký tự: a-z, A-Z, 0-9, _. Không khoảng trắng, không ký tự đặc biệt.";
+  }
+  if (!password) return "Mật khẩu là bắt buộc khi tạo mới.\nTối thiểu 6 ký tự.";
+  if (password.length < 6) return "Mật khẩu quá ngắn.\nYêu cầu: tối thiểu 6 ký tự.";
+  if (phone && !PHONE_RE.test(phone)) {
+    return "Số điện thoại không hợp lệ.\nNếu nhập: chỉ 10–11 chữ số, không +, không khoảng trắng (vd: 0912345678).";
+  }
+  if (!form.groupId) return "Vui lòng chọn nhóm (Nhóm) cho tài khoản.";
+  return null;
+}
+
+function validateEditUserForm(form) {
+  const email = safeTrim(form.email);
+  const username = safeTrim(form.username);
+  const password = String(form.password || "");
+  const phone = safeTrim(form.phone);
+
+  if (!email) return "Email là bắt buộc.";
+  if (!EMAIL_RE.test(email)) return "Email không đúng định dạng.\nVí dụ: user@gmail.com";
+  if (!username) return "Tên đăng nhập là bắt buộc.";
+  if (!USERNAME_RE.test(username)) {
+    return "Tên đăng nhập không hợp lệ.\n3–32 ký tự: chữ/số/_";
+  }
+  if (password && password.length < 6) return "Mật khẩu mới quá ngắn (tối thiểu 6 ký tự), hoặc để trống nếu không đổi.";
+  if (phone && !PHONE_RE.test(phone)) {
+    return "Số điện thoại không hợp lệ.\n10–11 chữ số, không khoảng trắng.";
+  }
+  return null;
 }
 
 export default function UsersPage() {
@@ -42,7 +106,7 @@ export default function UsersPage() {
 
   const canSubmit = useMemo(() => {
     if (!safeTrim(form.email) || !safeTrim(form.username)) return false;
-    if (modalMode === "create" && !safeTrim(form.password)) return false;
+    if (modalMode === "create" && (!safeTrim(form.password) || !safeTrim(form.groupId))) return false;
     return true;
   }, [form, modalMode]);
 
@@ -86,7 +150,7 @@ export default function UsersPage() {
   const fetchGroups = async () => {
     try {
       const res = await getGroups();
-      setGroups(res?.data?.data || []);
+      setGroups(normalizeGroupOptions(res?.data?.data || []));
     } catch (e) {
       console.error(e);
     }
@@ -108,7 +172,7 @@ export default function UsersPage() {
       setUsers(payload.data || []);
       setMeta(payload.meta || { page: 1, limit, totalPages: 1, totalItems: 0 });
     } catch (e) {
-      setErr(e?.response?.data?.error || e.message || "Fetch users failed");
+      setErr(e?.response?.data?.error || e.message || "Tải danh sách người dùng thất bại");
     } finally {
       setLoading(false);
     }
@@ -153,6 +217,12 @@ export default function UsersPage() {
     e.preventDefault();
     if (!canSubmit) return;
 
+    const clientErr = modalMode === "create" ? validateCreateUserForm(form) : validateEditUserForm(form);
+    if (clientErr) {
+      setErr(clientErr);
+      return;
+    }
+
     setLoading(true);
     setErr("");
 
@@ -185,7 +255,13 @@ export default function UsersPage() {
         st: statusFilter
       });
     } catch (e2) {
-      setErr(e2?.response?.data?.error || e2.message || "Submit failed");
+      const apiMsg =
+        e2?.response?.data?.error ||
+        e2?.response?.data?.message ||
+        (Array.isArray(e2?.response?.data?.errors) && e2.response.data.errors.join("\n")) ||
+        e2.message ||
+        "Gửi dữ liệu thất bại";
+      setErr(String(apiMsg));
     } finally {
       setLoading(false);
     }
@@ -210,7 +286,7 @@ export default function UsersPage() {
         st: statusFilter
       });
     } catch (e) {
-      setErr(e?.response?.data?.error || e.message || "Disable failed");
+      setErr(e?.response?.data?.error || e.message || "Vô hiệu hoá thất bại");
     } finally {
       setLoading(false);
     }
@@ -231,17 +307,17 @@ export default function UsersPage() {
       <div className="up-head">
         <div>
           <h2 className="up-title">Quản lý người dùng</h2>
-          <div className="up-sub">UC-USER-13..16 • Search • Sort • Pagination • CRUD</div>
+          <div className="up-sub">Tìm kiếm • Sắp xếp • Phân trang • Thêm / sửa / vô hiệu</div>
         </div>
 
         <div className="up-actions">
           {/* ✅ NEW: status filter */}
           <div className="up-filter">
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-              <option value="suspended">suspended</option>
-              <option value="all">all</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Ngưng hoạt động</option>
+              <option value="suspended">Tạm khoá</option>
+              <option value="all">Tất cả</option>
             </select>
           </div>
 
@@ -249,7 +325,7 @@ export default function UsersPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm theo email / username / phone..."
+              placeholder="Tìm theo email / tên đăng nhập / SĐT..."
             />
           </div>
 
@@ -266,11 +342,11 @@ export default function UsersPage() {
               <tr>
                 <th onClick={() => toggleSort("id")} className="is-sort">ID {headerSortIcon("id")}</th>
                 <th onClick={() => toggleSort("email")} className="is-sort">Email {headerSortIcon("email")}</th>
-                <th onClick={() => toggleSort("username")} className="is-sort">Username {headerSortIcon("username")}</th>
+                <th onClick={() => toggleSort("username")} className="is-sort">Tên đăng nhập {headerSortIcon("username")}</th>
                 <th>Nhóm</th>
-                <th onClick={() => toggleSort("phone")} className="is-sort">Phone {headerSortIcon("phone")}</th>
-                <th onClick={() => toggleSort("status")} className="is-sort">Status {headerSortIcon("status")}</th>
-                <th onClick={() => toggleSort("createdAt")} className="is-sort">Created {headerSortIcon("createdAt")}</th>
+                <th onClick={() => toggleSort("phone")} className="is-sort">Số điện thoại {headerSortIcon("phone")}</th>
+                <th onClick={() => toggleSort("status")} className="is-sort">Trạng thái {headerSortIcon("status")}</th>
+                <th onClick={() => toggleSort("createdAt")} className="is-sort">Ngày tạo {headerSortIcon("createdAt")}</th>
                 <th className="col-actions">Thao tác</th>
               </tr>
             </thead>
@@ -291,7 +367,11 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td>{u.phone || "-"}</td>
-                  <td><span className={`up-status is-${u.status}`}>{u.status}</span></td>
+                  <td>
+                    <span className={`up-status is-${u.status}`}>
+                      {USER_STATUS_VI[u.status] || u.status}
+                    </span>
+                  </td>
                   <td>{u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}</td>
                   <td className="col-actions">
                     <button className="up-btn up-btn--ghost" onClick={() => openEdit(u)}>Sửa</button>
@@ -299,7 +379,7 @@ export default function UsersPage() {
                       className="up-btn up-btn--danger"
                       onClick={() => onDelete(u)}
                       disabled={u.status === "inactive"}
-                      title={u.status === "inactive" ? "User đã inactive" : "Vô hiệu hoá user"}
+                      title={u.status === "inactive" ? "Tài khoản đã ngưng hoạt động" : "Vô hiệu hoá tài khoản"}
                     >
                       {u.status === "inactive" ? "Đã vô hiệu" : "Vô hiệu hoá"}
                     </button>
@@ -349,9 +429,9 @@ export default function UsersPage() {
           <div className="up-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="up-modal__head">
               <div className="up-modal__title">
-                {modalMode === "create" ? "Tạo tài khoản người dùng" : "Cập nhật thông tin user"}
+                {modalMode === "create" ? "Tạo tài khoản người dùng" : "Cập nhật thông tin người dùng"}
               </div>
-              <button className="up-x" onClick={closeModal} aria-label="Close">✕</button>
+              <button className="up-x" onClick={closeModal} aria-label="Đóng">✕</button>
             </div>
 
             <form className="up-form" onSubmit={onSubmit}>
@@ -362,49 +442,53 @@ export default function UsersPage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="email@domain.com"
                 />
+                <div className="up-hint">Định dạng hợp lệ: có @ và tên miền (vd: name@gmail.com).</div>
               </div>
 
               <div className="up-row">
-                <label>Username *</label>
+                <label>Tên đăng nhập *</label>
                 <input
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="username"
+                  placeholder="tên đăng nhập"
                 />
+                <div className="up-hint">3–32 ký tự: chữ a-z, số và dấu _. Không dùng khoảng trắng.</div>
               </div>
 
               <div className="up-row">
-                <label>Password {modalMode === "create" ? "*" : "(để trống nếu không đổi)"}</label>
+                <label>Mật khẩu {modalMode === "create" ? "*" : "(để trống nếu không đổi)"}</label>
                 <input
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder={modalMode === "create" ? "mật khẩu" : "••••••••"}
                 />
+                {modalMode === "create" ? <div className="up-hint">Tối thiểu 6 ký tự.</div> : null}
               </div>
 
               <div className="up-grid2">
                 <div className="up-row">
-                  <label>Phone</label>
+                  <label>Số điện thoại</label>
                   <input
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     placeholder="0xxxxxxxxx"
                   />
+                  <div className="up-hint">Tuỳ chọn. Nếu nhập: 10–11 số, không khoảng trắng.</div>
                 </div>
 
                 <div className="up-row">
-                  <label>Sex</label>
+                  <label>Giới tính</label>
                   <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
-                    <option value="male">male</option>
-                    <option value="female">female</option>
-                    <option value="other">other</option>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
                   </select>
                 </div>
               </div>
 
               <div className="up-row">
-                <label>Address</label>
+                <label>Địa chỉ</label>
                 <input
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
@@ -414,7 +498,7 @@ export default function UsersPage() {
 
               <div className="up-grid2">
                 <div className="up-row">
-                  <label>Group</label>
+                  <label>Nhóm{modalMode === "create" ? " *" : ""}</label>
                   <select
                     value={form.groupId}
                     onChange={(e) => setForm({ ...form, groupId: e.target.value })}
@@ -424,14 +508,19 @@ export default function UsersPage() {
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
+                  <div className="up-hint">
+                    Đây là <b>nhóm người dùng</b> (bảng Group), không phải danh sách từng quyền (GroupRole).
+                    Nếu dropdown từng bị lặp Administrators/Gym Owners… nhiều lần, nguyên nhân là DB có nhiều dòng nhóm trùng tên;
+                    API và giao diện đã gộp theo tên để chỉ hiện một dòng mỗi nhóm.
+                  </div>
                 </div>
 
                 <div className="up-row">
-                  <label>Status</label>
+                  <label>Trạng thái</label>
                   <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                    <option value="active">active</option>
-                    <option value="inactive">inactive</option>
-                    <option value="suspended">suspended</option>
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Ngưng</option>
+                    <option value="suspended">Tạm khoá</option>
                   </select>
                 </div>
               </div>
