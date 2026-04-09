@@ -4,6 +4,7 @@ import { getCurrentUser } from "../utils/auth";
 import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from "../services/memberNotificationService";
 import { getOwnerNotifications, markAllOwnerNotificationsRead, markOwnerNotificationRead } from "../services/ownerNotificationService";
 import { getTrainerNotifications, markAllTrainerNotificationsRead, markTrainerNotificationRead } from "../services/trainerNotificationService";
+import { getAccessToken } from "../utils/auth";
 
 const toPositiveInt = (value) => {
   const parsed = Number(value);
@@ -67,11 +68,11 @@ export default function useRealtimeNotifications(options = {}) {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const token = getAccessToken();
   const user = getCurrentUser();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
     const api = resolveNotificationApi();
     if (!enabled || !token || !api.supported) {
       setItems([]);

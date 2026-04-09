@@ -126,14 +126,21 @@
   color: rgba(238, 242, 255, 0.5);
 }
 
-/* Table */
+/* Table: wrap scrolls horizontally; inner table stays overflow visible so action menus are not clipped */
+.ofr-tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 18px;
+}
+
 .ofr-table {
   width: 100%;
   border-collapse: collapse;
   background: rgba(15, 22, 33, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
-  overflow: hidden;
+  overflow: visible;
   font-size: 13px;
 }
 
@@ -220,6 +227,133 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.ofr-actions--enterprise {
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.ofr-rowTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ofr-rowTag--ok {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ofr-rowTag--no {
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.1);
+  color: rgba(255, 252, 252, 0.9);
+}
+
+.ofr-menuWrap {
+  position: relative;
+  z-index: 1;
+}
+
+.ofr-menuWrap--open {
+  z-index: 50;
+}
+
+.ofr-menuTrigger {
+  min-width: 108px;
+}
+
+.ofr-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 260px;
+  max-width: min(320px, 92vw);
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 14, 22, 0.96);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  z-index: 40;
+}
+
+/* Gắn vào document.body — tránh lệch vị trí trong <table> / overflow */
+.ofr-dropdown--portal {
+  position: fixed;
+  z-index: 10060;
+  max-height: min(72vh, 520px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+a.ofr-dropItem--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ofr-dropHeading {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(238, 242, 255, 0.45);
+}
+
+.ofr-dropHeading:not(:first-child) {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+}
+
+.ofr-dropItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin: 2px 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ofr-dropItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ofr-dropItem:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ofr-dropItem--danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.ofr-dropMuted {
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(238, 242, 255, 0.55);
+  font-weight: 600;
 }
 
 .ofr-text--success {

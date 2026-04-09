@@ -1,8 +1,11 @@
 import "./App.css";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import AppToastHost from "./components/common/AppToastHost";
 import AppDialogHost from "./components/common/AppDialogHost";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { bootstrapAuthSession } from "./services/authService";
+import { hydrateAuthSessionFromStorage } from "./services/authSession";
+import { getAccessToken, getCurrentUser } from "./utils/auth";
 
 import LandingPage from "./components/pages/LandingPage";
 
@@ -62,9 +65,10 @@ import SignContractPage from "./components/public/SignContractPage";
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
-    const storedUser = readStoredUser();
-    if (!storedUser) return <Navigate to="/login" replace />;
-    const groupId = Number(storedUser?.groupId ?? storedUser?.group_id);
+    const token = getAccessToken();
+    const user = getCurrentUser();
+    if (!user || !token) return <Navigate to="/login" replace />;
+    const groupId = Number(user?.groupId ?? user?.group_id);
     if (groupId !== 1) return <Navigate to="/" replace />;
     return children;
   } catch {
@@ -72,23 +76,12 @@ const AdminGuard = ({ children }) => {
   }
 };
 
-const readStoredUser = () => {
-  try {
-    const raw = localStorage.getItem("user");
-    const token = localStorage.getItem("accessToken");
-    if (!raw || !token) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.user ?? parsed;
-  } catch {
-    return null;
-  }
-};
-
 const RoleGuard = ({ allowedGroupIds = [], children }) => {
-  const user = readStoredUser();
+  const user = getCurrentUser();
+  const token = getAccessToken();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
 
-  if (!user || !groupId) return <Navigate to="/login" replace />;
+  if (!user || !token || !groupId) return <Navigate to="/login" replace />;
   if (!allowedGroupIds.includes(groupId)) return <Navigate to="/" replace />;
 
   return children;
@@ -106,6 +99,29 @@ function ScrollToTop() {
 }
 
 function App() {
+  const [authBootstrapped, setAuthBootstrapped] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    hydrateAuthSessionFromStorage();
+    bootstrapAuthSession().finally(() => {
+      if (mounted) setAuthBootstrapped(true);
+    });
+
+    const hardStop = setTimeout(() => {
+      if (mounted) setAuthBootstrapped(true);
+    }, 10000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(hardStop);
+    };
+  }, []);
+
+  if (!authBootstrapped) {
+    return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>;
+  }
+
   return (
     <Router>
       <ScrollToTop />

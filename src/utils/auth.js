@@ -1,5 +1,7 @@
+import { clearAuthSession, getAccessToken as getSessionAccessToken, getSessionUser, setAuthSession } from "../services/authSession";
+
 const USER_KEY = "user";
-const TOKEN_KEY = "accessToken";
+const TOKEN_KEY = "accessToken"; // legacy fallback (some flows stored token here)
 const EXTRA_AUTH_KEYS = ["role", "username", "roles"];
 const CHATBOT_SESSION_PREFIX = "gfms_ai_chat_session_";
 
@@ -7,24 +9,27 @@ function emitAuthChanged() {
   window.dispatchEvent(new Event("authChanged"));
 }
 
-export function getCurrentUser() {
+const safeParse = (raw) => {
   try {
-    const raw = localStorage.getItem(USER_KEY);
-    const token = localStorage.getItem(TOKEN_KEY);
-
-    if (!raw || !token) return null;
-
-    const user = JSON.parse(raw);
-    if (!user || typeof user !== "object") return null;
-
-    return user;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
-}
+};
 
 export function getAccessToken() {
-  return localStorage.getItem(TOKEN_KEY) || null;
+  return getSessionAccessToken() || localStorage.getItem(TOKEN_KEY) || null;
+}
+
+export function getCurrentUser() {
+  const token = getAccessToken();
+  const sessionUser = getSessionUser();
+  if (token && sessionUser) return sessionUser;
+
+  const raw = localStorage.getItem(USER_KEY);
+  const parsed = safeParse(raw);
+  if (!token || !parsed) return null;
+  return parsed?.user ?? parsed;
 }
 
 export function isLoggedIn() {
@@ -33,34 +38,18 @@ export function isLoggedIn() {
 
 export function setCurrentUser(user) {
   if (!user || typeof user !== "object") return;
-
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-
-  if (user.username) {
-    localStorage.setItem("username", user.username);
-  } else {
-    localStorage.removeItem("username");
-  }
-
-  if (user.role) {
-    localStorage.setItem("role", user.role);
-  } else if (user.groupId === 4) {
-    localStorage.setItem("role", "member");
-  } else {
-    localStorage.removeItem("role");
-  }
-
+  setAuthSession({ token: getAccessToken(), user });
   emitAuthChanged();
 }
 
 export function setAccessToken(token) {
   if (!token) return;
-  localStorage.setItem(TOKEN_KEY, token);
+  setAuthSession({ token, user: getCurrentUser() });
   emitAuthChanged();
 }
 
 export function clearCurrentUser() {
-  localStorage.removeItem(USER_KEY);
+  clearAuthSession();
   localStorage.removeItem(TOKEN_KEY);
   EXTRA_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
 

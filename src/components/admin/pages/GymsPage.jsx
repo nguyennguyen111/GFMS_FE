@@ -29,6 +29,12 @@ function safeTrim(v) {
 
 const normalize = (v) => safeTrim(v).toLowerCase();
 
+const GYM_STATUS_VI = {
+  active: "Hoạt động",
+  suspended: "Tạm ngưng",
+  deleted: "Đã xoá",
+};
+
 function parseOperatingHours(value) {
   if (!value) return { ...DEFAULT_HOURS };
   if (typeof value === "object") {
@@ -499,9 +505,9 @@ export default function GymsPage() {
           <div className="up-actions">
             <div className="up-filter">
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">all</option>
-                <option value="active">active</option>
-                <option value="suspended">suspended</option>
+                <option value="all">Tất cả</option>
+                <option value="active">Hoạt động</option>
+                <option value="suspended">Tạm ngưng</option>
               </select>
             </div>
 
@@ -509,7 +515,7 @@ export default function GymsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm tên/địa chỉ/email/phone..."
+                placeholder="Tìm tên / địa chỉ / email / SĐT..."
               />
             </div>
 
@@ -533,12 +539,12 @@ export default function GymsPage() {
             <table className="up-table">
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort("id")} className="is-sort">ID {headerSortIcon("id")}</th>
+                  <th onClick={() => toggleSort("id")} className="is-sort">Mã {headerSortIcon("id")}</th>
                   <th onClick={() => toggleSort("name")} className="is-sort">Phòng gym {headerSortIcon("name")}</th>
                   <th>Chủ sở hữu</th>
                   <th onClick={() => toggleSort("status")} className="is-sort">Trạng thái {headerSortIcon("status")}</th>
                   <th>Liên hệ</th>
-                  <th onClick={() => toggleSort("createdAt")} className="is-sort">Created {headerSortIcon("createdAt")}</th>
+                  <th onClick={() => toggleSort("createdAt")} className="is-sort">Ngày tạo {headerSortIcon("createdAt")}</th>
                   <th className="col-actions">Thao tác</th>
                 </tr>
               </thead>
@@ -561,12 +567,14 @@ export default function GymsPage() {
                           <div className="gp-sub">{g.owner.email || g.owner.phone || "-"}</div>
                         </div>
                       ) : g.ownerId ? (
-                        <div className="gp-sub">Owner #{g.ownerId}</div>
+                        <div className="gp-sub">Chủ sở hữu #{g.ownerId}</div>
                       ) : (
                         <div className="gp-sub">-</div>
                       )}
                     </td>
-                    <td><span className={`up-status is-${g.status}`}>{g.status || "-"}</span></td>
+                    <td>
+                      <span className={`up-status is-${g.status}`}>{GYM_STATUS_VI[g.status] || g.status || "-"}</span>
+                    </td>
                     <td>
                       <div className="gp-sub">{g.phone || "-"}</div>
                       <div className="gp-sub">{g.email || "-"}</div>
@@ -644,7 +652,7 @@ export default function GymsPage() {
             </div>
             <div className="up-grid2">
               <div className="up-row">
-                <label>Phone *</label>
+                <label>Số điện thoại *</label>
                 <input
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -662,7 +670,7 @@ export default function GymsPage() {
             </div>
             <div className="up-grid2">
               <div className="up-row">
-                <label>Owner (tuỳ chọn)</label>
+                <label>Chủ sở hữu (tuỳ chọn)</label>
                 <select
                   value={form.ownerId}
                   onChange={(e) => setForm({ ...form, ownerId: e.target.value })}
@@ -678,8 +686,8 @@ export default function GymsPage() {
               <div className="up-row">
                 <label>Trạng thái</label>
                 <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="active">active</option>
-                  <option value="suspended">suspended</option>
+                  <option value="active">Hoạt động</option>
+                  <option value="suspended">Tạm ngưng</option>
                 </select>
               </div>
             </div>
@@ -808,11 +816,11 @@ export default function GymsPage() {
                 <div className="gp-grid">
                   <div className="gp-block">
                     <div className="gp-block__title">Liên hệ</div>
-                    <div className="gp-sub">Phone: {detail.phone || "-"}</div>
+                    <div className="gp-sub">SĐT: {detail.phone || "-"}</div>
                     <div className="gp-sub">Email: {detail.email || "-"}</div>
                   </div>
                   <div className="gp-block">
-                    <div className="gp-block__title">Owner</div>
+                    <div className="gp-block__title">Chủ sở hữu</div>
                     {detail.owner ? (
                       <>
                         <div className="gp-name">{detail.owner.username}</div>

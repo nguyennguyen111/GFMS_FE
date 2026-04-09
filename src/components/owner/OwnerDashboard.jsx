@@ -26,6 +26,7 @@ import OwnerWithdrawalsPage from "./pages/OwnerWithdrawalsPage";
 import OwnerReviewsPage from "./pages/OwnerReviewsPage";
 import OwnerNotificationsPage from "./pages/OwnerNotificationsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
+import { logoutUser } from "../../services/authService";
 import useSelectedGym from "../../hooks/useSelectedGym";
 import { showAppToast } from "../../utils/appToast";
 
@@ -55,9 +56,7 @@ export default function OwnerDashboard() {
   })();
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    navigate("/login");
+    logoutUser().finally(() => navigate("/login"));
   };
 
   const sections = useMemo(() => ([
