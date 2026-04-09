@@ -1,36 +1,21 @@
-const USER_KEY = "user";
-const TOKEN_KEY = "accessToken";
+import { clearAuthSession, getAccessToken, getSessionUser, setAuthSession } from "../services/authSession";
 
 export function getCurrentUser() {
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    const token = localStorage.getItem(TOKEN_KEY);
-
-    if (!raw || !token) return null;
-
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  const user = getSessionUser();
+  const token = getAccessToken();
+  if (!user || !token) return null;
+  return user;
 }
 
 export function logout() {
-  localStorage.removeItem(USER_KEY);
-  localStorage.removeItem(TOKEN_KEY);
-
-  // 🔥 đảm bảo axios không giữ header cũ
-  if (window.axios) {
-    delete window.axios.defaults.headers.common["Authorization"];
-  }
-
-  window.dispatchEvent(new Event("authChanged"));
+  clearAuthSession();
 }
 
 export function setCurrentUser(user) {
   if (!user) return;
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  setAuthSession({ token: getAccessToken(), user });
 }
 
 export function clearCurrentUser() {
-  localStorage.removeItem(USER_KEY);
+  clearAuthSession();
 }

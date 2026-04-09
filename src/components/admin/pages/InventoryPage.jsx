@@ -20,7 +20,7 @@ export default function InventoryPage() {
       const data = res?.data?.data ?? res?.data ?? [];
       setItems(Array.isArray(data) ? data : data.items ?? []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load failed");
+      setErr(e?.response?.data?.message || e.message || "Tải dữ liệu thất bại");
     } finally {
       setLoading(false);
     }
@@ -57,34 +57,28 @@ export default function InventoryPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Gym</th>
+              <th>Phòng gym</th>
               <th>Thiết bị</th>
               <th>Mã</th>
-              <th>Quantity</th>
-              <th>Available</th>
-              <th>Reserved</th>
-              <th>Damaged</th>
-              <th>Maintenance</th>
-              <th>Min</th>
-              <th>Reorder</th>
+              <th>Tồn hiện tại</th>
+              <th>Mức tối thiểu</th>
+              <th>Thiếu cần mua</th>
+              <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td className="empty" colSpan={10}>Không có dữ liệu</td></tr>
+              <tr><td className="empty" colSpan={7}>Không có dữ liệu</td></tr>
             ) : (
               items.map((r) => (
                 <tr key={r.id}>
                   <td>{r.gym?.name || r.gymName || r.gymId}</td>
                   <td>{r.equipment?.name || r.equipmentName || "-"}</td>
                   <td>{r.equipment?.code || r.equipmentCode || "-"}</td>
-                  <td>{r.quantity ?? 0}</td>
-                  <td>{r.availableQuantity ?? 0}</td>
-                  <td>{r.reservedQuantity ?? 0}</td>
-                  <td>{r.damagedQuantity ?? 0}</td>
-                  <td>{r.maintenanceQuantity ?? 0}</td>
+                  <td>{r.currentQuantity ?? r.availableQuantity ?? r.quantity ?? 0}</td>
                   <td>{r.minStockLevel ?? "-"}</td>
-                  <td>{r.reorderPoint ?? "-"}</td>
+                  <td>{r.shortageQuantity ?? 0}</td>
+                  <td>{r.stockStatus || "-"}</td>
                 </tr>
               ))
             )}

@@ -23,6 +23,7 @@ const emptyForm = {
   brand: "",
   model: "",
   unit: "piece",
+  price: 0,
   minStockLevel: 0,
   maxStockLevel: 0,
   status: "active",
@@ -118,6 +119,7 @@ export default function EquipmentPage() {
       brand: row.brand ?? "",
       model: row.model ?? "",
       unit: row.unit ?? "piece",
+      price: Number(row.price ?? 0),
       minStockLevel: Number(row.minStockLevel ?? 0),
       maxStockLevel: Number(row.maxStockLevel ?? 0),
       status: row.status ?? "active",
@@ -142,6 +144,7 @@ export default function EquipmentPage() {
         brand: form.brand?.trim() || null,
         model: form.model?.trim() || null,
         unit: form.unit?.trim() || "piece",
+        price: Number(form.price ?? 0) || 0,
         minStockLevel: Number(form.minStockLevel ?? 0) || 0,
         maxStockLevel: Number(form.maxStockLevel ?? 0) || 0,
         status: form.status === "discontinued" ? "discontinued" : "active",
@@ -206,7 +209,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Master data thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
+            Master data thiết bị cho luồng mua sắm; tồn kho được theo dõi riêng ở màn Tồn kho
           </div>
         </div>
 
@@ -218,7 +221,7 @@ export default function EquipmentPage() {
       <div className="eq-filters">
         <input
           className="eq-input"
-          placeholder="Tìm theo tên / mã / brand / model..."
+          placeholder="Tìm theo tên / mã / hãng / model..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
@@ -254,14 +257,14 @@ export default function EquipmentPage() {
         <table className="eq-table__tbl">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Mã bản ghi</th>
               <th>Ảnh</th>
               <th>Mã</th>
               <th>Tên</th>
               <th>Danh mục</th>
               <th>Đơn vị</th>
+              <th>Giá tham chiếu</th>
               <th>Min</th>
-              <th>Max</th>
               <th>Trạng thái</th>
               <th style={{ width: 320 }}>Hành động</th>
             </tr>
@@ -305,8 +308,8 @@ export default function EquipmentPage() {
                     </td>
                     <td>{cat}</td>
                     <td>{row.unit || "-"}</td>
+                    <td>{Number(row.price || 0).toLocaleString("vi-VN")}đ</td>
                     <td>{row.minStockLevel ?? 0}</td>
-                    <td>{row.maxStockLevel ?? 0}</td>
                     <td>
                       <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
                         {isActive ? "Active" : "Discontinued"}
@@ -352,7 +355,7 @@ export default function EquipmentPage() {
                   {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
                 </div>
                 <div className="eq-modal__subtitle">
-                  Dùng để quản lý tồn kho theo gym + ghi nhật ký nhập/xuất
+                  Master data thiết bị phục vụ mua sắm; tồn kho được quản lý riêng theo gym
                 </div>
               </div>
 
@@ -371,7 +374,7 @@ export default function EquipmentPage() {
                     className="eq-input"
                     value={form.name}
                     onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="VD: Commercial Treadmill Pro"
+                    placeholder="VD: Máy chạy bộ thương mại Pro"
                   />
                 </label>
 
@@ -407,7 +410,7 @@ export default function EquipmentPage() {
                     className="eq-input"
                     value={form.unit}
                     onChange={(e) => setForm((s) => ({ ...s, unit: e.target.value }))}
-                    placeholder="VD: piece / set"
+                    placeholder="VD: chiếc / bộ"
                   />
                 </label>
 
@@ -417,7 +420,7 @@ export default function EquipmentPage() {
                     className="eq-input"
                     value={form.brand}
                     onChange={(e) => setForm((s) => ({ ...s, brand: e.target.value }))}
-                    placeholder="VD: Life Fitness"
+                    placeholder="VD: Life Fitness (hãng)"
                   />
                 </label>
 
@@ -438,7 +441,18 @@ export default function EquipmentPage() {
                     rows={3}
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                    placeholder="VD: High-end commercial treadmill..."
+                    placeholder="VD: Máy chạy bộ cao cấp cho phòng gym..."
+                  />
+                </label>
+
+                <label className="eq-field">
+                  <span className="eq-label">Giá tham chiếu (VNĐ)</span>
+                  <input
+                    className="eq-input"
+                    type="number"
+                    min="0"
+                    value={form.price}
+                    onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
                   />
                 </label>
 
@@ -450,17 +464,6 @@ export default function EquipmentPage() {
                     min="0"
                     value={form.minStockLevel}
                     onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Max stock</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.maxStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
                   />
                 </label>
 

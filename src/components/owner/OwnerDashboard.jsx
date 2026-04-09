@@ -24,6 +24,7 @@ import OwnerTransactionsPage from "./pages/OwnerTransactionsPage";
 import OwnerCommissionsPage from "./pages/OwnerCommissionsPage";
 import OwnerWithdrawalsPage from "./pages/OwnerWithdrawalsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
+import { logoutUser } from "../../services/authService";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
@@ -35,9 +36,7 @@ export default function OwnerDashboard() {
   })();
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    navigate("/login");
+    logoutUser().finally(() => navigate("/login"));
   };
 
   const sections = useMemo(() => ([
