@@ -7,14 +7,19 @@ import {
   getMyRequests,
   cancelRequest,
 } from "../../services/ptRequestService";
+import {
+  ptGetAvailableTrainerShareRequests,
+  ptClaimTrainerShareRequest,
+} from "../../services/ptTrainerShareService";
+import { connectSocket } from "../../services/socketClient";
+import NiceModal from "../common/NiceModal";
 
 import "./PTRequests.css";
 
 const REQUEST_TYPES = [
   { value: "LEAVE", label: "Nghỉ phép" },
-  { value: "SHIFT_CHANGE", label: "Đổi ca" },
-  { value: "TRANSFER_BRANCH", label: "Chuyển chi nhánh" },
   { value: "OVERTIME", label: "Tăng ca" },
+  { value: "BUSY_SLOT", label: "Báo bận khung giờ dạy" },
 ];
 
 const STATUS_OPTIONS = [
@@ -27,8 +32,6 @@ const STATUS_OPTIONS = [
 
 const emptyForms = {
   LEAVE: { fromDate: "", toDate: "", reason: "" },
-  SHIFT_CHANGE: { currentShiftId: "", targetShiftId: "", reason: "" },
-  TRANSFER_BRANCH: { toBranchId: "", expectedDate: "", reason: "" },
   OVERTIME: { date: "", fromTime: "", toTime: "", reason: "" },
 };
 
@@ -58,6 +61,7 @@ const formatDateTime = (v) => {
 };
 
 export default function PTRequests() {
+  const PAGE_SIZE = 8;
   const [activeType, setActiveType] = useState("LEAVE");
   const [forms, setForms] = useState(emptyForms);
 
@@ -68,6 +72,32 @@ export default function PTRequests() {
 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [shareRequests, setShareRequests] = useState([]);
+  const [loadingShares, setLoadingShares] = useState(false);
+  const [page, setPage] = useState(1);
+  const [modalState, setModalState] = useState(null);
+
+  const showAlert = (message, title = "Thông báo", tone = "info") => {
+    setModalState({ kind: "alert", title, message, tone });
+  };
+
+  const askConfirm = (message, title = "Xác nhận") =>
+    new Promise((resolve) => {
+      setModalState({
+        kind: "confirm",
+        title,
+        message,
+        tone: "info",
+        onConfirm: () => {
+          setModalState(null);
+          resolve(true);
+        },
+        onClose: () => {
+          setModalState(null);
+          resolve(false);
+        },
+      });
+    });
 
   const currentForm = useMemo(() => forms[activeType], [forms, activeType]);
 
@@ -88,18 +118,7 @@ export default function PTRequests() {
     if (activeType === "LEAVE") {
       if (!f.fromDate || !f.toDate) return "Vui lòng chọn ngày bắt đầu và kết thúc";
       if (f.fromDate > f.toDate) return "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc";
-      return null;
-    }
-
-    if (activeType === "SHIFT_CHANGE") {
-      if (!f.currentShiftId || !f.targetShiftId) return "Cần nhập mã ca hiện tại và ca đích";
-      if (String(f.currentShiftId) === String(f.targetShiftId)) return "Ca đích phải khác ca hiện tại";
-      return null;
-    }
-
-    if (activeType === "TRANSFER_BRANCH") {
-      if (!f.toBranchId) return "Cần nhập mã chi nhánh đích";
-      if (!f.expectedDate) return "Cần chọn ngày dự kiến";
+      if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }
 
@@ -107,6 +126,7 @@ export default function PTRequests() {
       if (!f.date) return "Cần chọn ngày";
       if (!f.fromTime || !f.toTime) return "Cần nhập giờ bắt đầu và kết thúc";
       if (f.fromTime >= f.toTime) return "Giờ bắt đầu phải trước giờ kết thúc";
+      if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }
 
@@ -118,18 +138,6 @@ export default function PTRequests() {
 
     if (activeType === "LEAVE") {
       return { reason: f.reason, data: { fromDate: f.fromDate, toDate: f.toDate } };
-    }
-    if (activeType === "SHIFT_CHANGE") {
-      return {
-        reason: f.reason,
-        data: { currentShiftId: Number(f.currentShiftId), targetShiftId: Number(f.targetShiftId) },
-      };
-    }
-    if (activeType === "TRANSFER_BRANCH") {
-      return {
-        reason: f.reason,
-        data: { toBranchId: Number(f.toBranchId), expectedDate: f.expectedDate },
-      };
     }
     return {
       reason: f.reason,
@@ -147,50 +155,94 @@ export default function PTRequests() {
 
       const normalized = normalizeListResponse(data);
       setRequests(normalized.items);
+      setPage(1);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Không tải được danh sách đơn");
+      showAlert(err?.response?.data?.message || "Không tải được danh sách đơn", "Lỗi", "danger");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchShareRequests = async () => {
+    setLoadingShares(true);
+    try {
+      const res = await ptGetAvailableTrainerShareRequests({ page: 1, limit: 20 });
+      setShareRequests(Array.isArray(res?.data?.data) ? res.data.data : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingShares(false);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchShareRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.requestType]);
+
+  const handleClaimShare = async (id) => {
+    if (!(await askConfirm("Bạn muốn nhận khung giờ này?", "Xác nhận nhận khung giờ"))) return;
+    try {
+      await ptClaimTrainerShareRequest(id);
+      showAlert("Nhận khung giờ thành công", "Thành công", "success");
+      await fetchShareRequests();
+    } catch (err) {
+      console.error(err);
+      showAlert(err?.response?.data?.message || "Không thể nhận slot", "Lỗi", "danger");
+    }
+  };
+
+  useEffect(() => {
+    const socket = connectSocket();
+    const onNewNotification = (payload) => {
+      if (String(payload?.notificationType || "").toLowerCase() !== "request_update") return;
+      fetchRequests();
+    };
+    socket.on("notification:new", onNewNotification);
+    return () => {
+      socket.off("notification:new", onNewNotification);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.requestType]);
 
   const handleSubmit = async () => {
     const errMsg = validate();
-    if (errMsg) return alert(errMsg);
+    if (errMsg) return showAlert(errMsg, "Thiếu thông tin");
 
     try {
       const payload = buildPayload();
 
       if (activeType === "LEAVE") await createLeaveRequest(payload);
-      if (activeType === "SHIFT_CHANGE") await createShiftChangeRequest(payload);
-      if (activeType === "TRANSFER_BRANCH") await createTransferBranchRequest(payload);
       if (activeType === "OVERTIME") await createOvertimeRequest(payload);
 
-      alert("Đã tạo đơn");
+      showAlert("Đã tạo đơn", "Thành công", "success");
       resetForm();
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Tạo đơn thất bại");
+      showAlert(err?.response?.data?.message || "Tạo đơn thất bại", "Lỗi", "danger");
     }
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Hủy đơn này?")) return;
+    if (!(await askConfirm("Hủy đơn này?", "Xác nhận hủy đơn"))) return;
     try {
       await cancelRequest(id);
       await fetchRequests();
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Hủy đơn thất bại");
+      showAlert(err?.response?.data?.message || "Hủy đơn thất bại", "Lỗi", "danger");
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(requests.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRequests = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return requests.slice(start, start + PAGE_SIZE);
+  }, [requests, currentPage]);
 
   return (
     <div className="ptr-wrap">
@@ -257,63 +309,10 @@ export default function PTRequests() {
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
                 <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Nhập lý do" />
               </div>
             </div>
           )}
-
-          {activeType === "SHIFT_CHANGE" && (
-            <div className="ptr-grid2">
-              <div className="ptr-field">
-                <label>Mã ca hiện tại</label>
-                <input
-                  type="number"
-                  value={currentForm.currentShiftId}
-                  onChange={(e) => updateForm("currentShiftId", e.target.value)}
-                  placeholder="Ví dụ: 12"
-                />
-              </div>
-
-              <div className="ptr-field">
-                <label>Mã ca đích</label>
-                <input
-                  type="number"
-                  value={currentForm.targetShiftId}
-                  onChange={(e) => updateForm("targetShiftId", e.target.value)}
-                  placeholder="Ví dụ: 20"
-                />
-              </div>
-
-              <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
-              </div>
-            </div>
-          )}
-
-           {activeType === "TRANSFER_BRANCH" && (
-            <div className="ptr-grid2">
-              <div className="ptr-field">
-                <label>Mã chi nhánh đích</label>
-                <input
-                  type="number"
-                  value={currentForm.toBranchId}
-                  onChange={(e) => updateForm("toBranchId", e.target.value)}
-                  placeholder="Ví dụ: 3"
-                />
-              </div>
-
-              <div className="ptr-field">
-                <label>Ngày dự kiến</label>
-                <input type="date" value={currentForm.expectedDate} onChange={(e) => updateForm("expectedDate", e.target.value)} />
-              </div>
-
-              <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
-              </div>
-            </div>
-          )} 
 
           {activeType === "OVERTIME" && (
             <div className="ptr-grid2">
@@ -334,7 +333,7 @@ export default function PTRequests() {
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
                 <label>Lý do</label>
-                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Tuỳ chọn" />
+                <textarea value={currentForm.reason} onChange={(e) => updateForm("reason", e.target.value)} placeholder="Nhập lý do" />
               </div>
             </div>
           )}
@@ -351,6 +350,45 @@ export default function PTRequests() {
       </div>
 
       {/* LIST */}
+      <div className="ptr-card" style={{ marginBottom: 14 }}>
+        <p className="ptr-subtitle">Khung giờ mượn huấn luyện viên đang mở</p>
+        <div className="ptr-divider" />
+        <div className="ptr-tablewrap">
+          <table className="ptr-table">
+            <thead>
+              <tr>
+                <th>Gym cho mượn</th>
+                <th>Gym cần huấn luyện viên</th>
+                <th>Thời gian</th>
+                <th>Ghi chú</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingShares ? (
+                <tr><td colSpan={5} className="ptr-empty">Đang tải...</td></tr>
+              ) : shareRequests.length === 0 ? (
+                <tr><td colSpan={5} className="ptr-empty">Không có khung giờ mở</td></tr>
+              ) : (
+                shareRequests.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.fromGym?.name || `Gym #${s.fromGymId}`}</td>
+                    <td>{s.toGym?.name || `Gym #${s.toGymId}`}</td>
+                    <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${s.startTime}-${s.endTime})` : ""}</td>
+                    <td title={s.notes || ""}>{s.notes || "-"}</td>
+                    <td>
+                      <button className="ptr-btn primary" onClick={() => handleClaimShare(s.id)} type="button">
+                        Nhận khung giờ
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="ptr-card">
         <p className="ptr-subtitle">Đơn của tôi</p>
         <div className="ptr-divider" />
@@ -381,7 +419,7 @@ export default function PTRequests() {
                   </td>
                 </tr>
               ) : (
-                requests.map((r) => (
+                pagedRequests.map((r) => (
                   <tr key={r.id}>
                     <td>{REQUEST_TYPES.find((x) => x.value === r.requestType)?.label || r.requestType}</td>
                     <td>
@@ -395,7 +433,7 @@ export default function PTRequests() {
                           Hủy đơn
                         </button>
                       ) : (
-                        "-"
+                        <span className="ptr-actionDone">Hoàn tất</span>
                       )}
                     </td>
                   </tr>
@@ -404,7 +442,61 @@ export default function PTRequests() {
             </tbody>
           </table>
         </div>
+        {requests.length > PAGE_SIZE ? (
+          <div className="ptr-pager">
+            <button
+              type="button"
+              className="ptr-btn"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Trang trước
+            </button>
+            <span className="ptr-pagerInfo">
+              Trang {currentPage}/{totalPages}
+            </span>
+            <button
+              type="button"
+              className="ptr-btn"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Trang sau
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      <NiceModal
+        open={Boolean(modalState)}
+        onClose={() => {
+          if (modalState?.kind === "confirm") {
+            modalState?.onClose?.();
+            return;
+          }
+          setModalState(null);
+        }}
+        tone={modalState?.tone || "info"}
+        title={modalState?.title || "Thông báo"}
+        footer={
+          modalState?.kind === "confirm" ? (
+            <>
+              <button type="button" className="nice-modal__btn nice-modal__btn--ghost" onClick={modalState?.onClose}>
+                Hủy
+              </button>
+              <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={modalState?.onConfirm}>
+                Xác nhận
+              </button>
+            </>
+          ) : (
+            <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
+              Đã hiểu
+            </button>
+          )
+        }
+      >
+        <p>{modalState?.message}</p>
+      </NiceModal>
     </div>
   );
 }

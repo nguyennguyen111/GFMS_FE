@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import "./MemberBookingPage.css";
 import { memberGetMyBookings } from "../../../services/memberBookingService";
-import { confirmPayosPayment } from "../../../services/paymentService";
 import BookingDetailModal from "./BookingDetailModal";
 
 const DAY_NAMES = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
@@ -69,7 +68,6 @@ const getMemberSessionDisplay = (booking) => {
 };
 
 export default function MemberBookingsCalendarPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -90,28 +88,6 @@ export default function MemberBookingsCalendarPage() {
     loadBookings();
   }, [loadBookings]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search || "");
-    const payosStatus = params.get("payos");
-    const orderCode = params.get("orderCode");
-
-    if (!payosStatus) return;
-
-    const runConfirm = async () => {
-      try {
-        if (payosStatus === "success" && orderCode) {
-          await confirmPayosPayment(orderCode);
-        }
-      } catch (err) {
-        console.error("Confirm PayOS failed:", err);
-      } finally {
-        await loadBookings();
-        navigate(location.pathname, { replace: true });
-      }
-    };
-
-    runConfirm();
-  }, [location.pathname, location.search, navigate, loadBookings]);
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekCursor, i));
@@ -184,9 +160,6 @@ export default function MemberBookingsCalendarPage() {
           <div className="mb-titleGroup">
             <span className="mb-kicker">Training Schedule</span>
             <h1 className="mb-title">Lịch tập trong tuần</h1>
-            <p className="mb-subtitle">
-              Theo dõi booking theo từng tuần, dễ xem và dễ quản lý lịch tập hơn.
-            </p>
           </div>
 
           <div className="mb-weekNav">
@@ -239,10 +212,6 @@ export default function MemberBookingsCalendarPage() {
             <span className="mb-summaryValue text-absent">{pad2(counts.absent)}</span>
           </div>
 
-          <div className="mb-summaryCard border-error">
-            <span className="mb-summaryLabel">Đã huỷ</span>
-            <span className="mb-summaryValue text-error">{pad2(counts.cancelled)}</span>
-          </div>
         </section>
 
         <div className="mb-rangeBar">
@@ -256,7 +225,6 @@ export default function MemberBookingsCalendarPage() {
             <span className="mb-pill is-muted">Chưa điểm danh: {counts.pending}</span>
             <span className="mb-pill is-green">Có mặt: {counts.present}</span>
             <span className="mb-pill is-absent">Vắng: {counts.absent}</span>
-            <span className="mb-pill is-red">Đã huỷ: {counts.cancelled}</span>
           </div>
         </div>
 
@@ -287,6 +255,14 @@ export default function MemberBookingsCalendarPage() {
                       const displayKey = disp.key;
                       const isActive = isToday && displayKey === "scheduled";
 
+                      const requestBadge = b?.pendingRescheduleRequest
+                        ? { text: "Đang chờ đổi lịch", cls: "pending" }
+                        : b?.latestRescheduleRequest?.status === "rejected"
+                        ? { text: "Đổi lịch bị từ chối", cls: "rejected" }
+                        : b?.isRescheduled || b?.latestRescheduleRequest?.status === "approved"
+                        ? { text: "Đã đổi lịch", cls: "approved" }
+                        : null;
+
                       return (
                         <button
                           key={b.id}
@@ -312,6 +288,8 @@ export default function MemberBookingsCalendarPage() {
                             )}
                           </div>
 
+                          {requestBadge ? <div className={`mb-sessionTag mb-sessionTag--${requestBadge.cls}`}>{requestBadge.text}</div> : null}
+
                           <div className="mb-sessionInfo">
                             <h4 className="mb-sessionTrainer">
                               {b?.Trainer?.User?.username || "PT"}
@@ -335,7 +313,7 @@ export default function MemberBookingsCalendarPage() {
         </section>
       </div>
 
-      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />}
+      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} onUpdated={async () => { await loadBookings(); setSelected(null); }} />}
     </div>
   );
 }

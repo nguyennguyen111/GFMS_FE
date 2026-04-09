@@ -1,66 +1,191 @@
-import React, { useEffect, useState } from "react";
-import { ownerGetProcurementPayments } from "../../../services/ownerPurchaseService";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ownerCreatePurchaseRequestPayOSLink,
+  ownerGetPurchaseRequests,
+  ownerGetProcurementPayments,
+} from "../../../services/ownerPurchaseService";
+import { confirmPayosPayment } from "../../../services/paymentService";
 import "../OwnerDashboard.css";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const money = (v) => Number(v || 0).toLocaleString("vi-VN") + " đ";
 const statusLabel = {
-  pending: "Chờ xử lý",
+  pending: "Đang xử lý",
   completed: "Đã ghi nhận",
   failed: "Thất bại",
   refunded: "Hoàn tiền",
   cancelled: "Đã hủy",
 };
-const phaseLabel = {
-  deposit: "Đặt cọc 30%",
-  final: "Thanh toán còn lại",
+const phaseLabel = { full: "Thanh toán toàn bộ" };
+const requestStatusLabel = {
+  approved_waiting_payment: "Đã duyệt, chờ thanh toán",
 };
 
 export default function OwnerProcurementPaymentsPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalItems: 0, limit: 10 });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [payableRequests, setPayableRequests] = useState([]);
+  const [payingId, setPayingId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const loadData = async (nextPage = page) => {
+  const loadData = useCallback(async (nextPage = page) => {
     setLoading(true);
     try {
-      const res = await ownerGetProcurementPayments({ page: nextPage, limit: 10 });
-      setRows(res?.data?.data ?? []);
-      setMeta(res?.data?.meta ?? { page: nextPage, totalPages: 1, totalItems: 0, limit: 10 });
+      const [paymentsRes, payableRes] = await Promise.all([
+        ownerGetProcurementPayments({ page: nextPage, limit: 10 }),
+        ownerGetPurchaseRequests({ page: 1, limit: 100, status: "approved_waiting_payment" }),
+      ]);
+      const data = paymentsRes?.data?.data ?? [];
+      const payable = payableRes?.data?.data ?? [];
+      const gymFilter = (id) =>
+        String(id || "") === String(selectedGymId || "");
+      setRows(
+        selectedGymId
+          ? data.filter((row) => gymFilter(row?.purchaseOrder?.gym?.id || row?.Gym?.id || row?.gymId))
+          : data
+      );
+      setPayableRequests(
+        selectedGymId
+          ? payable.filter((pr) => gymFilter(pr?.gym?.id || pr?.gymId))
+          : payable
+      );
+      setMeta(paymentsRes?.data?.meta ?? { page: nextPage, totalPages: 1, totalItems: 0, limit: 10 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, selectedGymId]);
 
   useEffect(() => {
     loadData(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [loadData, page]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadData(page);
+    },
+    events: ["notification:new"],
+    notificationTypes: ["payment"],
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payosStatus = params.get("payos");
+    const orderCode = params.get("orderCode");
+    if (payosStatus !== "success" || !orderCode) return;
+
+    (async () => {
+      try {
+        await confirmPayosPayment(orderCode);
+        await loadData(page);
+        alert("Xác nhận thanh toán PayOS thành công.");
+      } catch (e) {
+        alert(e?.response?.data?.message || e.message);
+      } finally {
+        params.delete("payos");
+        params.delete("orderCode");
+        const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+        window.history.replaceState({}, document.title, next);
+      }
+    })();
+  }, [loadData, page]);
+
+  const handlePayWithPayOS = async (requestRow) => {
+    try {
+      setPayingId(requestRow.id);
+      const res = await ownerCreatePurchaseRequestPayOSLink(requestRow.id);
+      const checkoutUrl = res?.data?.data?.checkoutUrl;
+      if (!checkoutUrl) {
+        throw new Error("Không tạo được link PayOS");
+      }
+      window.location.href = checkoutUrl;
+    } catch (e) {
+      alert(e?.response?.data?.message || e.message);
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   return (
-    <div className="od2-content" style={{ maxWidth: 1200 }}>
-      <div className="od2-h1" style={{ marginBottom: 8 }}>Thanh toán đơn mua</div>
-      <p style={{ opacity: 0.85, marginBottom: 18 }}>
-        Theo dõi tiến độ đặt cọc 30% và thanh toán phần còn lại cho từng đơn mua. Đây là phần tài chính của flow procurement, không làm tăng tồn kho trực tiếp.
-      </p>
+    <div className="od2-content">
+      <div className="od2-h1" style={{ marginBottom: 8 }}>Thanh toán thiết bị {selectedGymName ? `- ${selectedGymName}` : ""}</div>
 
-      <div style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ padding: 12, borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between" }}>
-          <b>Lịch sử thanh toán procurement</b>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginBottom: 14 }}>
+        <div style={summaryCard}>
+          <div style={summaryLabel}>Yêu cầu cần thanh toán</div>
+          <div style={summaryValue}>{payableRequests.length}</div>
+        </div>
+        <div style={summaryCard}>
+          <div style={summaryLabel}>Lịch sử giao dịch</div>
+          <div style={summaryValue}>{meta.totalItems || rows.length}</div>
+        </div>
+      </div>
+
+      <div style={panel}>
+        <div style={panelHeader}>
+          <b>Khoản cần thanh toán (PayOS)</b>
+          <span style={{ opacity: 0.75 }}>Khả dụng: {payableRequests.length}</span>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={table}>
+            <thead>
+              <tr style={theadRow}>
+                <th style={th}>Mã yêu cầu</th>
+                <th style={th}>Gym</th>
+                <th style={th}>Thiết bị</th>
+                <th style={th}>Số lượng</th>
+                <th style={th}>Trạng thái</th>
+                <th style={th}>Số tiền</th>
+                <th style={th}>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payableRequests.length === 0 ? (
+                <tr><td style={tdCenter} colSpan={7}>Không có yêu cầu nào đang chờ thanh toán</td></tr>
+              ) : payableRequests.map((pr) => (
+                <tr key={pr.id}>
+                  <td style={td}>{pr.code}</td>
+                  <td style={td}>{pr.gym?.name || "-"}</td>
+                  <td style={td}>{pr.equipment?.name || "-"}</td>
+                  <td style={td}>{Number(pr.quantity || 0)}</td>
+                  <td style={td}><span style={statusBadge(pr.status)}>{requestStatusLabel[pr.status] || pr.status}</span></td>
+                  <td style={{ ...td, fontWeight: 700 }}>{money(Number(pr.quantity || 0) * Number(pr.expectedUnitPrice || 0))}</td>
+                  <td style={td}>
+                    <button
+                      className="od2-btn"
+                      style={payButton}
+                      onClick={() => handlePayWithPayOS(pr)}
+                      disabled={payingId === pr.id}
+                    >
+                      {payingId === pr.id ? "Đang tạo link..." : "Thanh toán PayOS"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={panel}>
+        <div style={panelHeader}>
+          <b>Lịch sử thanh toán</b>
           <span style={{ opacity: 0.75 }}>Tổng bản ghi: {meta.totalItems || rows.length}</span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={table}>
             <thead>
-              <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+              <tr style={theadRow}>
                 <th style={th}>Mã GD</th>
-                <th style={th}>PO</th>
+                <th style={th}>Mã yêu cầu</th>
                 <th style={th}>Gym</th>
-                <th style={th}>NCC</th>
+                <th style={th}>Mô tả</th>
                 <th style={th}>Giai đoạn</th>
                 <th style={th}>Số tiền</th>
                 <th style={th}>Trạng thái</th>
@@ -71,16 +196,16 @@ export default function OwnerProcurementPaymentsPage() {
               {loading ? (
                 <tr><td style={tdCenter} colSpan={8}>Đang tải dữ liệu...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td style={tdCenter} colSpan={8}>Chưa có giao dịch procurement nào</td></tr>
+                <tr><td style={tdCenter} colSpan={8}>Chưa có giao dịch thanh toán nào</td></tr>
               ) : rows.map((row) => (
                 <tr key={row.id} onClick={() => { setDetail(row); setShowModal(true); }} style={{ cursor: "pointer" }}>
                   <td style={td}>{row.transactionCode || `TX-${row.id}`}</td>
-                  <td style={td}>{row.purchaseOrder?.code || `PO-${row.metadata?.purchaseOrderId || "-"}`}</td>
-                  <td style={td}>{row.purchaseOrder?.gym?.name || row.Gym?.name || "-"}</td>
-                  <td style={td}>{row.purchaseOrder?.supplier?.name || "-"}</td>
+                  <td style={td}>{row.metadata?.purchaseRequestCode || `PR-${row.metadata?.purchaseRequestId || "-"}`}</td>
+                  <td style={td}>{row.Gym?.name || "-"}</td>
+                  <td style={td}>{row.description || "-"}</td>
                   <td style={td}>{phaseLabel[row.paymentPhase] || row.paymentPhase || "-"}</td>
                   <td style={{ ...td, fontWeight: 700 }}>{money(row.amount)}</td>
-                  <td style={td}><span style={badge}>{statusLabel[row.paymentStatus] || row.paymentStatus || "-"}</span></td>
+                  <td style={td}><span style={statusBadge(row.paymentStatus)}>{statusLabel[row.paymentStatus] || row.paymentStatus || "-"}</span></td>
                   <td style={td}>{row.transactionDate ? new Date(row.transactionDate).toLocaleString("vi-VN") : "-"}</td>
                 </tr>
               ))}
@@ -101,15 +226,14 @@ export default function OwnerProcurementPaymentsPage() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Chi tiết thanh toán procurement</h3>
+              <h3>Chi tiết thanh toán</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="detail-grid">
                 <div className="detail-row"><span className="detail-label">Mã giao dịch</span><span className="detail-value">{detail.transactionCode || `TX-${detail.id}`}</span></div>
-                <div className="detail-row"><span className="detail-label">Đơn mua</span><span className="detail-value">{detail.purchaseOrder?.code || `PO-${detail.metadata?.purchaseOrderId || "-"}`}</span></div>
-                <div className="detail-row"><span className="detail-label">Gym</span><span className="detail-value">{detail.purchaseOrder?.gym?.name || detail.Gym?.name || "-"}</span></div>
-                <div className="detail-row"><span className="detail-label">Nhà cung cấp</span><span className="detail-value">{detail.purchaseOrder?.supplier?.name || "-"}</span></div>
+                  <div className="detail-row"><span className="detail-label">Yêu cầu mua</span><span className="detail-value">{detail.metadata?.purchaseRequestCode || `PR-${detail.metadata?.purchaseRequestId || "-"}`}</span></div>
+                  <div className="detail-row"><span className="detail-label">Gym</span><span className="detail-value">{detail.Gym?.name || "-"}</span></div>
                 <div className="detail-row"><span className="detail-label">Giai đoạn</span><span className="detail-value">{phaseLabel[detail.paymentPhase] || detail.paymentPhase || "-"}</span></div>
                 <div className="detail-row"><span className="detail-label">Số tiền</span><span className="detail-value">{money(detail.amount)}</span></div>
                 <div className="detail-row"><span className="detail-label">Phương thức</span><span className="detail-value">{detail.paymentMethod || "-"}</span></div>
@@ -127,4 +251,35 @@ export default function OwnerProcurementPaymentsPage() {
 const th = { padding: "12px 10px", textAlign: "left", fontSize: 13, color: "#cbd5e1", borderBottom: "1px solid rgba(255,255,255,0.08)" };
 const td = { padding: "12px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)", fontSize: 14 };
 const tdCenter = { ...td, textAlign: "center", opacity: 0.8 };
-const badge = { padding: "4px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", fontSize: 12 };
+const panel = { border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, overflow: "hidden", marginBottom: 14, background: "rgba(8, 10, 20, 0.5)" };
+const panelHeader = { padding: 12, borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)" };
+const table = { width: "100%", borderCollapse: "collapse" };
+const theadRow = { background: "rgba(255,255,255,0.04)" };
+const summaryCard = { border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: 12, background: "rgba(8, 10, 20, 0.5)" };
+const summaryLabel = { fontSize: 12, color: "#94a3b8", marginBottom: 6 };
+const summaryValue = { fontSize: 22, fontWeight: 700, color: "#f8fafc" };
+const payButton = { background: "linear-gradient(135deg,#65a30d,#84cc16)", color: "#0f172a", border: "none", fontWeight: 700 };
+const statusBadge = (type) => ({
+  padding: "4px 10px",
+  borderRadius: 999,
+  fontSize: 12,
+  border: "1px solid",
+  background:
+    String(type) === "completed"
+      ? "rgba(16,185,129,0.15)"
+      : String(type) === "pending"
+      ? "rgba(245,158,11,0.15)"
+      : "rgba(148,163,184,0.15)",
+  borderColor:
+    String(type) === "completed"
+      ? "rgba(16,185,129,0.4)"
+      : String(type) === "pending"
+      ? "rgba(245,158,11,0.4)"
+      : "rgba(148,163,184,0.35)",
+  color:
+    String(type) === "completed"
+      ? "#34d399"
+      : String(type) === "pending"
+      ? "#fbbf24"
+      : "#cbd5e1",
+});

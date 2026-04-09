@@ -3,6 +3,7 @@ import { getMyPTReviews, replyPTReview } from "../../services/ptService";
 import "./PTFeedback.css";
 
 const stars = (n) => "★".repeat(Number(n || 0)) + "☆".repeat(5 - Number(n || 0));
+const MAX_REPLY_LENGTH = 1000;
 
 const PTFeedback = () => {
   const [reviews, setReviews] = useState([]);
@@ -39,6 +40,10 @@ const PTFeedback = () => {
   const onReply = async (reviewId) => {
     const text = String(replyDraft[reviewId] || "").trim();
     if (!text) return;
+    if (text.length > MAX_REPLY_LENGTH) {
+      setError(`Phản hồi tối đa ${MAX_REPLY_LENGTH} ký tự.`);
+      return;
+    }
     try {
       setSavingId(reviewId);
       await replyPTReview(reviewId, text);
@@ -56,7 +61,6 @@ const PTFeedback = () => {
       <div className="ptp-head">
         <div>
           <h2 className="ptp-title">Đánh giá từ học viên</h2>
-          <div className="ptp-sub">Xem đánh giá của hội viên và phản hồi trực tiếp.</div>
         </div>
       </div>
 
@@ -133,6 +137,7 @@ const PTFeedback = () => {
                         rows={3}
                         placeholder={item.trainerReply ? "Cập nhật phản hồi..." : "Viết phản hồi..."}
                         value={draft}
+                        maxLength={MAX_REPLY_LENGTH}
                         onChange={(e) =>
                           setReplyDraft((prev) => ({ ...prev, [item.id]: e.target.value }))
                         }

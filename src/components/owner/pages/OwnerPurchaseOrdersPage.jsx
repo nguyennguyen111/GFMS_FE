@@ -1,100 +1,76 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./OwnerPurchaseOrdersPage.css";
-import { ownerGetPurchaseOrders, ownerGetPurchaseOrderDetail } from "../../../services/ownerPurchaseService";
-import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import { ownerGetPurchaseRequests } from "../../../services/ownerPurchaseService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
-const statusBadge = (status) => {
-  const map = {
-    draft: "Nháp",
-    approved: "Đã duyệt",
-    deposit_pending: "Chờ cọc 30%",
-    deposit_paid: "Đã cọc 30%",
-    ordered: "Đã đặt hàng",
-    partially_received: "Đã nhận một phần",
-    received: "Đã nhận đủ",
-    final_payment_pending: "Chờ thanh toán còn lại",
-    completed: "Hoàn tất",
-    cancelled: "Đã hủy",
-  };
-  return map[status] || status;
-};
+const statusBadge = (status) => ({
+  submitted: "Chờ admin duyệt",
+  approved_waiting_payment: "Đã duyệt, chờ thanh toán",
+  paid_waiting_admin_confirm: "Đã thanh toán, chờ admin xác nhận",
+  shipping: "Đang chuyển thiết bị",
+  completed: "Hoàn tất",
+  rejected: "Từ chối",
+}[status] || status);
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN") + " đ";
 
-const paymentStageLabel = {
-  not_started: "Chưa thanh toán",
-  partially_paid: "Đã ghi nhận một phần",
-  deposit_completed: "Đã đủ cọc 30%",
-  fully_paid: "Đã thanh toán đủ",
-};
-
 export default function OwnerPurchaseOrdersPage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
   const [page, setPage] = useState(1);
-  const [gyms, setGyms] = useState([]);
-  const [filters, setFilters] = useState({ q: "", status: "", gymId: "" });
-  const [appliedFilters, setAppliedFilters] = useState({ q: "", status: "", gymId: "" });
-  const [detail, setDetail] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [filters, setFilters] = useState({ q: "", status: "" });
+  const [appliedFilters, setAppliedFilters] = useState({ q: "", status: "" });
 
-  const fetchOrders = async () => {
+  useEffect(() => {
+    setPage(1);
+  }, [selectedGymId]);
+
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await ownerGetPurchaseOrders({
+      const res = await ownerGetPurchaseRequests({
         page,
         limit: 10,
         q: appliedFilters.q || undefined,
         status: appliedFilters.status || undefined,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
       });
-      setOrders(res?.data?.data ?? []);
+      const raw = res?.data?.data ?? [];
+      const flowRows = (Array.isArray(raw) ? raw : []).filter((r) =>
+        ["approved_waiting_payment", "paid_waiting_admin_confirm", "shipping", "completed"].includes(String(r.status || ""))
+      );
+      setOrders(flowRows);
       setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadGyms = async () => {
-    try {
-      const response = await ownerGetMyGyms();
-      const list = response?.data?.data ?? response?.data ?? [];
-      setGyms(Array.isArray(list) ? list : []);
-    } catch (e) {
-      setGyms([]);
-    }
-  };
-
-  const fetchDetail = async (orderId) => {
-    try {
-      const res = await ownerGetPurchaseOrderDetail(orderId);
-      setDetail(res?.data?.data);
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    }
-  };
-
-  useEffect(() => {
-    loadGyms();
-  }, []);
+  }, [appliedFilters, page, selectedGymId]);
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line
-  }, [page, appliedFilters]);
+  }, [fetchOrders]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchOrders();
+    },
+    events: ["notification:new"],
+    notificationTypes: ["purchase_request", "payment"],
+  });
 
   const filteredOrders = useMemo(() => {
-    if (!appliedFilters.gymId) return orders;
-    return orders.filter((item) => Number(item?.gym?.id) === Number(appliedFilters.gymId));
-  }, [orders, appliedFilters.gymId]);
+    return orders;
+  }, [orders]);
 
   const handleSearch = () => {
     const nextFilters = {
       q: (filters.q || "").trim(),
       status: filters.status || "",
-      gymId: filters.gymId || "",
     };
     setAppliedFilters(nextFilters);
     setPage(1);
@@ -104,8 +80,7 @@ export default function OwnerPurchaseOrdersPage() {
     <div className="opo-page">
       <div className="opo-head">
         <div>
-          <h2>Đơn mua hàng</h2>
-          <p>Theo dõi PO theo chuẩn procurement: báo giá → đặt cọc 30% → nhận hàng → thanh toán phần còn lại</p>
+          <h2>Đơn mua nội bộ</h2>
         </div>
       </div>
 
@@ -128,28 +103,10 @@ export default function OwnerPurchaseOrdersPage() {
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="draft">Nháp</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="deposit_pending">Chờ cọc 30%</option>
-              <option value="deposit_paid">Đã cọc 30%</option>
-              <option value="ordered">Đã đặt hàng</option>
-              <option value="partially_received">Đã nhận một phần</option>
-              <option value="received">Đã nhận đủ</option>
-              <option value="final_payment_pending">Chờ thanh toán còn lại</option>
+              <option value="approved_waiting_payment">Đã duyệt, chờ thanh toán</option>
+              <option value="paid_waiting_admin_confirm">Đã thanh toán, chờ admin</option>
+              <option value="shipping">Đang chuyển thiết bị</option>
               <option value="completed">Hoàn tất</option>
-              <option value="cancelled">Đã hủy</option>
-            </select>
-            <select
-              className="opo-status-select"
-              value={filters.gymId}
-              onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
-            >
-              <option value="">Tất cả phòng gym</option>
-              {gyms.map((gym) => (
-                <option key={gym.id} value={gym.id}>
-                  {gym.name}
-                </option>
-              ))}
             </select>
             <button className="opo-filter-btn" onClick={handleSearch}>Tìm</button>
           </div>
@@ -159,42 +116,31 @@ export default function OwnerPurchaseOrdersPage() {
               <thead>
                 <tr>
                   <th>Mã đơn</th>
-                  <th>Nhà cung cấp</th>
                   <th>Gym</th>
+                  <th>Thiết bị</th>
+                  <th>Số lượng</th>
                   <th>Tổng tiền</th>
-                  <th>Đã thanh toán</th>
-                  <th>Còn lại</th>
                   <th>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => {
-                  const payment = order.paymentSummary || {};
-                  return (
-                    <tr
-                      key={order.id}
-                      onClick={() => {
-                        fetchDetail(order.id);
-                        setShowDetailModal(true);
-                      }}
-                    >
-                      <td>{order.code || `PO-${order.id}`}</td>
-                      <td>{order.supplier?.name || "-"}</td>
-                      <td>{order.gym?.name || "-"}</td>
-                      <td>{money(order.totalAmount)}</td>
-                      <td>{money(payment.paidAmount)}</td>
-                      <td>{money(payment.remainingAmount)}</td>
-                      <td>
-                        <span className={`opo-badge opo-badge-${order.status}`}>
-                          {statusBadge(order.status)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredOrders.map((order) => (
+                  <tr key={order.id}>
+                    <td>{order.code || `PR-${order.id}`}</td>
+                    <td>{order.gym?.name || "-"}</td>
+                    <td>{order.equipment?.name || "-"}</td>
+                    <td>{Number(order.quantity || 0)}</td>
+                    <td>{money(Number(order.quantity || 0) * Number(order.expectedUnitPrice || 0))}</td>
+                    <td>
+                      <span className={`opo-badge opo-badge-${order.status}`}>
+                        {statusBadge(order.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="opo-empty">
+                    <td colSpan={6} className="opo-empty">
                       Không có đơn mua
                     </td>
                   </tr>
@@ -212,99 +158,7 @@ export default function OwnerPurchaseOrdersPage() {
           )}
         </div>
 
-        {showDetailModal && detail && (
-          <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Chi tiết đơn mua {detail.code || `#${detail.id}`}</h3>
-                <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
-              </div>
-              <div className="modal-body">
-                <div className="detail-grid">
-                  <div className="detail-row"><span className="detail-label">Đơn mua</span><span className="detail-value">{detail.code || `PO-${detail.id}`}</span></div>
-                  <div className="detail-row"><span className="detail-label">Nhà cung cấp</span><span className="detail-value">{detail.supplier?.name || "-"}</span></div>
-                  <div className="detail-row"><span className="detail-label">Gym</span><span className="detail-value">{detail.gym?.name || "-"}</span></div>
-                  <div className="detail-row"><span className="detail-label">Báo giá</span><span className="detail-value">{detail.quotation?.code || "-"}</span></div>
-                  <div className="detail-row"><span className="detail-label">Trạng thái PO</span><span className="detail-value"><span className={`opo-badge opo-badge-${detail.status}`}>{statusBadge(detail.status)}</span></span></div>
-                  <div className="detail-row"><span className="detail-label">Tổng tiền</span><span className="detail-value">{money(detail.totalAmount)}</span></div>
-                  <div className="detail-row"><span className="detail-label">Mức cọc yêu cầu</span><span className="detail-value">{money(detail.paymentSummary?.depositRequired)}</span></div>
-                  <div className="detail-row"><span className="detail-label">Đã cọc</span><span className="detail-value">{money(detail.paymentSummary?.depositPaidAmount)}</span></div>
-                  <div className="detail-row"><span className="detail-label">Đã thanh toán</span><span className="detail-value">{money(detail.paymentSummary?.paidAmount)}</span></div>
-                  <div className="detail-row"><span className="detail-label">Còn lại</span><span className="detail-value">{money(detail.paymentSummary?.remainingAmount)}</span></div>
-                  <div className="detail-row"><span className="detail-label">Tiến độ thanh toán</span><span className="detail-value">{paymentStageLabel[detail.paymentSummary?.paymentStage] || detail.paymentSummary?.paymentStage || "-"}</span></div>
-                  <div className="detail-row detail-row--full"><span className="detail-label">Ghi chú</span><span className="detail-value">{detail.notes || "-"}</span></div>
-                </div>
-
-                <div style={{ marginTop: 16, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }}>
-                  <div style={{ fontWeight: 700, marginBottom: 10, color: "#f1f5f9" }}>Tóm tắt thực nhận</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                    <div><div style={labelMini}>Số phiếu nhận</div><div style={valueMini}>{detail.receiptSummary?.totalReceiptCount || 0}</div></div>
-                    <div><div style={labelMini}>Phiếu hoàn tất</div><div style={valueMini}>{detail.receiptSummary?.completedReceiptCount || 0}</div></div>
-                    <div><div style={labelMini}>SL đã nhận</div><div style={valueMini}>{detail.receiptSummary?.totalReceivedQuantity || 0}</div></div>
-                  </div>
-                </div>
-
-                <h4 style={{ marginTop: 20, marginBottom: 12, color: "#f1f5f9" }}>Danh sách thiết bị</h4>
-                <div className="opo-items-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Thiết bị</th>
-                        <th>Số lượng đặt</th>
-                        <th>Đã nhận</th>
-                        <th>Đơn giá</th>
-                        <th>Thành tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.items?.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.equipment?.name || "-"}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.receivedQuantity || 0}</td>
-                          <td>{money(item.unitPrice)}</td>
-                          <td>{money(Number(item.quantity || 0) * Number(item.unitPrice || 0))}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <h4 style={{ marginTop: 20, marginBottom: 12, color: "#f1f5f9" }}>Lịch sử thanh toán</h4>
-                <div className="opo-items-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Mã GD</th>
-                        <th>Giai đoạn</th>
-                        <th>Số tiền</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.paymentSummary?.transactions?.length ? detail.paymentSummary.transactions.map((tx) => (
-                        <tr key={tx.id}>
-                          <td>{tx.transactionCode || `TX-${tx.id}`}</td>
-                          <td>{tx.metadata?.paymentPhase === "deposit" ? "Đặt cọc 30%" : tx.metadata?.paymentPhase === "final" ? "Thanh toán còn lại" : "-"}</td>
-                          <td>{money(tx.amount)}</td>
-                          <td>{tx.paymentStatus || "-"}</td>
-                          <td>{tx.transactionDate ? new Date(tx.transactionDate).toLocaleString("vi-VN") : "-"}</td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan={5} className="opo-empty">Chưa có giao dịch thanh toán cho PO này</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
-
-const labelMini = { fontSize: 12, opacity: 0.75, marginBottom: 4 };
-const valueMini = { fontSize: 20, fontWeight: 800, color: "#f8fafc" };

@@ -4,6 +4,8 @@ import { Line } from "react-chartjs-2";
 import "../../../services/chartSetup";
 import "./OwnerOverviewPage.css";
 import ownerDashboardService from "../../../services/ownerDashboardService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 function StatCard({ title, value, hint, icon, loading }) {
   return (
@@ -124,15 +126,17 @@ function GymDropdown({ gyms, selectedGymId, onChange }) {
 export default function OwnerOverviewPage() {
   const PREVIEW_LIMIT = 4;
   const navigate = useNavigate();
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [revenueTrendLoading, setRevenueTrendLoading] = useState(false);
   const [revenueTrendError, setRevenueTrendError] = useState(null);
+  const [revenueHighlightsLoading, setRevenueHighlightsLoading] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState("day");
   const [revenueTrend, setRevenueTrend] = useState([]);
+  const [revenueHighlights, setRevenueHighlights] = useState({ todayRevenue: 0, monthRevenue: 0 });
   const [viewAllType, setViewAllType] = useState(null);
   const [gyms, setGyms] = useState([]);
-  const [selectedGymId, setSelectedGymId] = useState(null);
   const [data, setData] = useState({
     todayBookings: 0,
     totalMembers: 0,
@@ -141,6 +145,7 @@ export default function OwnerOverviewPage() {
     upcomingBookings: [],
     expiringMembers: [],
     lowStock: [],
+    bestSellingPackages: [],
     totalRevenue: 0,
   });
 
@@ -160,6 +165,7 @@ export default function OwnerOverviewPage() {
         upcomingBookings: result.upcomingBookings ?? [],
         expiringMembers: result.expiringMembers ?? [],
         lowStock: result.lowStock ?? [],
+        bestSellingPackages: result.bestSellingPackages ?? [],
         totalRevenue: result.totalRevenue ?? 0,
       });
     } catch (e) {
@@ -191,6 +197,42 @@ export default function OwnerOverviewPage() {
     fetchRevenueTrend();
   }, [fetchRevenueTrend]);
 
+  const fetchRevenueHighlights = useCallback(async () => {
+    try {
+      setRevenueHighlightsLoading(true);
+      const [dayResult, monthResult] = await Promise.all([
+        ownerDashboardService.getRevenueTrend("day", selectedGymId),
+        ownerDashboardService.getRevenueTrend("month", selectedGymId),
+      ]);
+      const daySeries = Array.isArray(dayResult?.series) ? dayResult.series : [];
+      const monthSeries = Array.isArray(monthResult?.series) ? monthResult.series : [];
+      const todayPoint = daySeries.length ? daySeries[daySeries.length - 1] : null;
+      const monthPoint = monthSeries.length ? monthSeries[monthSeries.length - 1] : null;
+
+      setRevenueHighlights({
+        todayRevenue: Number(todayPoint?.total || 0),
+        monthRevenue: Number(monthPoint?.total || 0),
+      });
+    } catch {
+      setRevenueHighlights({ todayRevenue: 0, monthRevenue: 0 });
+    } finally {
+      setRevenueHighlightsLoading(false);
+    }
+  }, [selectedGymId]);
+
+  useEffect(() => {
+    fetchRevenueHighlights();
+  }, [fetchRevenueHighlights]);
+
+  const refreshOverview = useCallback(async () => {
+    await Promise.all([fetchData(), fetchRevenueTrend(), fetchRevenueHighlights()]);
+  }, [fetchData, fetchRevenueTrend, fetchRevenueHighlights]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: refreshOverview,
+    notificationTypes: ["package_purchase", "review", "trainer_share"],
+  });
+
   const formatRevenue = (val) => {
     if (val >= 1_000_000_000) return `₫ ${(val / 1_000_000_000).toFixed(1)}B`;
     if (val >= 1_000_000) return `₫ ${(val / 1_000_000).toFixed(1)}M`;
@@ -203,12 +245,15 @@ export default function OwnerOverviewPage() {
       {
         label: "Doanh thu (₫)",
         data: revenueTrend.map((item) => Number(item.total || 0)),
-        tension: 0.35,
+        tension: 0.42,
         fill: true,
-        borderColor: "rgba(244,137,21,0.95)",
-        backgroundColor: "rgba(244,137,21,0.12)",
-        pointRadius: 3,
-        pointHoverRadius: 4,
+        borderColor: "rgba(255,166,77,0.95)",
+        backgroundColor: "rgba(255,166,77,0.18)",
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        pointBackgroundColor: "rgba(255,193,120,1)",
+        pointBorderColor: "rgba(18,22,32,1)",
+        pointBorderWidth: 1.5,
       },
     ],
   }), [revenueTrend]);
@@ -220,6 +265,11 @@ export default function OwnerOverviewPage() {
       legend: { display: false },
       tooltip: {
         enabled: true,
+        backgroundColor: "rgba(16,20,30,0.96)",
+        borderColor: "rgba(255,255,255,0.14)",
+        borderWidth: 1,
+        titleColor: "rgba(255,255,255,0.95)",
+        bodyColor: "rgba(255,255,255,0.9)",
         callbacks: {
           label: (context) => `Doanh thu: ₫ ${Number(context.parsed.y || 0).toLocaleString("vi-VN")}`,
         },
@@ -227,15 +277,16 @@ export default function OwnerOverviewPage() {
     },
     scales: {
       x: {
-        ticks: { color: "rgba(255,255,255,0.7)" },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        ticks: { color: "rgba(255,255,255,0.76)", maxTicksLimit: 8 },
+        grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },
       },
       y: {
         ticks: {
-          color: "rgba(255,255,255,0.7)",
+          color: "rgba(255,255,255,0.72)",
+          maxTicksLimit: 6,
           callback: (value) => `₫ ${Number(value).toLocaleString("vi-VN")}`,
         },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
       },
     },
   }), []);
@@ -268,7 +319,7 @@ export default function OwnerOverviewPage() {
     {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
-      hint: "Giao dịch đã hoàn thành",
+      hint: "Doanh thu chia sẻ từ huấn luyện viên",
       icon: "💳",
     },
   ];
@@ -276,6 +327,9 @@ export default function OwnerOverviewPage() {
   const upcomingPreview = data.upcomingBookings.slice(0, PREVIEW_LIMIT);
   const expiringPreview = data.expiringMembers.slice(0, PREVIEW_LIMIT);
   const newMembersPreview = data.newMembersToday.slice(0, PREVIEW_LIMIT);
+  const bestSellingPreview = [...data.bestSellingPackages]
+    .sort((a, b) => Number(b.soldCount || 0) - Number(a.soldCount || 0))
+    .slice(0, PREVIEW_LIMIT);
 
   const closeViewAll = () => setViewAllType(null);
 
@@ -337,14 +391,24 @@ export default function OwnerOverviewPage() {
         </div>
       )}
 
-      {/* ── Chọn chi nhánh ── */}
-      {gyms.length > 0 && (
-        <GymDropdown
-          gyms={gyms}
-          selectedGymId={selectedGymId}
-          onChange={setSelectedGymId}
-        />
-      )}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 14px",
+          borderRadius: 14,
+          background: "rgba(255,255,255,.06)",
+          border: "1px solid rgba(255,255,255,.1)",
+          color: "rgba(255,255,255,.9)",
+          marginBottom: 14,
+        }}
+      >
+        <span style={{ fontSize: 12, color: "rgba(255,255,255,.55)", textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Đang xem
+        </span>
+        <strong>{selectedGymName || "Tất cả chi nhánh"}</strong>
+      </div>
 
       {/* ── Stat cards ── */}
       <div className="ov-gridStats">
@@ -354,7 +418,7 @@ export default function OwnerOverviewPage() {
       </div>
 
       <Panel
-        title="Tổng quan doanh thu"
+        title="Doanh thu (ngày/tháng)"
         right={
           <div className="ov-segment">
             {revenuePeriodOptions.map((option) => (
@@ -369,6 +433,20 @@ export default function OwnerOverviewPage() {
           </div>
         }
       >
+        <div className="ov-revenueHighlights">
+          <div className="ov-revenueChip">
+            <div className="ov-revenueChipLabel">Doanh thu hôm nay</div>
+            <div className="ov-revenueChipValue">
+              {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.todayRevenue || 0).toLocaleString("vi-VN")}`}
+            </div>
+          </div>
+          <div className="ov-revenueChip ov-revenueChip--month">
+            <div className="ov-revenueChipLabel">Doanh thu tháng này</div>
+            <div className="ov-revenueChipValue">
+              {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.monthRevenue || 0).toLocaleString("vi-VN")}`}
+            </div>
+          </div>
+        </div>
         {revenueTrendLoading ? (
           <div className="ov-empty">Đang tải biểu đồ doanh thu…</div>
         ) : revenueTrendError ? (
@@ -504,7 +582,27 @@ export default function OwnerOverviewPage() {
             </div>
           )}
         </Panel>
-        <div />
+
+        <Panel title="Gói bán chạy nhất">
+          {loading ? (
+            <div className="ov-empty">Đang tải…</div>
+          ) : data.bestSellingPackages.length === 0 ? (
+            <div className="ov-empty">Chưa có dữ liệu bán gói</div>
+          ) : (
+            <div className="ov-list">
+              {bestSellingPreview.map((p, idx) => (
+                <div className="ov-row" key={`${p.packageId}-${idx}`}>
+                  <div className="ov-badge" style={{ minWidth: 42 }}>{idx + 1}</div>
+                  <div className="ov-rowMain">
+                    <div className="ov-rowTitle">{p.packageName}</div>
+                    <div className="ov-rowSub">{Number(p.revenue || 0).toLocaleString("vi-VN")} ₫</div>
+                  </div>
+                  <span className="ov-miniBtn">{p.soldCount} lượt bán</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
       </div>
 
       {viewAllConfig && (

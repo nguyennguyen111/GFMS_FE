@@ -61,6 +61,13 @@ export default function DashboardHome() {
     ];
   }, [data]);
 
+  const revenueSeries = useMemo(() => data?.revenue30dSeries || [], [data]);
+  const maxRevenue = useMemo(
+    () => Math.max(1, ...revenueSeries.map((x) => Number(x.total || 0))),
+    [revenueSeries]
+  );
+  const salesHistory = useMemo(() => data?.equipmentSalesTransactions || [], [data]);
+
   return (
     <div className="dh-wrap">
       <div className="dh-head">
@@ -99,9 +106,60 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      <div className="dh-panel">
+        <div className="dh-panel__title">Biểu đồ doanh thu bán thiết bị (30 ngày)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(30, minmax(10px, 1fr))", gap: 4, alignItems: "end", minHeight: 160 }}>
+          {revenueSeries.map((point) => {
+            const value = Number(point.total || 0);
+            const h = Math.max(2, Math.round((value / maxRevenue) * 140));
+            return (
+              <div key={point.date} title={`${point.date}: ${fmtMoney(value)}`} style={{ display: "flex", alignItems: "end" }}>
+                <div style={{ width: "100%", height: h, borderRadius: 4, background: "linear-gradient(180deg,#facc15,#f59e0b)" }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="dh-panel">
+        <div className="dh-panel__title">Lịch sử giao dịch bán thiết bị</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={th}>Mã GD</th>
+                <th style={th}>Gym</th>
+                <th style={th}>Số tiền</th>
+                <th style={th}>Phương thức</th>
+                <th style={th}>Mô tả</th>
+                <th style={th}>Ngày</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!salesHistory.length ? (
+                <tr><td style={tdEmpty} colSpan={6}>Chưa có giao dịch bán thiết bị</td></tr>
+              ) : salesHistory.map((tx) => (
+                <tr key={tx.id}>
+                  <td style={td}>{tx.transactionCode || `TX-${tx.id}`}</td>
+                  <td style={td}>{tx.gym?.name || "-"}</td>
+                  <td style={td}>{fmtMoney(tx.amount)}</td>
+                  <td style={td}>{tx.paymentMethod || "-"}</td>
+                  <td style={td}>{tx.description || "-"}</td>
+                  <td style={td}>{tx.transactionDate ? new Date(tx.transactionDate).toLocaleString("vi-VN") : "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="dh-foot">
         <div className="dh-foot__muted">Cập nhật lúc: {data?.asOf ? new Date(data.asOf).toLocaleString() : "-"}</div>
       </div>
     </div>
   );
 }
+
+const th = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid rgba(255,255,255,0.12)", fontSize: 12, opacity: 0.85 };
+const td = { padding: "10px 8px", borderBottom: "1px solid rgba(255,255,255,0.08)", fontSize: 13 };
+const tdEmpty = { ...td, textAlign: "center", opacity: 0.75 };

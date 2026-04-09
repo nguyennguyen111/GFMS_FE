@@ -21,7 +21,7 @@ const pickGymLabel = (booking) => {
   return g?.gymName || g?.name || (booking?.gymId ? `Cơ sở #${booking.gymId}` : "—");
 };
 
-export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onReset, refresh }) {
+export default function PTAttendanceModal({ open, booking, loading, error, onClose, onCheckIn, onCheckOut, onComplete, onReset, onRequestBusySlot, refresh }) {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -32,8 +32,11 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
 
   const ta = booking?.trainerAttendance || null;
   const currentStatus = (ta?.status || booking?.status || "").toLowerCase();
+  const bookingStatus = String(booking?.status || "").toLowerCase();
+  const isCompleted = bookingStatus === "completed";
   const comm = String(booking?.commissionStatus || "").toLowerCase();
   const commissionLocked = comm === "calculated" || comm === "paid";
+  const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
 
   const handleAction = async (type) => {
     if (commissionLocked) return;
@@ -81,7 +84,9 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
               <div className="ptAttModal__row">
                 <span className="k">Trạng thái</span>
                 <span className={`v status-tag ${currentStatus}`}>
-                  {currentStatus === "present" ? (
+                  {isCompleted && currentStatus === "present" ? (
+                    <span className="ptAttModal__status-text--present">✅ Hoàn thành</span>
+                  ) : currentStatus === "present" ? (
                     <span className="ptAttModal__status-text--present">✅ Đã có mặt</span>
                   ) : currentStatus === "absent" ? (
                     <span className="ptAttModal__status-text--absent">❌ Đã vắng mặt</span>
@@ -115,30 +120,31 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                 }
               >
                 {ta && !isEditing ? (
-                  <button
-                    type="button"
-                    className="ptAttModal__btn ptAttModal__btn--edit"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    ✎ Chỉnh sửa điểm danh
-                  </button>
-                ) : (
                   <>
-                    {ta && (
+                    {!isCompleted && currentStatus === "present" && onComplete ? (
                       <button
                         type="button"
-                        className="ptAttModal__btn ptAttModal__btn--reset"
+                        className="ptAttModal__btn ptAttModal__btn--present"
                         disabled={loading}
                         onClick={async () => {
-                          if (!onReset) return;
-                          await onReset();
+                          await onComplete({ status: "present" });
                           setIsEditing(false);
                           if (refresh) await refresh();
                         }}
                       >
-                        {loading ? "..." : "↺ Chưa điểm danh"}
+                        {loading ? "..." : "✓ Hoàn thành buổi tập"}
                       </button>
-                    )}
+                    ) : null}
+                    <button
+                      type="button"
+                      className="ptAttModal__btn ptAttModal__btn--edit"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      ✎ Chỉnh sửa điểm danh
+                    </button>
+                  </>
+                ) : (
+                  <>
                     <button
                       type="button"
                       className="ptAttModal__btn ptAttModal__btn--present"
@@ -155,6 +161,31 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                     >
                       {loading ? "..." : "✗ Vắng mặt"}
                     </button>
+                    {ta && (
+                      <button
+                        type="button"
+                        className="ptAttModal__btn ptAttModal__btn--reset"
+                        disabled={loading}
+                        onClick={async () => {
+                          if (!onReset) return;
+                          await onReset();
+                          setIsEditing(false);
+                          if (refresh) await refresh();
+                        }}
+                      >
+                        {loading ? "..." : "↺ Chưa điểm danh"}
+                      </button>
+                    )}
+                    {booking && onRequestBusySlot && !isSharedSession ? (
+                      <button
+                        type="button"
+                        className="ptAttModal__btn ptAttModal__btn--edit ptAttModal__btn--busy"
+                        disabled={loading}
+                        onClick={onRequestBusySlot}
+                      >
+                        {loading ? "..." : "📨 Báo bận khung giờ này"}
+                      </button>
+                    ) : null}
                   </>
                 )}
               </div>

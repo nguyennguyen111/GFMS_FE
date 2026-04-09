@@ -35,6 +35,10 @@
   gap: 12px;
 }
 
+.ptp-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .ptp-row {
   display: flex;
   flex-direction: column;

@@ -63,13 +63,13 @@
 }
 
 .ofr-btn--primary {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
 }
 
 .ofr-btn--primary:hover {
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.35), rgba(255, 176, 0, 0.2));
-  box-shadow: 0 8px 20px rgba(255, 138, 0, 0.3);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
+  box-shadow: 0 8px 20px rgba(184, 220, 0, 0.3);
 }
 
 .ofr-btn--secondary {
@@ -145,7 +145,7 @@
 }
 
 .ofr-table thead {
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
 }
 
 .ofr-table th {
@@ -167,6 +167,14 @@
 
 .ofr-table tbody tr:hover {
   background: rgba(0, 0, 0, 0.5);
+}
+
+.ofr-row {
+  cursor: pointer;
+}
+
+.ofr-row--active {
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .ofr-table tbody tr:last-child td {
@@ -487,6 +495,68 @@ a.ofr-dropItem--link {
   padding: 24px;
 }
 
+.ofr-detail {
+  padding: 24px;
+}
+
+.ofr-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ofr-detail__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ofr-detail__label {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ofr-detail__value {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ofr-detail__section {
+  margin-top: 20px;
+}
+
+.ofr-detail__panel {
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.ofr-loading--modal,
+.ofr-empty--modal {
+  padding: 28px 0;
+}
+
+.ofr-modal__content--detail {
+  max-width: 760px;
+}
+
+.ofr-form__actions--detail {
+  margin-top: 20px;
+}
+
 .ofr-field {
   margin-bottom: 20px;
 }
@@ -582,6 +652,10 @@ a.ofr-dropItem--link {
   .ofr-actions {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .ofr-detail__grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -351,6 +351,31 @@
   line-height: 1.7;
 }
 
+.member-reviews-reply {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(214, 255, 0, 0.08);
+  border: 1px solid rgba(214, 255, 0, 0.22);
+}
+
+.member-reviews-reply-label {
+  margin: 0 0 6px;
+  color: #d6ff00;
+  font-family: "Lexend", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.member-reviews-reply-content {
+  margin: 0;
+  color: #e9f2bd;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .member-reviews-load-more {
   width: 100%;
   min-height: 56px;

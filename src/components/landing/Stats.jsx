@@ -16,7 +16,7 @@ const Stats = ({ stats, loading }) => {
           <div className="gfms-stat-card-large">
             <Dumbbell className="gfms-stat-icon-bg" />
             <div className="gfms-stat-value">{loading ? "..." : `${fmt(totalMembers)}+`}</div>
-            <div className="gfms-stat-label">Hội viên đang có trong hệ thống</div>
+            <div className="gfms-stat-label">Hội viên đang tham gia</div>
           </div>
 
           <div className="gfms-stat-card">
@@ -24,7 +24,7 @@ const Stats = ({ stats, loading }) => {
             <div className="gfms-stat-content">
               <div className="gfms-stat-title">{loading ? "..." : `${fmt(totalActiveGyms)} cơ sở hoạt động`}</div>
               <p className="gfms-stat-desc">
-                Dữ liệu thật lấy trực tiếp từ hệ thống gym đang mở bán trên GFMS.
+                Cơ sở vật chất, phòng tập hiên đại đáp ứng nhu cầu tập luyện đa dạng của bạn.
               </p>
             </div>
           </div>
@@ -34,7 +34,7 @@ const Stats = ({ stats, loading }) => {
             <div className="gfms-stat-content">
               <div className="gfms-stat-title-dark">{loading ? "..." : `${fmt(totalActiveTrainers)} PT sẵn sàng`}</div>
               <p className="gfms-stat-desc-dark">
-                Danh sách huấn luyện viên active được đồng bộ realtime theo dữ liệu thật.
+                Danh sách huấn luyện viên chuyên nghiệp, tận tâm, sẵn sàng hỗ trợ bạn đạt được mục tiêu sức khỏe và thể hình.
               </p>
             </div>
           </div>

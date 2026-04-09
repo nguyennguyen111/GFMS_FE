@@ -1,8 +1,11 @@
+import "./App.css";
 import React, { useEffect, useState } from "react";
 import AppToastHost from "./components/common/AppToastHost";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import AppDialogHost from "./components/common/AppDialogHost";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { bootstrapAuthSession } from "./services/authService";
-import { getAccessToken, getSessionUser, hydrateAuthSessionFromStorage } from "./services/authSession";
+import { hydrateAuthSessionFromStorage } from "./services/authSession";
+import { getAccessToken, getCurrentUser } from "./utils/auth";
 
 import LandingPage from "./components/pages/LandingPage";
 
@@ -18,6 +21,7 @@ import MemberBookingsPage from "./components/member/pages/MemberBookingsPage";
 import MemberCheckinPage from "./components/member/pages/MemberCheckinPage";
 import MemberMyPackagesPage from "./components/member/pages/MemberMyPackagesPage";
 import MemberPackageDetailPage from "./components/member/pages/MemberPackageDetailPage";
+import MemberPaymentSuccessPage from "./components/member/pages/MemberPaymentSuccessPage";
 
 import MemberProfilePage from "./components/member/pages/MemberProfilePage";
 import MemberNotificationsPage from "./components/member/pages/MemberNotificationsPage";
@@ -41,6 +45,7 @@ import PTFeedback from "./components/pt-portal/PTFeedback";
 import PTFinancePage from "./components/pt-portal/PTFinancePage";
 import PTDemoVideos from "./components/pt-portal/PTDemoVideos";
 import PTRequests from "./components/pt-portal/PTRequests";
+import PTNotificationsPage from "./components/pt-portal/PTNotificationsPage";
 import PTMessagesPage from "./components/pt-portal/PTMessagesPage";
 
 /* ================= MARKETPLACE ================= */
@@ -51,6 +56,8 @@ import TrainerDetailsPage from "./components/pages/marketplace/trainers/TrainerD
 import GymDetailsPage from "./components/pages/marketplace/gyms/GymDetailsPage";
 import PackageDetailsPage from "./components/pages/marketplace/packages/PackageDetailsPage";
 import MemberBookingWizard from "./components/member/pages/bookingWizard/MemberBookingWizard";
+import SupportPage from "./components/pages/support/SupportPage";
+import FAQPage from "./components/pages/support/FAQPage";
 
 /* ================= SIGNING (PUBLIC) ================= */
 import SignContractPage from "./components/public/SignContractPage";
@@ -59,18 +66,37 @@ import SignContractPage from "./components/public/SignContractPage";
 const AdminGuard = ({ children }) => {
   try {
     const token = getAccessToken();
-    const user = getSessionUser();
+    const user = getCurrentUser();
     if (!user || !token) return <Navigate to="/login" replace />;
     const groupId = Number(user?.groupId ?? user?.group_id);
-
-    // groupId = 1 là Admin
     if (groupId !== 1) return <Navigate to="/" replace />;
-
     return children;
   } catch {
     return <Navigate to="/login" replace />;
   }
 };
+
+const RoleGuard = ({ allowedGroupIds = [], children }) => {
+  const user = getCurrentUser();
+  const token = getAccessToken();
+  const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
+
+  if (!user || !token || !groupId) return <Navigate to="/login" replace />;
+  if (!allowedGroupIds.includes(groupId)) return <Navigate to="/" replace />;
+
+  return children;
+};
+
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   const [authBootstrapped, setAuthBootstrapped] = useState(false);
@@ -98,7 +124,9 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <AppToastHost />
+      <AppDialogHost />
       <Routes>
         {/* ===== PUBLIC SIGNING ===== */}
         <Route path="/sign-contract" element={<SignContractPage />} />
@@ -111,6 +139,8 @@ function App() {
           <Route path="/marketplace/trainers" element={<TrainerListPage />} />
           <Route path="/marketplace/trainers/:trainerId" element={<TrainerDetailsPage />} />
           <Route path="/marketplace/packages/:packageId" element={<PackageDetailsPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/faq" element={<FAQPage />} />
         </Route>
 
         {/* ===== AUTH ===== */}
@@ -129,14 +159,29 @@ function App() {
         />
 
         {/* ===== OWNER ===== */}
-        <Route path="/owner/*" element={<OwnerDashboard />} />
+        <Route
+          path="/owner/*"
+          element={
+            <RoleGuard allowedGroupIds={[2]}>
+              <OwnerDashboard />
+            </RoleGuard>
+          }
+        />
 
         {/* ===== MEMBER ===== */}
-        <Route path="/member" element={<WebsiteLayout />}>
-          <Route index element={<Navigate to="home" replace />} />
+        <Route
+          path="/member"
+          element={
+            <RoleGuard allowedGroupIds={[4]}>
+              <WebsiteLayout />
+            </RoleGuard>
+          }
+        >
+          <Route index element={<Navigate to="bookings" replace />} />
           <Route path="my-packages" element={<MemberMyPackagesPage />} />
           <Route path="my-packages/:activationId" element={<MemberPackageDetailPage />} />
           <Route path="bookings" element={<MemberBookingsPage />} />
+          <Route path="payment-success" element={<MemberPaymentSuccessPage />} />
           <Route path="checkin/:id" element={<MemberCheckinPage />} />
           <Route path="booking/wizard" element={<MemberBookingWizard />} />
 
@@ -149,7 +194,14 @@ function App() {
         </Route>
 
         {/* ===== PT ===== */}
-        <Route path="/pt" element={<PTLayout />}>
+        <Route
+          path="/pt"
+          element={
+            <RoleGuard allowedGroupIds={[3]}>
+              <PTLayout />
+            </RoleGuard>
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<PTDashboard />} />
 
@@ -169,6 +221,7 @@ function App() {
           <Route path="payroll" element={<Navigate to="/pt/finance" replace />} />
           <Route path="wallet" element={<Navigate to="/pt/finance" replace />} />
           <Route path="requests" element={<PTRequests />} />
+          <Route path="notifications" element={<PTNotificationsPage />} />
 
           {/* PT pages (need :id) */}
           <Route path=":id/details" element={<PTDetails />} />

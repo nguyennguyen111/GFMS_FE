@@ -281,6 +281,7 @@ const PTDashboard = () => {
     return list;
   }, [bookings, scheduleSlots]);
 
+
   const recentSessions = useMemo(() => {
     const now = Date.now();
     const withStart = bookings

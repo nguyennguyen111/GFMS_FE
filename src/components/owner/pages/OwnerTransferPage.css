@@ -52,7 +52,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   color-scheme: dark;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23ffb100'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d6ff00'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 16px;
@@ -159,7 +159,7 @@
 .otrf-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 177, 0, 0.1);
+  background: rgba(214, 255, 0, 0.1);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -184,7 +184,7 @@
 }
 
 .otrf-table tbody tr.active {
-  background: rgba(255, 177, 0, 0.08);
+  background: rgba(214, 255, 0, 0.08);
 }
 
 .otrf-badge {
@@ -233,8 +233,8 @@
 
 .pagination button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -244,7 +244,7 @@
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 
@@ -373,6 +373,7 @@
 /* Equipment Item Row */
 .equipment-item-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
   align-items: flex-start;
@@ -380,10 +381,145 @@
 
 .equipment-item-row .form-select {
   flex: 1;
+  min-width: 220px;
 }
 
 .equipment-item-row .form-input {
   width: 120px;
+}
+
+.equipment-item-unit-picker {
+  flex: 1 1 320px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.equipment-item-search {
+  width: 100% !important;
+}
+
+.equipment-item-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.equipment-item-toolbar__btn {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 255, 0, 0.24);
+  background: rgba(214, 255, 0, 0.12);
+  color: #ffd27a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.equipment-item-toolbar__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.equipment-item-toolbar__btn--ghost {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(238, 242, 255, 0.82);
+}
+
+.equipment-item-list {
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.equipment-item-list.is-disabled {
+  opacity: 0.55;
+}
+
+.equipment-item-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  color: #eef2ff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.equipment-item-option.is-selected {
+  background: rgba(0, 186, 255, 0.12);
+  border-color: rgba(0, 186, 255, 0.26);
+}
+
+.equipment-item-option input {
+  accent-color: #00baff;
+}
+
+.equipment-item-option__meta {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(130, 190, 255, 0.28);
+  background: rgba(130, 190, 255, 0.12);
+  color: #9bdcff;
+}
+
+.equipment-item-empty {
+  padding: 10px;
+  color: rgba(238, 242, 255, 0.58);
+  font-size: 12px;
+  text-align: center;
+}
+
+.equipment-item-meta {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.62);
+  margin-top: -4px;
+}
+
+.equipment-item-meta__count {
+  color: #9bdcff;
+}
+
+.equipment-item-meta__hint {
+  color: rgba(238, 242, 255, 0.5);
+}
+
+.equipment-item-selected {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -2px;
+}
+
+.equipment-item-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 186, 255, 0.12);
+  border: 1px solid rgba(0, 186, 255, 0.28);
+  color: #8edcff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .btn-remove {
@@ -407,10 +543,10 @@
 .btn-add-item {
   width: 100%;
   padding: 10px 16px;
-  background: rgba(255, 177, 0, 0.12);
-  border: 1px dashed rgba(255, 177, 0, 0.32);
+  background: rgba(214, 255, 0, 0.12);
+  border: 1px dashed rgba(214, 255, 0, 0.32);
   border-radius: 8px;
-  color: #ffb100;
+  color: #d6ff00;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
@@ -419,8 +555,8 @@
 }
 
 .btn-add-item:hover {
-  background: rgba(255, 177, 0, 0.17);
-  border-color: rgba(255, 177, 0, 0.42);
+  background: rgba(214, 255, 0, 0.17);
+  border-color: rgba(214, 255, 0, 0.42);
   border-style: solid;
 }
 
@@ -478,8 +614,8 @@
 
 .otrf-btn-add-item {
   padding: 8px 16px !important;
-  background: linear-gradient(90deg, rgba(255, 177, 0, 0.22), rgba(255, 138, 0, 0.15)) !important;
-  border: 1px solid rgba(255, 177, 0, 0.35) !important;
+  background: linear-gradient(90deg, rgba(214, 255, 0, 0.22), rgba(184, 220, 0, 0.15)) !important;
+  border: 1px solid rgba(214, 255, 0, 0.35) !important;
   color: #ffcf70 !important;
   margin-top: 10px !important;
   font-size: 13px !important;
@@ -540,7 +676,7 @@
 .detail-table th {
   padding: 10px 12px;
   text-align: left;
-  background: rgba(255, 177, 0, 0.1);
+  background: rgba(214, 255, 0, 0.1);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -561,7 +697,7 @@
 }
 
 .detail-table tbody tr:hover {
-  background: rgba(255, 177, 0, 0.06);
+  background: rgba(214, 255, 0, 0.06);
 }
 
 /* Modal Responsive */
