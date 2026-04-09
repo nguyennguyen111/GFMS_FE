@@ -23,6 +23,9 @@ export const updateEquipment = (id, payload) =>
 export const discontinueEquipment = (id) =>
   axios.patch(`${API_BASE}/equipments/${id}/discontinue`).then((r) => r.data);
 
+export const deleteEquipment = (id) =>
+  axios.delete(`${API_BASE}/equipments/${id}`).then((r) => r.data);
+
 // ===== EQUIPMENT IMAGES (NEW) =====
 
 // ✅ lấy danh sách ảnh theo equipmentId
