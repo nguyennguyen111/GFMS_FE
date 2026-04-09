@@ -1,17 +1,26 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ownerGetWithdrawals,
-  ownerExportWithdrawals,
   ownerApproveWithdrawal,
   ownerRejectWithdrawal,
+  ownerAutoApproveWithdrawals,
 } from "../../../services/ownerWithdrawalService";
 import { connectSocket } from "../../../services/socketClient";
 import NiceModal from "../../common/NiceModal";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerWithdrawalsPage.css";
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
+const withdrawalStatusLabel = {
+  pending: "Chờ duyệt",
+  completed: "Đã chi trả",
+  rejected: "Từ chối",
+  cancelled: "Đã hủy",
+};
+
 const OwnerWithdrawalsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [withdrawals, setWithdrawals] = useState([]);
   const [filters, setFilters] = useState({ status: "" });
   const [loading, setLoading] = useState(false);
@@ -19,21 +28,30 @@ const OwnerWithdrawalsPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [actionModal, setActionModal] = useState(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [autoApproving, setAutoApproving] = useState(false);
   const [alertModal, setAlertModal] = useState(null);
+
+  const getWithdrawalGymId = useCallback((item) => item?.Trainer?.gymId || item?.Trainer?.Gym?.id || null, []);
 
   const loadWithdrawals = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await ownerGetWithdrawals(filters);
+      const res = await ownerGetWithdrawals({
+        ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : undefined,
+      });
       const list = Array.isArray(res.data?.data) ? res.data.data : [];
-      setWithdrawals(list);
+      const scopedList = selectedGymId
+        ? list.filter((item) => Number(getWithdrawalGymId(item)) === Number(selectedGymId))
+        : list;
+      setWithdrawals(scopedList);
     } catch (e) {
       console.error("Lỗi khi tải yêu cầu chi trả:", e);
       setWithdrawals([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, getWithdrawalGymId, selectedGymId]);
 
   useEffect(() => {
     loadWithdrawals();
@@ -101,26 +119,30 @@ const OwnerWithdrawalsPage = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleAutoApprove = async () => {
+    setAutoApproving(true);
     try {
-      const res = await ownerExportWithdrawals(filters);
-      const contentType = res.headers?.["content-type"] || "";
-      const blob = new Blob([res.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "withdrawals.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const res = await ownerAutoApproveWithdrawals({
+        gymId: selectedGymId ? Number(selectedGymId) : undefined,
+        notes: "Duyệt tự động bởi owner",
+      });
+      const approvedCount = Number(res?.data?.data?.approvedCount || 0);
+      const skippedCount = Number(res?.data?.data?.skippedCount || 0);
+      setNotice(
+        approvedCount > 0
+          ? `Đã tự động duyệt ${approvedCount} yêu cầu${skippedCount > 0 ? `, bỏ qua ${skippedCount} yêu cầu` : ""}.`
+          : "Không có yêu cầu chờ duyệt để tự động xử lý."
+      );
+      await loadWithdrawals();
     } catch (e) {
-      console.error("Lỗi khi export:", e);
+      console.error("Lỗi duyệt tự động:", e);
       setAlertModal({
-        title: "Xuất file thất bại",
-        message: "Không thể tải file Excel. Vui lòng thử lại.",
+        title: "Duyệt tự động thất bại",
+        message: e.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
         tone: "danger",
       });
+    } finally {
+      setAutoApproving(false);
     }
   };
 
@@ -146,7 +168,10 @@ const OwnerWithdrawalsPage = () => {
   return (
     <div className="owner-withdrawals-page">
       <div className="page-header">
-        <h1 className="page-title">Duyệt yêu cầu rút tiền</h1>
+        <div>
+          <h1 className="page-title">Duyệt yêu cầu rút tiền</h1>
+          {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
+        </div>
       </div>
 
       <div className="withdrawals-filters">
@@ -163,8 +188,8 @@ const OwnerWithdrawalsPage = () => {
         <button className="search-button" onClick={loadWithdrawals}>
           Lọc
         </button>
-        <button className="search-button" onClick={handleExport}>
-          Xuất Excel
+        <button className="search-button" onClick={handleAutoApprove} disabled={autoApproving || loading}>
+          {autoApproving ? "Đang duyệt tự động..." : "Duyệt tự động tất cả"}
         </button>
       </div>
 
@@ -238,7 +263,7 @@ const OwnerWithdrawalsPage = () => {
                     </td>
                     <td>
                       <span className={`tx-badge tx-badge-${w.status || "pending"}`}>
-                        {w.status || "pending"}
+                        {withdrawalStatusLabel[w.status] || withdrawalStatusLabel.pending}
                       </span>
                     </td>
                     <td>
@@ -307,7 +332,7 @@ const OwnerWithdrawalsPage = () => {
                     <strong>Ghi chú:</strong> {selectedRequest.notes || "N/A"}
                   </div>
                   <div>
-                    <strong>Trạng thái:</strong> {selectedRequest.status || "pending"}
+                    <strong>Trạng thái:</strong> {withdrawalStatusLabel[selectedRequest.status] || withdrawalStatusLabel.pending}
                   </div>
                 </div>
               );

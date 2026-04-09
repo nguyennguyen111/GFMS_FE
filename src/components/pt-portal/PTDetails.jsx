@@ -75,6 +75,11 @@ const PTDetails = () => {
   }, [pt, ptId]);
 
   const status = pt?.status || "—";
+  const statusText = String(status).toLowerCase() === "active"
+    ? "Đang hoạt động"
+    : String(status).toLowerCase() === "inactive"
+      ? "Ngưng hoạt động"
+      : status;
 
   // ✅ cover: ưu tiên DB -> fallback localStorage
   const cachedCover = useMemo(() => readCoverCache(ptId), [ptId]);
@@ -184,7 +189,7 @@ const PTDetails = () => {
                           status === "active" ? "is-active" : "is-inactive"
                         }`}
                       >
-                        {status}
+                        {statusText}
                       </span>
                     </div>
 
@@ -274,7 +279,7 @@ const PTDetails = () => {
 
                   <div className="pt-row">
                     <div className="pt-label">Trạng thái</div>
-                    <div className="pt-value">{status}</div>
+                    <div className="pt-value">{statusText}</div>
                   </div>
                 </div>
               </section>

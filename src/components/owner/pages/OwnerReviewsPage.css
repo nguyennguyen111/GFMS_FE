@@ -1,0 +1,224 @@
+.owner-reviews-page {
+  color: #eef2ff;
+}
+
+.orv-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(120% 220% at 0% 0%, rgba(214, 255, 0, 0.14) 0%, transparent 45%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(0, 186, 255, 0.08));
+}
+
+.orv-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.orv-kpis {
+  display: flex;
+  gap: 10px;
+}
+
+.orv-kpi {
+  min-width: 128px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 176, 0, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  display: grid;
+  gap: 2px;
+}
+
+.orv-kpi-label {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.7);
+}
+
+.orv-kpi-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffcb55;
+}
+
+.orv-filters {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(2, minmax(180px, 1fr)) auto;
+  gap: 10px;
+}
+
+.orv-input,
+.orv-select {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #eef2ff;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.orv-select option {
+  background: rgba(0, 0, 0, 0.94);
+  color: #eef2ff;
+}
+
+.orv-input:focus,
+.orv-select:focus {
+  outline: none;
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
+}
+
+.orv-btn {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 176, 0, 0.36);
+  background: rgba(255, 176, 0, 0.18);
+  color: #eef2ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.orv-btn:hover {
+  background: rgba(255, 176, 0, 0.26);
+}
+
+.orv-error {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 118, 118, 0.34);
+  background: rgba(255, 118, 118, 0.16);
+  color: #ff9f9f;
+}
+
+.orv-table-wrap {
+  margin-top: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: auto;
+  background: rgba(15, 22, 33, 0.72);
+}
+
+.orv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orv-table th {
+  padding: 12px;
+  text-align: left;
+  background: rgba(184, 220, 0, 0.08);
+  color: rgba(238, 242, 255, 0.82);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.orv-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #eef2ff;
+  vertical-align: top;
+}
+
+.orv-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.orv-comment {
+  min-width: 220px;
+  line-height: 1.45;
+}
+
+.orv-rating {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.orv-rating b {
+  color: #ffcb55;
+}
+
+.orv-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.orv-type.is-gym {
+  color: #44e0ff;
+  background: rgba(68, 224, 255, 0.14);
+  border: 1px solid rgba(68, 224, 255, 0.28);
+}
+
+.orv-type.is-trainer {
+  color: #ffcb55;
+  background: rgba(255, 203, 85, 0.12);
+  border: 1px solid rgba(255, 203, 85, 0.28);
+}
+
+.orv-empty {
+  padding: 20px;
+  color: rgba(238, 242, 255, 0.7);
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.pagination-btn {
+  padding: 8px 12px;
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
+  color: #eef2ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 100ms ease;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(184, 220, 0, 0.28);
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: rgba(238, 242, 255, 0.7);
+  font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+  .orv-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .orv-filters {
+    grid-template-columns: 1fr;
+  }
+}

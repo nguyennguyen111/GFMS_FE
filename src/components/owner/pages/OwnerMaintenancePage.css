@@ -5,7 +5,7 @@
   --oma-border2: rgba(255,255,255,0.18);
   --oma-text: #eef2ff;
   --oma-muted: rgba(238,242,255,0.70);
-  --oma-orange: #ff8a00;
+  --oma-orange: #b8dc00;
   --oma-orange2: #ffb000;
   --oma-cyan: #00baff;
   --oma-ok: #00e3a6;
@@ -152,8 +152,8 @@
 
 .pagination button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -163,7 +163,7 @@
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 
@@ -231,6 +231,101 @@
 /* Add status pill margin for detail modal */
 .detail-value .oma-pill {
   margin: 0;
+}
+
+.oma-unit-meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.62);
+}
+
+.oma-unit-meta__count {
+  color: #9bdcff;
+}
+
+.oma-unit-meta__hint {
+  color: rgba(238, 242, 255, 0.5);
+}
+
+.oma-unit-selected {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oma-unit-list {
+  margin-top: 8px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oma-unit-list.is-disabled {
+  opacity: 0.55;
+}
+
+.oma-unit-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  color: #eef2ff;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.oma-unit-option.is-selected {
+  background: rgba(0, 186, 255, 0.12);
+  border-color: rgba(0, 186, 255, 0.26);
+}
+
+.oma-unit-option__radio {
+  color: #8edcff;
+  font-weight: 700;
+}
+
+.oma-unit-option__meta {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(238, 242, 255, 0.78);
+}
+
+.oma-unit-empty {
+  padding: 10px;
+  color: rgba(238, 242, 255, 0.58);
+  font-size: 12px;
+  text-align: center;
+}
+
+.oma-unit-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 186, 255, 0.12);
+  border: 1px solid rgba(0, 186, 255, 0.28);
+  color: #8edcff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {

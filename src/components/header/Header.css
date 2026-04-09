@@ -155,6 +155,21 @@
   padding: 0;
 }
 
+.profile-btn__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.profile-btn__sub {
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 3px;
+}
+
 .profile-btn:hover {
   color: #ffffff;
 }
@@ -244,6 +259,30 @@
 .profile-dropdown-menu button:hover {
   background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
+}
+
+.profile-dropdown-sectionTitle {
+  padding: 8px 12px 6px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.profile-dropdown-branch {
+  justify-content: space-between;
+}
+
+.profile-dropdown-branch.is-active {
+  background: rgba(0, 186, 255, 0.1);
+  color: #ffffff;
+}
+
+.profile-dropdown-branch__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .dropdown-divider {
@@ -458,6 +497,13 @@
   justify-content: center;
   cursor: pointer;
   transition: color .25s ease, border-color .25s ease, box-shadow .25s ease, background .25s ease, transform .2s ease;
+}
+
+.header-icon-btn.is-open {
+  color: #fff;
+  border-color: rgba(214, 255, 0, 0.28);
+  background: rgba(214, 255, 0, 0.08);
+  box-shadow: 0 0 0 1px rgba(214, 255, 0, 0.22), 0 0 18px rgba(214, 255, 0, 0.1);
 }
 
 .header-icon-btn:hover {

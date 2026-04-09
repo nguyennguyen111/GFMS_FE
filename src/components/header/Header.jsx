@@ -13,13 +13,20 @@ import {
   Activity,
   Star,
   LayoutDashboard,
+  Building2,
+  Check,
 } from "lucide-react";
 import "./Header.css";
 import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
+import useSelectedGym from "../../hooks/useSelectedGym";
+import useTrainerNotifications from "../../hooks/useTrainerNotifications";
+import useTrainerMessageUnread from "../../hooks/useTrainerMessageUnread";
 import { getCurrentUser } from "../../utils/auth";
-import { getAccessToken } from "../../services/authSession";
+import { ownerGetMyGyms } from "../../services/ownerGymService";
+import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
+import { getAccessToken } from "../../utils/auth";
 import { logoutUser } from "../../services/authService";
 
 const readAuth = () => {
@@ -47,6 +54,7 @@ const readAuth = () => {
     isLoggedInNonMember,
     portalPath,
     groupId,
+    isPT: groupId === 3,
   };
 };
 
@@ -63,12 +71,18 @@ export default function Header() {
   const [staffAccountOpen, setStaffAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [authTick, setAuthTick] = useState(0);
+  const [ownerGyms, setOwnerGyms] = useState([]);
 
   void authTick;
-  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath } =
+  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath, groupId, isPT } =
     readAuth();
+  const isOwner = groupId === 2;
+  const notificationPath = isMember ? "/member/notifications" : isOwner ? "/owner/notifications" : null;
+  const { selectedGymId, selectedGymName, setSelectedGym, clearSelectedGym } = useSelectedGym();
 
-  const notifications = useRealtimeNotifications();
+  const notifications = useRealtimeNotifications({ enabled: isMember });
+  const trainerNotifications = useTrainerNotifications();
+  const trainerMessageUnread = useTrainerMessageUnread();
 
   useEffect(() => {
     const setVar = () => {
@@ -119,6 +133,35 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    if (!isOwner || !token) {
+      setOwnerGyms([]);
+      return;
+    }
+
+    let alive = true;
+
+    const loadOwnerGyms = async () => {
+      try {
+        const res = await ownerGetMyGyms();
+        const gyms = Array.isArray(res?.data?.data) ? res.data.data : [];
+        if (!alive) return;
+        setOwnerGyms(gyms);
+        if (!selectedGymId && gyms.length === 1) {
+          setSelectedGym(gyms[0]);
+        }
+      } catch {
+        if (alive) setOwnerGyms([]);
+      }
+    };
+
+    loadOwnerGyms();
+
+    return () => {
+      alive = false;
+    };
+  }, [isOwner, selectedGymId, setSelectedGym, token]);
+
+  useEffect(() => {
     document.body.style.overflow = menuOpened ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
@@ -134,6 +177,15 @@ export default function Header() {
 
   const logout = () => {
     logoutUser().finally(() => go("/"));
+  };
+
+  const handleSelectOwnerGym = (gym) => {
+    if (gym) {
+      setSelectedGym(gym);
+    } else {
+      clearSelectedGym();
+    }
+    go("/owner/overview");
   };
 
   const initials = useMemo(() => {
@@ -163,17 +215,47 @@ export default function Header() {
     </NavLink>
   );
 
-  const NotificationButton = () => (
+  const SimpleNotificationButton = () => (
     <button
       type="button"
       className="header-icon-btn"
       aria-label="Thông báo"
-      onClick={() => go("/member/notifications")}
+      onClick={() => {
+        if (notificationPath) go(notificationPath);
+      }}
     >
       <Bell size={18} />
       {notifications.unreadCount > 0 ? (
         <span className="header-noti-dot" />
       ) : null}
+    </button>
+  );
+
+  const PTNotificationButton = () => (
+    <button
+      type="button"
+      className="header-icon-btn"
+      aria-label="Thông báo"
+      title="Thông báo"
+      onClick={() => go("/pt/notifications")}
+    >
+      <Bell size={18} />
+      {trainerNotifications.unreadCount > 0 ? (
+        <span className="header-noti-dot" />
+      ) : null}
+    </button>
+  );
+
+  const PTMessageButton = () => (
+    <button
+      type="button"
+      className="header-icon-btn"
+      aria-label="Tin nhắn"
+      title="Tin nhắn"
+      onClick={() => go("/pt/messages")}
+    >
+      <MessageCircle size={18} />
+      {trainerMessageUnread > 0 ? <span className="header-noti-dot" /> : null}
     </button>
   );
 
@@ -241,7 +323,12 @@ export default function Header() {
         type="button"
       >
         <User size={16} />
-        <span>{username}</span>
+        <span className="profile-btn__stack">
+          <span>{username}</span>
+          {isOwner ? (
+            <span className="profile-btn__sub">{selectedGymName || "Tất cả chi nhánh"}</span>
+          ) : null}
+        </span>
         <ChevronDown size={16} className="profile-caret" />
       </button>
 
@@ -254,7 +341,39 @@ export default function Header() {
             </button>
           ) : null}
 
-          {portalPath ? <div className="dropdown-divider" /> : null}
+          {isOwner ? (
+            <>
+              {portalPath ? <div className="dropdown-divider" /> : null}
+              <div className="profile-dropdown-sectionTitle">Quản lý chi nhánh</div>
+              <button
+                onClick={() => handleSelectOwnerGym(null)}
+                type="button"
+                className={`profile-dropdown-branch ${!selectedGymId ? "is-active" : ""}`}
+              >
+                <span className="profile-dropdown-branch__label">
+                  <Building2 size={16} />
+                  <span>Tất cả chi nhánh</span>
+                </span>
+                {!selectedGymId ? <Check size={15} /> : null}
+              </button>
+              {ownerGyms.map((gym) => (
+                <button
+                  key={gym.id}
+                  onClick={() => handleSelectOwnerGym(gym)}
+                  type="button"
+                  className={`profile-dropdown-branch ${Number(selectedGymId) === Number(gym.id) ? "is-active" : ""}`}
+                >
+                  <span className="profile-dropdown-branch__label">
+                    <Building2 size={16} />
+                    <span>{gym.name}</span>
+                  </span>
+                  {Number(selectedGymId) === Number(gym.id) ? <Check size={15} /> : null}
+                </button>
+              ))}
+            </>
+          ) : null}
+
+          {portalPath || isOwner ? <div className="dropdown-divider" /> : null}
 
           <button className="logout-btn" onClick={logout} type="button">
             <LogOut size={16} />
@@ -332,6 +451,26 @@ export default function Header() {
                   Bảng điều khiển
                 </button>
               ) : null}
+              {isPT ? (
+                <>
+                  <button
+                    className="profile-btn full-width-btn"
+                    onClick={() => go("/pt/notifications")}
+                    type="button"
+                  >
+                    <Bell size={16} />
+                    Thông báo
+                  </button>
+                  <button
+                    className="profile-btn full-width-btn"
+                    onClick={() => go("/pt/messages")}
+                    type="button"
+                  >
+                    <MessageCircle size={16} />
+                    Tin nhắn
+                  </button>
+                </>
+              ) : null}
               <button
                 className="logout-btn full-width-btn"
                 onClick={logout}
@@ -383,7 +522,14 @@ export default function Header() {
               </button>
             )}
 
-            {isMember ? <NotificationButton /> : null}
+            {isOwner && notificationPath ? <OwnerHeaderNotifications onNavigate={go} /> : null}
+            {!isOwner && isMember && notificationPath ? <SimpleNotificationButton /> : null}
+            {isPT ? (
+              <>
+                <PTNotificationButton />
+                <PTMessageButton />
+              </>
+            ) : null}
             {isMember && <MemberDropdown />}
             {isLoggedInNonMember && <StaffAccountDropdown />}
 

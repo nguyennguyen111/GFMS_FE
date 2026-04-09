@@ -1,19 +1,35 @@
 const PAIRS = [
+  // 5 chuyên môn HLV (canonical — đúng chính tả checkbox)
+  ["giảm mỡ & định hình toàn thân", "Giảm mỡ & định hình toàn thân"],
+  ["tăng khối cơ & phát triển toàn diện", "Tăng khối cơ & phát triển toàn diện"],
+  ["sức mạnh & phát triển thể hình", "Sức mạnh & phát triển thể hình"],
+  ["thể lực & nâng cao thể trạng", "Thể lực & nâng cao thể trạng"],
+  [
+    "tư thế và vận động hỗ trợ chiều cao",
+    "Tư thế và vận động hỗ trợ chiều cao",
+  ],
+  // Tên gói cũ / marketing → chuyên môn tương ứng
+  ["siết mỡ toàn thân", "Giảm mỡ & định hình toàn thân"],
+  ["tăng cơ toàn diện", "Tăng khối cơ & phát triển toàn diện"],
+  ["sức mạnh & thể hình", "Sức mạnh & phát triển thể hình"],
+  ["cải thiện thể trạng", "Thể lực & nâng cao thể trạng"],
+  ["cải thiện chiều cao", "Tư thế và vận động hỗ trợ chiều cao"],
   ["functional training", "Tập chức năng"],
   ["strength training", "Tăng sức mạnh"],
   ["personal training", "HLV cá nhân"],
   ["nutrition coaching", "Huấn luyện dinh dưỡng"],
   ["muscle building", "Tăng cơ"],
   ["body building", "Thể hình"],
+  ["bodybuilding", "Thể hình"],
   ["fat burning", "Đốt mỡ"],
   ["weight loss", "Giảm mỡ"],
+  ["weightloss", "Giảm mỡ"],
   ["muscle gain", "Tăng cơ"],
   ["weight gain", "Tăng cân"],
   ["fat loss", "Giảm mỡ"],
   ["rehabilitation", "Phục hồi chức năng"],
   ["calisthenics", "Tập thể dục tự thân"],
   ["powerlifting", "Cử tạ"],
-  ["bodybuilding", "Thể hình"],
   ["crossfit", "CrossFit"],
   ["pilates", "Pilates"],
   ["stretching", "Kéo giãn"],
@@ -26,22 +42,51 @@ const PAIRS = [
   ["cardio", "Tập cardio"],
   ["yoga", "Yoga"],
   ["hiit", "HIIT"],
-  ["weightloss", "Giảm mỡ"],
+  ["tập chức năng", "Tập chức năng"],
+  ["tăng sức mạnh", "Tăng sức mạnh"],
+  ["huấn luyện dinh dưỡng", "Huấn luyện dinh dưỡng"],
+  ["tăng cơ", "Tăng cơ"],
+  ["thể hình", "Thể hình"],
+  ["đốt mỡ", "Đốt mỡ"],
+  ["giảm mỡ", "Giảm mỡ"],
+  ["tăng cân", "Tăng cân"],
+  ["phục hồi chức năng", "Phục hồi chức năng"],
+  ["tập thể dục tự thân", "Tập thể dục tự thân"],
+  ["cử tạ", "Cử tạ"],
+  ["kéo giãn", "Kéo giãn"],
+  ["linh hoạt khớp", "Linh hoạt khớp"],
+  ["dinh dưỡng", "Dinh dưỡng"],
+  ["bơi lội", "Bơi lội"],
+  ["chạy bộ", "Chạy bộ"],
+  ["đạp xe", "Đạp xe"],
+  ["quyền anh", "Quyền anh"],
+  ["tập cardio", "Tập cardio"],
 ];
 
-const SORTED = [...PAIRS].sort((a, b) => b[0].length - a[0].length);
+const MAP = new Map(PAIRS.map(([k, v]) => [k.toLowerCase(), v]));
 
 export function specializationToVietnamese(raw) {
   if (raw == null) return "";
-  let s = String(raw).trim();
+  const s = String(raw).trim();
   if (!s) return "";
-  s = s.replace(/[;]/g, ",");
-  for (const [en, vi] of SORTED) {
-    const esc = en.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = en.includes(" ")
-      ? new RegExp(esc, "gi")
-      : new RegExp(`\\b${esc}\\b`, "gi");
-    s = s.replace(pattern, vi);
-  }
-  return s.replace(/\s*,\s*/g, ", ").trim();
+
+  const parts = s
+    .replace(/[;]/g, ",")
+    .split(/[\n,|]+/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const dedup = new Set();
+  const normalized = [];
+
+  parts.forEach((part) => {
+    const mapped = MAP.get(part.toLowerCase()) || part;
+    const key = mapped.toLowerCase();
+    if (!dedup.has(key)) {
+      dedup.add(key);
+      normalized.push(mapped);
+    }
+  });
+
+  return normalized.join(", ");
 }

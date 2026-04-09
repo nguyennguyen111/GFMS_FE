@@ -169,7 +169,7 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="forgot-page">
+    <div className="forgot-page auth-compact">
       <div className="forgot-page__glow forgot-page__glow--left" />
       <div className="forgot-page__glow forgot-page__glow--right" />
 

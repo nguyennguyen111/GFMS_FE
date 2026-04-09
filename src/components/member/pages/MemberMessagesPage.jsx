@@ -10,6 +10,21 @@ import { showAppToast } from "../../../utils/appToast";
 
 const PLACEHOLDER = "https://placehold.co/96x96/101317/D6FF00?text=GFMS";
 
+function isUsableAvatarUrl(v) {
+  if (v == null || typeof v !== "string") return false;
+  const s = v.trim();
+  if (!s || /default-avatar/i.test(s)) return false;
+  return /^https?:\/\//i.test(s);
+}
+
+function pickPtAvatarForMember(trainerAvatar, senderAvatar) {
+  if (isUsableAvatarUrl(trainerAvatar)) return trainerAvatar.trim();
+  if (isUsableAvatarUrl(senderAvatar)) return String(senderAvatar).trim();
+  const t = trainerAvatar && String(trainerAvatar).trim();
+  if (t) return t;
+  return PLACEHOLDER;
+}
+
 function fmtTime(value) {
   if (!value) return "";
   const d = new Date(value);
@@ -174,7 +189,7 @@ export default function MemberMessagesPage() {
 
   return (
     <div className="mh-wrap mm2-page">
-      <div className="mh-head mm2-head"><div><span className="mm2-kicker">Trung tâm liên lạc</span><h2 className="mh-title mm2-title">Tin nhắn với PT</h2><div className="mh-sub mm2-desc">Gọn hơn, có cuộn, hỗ trợ ảnh, file, voice, vị trí và realtime typing.</div></div></div>
+      <div className="mh-head mm2-head"><div><span className="mm2-kicker">Trung tâm liên lạc</span><h2 className="mh-title mm2-title">Tin nhắn với PT</h2></div></div>
       {error ? <div className="m-error">{error}</div> : null}
       <div className="mm2-shell">
         <aside className="mm2-sidebar m-card">
@@ -188,7 +203,7 @@ export default function MemberMessagesPage() {
             {filteredConversations.map((item) => {
               const isActive = Number(activePeerUserId) === Number(item.trainerUserId);
               return <button type="button" key={item.conversationKey || item.trainerUserId} className={`mm2-row ${isActive ? "active" : ""}`} onClick={() => handleSelectConversation(item.trainerUserId)}>
-                <img className="mm2-avatar" src={item.trainerAvatar || PLACEHOLDER} alt={item.trainerName || "PT"} />
+                <img className="mm2-avatar" src={pickPtAvatarForMember(item.trainerAvatar, null)} alt={item.trainerName || "PT"} />
                 <div className="mm2-row-body"><div className="mm2-row-head"><strong>{item.trainerName || "PT"}</strong><span>{fmtTime(item.lastMessageAt)}</span></div><p>{previewTextFromPayload(item.lastMessage) || item.packageName || "Sẵn sàng hỗ trợ bạn."}</p></div>
                 {item.unreadCount > 0 ? <span className="mm2-unread">{item.unreadCount}</span> : null}
               </button>;
@@ -198,14 +213,14 @@ export default function MemberMessagesPage() {
 
         <section className="mm2-chat m-card">
           {!activeConversation ? <div className="mm2-empty">Chọn một hội thoại để bắt đầu nhắn tin.</div> : <>
-            <header className="mm2-chat-head"><div className="mm2-chat-user"><img className="mm2-avatar large" src={activeConversation.trainerAvatar || PLACEHOLDER} alt={activeConversation.trainerName || "PT"} /><div><h3>{activeConversation.trainerName}</h3><p>{activeConversation.packageName ? `Gói: ${activeConversation.packageName}` : "Kênh liên lạc realtime với PT"}</p></div></div></header>
+            <header className="mm2-chat-head"><div className="mm2-chat-user"><img className="mm2-avatar large" src={pickPtAvatarForMember(activeConversation.trainerAvatar, null)} alt={activeConversation.trainerName || "PT"} /><div><h3>{activeConversation.trainerName}</h3><p>{activeConversation.packageName ? `Gói: ${activeConversation.packageName}` : "Kênh liên lạc realtime với PT"}</p></div></div></header>
             <div className="mm2-messages">
               {loading ? <div className="m-empty">Đang tải hội thoại...</div> : null}
               {!loading && !messages.length ? <div className="m-empty">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.</div> : null}
               {messages.map((msg) => {
                 const mine = Number(msg.senderId) !== Number(activeConversation.trainerUserId);
                 return <div key={msg.id} className={`mm2-bubble-row ${mine ? "mine" : "theirs"}`}>
-                  {!mine ? <img className="mm2-msg-avatar" src={msg.sender?.avatar || activeConversation.trainerAvatar || PLACEHOLDER} alt={msg.sender?.username || activeConversation.trainerName || "PT"} /> : null}
+                  {!mine ? <img className="mm2-msg-avatar" src={pickPtAvatarForMember(activeConversation.trainerAvatar, msg.sender?.avatar)} alt={msg.sender?.username || activeConversation.trainerName || "PT"} /> : null}
                   <div className="mm2-bubble-wrap"><div className="mm2-bubble"><MessageContent msg={msg} /></div><div className="mm2-meta">{fmtTime(msg.createdAt)} {mine ? (msg.isRead ? "• Đã xem" : "• Đã gửi") : ""}</div></div>
                 </div>;
               })}

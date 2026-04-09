@@ -172,6 +172,24 @@
   height: 44px; /* Chiều cao khớp với Header ngày */
 }
 
+.ptWeek__timeBody--dayRange {
+  position: relative;
+}
+
+.ptWeek__timeEndCap {
+  position: absolute;
+  left: 0;
+  right: 12px;
+  bottom: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray);
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(45%);
+}
+
 .ptWeek__timeRow {
   display: flex;
   align-items: flex-start;
@@ -229,7 +247,7 @@
   position: relative;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 100% 60px; /* Khớp với ROW_HEIGHT */
+  background-size: 100% 60px;
 }
 
 /* Slot Blocks (Ca làm việc) */
@@ -307,6 +325,24 @@
   color: #ff5e4d !important;
 }
 
+.ptWeek__block.is-busy-requested {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(245, 158, 11, 0.46) !important;
+  border-left-color: #f59e0b !important;
+}
+.ptWeek__block.is-busy-requested * {
+  color: #fbbf24 !important;
+}
+
+.ptWeek__block.is-shared {
+  background: rgba(139, 92, 246, 0.16) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  border-left-color: #8b5cf6 !important;
+}
+.ptWeek__block.is-shared * {
+  color: #c4b5fd !important;
+}
+
 /* Weekly Bar & Table Fallsbacks */
 .ptWeekBar {
   display: flex;
@@ -344,6 +380,13 @@
   border-radius: 10px;
   font-size: 0.8rem;
   font-weight: bold;
+}
+
+.ptSchedule__busyReasonError {
+  margin: 8px 0 0;
+  color: #ff7b7b;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* Responsive Mobile */

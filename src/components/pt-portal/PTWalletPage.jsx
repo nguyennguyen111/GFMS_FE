@@ -5,6 +5,7 @@ import {
   requestPTWithdrawal,
 } from "../../services/ptService";
 import { connectSocket } from "../../services/socketClient";
+import NiceModal from "../common/NiceModal";
 import "./PTPortalPages.css";
 import "./PTWalletPage.css";
 
@@ -29,6 +30,7 @@ const PTWalletPage = () => {
   const [filters, setFilters] = useState({ status: "" });
   const [notice, setNotice] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [alertModal, setAlertModal] = useState(null);
   const [form, setForm] = useState({
     amount: "",
     bankName: "",
@@ -82,11 +84,11 @@ const PTWalletPage = () => {
   const handleSubmit = async () => {
     const amount = Number(form.amount || 0);
     if (!amount || Number.isNaN(amount) || amount <= 0) {
-      alert("Vui lòng nhập số tiền hợp lệ");
+      setAlertModal({ title: "Thiếu thông tin", message: "Vui lòng nhập số tiền hợp lệ", tone: "info" });
       return;
     }
     if (!form.bankName || !form.accountNumber || !form.accountHolder) {
-      alert("Vui lòng nhập đủ thông tin ngân hàng");
+      setAlertModal({ title: "Thiếu thông tin", message: "Vui lòng nhập đủ thông tin ngân hàng", tone: "info" });
       return;
     }
     try {
@@ -105,7 +107,7 @@ const PTWalletPage = () => {
       loadWithdrawals();
     } catch (e) {
       console.error("Lỗi khi gửi yêu cầu:", e);
-      alert(e.response?.data?.message || "Không thể gửi yêu cầu");
+      setAlertModal({ title: "Lỗi", message: e.response?.data?.message || "Không thể gửi yêu cầu", tone: "danger" });
     }
   };
 
@@ -259,6 +261,20 @@ const PTWalletPage = () => {
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(alertModal)}
+        onClose={() => setAlertModal(null)}
+        tone={alertModal?.tone || "info"}
+        title={alertModal?.title || "Thông báo"}
+        footer={
+          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setAlertModal(null)}>
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{alertModal?.message}</p>
+      </NiceModal>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellRing, CalendarCheck, CreditCard, Dumbbell, MessageCircle, RefreshCw, ShieldAlert, Star, Tag } from "lucide-react";
+import { BellRing, CalendarCheck, CreditCard, Dumbbell, MessageCircle, RefreshCw, ShieldAlert, Star, Tag, Repeat, UserPlus } from "lucide-react";
 import "../member-pages.css";
 import "./MemberNotificationsPage.css";
 import useRealtimeNotifications from "../../../hooks/useRealtimeNotifications";
@@ -8,7 +8,10 @@ import { previewTextFromPayload } from "../../../utils/chatPayload";
 
 const iconMap = {
   booking_update: CalendarCheck,
+  booking_reschedule: Repeat,
   package_purchase: CreditCard,
+  payment: CreditCard,
+  trainer_request: UserPlus,
   chat: MessageCircle,
   review: Star,
   promo: Tag,
@@ -18,7 +21,10 @@ const iconMap = {
 
 const categoryMap = {
   booking_update: "Lịch tập & Buổi đã hoàn thành",
+  booking_reschedule: "Đổi lịch & Xác nhận",
   package_purchase: "Thanh toán & Gói tập",
+  payment: "Thanh toán & Gói tập",
+  trainer_request: "Tài khoản & Yêu cầu",
   chat: "Tin nhắn & Tương tác",
   review: "Đánh giá & Phản hồi",
   security: "Hệ thống & Bảo mật",
@@ -46,9 +52,10 @@ export default function MemberNotificationsPage() {
   const resolveNotificationPath = (item) => {
     const type = String(item?.notificationType || "").toLowerCase();
     if (type === "chat") return "/member/messages";
-    if (["booking_update", "booking"].includes(type)) return "/member/bookings";
+    if (["booking_update", "booking", "booking_reschedule"].includes(type)) return "/member/bookings";
     if (["package_purchase", "transaction", "payment"].includes(type)) return "/member/my-packages";
     if (type === "review") return "/member/reviews";
+    if (type === "trainer_request") return "/member/profile";
     if (type === "promo") return "/member/my-packages";
     return "/member/notifications";
   };
@@ -74,9 +81,7 @@ export default function MemberNotificationsPage() {
     <div className="mh-wrap mn-page">
       <div className="mh-head mn-head">
         <div className="mn-head-left">
-          <span className="mn-sub-label">Trung tâm điều khiển</span>
-          <h2 className="mh-title mn-title">Thông báo realtime</h2>
-          <div className="mh-sub mn-desc">Nhận thông báo mua gói, hoàn thành buổi tập, tin nhắn PT và mọi cập nhật quan trọng dành cho hội viên.</div>
+          <span className="mn-sub-label">Thông báo</span>
         </div>
 
         <div className="mn-filter-tabs">

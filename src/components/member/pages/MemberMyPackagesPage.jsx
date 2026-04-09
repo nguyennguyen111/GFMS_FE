@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -10,7 +10,6 @@ import {
   Ticket,
 } from "lucide-react";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
-import { confirmPayosPayment } from "../../../services/paymentService";
 import "./MemberMyPackagesPage.css";
 
 const fmtMoney = (v) => {
@@ -40,7 +39,6 @@ const normalizeStatus = (x) => {
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,28 +65,6 @@ export default function MemberMyPackagesPage() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search || "");
-    const payosStatus = params.get("payos");
-    const orderCode = params.get("orderCode");
-
-    if (!payosStatus) return;
-
-    const runConfirm = async () => {
-      try {
-        if (payosStatus === "success" && orderCode) {
-          await confirmPayosPayment(orderCode);
-        }
-      } catch (e) {
-        setErr(e.response?.data?.message || "Xác nhận thanh toán PayOS thất bại.");
-      } finally {
-        load();
-        navigate(location.pathname, { replace: true });
-      }
-    };
-
-    runConfirm();
-  }, [location.pathname, location.search, navigate, load]);
 
   const mappedRows = useMemo(() => {
     return rows.map((x) => {
@@ -309,8 +285,6 @@ export default function MemberMyPackagesPage() {
         </div>
       </div>
 
-      {err && <div className="mp3-alert">{err}</div>}
-
       {loading ? (
         <div className="mp3-empty">
           <div className="mp3-emptyTitle">Đang tải danh sách gói...</div>
@@ -344,50 +318,6 @@ export default function MemberMyPackagesPage() {
             ) : (
               <div className="mp3-grid">
                 {activeRows.map((x) => renderCard(x))}
-              </div>
-            )}
-          </section>
-
-          <section className="mp3-section is-history">
-            <div className="mp3-sectionHead">
-              <div className="mp3-sectionTitleWrap">
-                <h2 className="mp3-sectionTitle">Past History</h2>
-                <div className="mp3-sectionLine" />
-              </div>
-              <div className="mp3-sectionCount">archived</div>
-            </div>
-
-            {archiveRows.length === 0 ? (
-              <div className="mp3-empty small">Chưa có lịch sử gói đã lưu trữ.</div>
-            ) : (
-              <div className="mp3-historyList">
-                {archiveRows.map((x) => (
-                  <div
-                    key={x.id}
-                    className="mp3-historyRow"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/member/my-packages/${x.id}`)}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/member/my-packages/${x.id}`)}
-                  >
-                    <div className="mp3-historyNameWrap">
-                      <div className="mp3-historyLabel">Package name</div>
-                      <div className="mp3-historyName">{x.Package?.name || "—"}</div>
-                    </div>
-
-                    <div className="mp3-historyStatusWrap">
-                      <div className="mp3-historyLabel">Status</div>
-                      <span className={`mp3-historyBadge ${x.__status}`}>
-                        {x.__status === "archived" ? "COMPLETED" : x.__status.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div className="mp3-historyDateWrap">
-                      <div className="mp3-historyLabel">Date</div>
-                      <div className="mp3-historyDate">{fmtDate(x.expiryDate)}</div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </section>
