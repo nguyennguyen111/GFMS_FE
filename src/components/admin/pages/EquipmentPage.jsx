@@ -4,6 +4,7 @@ import axios from "../../../setup/axios";
 
 import {
   createEquipment,
+  deleteEquipment,
   discontinueEquipment,
   getSuppliers,
   getEquipmentCategories,
@@ -27,6 +28,31 @@ const emptyForm = {
   quantity: 0,
   preferredSupplierId: "",
   status: "active",
+};
+
+const validateEquipmentForm = (form, mode = "create") => {
+  const errors = [];
+  const name = String(form.name || "").trim();
+  const code = String(form.code || "").trim();
+  const price = Number(form.price ?? 0);
+  const quantity = Number(form.quantity ?? 0);
+
+  if (!name) errors.push("Tên thiết bị là bắt buộc.");
+  if (name.length > 255) errors.push("Tên thiết bị quá dài (tối đa 255 ký tự).");
+
+  if (code && !/^[A-Za-z0-9._-]+$/.test(code)) {
+    errors.push("Mã thiết bị chỉ được chứa chữ, số và ký tự . _ -");
+  }
+
+  if (!Number.isFinite(price) || price < 0) {
+    errors.push("Giá bán phải là số và không được âm.");
+  }
+
+  if (mode === "create" && (!Number.isFinite(quantity) || quantity < 0)) {
+    errors.push("Số lượng ban đầu phải là số và không được âm.");
+  }
+
+  return errors;
 };
 
 export default function EquipmentPage() {
@@ -136,6 +162,12 @@ export default function EquipmentPage() {
   const save = async () => {
     setErr("");
     try {
+      const validationErrors = validateEquipmentForm(form, mode);
+      if (validationErrors.length) {
+        setErr(validationErrors.join(" "));
+        return;
+      }
+
       const payload = {
         name: form.name?.trim(),
         code: form.code?.trim() || null,
@@ -176,6 +208,19 @@ export default function EquipmentPage() {
       fetchList();
     } catch (e) {
       alert(e?.response?.data?.message || e?.message || "Discontinue failed");
+    }
+  };
+
+  const onDelete = async (row) => {
+    const okConfirm = window.confirm(
+      `Xóa vĩnh viễn thiết bị "${row.name}"?\n\nChỉ xóa được khi chưa phát sinh dữ liệu kho/chứng từ.`
+    );
+    if (!okConfirm) return;
+    try {
+      await deleteEquipment(row.id);
+      await fetchList();
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Xóa thiết bị thất bại");
     }
   };
 
@@ -334,6 +379,12 @@ export default function EquipmentPage() {
                         disabled={!isActive}
                       >
                         Ẩn thiết bị
+                      </button>
+                      <button
+                        className="eq-btn eq-btn--danger"
+                        onClick={() => onDelete(row)}
+                      >
+                        Xóa
                       </button>
                     </td>
                   </tr>
