@@ -89,8 +89,12 @@ export default function PurchaseWorkflowPage() {
 
   const approveRequest = async (row) => {
     if (!window.confirm(`Duyệt yêu cầu ${row.code}?`)) return;
-    await adminPurchaseWorkflowService.approvePurchaseRequest(row.id);
-    await fetchList();
+    try {
+      await adminPurchaseWorkflowService.approvePurchaseRequest(row.id);
+      await fetchList();
+    } catch (e) {
+      alert(e?.response?.data?.message || e.message || "Không thể duyệt yêu cầu.");
+    }
   };
 
   const rejectRequest = async (row) => {
@@ -107,8 +111,14 @@ export default function PurchaseWorkflowPage() {
 
   const confirmPaymentAndShip = async (row) => {
     if (!window.confirm(`Xác nhận đã nhận tiền và chuyển thiết bị cho ${row.code}?`)) return;
-    await adminPurchaseWorkflowService.confirmPurchaseRequestPaymentAndShip(row.id);
-    await fetchList();
+    try {
+      await adminPurchaseWorkflowService.confirmPurchaseRequestPaymentAndShip(row.id);
+      await fetchList();
+      await fetchHistory();
+      alert(`Đã xác nhận nhận tiền và chuyển thiết bị cho ${row.code}.`);
+    } catch (e) {
+      alert(e?.response?.data?.message || e.message || "Không thể xác nhận chuyển hàng.");
+    }
   };
 
   return (
