@@ -12,6 +12,8 @@ import {
   ownerDownloadFranchiseContractPdf,
 } from "../../../services/ownerFranchiseService";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 /** Giống admin FranchiseRequestsPage — trạng thái luồng hợp đồng */
 const CONTRACT_LABEL = {
@@ -54,9 +56,6 @@ function OwnerContractStepper({ status }) {
     </div>
   );
 }
-import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
-import { showAppConfirm } from "../../../utils/appDialog";
-
 const STATUS_LABELS = {
   pending: { label: "Chờ duyệt", color: "warning" },
   approved: { label: "Đã duyệt", color: "success" },
