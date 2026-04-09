@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { connectSocket } from "../services/socketClient";
-import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from "../services/memberNotificationService";
+import { connectSocket, disconnectSocket } from "../services/socketClient";
+import {
+  getAdminNotifications,
+  markAllAdminNotificationsRead,
+  markAdminNotificationRead,
+} from "../services/adminNotificationService";
 import { getAccessToken, getSessionUser } from "../services/authSession";
 
-export default function useRealtimeNotifications() {
+export default function useAdminRealtimeNotifications() {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -11,8 +15,8 @@ export default function useRealtimeNotifications() {
   useEffect(() => {
     const token = getAccessToken();
     const user = getSessionUser();
-    const isMember = Number(user?.groupId ?? user?.group_id) === 4;
-    if (!token || !isMember) {
+    const isAdmin = Number(user?.groupId ?? user?.group_id) === 1;
+    if (!token || !isAdmin) {
       setItems([]);
       setUnreadCount(0);
       setLoading(false);
@@ -24,7 +28,7 @@ export default function useRealtimeNotifications() {
 
     const boot = async () => {
       try {
-        const data = await getMyNotifications();
+        const data = await getAdminNotifications();
         if (!mounted) return;
         setItems(data?.items || []);
         setUnreadCount(data?.unreadCount || 0);
@@ -52,27 +56,43 @@ export default function useRealtimeNotifications() {
     socket.on("notification:read", onRead);
     socket.on("notification:read-all", onReadAll);
 
+    const onAuth = () => {
+      disconnectSocket();
+      connectSocket();
+      boot();
+    };
+    window.addEventListener("authChanged", onAuth);
+
     return () => {
       mounted = false;
       socket.off("notification:new", onNew);
       socket.off("notification:read", onRead);
       socket.off("notification:read-all", onReadAll);
+      window.removeEventListener("authChanged", onAuth);
     };
   }, []);
 
-  return useMemo(() => ({
-    items,
-    unreadCount,
-    loading,
-    markOne: async (id) => {
-      await markNotificationRead(id);
-      setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    },
-    markAll: async () => {
-      await markAllNotificationsRead();
-      setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
-      setUnreadCount(0);
-    },
-  }), [items, unreadCount, loading]);
+  return useMemo(
+    () => ({
+      items,
+      unreadCount,
+      loading,
+      markOne: async (id) => {
+        await markAdminNotificationRead(id);
+        setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      },
+      markAll: async () => {
+        await markAllAdminNotificationsRead();
+        setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+        setUnreadCount(0);
+      },
+      refresh: async () => {
+        const data = await getAdminNotifications();
+        setItems(data?.items || []);
+        setUnreadCount(data?.unreadCount || 0);
+      },
+    }),
+    [items, unreadCount, loading]
+  );
 }

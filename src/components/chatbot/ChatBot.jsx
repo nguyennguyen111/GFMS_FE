@@ -15,11 +15,12 @@ import {
 } from "lucide-react";
 import "./ChatBot.css";
 import { aiChat, aiConfirmAction } from "../../services/aiService";
+import { getAccessToken } from "../../services/authSession";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const readAuth = () => ({
-  token: localStorage.getItem("accessToken"),
+  token: getAccessToken(),
   role: localStorage.getItem("role"),
   username: localStorage.getItem("username") || "bạn",
 });

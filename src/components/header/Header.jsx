@@ -19,9 +19,11 @@ import logo from "../../assets/logo.jpg";
 import logoWordmark from "../../assets/logo-wordmark.png";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
 import { getCurrentUser } from "../../utils/auth";
+import { getAccessToken } from "../../services/authSession";
+import { logoutUser } from "../../services/authService";
 
 const readAuth = () => {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   const user = getCurrentUser();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
   const username = user?.username || user?.email || "Tài khoản";
@@ -131,9 +133,7 @@ export default function Header() {
   };
 
   const logout = () => {
-    localStorage.clear();
-    window.dispatchEvent(new Event("authChanged"));
-    go("/");
+    logoutUser().finally(() => go("/"));
   };
 
   const initials = useMemo(() => {

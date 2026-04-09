@@ -88,6 +88,3 @@ export const createReceipt = (payload) =>
 export const createExport = (payload) =>
   axios.post(`${API_BASE}/exports`, payload).then((r) => r.data);
 
-// ===== INVENTORY LOGS =====
-export const getInventoryLogs = (params) =>
-  axios.get(`${API_BASE}/inventory-logs`, { params }).then((r) => r.data);

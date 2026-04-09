@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AppToastHost from "./components/common/AppToastHost";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { bootstrapAuthSession } from "./services/authService";
+import { getAccessToken, getSessionUser, hydrateAuthSessionFromStorage } from "./services/authSession";
 
 import LandingPage from "./components/pages/LandingPage";
 
@@ -56,17 +58,10 @@ import SignContractPage from "./components/public/SignContractPage";
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
-    const raw = localStorage.getItem("user");
-    if (!raw) return <Navigate to="/login" replace />;
-
-    const data = JSON.parse(raw);
-
-    // Support both shapes:
-    // - stored directly: { id, email, groupId, ... }
-    // - wrapped: { user: { ... } }
-    const storedUser = data?.user ?? data;
-
-    const groupId = Number(storedUser?.groupId ?? storedUser?.group_id);
+    const token = getAccessToken();
+    const user = getSessionUser();
+    if (!user || !token) return <Navigate to="/login" replace />;
+    const groupId = Number(user?.groupId ?? user?.group_id);
 
     // groupId = 1 là Admin
     if (groupId !== 1) return <Navigate to="/" replace />;
@@ -78,6 +73,29 @@ const AdminGuard = ({ children }) => {
 };
 
 function App() {
+  const [authBootstrapped, setAuthBootstrapped] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    hydrateAuthSessionFromStorage();
+    bootstrapAuthSession().finally(() => {
+      if (mounted) setAuthBootstrapped(true);
+    });
+
+    const hardStop = setTimeout(() => {
+      if (mounted) setAuthBootstrapped(true);
+    }, 10000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(hardStop);
+    };
+  }, []);
+
+  if (!authBootstrapped) {
+    return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>Loading...</div>;
+  }
+
   return (
     <Router>
       <AppToastHost />

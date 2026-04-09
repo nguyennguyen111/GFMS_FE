@@ -99,7 +99,8 @@
 	outline: none;
 }
 
-.od2-content button,
+/* Exclude .ofr-dropItem: those are dropdown menu rows, not primary action buttons */
+.od2-content button:not(.ofr-dropItem),
 .od2-content .op-btn,
 .od2-content .op2-btn,
 .od2-content .ofr-btn,
@@ -114,7 +115,7 @@
 	border-radius: var(--owner-radius-sm) !important;
 }
 
-.od2-content button:hover,
+.od2-content button:not(.ofr-dropItem):hover,
 .od2-content .op-btn:hover,
 .od2-content .op2-btn:hover,
 .od2-content .ofr-btn:hover,

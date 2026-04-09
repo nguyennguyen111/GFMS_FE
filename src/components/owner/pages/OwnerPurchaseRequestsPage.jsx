@@ -99,9 +99,10 @@ export default function OwnerPurchaseRequestsPage() {
 
         return {
           ...row,
-          equipment: firstItem?.equipment || null,
-          quantity: firstItem?.quantity ?? null,
+          equipment: row.equipment || firstItem?.equipment || null,
+          quantity: row.quantity ?? firstItem?.quantity ?? null,
           reasonCode: reasonFromNote || null,
+          fulfillmentPlan: detail?.fulfillmentPlan || row?.fulfillmentPlan || null,
         };
       });
 
@@ -145,32 +146,13 @@ export default function OwnerPurchaseRequestsPage() {
     if (!gymId || !equipmentId) return;
     setErr("");
     try {
-      const res = await ownerPreviewPurchaseStock({ gymId, equipmentId });
-      const stocks = res?.data?.data ?? res?.data ?? [];
-      const list = Array.isArray(stocks) ? stocks : [];
-      const selectedStock = list.find((s) => Number(s.equipmentId) === Number(equipmentId));
-
-      if (!selectedStock) {
-        setPreview({
-          quantityOnHand: 0,
-          availableQuantity: 0,
-          minStockLevel: 0,
-          pendingPurchaseQty: 0,
-          shouldReorder: true,
-        });
+      const res = await ownerPreviewPurchaseStock({ gymId, equipmentId, requestedQty: Number(quantity || 0) });
+      const data = res?.data?.data ?? res?.data ?? null;
+      if (!data || Array.isArray(data)) {
+        setPreview(null);
         return;
       }
-
-      const minStockLevel = Number(selectedStock?.equipment?.minStockLevel ?? selectedStock?.reorderPoint ?? 0);
-      const availableQuantity = Number(selectedStock?.availableQuantity ?? 0);
-
-      setPreview({
-        quantityOnHand: Number(selectedStock?.quantity ?? 0),
-        availableQuantity,
-        minStockLevel,
-        pendingPurchaseQty: 0,
-        shouldReorder: availableQuantity <= minStockLevel,
-      });
+      setPreview(data);
     } catch (e) {
       setPreview(null);
       setErr(e?.response?.data?.message || e.message);
@@ -181,7 +163,7 @@ export default function OwnerPurchaseRequestsPage() {
     if (gymId && equipmentId) runPreview();
     else setPreview(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gymId, equipmentId]);
+  }, [gymId, equipmentId, quantity]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -220,11 +202,10 @@ export default function OwnerPurchaseRequestsPage() {
 
   const statusLabel = useMemo(
     () => ({
-      pending: "Chờ admin",
-      quoted: "Đã báo giá",
-      approved: "Đã duyệt",
+      submitted: "Đã gửi",
       rejected: "Từ chối",
       converted: "Đã tạo báo giá",
+      fulfilled_from_stock: "Đã cấp từ kho",
     }),
     []
   );
@@ -299,11 +280,15 @@ export default function OwnerPurchaseRequestsPage() {
 
                 {preview ? (
                   <div className={`owner-purchase-preview ${preview.shouldReorder ? "is-warning" : ""}`}>
-                    <b>Tồn tại thời điểm xem:</b> SL kho {preview.quantityOnHand}, khả dụng {preview.availableQuantity}, min {preview.minStockLevel}, đang chờ mua (PO) {preview.pendingPurchaseQty}
+                    <b>Tồn tại thời điểm xem:</b> tồn hiện tại {preview.quantityOnHand}, khả dụng {preview.availableQuantity}, min {preview.minStockLevel}, đang chờ mua {preview.pendingPurchaseQty}
                     <div className={`owner-purchase-preview-note ${preview.shouldReorder ? "is-warning" : ""}`}>
-                      {preview.shouldReorder
-                        ? "Hệ thống đang đánh dấu dưới ngưỡng an toàn / cần mua thêm."
-                        : "Mức tồn hiện chưa chạm ngưỡng tối thiểu. Hãy chọn lý do mua phù hợp với nghiệp vụ thực tế."}
+                      Có thể cấp từ kho: <b>{preview.fulfillmentPlan?.stockUsedQuantity || 0}</b> • Cần mua thêm: <b>{preview.fulfillmentPlan?.purchaseQuantity || 0}</b>
+                      {Number(expectedUnitPrice || 0) > 0 ? (
+                        <span>
+                          {" "}• Cọc 30%: <b>{Number((preview.fulfillmentPlan?.purchaseQuantity || 0) * Number(expectedUnitPrice || 0) * 0.3).toLocaleString("vi-VN")}đ</b>
+                          {" "}• Còn lại 70%: <b>{Number((preview.fulfillmentPlan?.purchaseQuantity || 0) * Number(expectedUnitPrice || 0) * 0.7).toLocaleString("vi-VN")}đ</b>
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -410,11 +395,10 @@ export default function OwnerPurchaseRequestsPage() {
           className="owner-purchase-filter-select"
         >
           <option value="">Tất cả trạng thái</option>
-          <option value="pending">Chờ admin</option>
-          <option value="quoted">Đã báo giá</option>
-          <option value="approved">Đã duyệt</option>
+          <option value="submitted">Đã gửi</option>
           <option value="rejected">Từ chối</option>
           <option value="converted">Đã tạo báo giá</option>
+          <option value="fulfilled_from_stock">Đã cấp từ kho</option>
         </select>
         <select
           value={filters.gymId}
@@ -442,19 +426,21 @@ export default function OwnerPurchaseRequestsPage() {
               <th>Thiết bị</th>
               <th>SL</th>
               <th>Lý do</th>
+              <th>Cấp từ kho</th>
+              <th>Cần mua</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="owner-purchase-empty">
+                <td colSpan={8} className="owner-purchase-empty">
                   Đang tải…
                 </td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="owner-purchase-empty">
+                <td colSpan={8} className="owner-purchase-empty">
                   Chưa có yêu cầu.
                 </td>
               </tr>
@@ -466,6 +452,8 @@ export default function OwnerPurchaseRequestsPage() {
                   <td>{r.equipment?.name}</td>
                   <td>{r.quantity}</td>
                   <td>{reasonLabelMap[r.reasonCode] || "—"}</td>
+                  <td>{r.issueQty ?? r.fulfillmentPlan?.issueQty ?? r.fulfillmentPlan?.stockUsedQuantity ?? "—"}</td>
+                  <td>{r.purchaseQty ?? r.fulfillmentPlan?.purchaseQty ?? r.fulfillmentPlan?.purchaseQuantity ?? "—"}</td>
                   <td>
                     <span className={`owner-purchase-status status-${r.status || "pending"}`}>
                       {statusLabel[r.status] || r.status}
