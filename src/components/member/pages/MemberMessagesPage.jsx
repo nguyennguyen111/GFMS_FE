@@ -7,6 +7,7 @@ import { uploadChatAsset } from "../../../services/chatUploadService";
 import useConversationSocket from "../../../hooks/useConversationSocket";
 import { decodeChatPayload, encodeChatPayload, previewTextFromPayload } from "../../../utils/chatPayload";
 import { showAppToast } from "../../../utils/appToast";
+import { connectSocket } from "../../../services/socketClient";
 
 const PLACEHOLDER = "https://placehold.co/96x96/101317/D6FF00?text=GFMS";
 
@@ -74,6 +75,7 @@ export default function MemberMessagesPage() {
         if (!mounted) return;
         const normalized = Array.isArray(data) ? data : [];
         setConversations(normalized);
+        if (normalized.length && !activePeerUserId) setActivePeerUserId(normalized[0].trainerUserId);
       } catch (e) {
         if (mounted) setError(e?.response?.data?.message || e.message || "Không tải được danh sách hội thoại.");
       } finally {
@@ -82,6 +84,19 @@ export default function MemberMessagesPage() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    const onFocus = async () => {
+      try {
+        const data = await getEligibleConversations();
+        const normalized = Array.isArray(data) ? data : [];
+        setConversations(normalized);
+        if (normalized.length && !activePeerUserId) setActivePeerUserId(normalized[0].trainerUserId);
+      } catch {}
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [activePeerUserId]);
 
   const filteredConversations = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -96,8 +111,53 @@ export default function MemberMessagesPage() {
 
   const updateConversationPreview = (text) => {
     if (!activeConversation) return;
-    setConversations((prev) => prev.map((item) => Number(item.trainerUserId) === Number(activeConversation.trainerUserId) ? { ...item, lastMessage: text, lastMessageAt: new Date().toISOString() } : item));
+    setConversations((prev) => prev
+      .map((item) => Number(item.trainerUserId) === Number(activeConversation.trainerUserId) ? { ...item, lastMessage: text, lastMessageAt: new Date().toISOString() } : item)
+      .sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)));
   };
+
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const onNewMessage = (payload) => {
+      const senderId = Number(payload?.senderId || 0);
+      const receiverId = Number(payload?.receiverId || 0);
+      const previewText = previewTextFromPayload(decodeChatPayload(payload?.content || "")) || "Tin nhắn mới";
+
+      setConversations((prev) => {
+        const matched = prev.find((item) => Number(item.trainerUserId) === senderId || Number(item.trainerUserId) === receiverId);
+        if (!matched) return prev;
+
+        const trainerUserId = Number(matched.trainerUserId);
+        const next = prev.map((item) => {
+          if (Number(item.trainerUserId) !== trainerUserId) return item;
+          const isIncoming = senderId === trainerUserId;
+          const isActive = Number(activePeerUserId) === trainerUserId;
+          return {
+            ...item,
+            lastMessage: previewText,
+            lastMessageAt: payload?.createdAt || new Date().toISOString(),
+            unreadCount: isIncoming && !isActive ? Number(item.unreadCount || 0) + 1 : 0,
+          };
+        });
+        return next.sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+      });
+    };
+
+    const onRead = (payload) => {
+      const peerUserId = Number(payload?.peerUserId || 0);
+      if (!peerUserId) return;
+      setConversations((prev) => prev.map((item) => Number(item.trainerUserId) === peerUserId ? { ...item, unreadCount: 0 } : item));
+    };
+
+    socket.on("message:new", onNewMessage);
+    socket.on("message:read", onRead);
+
+    return () => {
+      socket.off("message:new", onNewMessage);
+      socket.off("message:read", onRead);
+    };
+  }, [activeConversation?.trainerUserId, activePeerUserId]);
 
   const handleSelectConversation = (trainerUserId) => {
     setActivePeerUserId(trainerUserId);

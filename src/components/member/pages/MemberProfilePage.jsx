@@ -13,6 +13,7 @@ import { memberGetMyPackages } from "../../../services/memberPackageService";
 import { mpGetGyms } from "../../../services/marketplaceService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
+import { getAuthProvider } from "../../../services/authSession";
 import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecializations";
 
 const safeParse = (s) => {
@@ -187,6 +188,21 @@ const normalizeCertificateLinks = (input) => {
   return { ok: true, value: unique };
 };
 
+
+const prettifyDisplayName = (user) => {
+  const raw = String(user?.displayName || user?.username || user?.email || "HỘI VIÊN").trim();
+  if (!raw) return "HỘI VIÊN";
+  const local = raw.includes("@") ? raw.split("@")[0] : raw;
+  const normalized = local.replace(/[._]+/g, " ").replace(/\s+/g, " ").trim();
+  const isSlugLike = /^[a-z0-9_./-]+$/i.test(local) && /[_./-]/.test(local);
+  const base = isSlugLike ? normalized : raw;
+  return base
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
 export default function MemberProfilePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("profile");
@@ -221,6 +237,8 @@ export default function MemberProfilePage() {
   const [passwordNotice, setPasswordNotice] = useState({ type: "", message: "" });
 
   const role = localStorage.getItem("role") || "member";
+  const authProvider = getAuthProvider();
+  const canChangePassword = authProvider !== "google";
 
   const loadProfile = async () => {
     setLoadingProfile(true);
@@ -341,7 +359,7 @@ export default function MemberProfilePage() {
     }
   }, [user, trainerGymId]);
 
-  const displayName = useMemo(() => form?.username || user?.username || "HỘI VIÊN", [form, user]);
+  const displayName = useMemo(() => prettifyDisplayName({ ...(user || {}), username: form?.username || user?.username, email: form?.email || user?.email }), [form, user]);
 
   const initials = useMemo(() => {
     const t = String(displayName || "").trim();
@@ -724,9 +742,11 @@ export default function MemberProfilePage() {
             {editing ? "HUỶ CHỈNH SỬA" : "CHỈNH SỬA HỒ SƠ"}
           </button>
 
-          <button className="mprof-btn primary" onClick={() => setTab("password")}>
-            ĐỔI MẬT KHẨU
-          </button>
+          {canChangePassword ? (
+            <button className="mprof-btn primary" onClick={() => setTab("password")}>
+              ĐỔI MẬT KHẨU
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -738,13 +758,14 @@ export default function MemberProfilePage() {
           THÔNG TIN CÁ NHÂN
         </button>
 
-        <button
-          className={`mprof-tab ${tab === "password" ? "active" : ""}`}
-          onClick={() => setTab("password")}
-        >
-          BẢO MẬT
-        </button>
-
+        {canChangePassword ? (
+          <button
+            className={`mprof-tab ${tab === "password" ? "active" : ""}`}
+            onClick={() => setTab("password")}
+          >
+            BẢO MẬT
+          </button>
+        ) : null}
       </div>
 
       {tab === "profile" && (
@@ -1002,7 +1023,7 @@ export default function MemberProfilePage() {
         </>
       )}
 
-      {tab === "password" && (
+      {canChangePassword && tab === "password" && (
         <div className="mprof-singleGrid">
           <section className="mprof-securityCard">
             <div className="mprof-cardHead">

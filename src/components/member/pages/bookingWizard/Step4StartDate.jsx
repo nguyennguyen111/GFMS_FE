@@ -34,11 +34,10 @@ const next3DatesByPattern = (pattern, from = new Date()) => {
 
   while (out.length < 3 && safe < 60) {
     safe += 1;
-    d.setDate(d.getDate() + 1);
-
     if (pattern.includes(d.getDay())) {
       out.push(toISO(d));
     }
+    d.setDate(d.getDate() + 1);
   }
 
   return out;
