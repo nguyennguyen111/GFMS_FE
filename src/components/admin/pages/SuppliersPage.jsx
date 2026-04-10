@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import "./SuppliersPage.css";
 
 import {
@@ -281,7 +282,8 @@ export default function SuppliersPage() {
         </table>
       </div>
 
-      {show ? (
+      {show
+        ? createPortal(
         <div className="sup-modal__backdrop" onMouseDown={closeModal}>
           <div
             className="sup-modal"
@@ -362,7 +364,7 @@ export default function SuppliersPage() {
                   />
                 </label>
 
-                <label className="sup-field sup-field--full">
+                <label className="sup-field">
                   <span className="sup-label">Địa chỉ</span>
                   <input
                     className="sup-input"
@@ -430,8 +432,10 @@ export default function SuppliersPage() {
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body
+      )
+        : null}
     </div>
   );
 }
