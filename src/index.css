@@ -11,7 +11,7 @@
   --font-body: "Be Vietnam Pro", sans-serif;
   --font-label: "Lexend", sans-serif;
   --header-h: 80px;
-  --site-max-width: min(80vw, 1440px);
+  --site-max-width: min(100vw, 1440px);
   --site-padding-inline: 24px;
 }
 
