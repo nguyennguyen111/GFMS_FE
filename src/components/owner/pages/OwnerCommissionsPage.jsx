@@ -3,7 +3,6 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
   ownerGetCommissions,
-  ownerExportCommissions,
   ownerPreviewClosePayrollPeriod,
   ownerPreviewPayByTrainer,
   ownerClosePayrollPeriod,
@@ -479,43 +478,6 @@ const OwnerCommissionsPage = () => {
     }
   };
 
-  const downloadFile = (blob, filename) => {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleExport = async (format) => {
-    try {
-      const response = await ownerExportCommissions({ ...filters, format });
-      const contentType = response.headers?.["content-type"] || "";
-      const extension = format === "pdf" ? "pdf" : "xlsx";
-      const filename = `commissions.${extension}`;
-      downloadFile(new Blob([response.data], { type: contentType }), filename);
-    } catch (error) {
-      console.error("Lỗi khi xuất file:", error);
-      let message = "Không thể xuất file";
-      const response = error.response;
-      if (response?.data instanceof Blob) {
-        try {
-          const text = await response.data.text();
-          const parsed = JSON.parse(text);
-          message = parsed?.message || parsed?.EM || message;
-        } catch {
-          message = "Không thể xuất file";
-        }
-      } else {
-        message = response?.data?.message || response?.data?.EM || message;
-      }
-      showAlert("error", "Không xuất được file", message);
-    }
-  };
-
   const handleOpenPeriod = (period) => {
     setSelectedPeriod(period);
     setShowPeriodModal(true);
@@ -579,9 +541,6 @@ const OwnerCommissionsPage = () => {
           />
           <button className="search-button" onClick={loadCommissions}>
             Lọc
-          </button>
-          <button className="search-button" onClick={() => handleExport("xlsx")}>
-            Xuất Excel
           </button>
         </div>
       </div>
