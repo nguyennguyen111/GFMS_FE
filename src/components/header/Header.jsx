@@ -29,11 +29,26 @@ import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
 import { getAccessToken } from "../../utils/auth";
 import { logoutUser } from "../../services/authService";
 
+
+const prettifyDisplayName = (user) => {
+  const raw = String(user?.displayName || user?.username || user?.email || "Tài khoản").trim();
+  if (!raw) return "Tài khoản";
+  const local = raw.includes("@") ? raw.split("@")[0] : raw;
+  const normalized = local.replace(/[._]+/g, " ").replace(/\s+/g, " ").trim();
+  const isSlugLike = /^[a-z0-9_./-]+$/i.test(local) && /[_./-]/.test(local);
+  const base = isSlugLike ? normalized : raw;
+  return base
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
 const readAuth = () => {
   const token = getAccessToken();
   const user = getCurrentUser();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
-  const username = user?.username || user?.email || "Tài khoản";
+  const username = prettifyDisplayName(user);
   const avatar = user?.avatar || user?.avatarUrl || "";
   const portalPath =
     groupId === 1

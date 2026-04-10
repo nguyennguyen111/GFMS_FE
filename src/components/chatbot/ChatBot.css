@@ -1,7 +1,7 @@
 .gfms-ai-chatbox-root {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  bottom: 18px;
   z-index: 120;
 }
 
@@ -23,7 +23,7 @@
 
 .gfms-ai-panel {
   width: min(430px, calc(100vw - 20px));
-  height: min(760px, calc(100vh - 96px));
+  height: min(720px, calc(100vh - 84px));
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;

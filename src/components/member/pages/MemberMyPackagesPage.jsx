@@ -71,6 +71,7 @@ export default function MemberMyPackagesPage() {
       const isPending = String(x.id).startsWith("pending-");
       const status = isPending ? "pending" : normalizeStatus(x.status);
       const sessionsRemaining = Number(x.sessionsRemaining ?? x.sessionsLeft ?? 0);
+      const reviewEligible = Boolean(x.reviewEligible || (status === "archived" && !isPending));
       const totalSessions = Number(x.totalSessions ?? x.Package?.sessions ?? 0);
 
       let progress = 0;
@@ -88,6 +89,7 @@ export default function MemberMyPackagesPage() {
         __sessionsRemaining: sessionsRemaining,
         __totalSessions: totalSessions,
         __progress: progress,
+        __reviewEligible: reviewEligible,
       };
     });
   }, [rows]);
@@ -112,7 +114,7 @@ export default function MemberMyPackagesPage() {
     [filteredRows]
   );
 
-  const archiveRows = useMemo(
+  const usedUpRows = useMemo(
     () => filteredRows.filter((x) => x.__status === "archived"),
     [filteredRows]
   );
@@ -167,7 +169,7 @@ export default function MemberMyPackagesPage() {
               ? "ACTIVE"
               : status === "pending"
               ? "PENDING"
-              : "ARCHIVED"}
+              : "USED UP"}
           </span>
         </div>
 
@@ -211,6 +213,19 @@ export default function MemberMyPackagesPage() {
           {isPending ? (
             <div className="mp3-pendingNote">Đang chờ hoàn tất thanh toán</div>
           ) : (
+            <div className="mp3-footActions">
+            {x.__reviewEligible ? (
+              <button
+                type="button"
+                className="mp3-detailBtn ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/member/reviews?type=package&activationId=${x.id}`);
+                }}
+              >
+                <span>Đánh giá</span>
+              </button>
+            ) : null}
             <button
               type="button"
               className="mp3-detailBtn"
@@ -222,6 +237,7 @@ export default function MemberMyPackagesPage() {
               <span>View details</span>
               <ArrowRight size={16} />
             </button>
+            </div>
           )}
         </div>
       </div>
@@ -258,7 +274,7 @@ export default function MemberMyPackagesPage() {
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="pending">Pending</option>
-              <option value="archived">Archived</option>
+              <option value="archived">Used up</option>
             </select>
           </div>
         </div>
@@ -318,6 +334,24 @@ export default function MemberMyPackagesPage() {
             ) : (
               <div className="mp3-grid">
                 {activeRows.map((x) => renderCard(x))}
+              </div>
+            )}
+          </section>
+
+          <section className="mp3-section">
+            <div className="mp3-sectionHead">
+              <div className="mp3-sectionTitleWrap">
+                <h2 className="mp3-sectionTitle">Gói đã dùng hết</h2>
+                <div className="mp3-sectionLine" />
+              </div>
+              <div className="mp3-sectionCount">{usedUpRows.length} used up</div>
+            </div>
+
+            {usedUpRows.length === 0 ? (
+              <div className="mp3-empty small">Chưa có gói nào đã dùng hết theo bộ lọc hiện tại.</div>
+            ) : (
+              <div className="mp3-grid">
+                {usedUpRows.map((x) => renderCard(x, true))}
               </div>
             )}
           </section>

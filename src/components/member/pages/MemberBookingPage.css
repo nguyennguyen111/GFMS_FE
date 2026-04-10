@@ -56,7 +56,7 @@
 .mb-shell {
   position: relative;
   z-index: 2;
-  max-width: 1440px;
+  max-width: var(--site-max-width);
   margin: 0 auto;
   padding: 40px 32px 90px;
 }

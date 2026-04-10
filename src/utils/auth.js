@@ -18,7 +18,7 @@ const safeParse = (raw) => {
 };
 
 export function getAccessToken() {
-  return getSessionAccessToken() || localStorage.getItem(TOKEN_KEY) || null;
+  return getSessionAccessToken() || sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || null;
 }
 
 export function getCurrentUser() {

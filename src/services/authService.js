@@ -33,7 +33,7 @@ export const resetPassword = (email, otp, newPassword) => {
 
 export const logoutUser = () => {
   return axios
-    .post("/auth/logout")
+    .post("/auth/logout", {}, { validateStatus: (status) => status < 500 })
     .catch(() => null)
     .finally(() => {
       disconnectSocket();

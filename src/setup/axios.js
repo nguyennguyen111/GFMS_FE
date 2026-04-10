@@ -1,6 +1,6 @@
 // src/setup/axios.js
 import axios from "axios";
-import { getAccessToken, setAuthSession } from "../services/authSession";
+import { clearAuthSession, getAccessToken, setAuthSession } from "../services/authSession";
 
 const resolveBaseURL = () => {
   // CRA/Vercel: đặt REACT_APP_API_BASE=https://your-backend
@@ -104,6 +104,10 @@ instance.interceptors.response.use(
         }
       } catch (_) {
         flushPendingRequests(null);
+        clearAuthSession();
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.replace("/login");
+        }
       } finally {
         isRefreshing = false;
       }
