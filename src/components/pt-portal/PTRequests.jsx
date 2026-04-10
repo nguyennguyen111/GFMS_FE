@@ -30,6 +30,14 @@ const STATUS_OPTIONS = [
   { value: "CANCELLED", label: "Đã hủy" },
 ];
 
+const REQUEST_TYPE_LABELS = {
+  LEAVE: "Nghỉ phép",
+  OVERTIME: "Tăng ca",
+  SHIFT_CHANGE: "Đổi ca",
+  TRANSFER_BRANCH: "Chuyển chi nhánh",
+  BUSY_SLOT: "Báo bận khung giờ dạy",
+};
+
 const emptyForms = {
   LEAVE: { fromDate: "", toDate: "", reason: "" },
   OVERTIME: { date: "", fromTime: "", toTime: "", reason: "" },
@@ -50,6 +58,25 @@ const STATUS_VI = {
 };
 
 const prettyStatus = (s) => STATUS_VI[String(s || "").toLowerCase()] || String(s || "—").toLowerCase();
+const getRequestTypeLabel = (requestType) =>
+  REQUEST_TYPE_LABELS[String(requestType || "").trim().toUpperCase()] || String(requestType || "—");
+
+const getDecisionMessage = (request) => {
+  const status = String(request?.status || "").trim().toLowerCase();
+  const typeLabel = getRequestTypeLabel(request?.requestType);
+  const note = String(request?.approveNote || "").trim();
+
+  if (status === "approved") {
+    return `Đã duyệt đơn ${typeLabel}.`;
+  }
+  if (status === "rejected") {
+    return note ? `Đã từ chối đơn ${typeLabel}. Lý do: ${note}` : `Đã từ chối đơn ${typeLabel}.`;
+  }
+  if (status === "cancelled") {
+    return `Đơn ${typeLabel} đã bị hủy.`;
+  }
+  return `Đang chờ duyệt đơn ${typeLabel}.`;
+};
 
 const formatDateTime = (v) => {
   try {
@@ -399,6 +426,7 @@ export default function PTRequests() {
               <tr>
                 <th>Loại</th>
                 <th>Trạng thái</th>
+                <th>Kết quả xử lý</th>
                 <th>Lý do</th>
                 <th>Ngày tạo</th>
                 <th>Thao tác</th>
@@ -408,23 +436,24 @@ export default function PTRequests() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="ptr-empty">
+                  <td colSpan={6} className="ptr-empty">
                     Đang tải...
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="ptr-empty">
+                  <td colSpan={6} className="ptr-empty">
                     Không có đơn nào
                   </td>
                 </tr>
               ) : (
                 pagedRequests.map((r) => (
                   <tr key={r.id}>
-                    <td>{REQUEST_TYPES.find((x) => x.value === r.requestType)?.label || r.requestType}</td>
+                    <td>{getRequestTypeLabel(r.requestType)}</td>
                     <td>
                       <span className={`ptr-badge ${statusClass(r.status)}`}>{prettyStatus(r.status)}</span>
                     </td>
+                    <td title={getDecisionMessage(r)}>{getDecisionMessage(r)}</td>
                     <td title={r.reason || ""}>{r.reason || "-"}</td>
                     <td>{formatDateTime(r.createdAt)}</td>
                     <td>

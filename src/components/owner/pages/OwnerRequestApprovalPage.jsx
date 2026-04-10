@@ -92,9 +92,10 @@ const OwnerRequestApprovalPage = () => {
     notificationTypes: ["trainer_request"],
   });
 
-  const handleApprove = async (requestId) => {
+  const handleApprove = async (request) => {
     try {
-      await approveRequest(requestId, "Approved by Gym Owner");
+      const typeLabel = getRequestTypeLabel(request?.requestType);
+      await approveRequest(request?.id, `Đã duyệt đơn ${typeLabel}.`);
       await fetchRequests(pagination.page);
     } catch (error) {
       console.error("Error approving request:", error);
@@ -164,6 +165,9 @@ const OwnerRequestApprovalPage = () => {
                           <div className="request-content-wrap">
                             <div><b>Lý do:</b> {request.reason || "N/A"}</div>
                             <div><b>Nội dung:</b> {request.requestContent || "N/A"}</div>
+                            {st === "rejected" ? (
+                              <div><b>Lý do từ chối:</b> {request.approveNote || "N/A"}</div>
+                            ) : null}
                           </div>
                         </td>
                         <td>
@@ -175,7 +179,7 @@ const OwnerRequestApprovalPage = () => {
                           <div className="action-buttons">
                             {st === "pending" ? (
                               <>
-                                <button className="btn-approve" onClick={() => handleApprove(request.id)}>Duyệt</button>
+                                <button className="btn-approve" onClick={() => handleApprove(request)}>Duyệt</button>
                                 <button className="btn-reject" onClick={() => handleReject(request.id)}>Từ chối</button>
                               </>
                             ) : (
