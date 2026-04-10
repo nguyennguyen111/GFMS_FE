@@ -119,6 +119,16 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                     : "ptAttModal__actions"
                 }
               >
+                {booking && onRequestBusySlot && !isSharedSession ? (
+                  <button
+                    type="button"
+                    className="ptAttModal__btn ptAttModal__btn--edit"
+                    disabled={loading}
+                    onClick={onRequestBusySlot}
+                  >
+                    {loading ? "..." : "📨 Báo bận khung giờ này"}
+                  </button>
+                ) : null}
                 {ta && !isEditing ? (
                   <>
                     {!isCompleted && currentStatus === "present" && onComplete ? (
@@ -176,16 +186,6 @@ export default function PTAttendanceModal({ open, booking, loading, error, onClo
                         {loading ? "..." : "↺ Chưa điểm danh"}
                       </button>
                     )}
-                    {booking && onRequestBusySlot && !isSharedSession ? (
-                      <button
-                        type="button"
-                        className="ptAttModal__btn ptAttModal__btn--edit ptAttModal__btn--busy"
-                        disabled={loading}
-                        onClick={onRequestBusySlot}
-                      >
-                        {loading ? "..." : "📨 Báo bận khung giờ này"}
-                      </button>
-                    ) : null}
                   </>
                 )}
               </div>

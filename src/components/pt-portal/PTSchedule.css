@@ -382,13 +382,6 @@
   font-weight: bold;
 }
 
-.ptSchedule__busyReasonError {
-  margin: 8px 0 0;
-  color: #ff7b7b;
-  font-size: 12px;
-  font-weight: 700;
-}
-
 /* Responsive Mobile */
 @media (max-width: 860px) {
   .ptWeek__timeCol {

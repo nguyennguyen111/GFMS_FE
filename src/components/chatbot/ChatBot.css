@@ -1,7 +1,7 @@
 .gfms-ai-chatbox-root {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
   z-index: 120;
 }
 

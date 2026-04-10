@@ -26,11 +26,7 @@ export const approveRequest = async (requestId, approveNote, options = {}) => {
   try {
     const response = await axios.patch(
       `${BASE}/${requestId}/approve`, 
-      {
-        approveNote,
-        assignmentMode: options?.assignmentMode,
-        selectedTrainerId: options?.selectedTrainerId,
-      }
+      { approveNote, assignmentMode: options?.assignmentMode }
     );
     return response.data;  // Trả về yêu cầu đã duyệt
   } catch (error) {

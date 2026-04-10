@@ -87,10 +87,6 @@ export default function SignContractPage() {
   const canViewFinal = data?.contractStatus === "completed";
   const canViewCertificate = data?.contractStatus === "completed";
 
-  /** Hoàn tất nhưng DB chưa có finalSha256 (mock / thiếu countersign thật) — PDF xem có thể là bản gốc hoặc thiếu chữ ký đối chiếu. */
-  const showFinalFallbackWarning =
-    data?.contractStatus === "completed" && docType === "final" && !data?.document?.finalSha256;
-
   return (
     <div className="sc-page">
       <div className="sc-shell">
@@ -161,14 +157,6 @@ export default function SignContractPage() {
                     Open in new tab
                   </button>
                 </div>
-
-                {showFinalFallbackWarning ? (
-                  <div className="sc-warnBanner" role="status">
-                    Hệ thống chưa lưu bản PDF <strong>đã đối chiếu (final)</strong> cho hợp đồng này (thường gặp khi chỉ
-                    mô phỏng &quot;Hoàn tất&quot;). Khung dưới có thể hiển thị bản gốc / bản gần nhất — chưa đủ chữ ký
-                    như khi admin countersign thật. Hãy nhờ admin đối chiếu lại hoặc dùng yêu cầu đã chạy đủ luồng ký.
-                  </div>
-                ) : null}
 
                 <div className="sc-pdfFrame">
                   <iframe title="contract-pdf" src={iframeSrc} style={{ width: "100%", height: 520, border: 0 }} />

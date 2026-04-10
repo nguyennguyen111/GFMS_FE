@@ -5,13 +5,13 @@ import Footer from "../components/footer/Footer";
 export default function MemberWebLayout() {
   return (
     <div className="site site--compact member-app">
-      <Header />
+      <Header compact />
       <main className="site-main">
         <div className="site-container">
           <Outlet />
         </div>
       </main>
-      <Footer />
+      <Footer compact />
     </div>
   );
 }

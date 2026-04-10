@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./OwnerPackagesPage.css";
 import {
   ownerGetPackages,
@@ -66,8 +66,6 @@ export default function OwnerPackagesPage() {
   const [matchingTrainers, setMatchingTrainers] = useState([]);
   const [loadingTrainers, setLoadingTrainers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [trainerDropdownOpen, setTrainerDropdownOpen] = useState(false);
-  const trainerDropdownRef = useRef(null);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -182,17 +180,6 @@ export default function OwnerPackagesPage() {
     }
   }, [detailItem?.id, items]);
 
-  useEffect(() => {
-    if (!trainerDropdownOpen) return;
-    const handleClickOutside = (event) => {
-      if (trainerDropdownRef.current && !trainerDropdownRef.current.contains(event.target)) {
-        setTrainerDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [trainerDropdownOpen]);
-
   useOwnerRealtimeRefresh({
     onRefresh: async () => {
       await Promise.all([fetchData(), loadGyms()]);
@@ -209,28 +196,24 @@ export default function OwnerPackagesPage() {
     if (selectedGymId) {
       loadSpecializationsByGym(selectedGymId);
     }
-    setTrainerDropdownOpen(false);
     setModalOpen(true);
   };
 
   const openEdit = (pkg) => {
-    const initialTypes = parseTypeList(pkg.type);
-    const primaryType = initialTypes.length > 0 ? [initialTypes[0]] : [];
     setModalMode("edit");
     setEditing(pkg);
     setForm({
       gymId: pkg.gymId ?? "",
       name: pkg.name ?? "",
       description: pkg.description ?? "",
-      types: primaryType,
+      types: parseTypeList(pkg.type),
       trainerIds: pkg.trainerId ? [Number(pkg.trainerId)] : [],
       price: pkg.price ?? 0,
       sessions: pkg.sessions ?? 0,
     });
     setMatchingTrainers([]);
     loadSpecializationsByGym(pkg.gymId);
-    loadMatchingTrainers(pkg.gymId, primaryType);
-    setTrainerDropdownOpen(false);
+    loadMatchingTrainers(pkg.gymId, parseTypeList(pkg.type));
     setModalOpen(true);
   };
 
@@ -262,14 +245,14 @@ export default function OwnerPackagesPage() {
           .map((trainer) => trainer?.User?.username)
           .filter(Boolean);
 
-        setDetailTrainerName(names.length > 0 ? names.join(", ") : `Có ${trainers.length} huấn luyện viên phù hợp`);
+        setDetailTrainerName(names.length > 0 ? names.join(", ") : `Co ${trainers.length} PT phu hop`);
       } catch {
         setDetailTrainerName("—");
       }
       return;
     }
 
-    setDetailTrainerName(`Huấn luyện viên #${pkg.trainerId}`);
+    setDetailTrainerName(`PT #${pkg.trainerId}`);
 
     try {
       const detailRes = await ownerTrainerService.getTrainerDetail(pkg.trainerId);
@@ -292,7 +275,7 @@ export default function OwnerPackagesPage() {
         setDetailTrainerName(matchedTrainer.User.username);
       }
     } catch {
-      // Keep fallback trainer id if lookup fails.
+      // Keep fallback PT #id if lookup fails.
     }
   };
 
@@ -302,10 +285,7 @@ export default function OwnerPackagesPage() {
     setDetailTrainerName("—");
   };
 
-  const closeModal = () => {
-    setTrainerDropdownOpen(false);
-    setModalOpen(false);
-  };
+  const closeModal = () => setModalOpen(false);
 
   const submit = async () => {
     if (submitting) return;
@@ -367,13 +347,11 @@ export default function OwnerPackagesPage() {
         await ownerCreatePackage({
           ...basePayload,
           trainerId: trainerIdForPayload,
-          trainerIds: selectedTrainerIds,
         });
       } else {
         await ownerUpdatePackage(editing.id, {
           ...basePayload,
           trainerId: trainerIdForPayload,
-          trainerIds: selectedTrainerIds,
         });
       }
       setModalOpen(false);
@@ -579,7 +557,7 @@ export default function OwnerPackagesPage() {
                   className="op-input"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="VD: Gói huấn luyện viên 12 buổi"
+                  placeholder="VD: Gói PT 12 buổi"
                 />
               </div>
 
@@ -597,24 +575,43 @@ export default function OwnerPackagesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div className="op-row">
                     <label>Chuyên môn huấn luyện viên *</label>
-                    <select
-                      className="op-select"
-                      value={Array.isArray(form.types) && form.types.length > 0 ? String(form.types[0]) : ""}
-                      onChange={(e) => {
-                        const nextType = String(e.target.value || "").trim();
-                        const nextTypes = nextType ? [nextType] : [];
-                        setForm((prev) => ({ ...prev, types: nextTypes, trainerIds: [] }));
-                        loadMatchingTrainers(form.gymId, nextTypes);
-                      }}
-                      disabled={!form.gymId || specializations.length === 0}
-                    >
-                      <option value="">-- Chọn chuyên môn --</option>
-                      {specializations.map((spec) => (
-                        <option key={spec} value={spec}>
-                          {spec}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="op-spec-list" role="listbox" aria-label="Danh sách chuyên môn huấn luyện viên">
+                      {specializations.length === 0 ? (
+                        <div className="op-spec-empty">-- Chưa có chuyên môn --</div>
+                      ) : (
+                        specializations.map((spec) => {
+                          const isSelected = Array.isArray(form.types)
+                            ? form.types.map((item) => String(item).trim()).includes(String(spec || "").trim())
+                            : false;
+                          return (
+                            <button
+                              key={spec}
+                              type="button"
+                              className={`op-spec-item ${isSelected ? "is-selected" : ""}`}
+                              onClick={() => {
+                                const target = String(spec || "").trim();
+                                const current = Array.isArray(form.types)
+                                  ? form.types.map((item) => String(item).trim()).filter(Boolean)
+                                  : [];
+                                const nextTypes = current.includes(target)
+                                  ? current.filter((item) => item !== target)
+                                  : [...current, target];
+
+                                setForm({ ...form, types: nextTypes, trainerIds: [] });
+                                loadMatchingTrainers(form.gymId, nextTypes);
+                              }}
+                            >
+                              {spec}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    {Array.isArray(form.types) && form.types.length > 0 && (
+                      <small className="op-spec-selected-text">
+                        Đã chọn: {form.types.join(", ")}
+                      </small>
+                    )}
 
                     {form.gymId && specializations.length === 0 && (
                       <small className="op-spec-empty-help">
@@ -649,87 +646,74 @@ export default function OwnerPackagesPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div className="op-row">
                     <label>Huấn luyện viên phụ trách</label>
-                    <div className="op-multi" ref={trainerDropdownRef}>
-                      <button
-                        type="button"
-                        className={`op-multi__trigger ${trainerDropdownOpen ? "is-open" : ""}`}
-                        onClick={() => setTrainerDropdownOpen((prev) => !prev)}
-                        disabled={!Array.isArray(form.types) || form.types.length === 0 || loadingTrainers}
-                      >
-                        {loadingTrainers
-                          ? "Đang tải huấn luyện viên..."
-                          : Array.isArray(form.trainerIds) && form.trainerIds.length > 0
-                          ? `Đã chọn ${form.trainerIds.length} huấn luyện viên`
-                          : "Chọn huấn luyện viên phụ trách"}
-                        <span className="op-multi__caret">{trainerDropdownOpen ? "▴" : "▾"}</span>
-                      </button>
 
-                      {trainerDropdownOpen && !loadingTrainers ? (
-                        <div className="op-multi__menu">
-                          {matchingTrainers.length === 0 ? (
-                            <div className="op-multi__empty">Không có huấn luyện viên phù hợp.</div>
-                          ) : (
-                            matchingTrainers.map((trainer) => {
-                              const trainerId = Number(trainer.id);
+                    {Array.isArray(form.types) && form.types.length > 0 && (
+                      <div className="op-trainer-panel">
+                        <div className="op-trainer-panel-title">
+                          Chọn huấn luyện viên cho gói (có thể chọn nhiều)
+                        </div>
+                        {loadingTrainers ? (
+                          <div className="op-trainer-hint">Đang tải danh sách huấn luyện viên...</div>
+                        ) : matchingTrainers.length === 0 ? (
+                          <div className="op-trainer-hint">Không có huấn luyện viên phù hợp.</div>
+                        ) : (
+                          <div className="op-trainer-list">
+                            {matchingTrainers.map((trainer) => {
                               const isSelected = Array.isArray(form.trainerIds)
-                                ? form.trainerIds.map((id) => Number(id)).includes(trainerId)
+                                ? form.trainerIds.map((id) => Number(id)).includes(Number(trainer.id))
                                 : false;
                               return (
-                                <label className="op-multi__item" key={trainer.id}>
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => {
-                                      setForm((prev) => {
-                                        const current = Array.isArray(prev.trainerIds)
-                                          ? prev.trainerIds.map((id) => Number(id)).filter((id) => Number.isInteger(id))
-                                          : [];
-                                        const next = isSelected
-                                          ? current.filter((id) => id !== trainerId)
-                                          : [...current, trainerId];
-                                        return { ...prev, trainerIds: next };
-                                      });
-                                    }}
-                                  />
-                                  <span className="op-multi__text">
-                                    {trainer?.User?.username || `Huấn luyện viên #${trainer.id}`}
+                                <button
+                                  key={trainer.id}
+                                  type="button"
+                                  className={`op-trainer-item ${isSelected ? "is-selected" : ""}`}
+                                  onClick={() => {
+                                    setForm((prev) => {
+                                      const current = Array.isArray(prev.trainerIds) ? prev.trainerIds.map((id) => Number(id)) : [];
+                                      const tid = Number(trainer.id);
+                                      const next = current.includes(tid)
+                                        ? current.filter((id) => id !== tid)
+                                        : [...current, tid];
+                                      return { ...prev, trainerIds: next };
+                                    });
+                                  }}
+                                >
+                                  <span className="op-trainer-check">
+                                    {isSelected ? '☑' : '☐'}
+                                  </span>
+                                  <span className="op-trainer-text">
+                                    <strong>{trainer?.User?.username || `PT #${trainer.id}`}</strong>
                                     {trainer?.User?.phone ? ` • ${trainer.User.phone}` : ""}
                                   </span>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
-                      ) : null}
-
-                      {Array.isArray(form.trainerIds) && form.trainerIds.length > 0 ? (
-                        <div className="op-multi__chips">
-                          {form.trainerIds.map((id) => {
-                            const trainer = matchingTrainers.find((item) => Number(item.id) === Number(id));
-                            const name = trainer?.User?.username || `PT #${id}`;
-                            return (
-                              <span className="op-multi__chip" key={id}>
-                                {name}
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      trainerIds: (prev.trainerIds || []).filter((tid) => Number(tid) !== Number(id)),
-                                    }))
-                                  }
-                                >
-                                  ×
                                 </button>
-                              </span>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
+                        )}
+                        <div className="op-trainer-actions">
+                          <button
+                            type="button"
+                            className="op-mini-btn"
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                trainerIds: matchingTrainers.map((trainer) => Number(trainer.id)),
+                              }))
+                            }
+                            disabled={matchingTrainers.length === 0}
+                          >
+                            Chọn tất cả
+                          </button>
+                          <button
+                            type="button"
+                            className="op-mini-btn"
+                            onClick={() => setForm((prev) => ({ ...prev, trainerIds: [] }))}
+                          >
+                            Bỏ chọn huấn luyện viên
+                          </button>
                         </div>
-                      ) : null}
-                    </div>
-                    {!loadingTrainers && Array.isArray(form.types) && form.types.length > 0 && matchingTrainers.length === 0 ? (
-                      <small className="op-trainer-hint">Không có huấn luyện viên phù hợp.</small>
-                    ) : null}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

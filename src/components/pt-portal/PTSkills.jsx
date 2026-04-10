@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPTDetails, updatePTSkills } from '../../services/ptService';
 import { specializationToVietnamese } from '../../utils/specializationI18n';
-import NiceModal from "../common/NiceModal";
 import './PTSkills.css';
 
 const PTSkills = () => {
@@ -15,7 +14,6 @@ const PTSkills = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [modalState, setModalState] = useState(null);
 
   useEffect(() => {
     const run = async () => {
@@ -47,7 +45,7 @@ const PTSkills = () => {
         specialization: specialization.trim(),
         certification: certification.trim(),
       });
-      setModalState({ title: "Thành công", message: "Cập nhật kỹ năng/chứng chỉ thành công", tone: "success" });
+      alert('✅ Cập nhật kỹ năng/chứng chỉ thành công');
     } catch (e) {
       console.error(e);
       setError('Lưu thất bại (500). Kiểm tra endpoint /skills.');
@@ -113,20 +111,6 @@ const PTSkills = () => {
             {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </div>
-
-        <NiceModal
-          open={Boolean(modalState)}
-          onClose={() => setModalState(null)}
-          tone={modalState?.tone || "info"}
-          title={modalState?.title || "Thông báo"}
-          footer={
-            <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
-              Đã hiểu
-            </button>
-          }
-        >
-          <p>{modalState?.message}</p>
-        </NiceModal>
       </div>
     </div>
   );

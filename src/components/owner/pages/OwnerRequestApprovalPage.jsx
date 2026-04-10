@@ -219,7 +219,7 @@ const OwnerRequestApprovalPage = () => {
             <textarea
               value={rejectModal.reason}
               onChange={(e) => setRejectModal((p) => ({ ...p, reason: e.target.value }))}
-              placeholder="Nhập lý do từ chối để huấn luyện viên nắm rõ..."
+              placeholder="Nhập lý do từ chối để PT nắm rõ..."
               rows={4}
             />
             <div className="owner-request-modal__actions">

@@ -53,16 +53,6 @@
   border: 1px solid rgba(255, 138, 0, 0.22);
   padding: 10px 12px;
   border-radius: 16px;
-  white-space: pre-line;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.up-hint {
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: 0.72;
-  line-height: 1.4;
 }
 
 /* Table card */

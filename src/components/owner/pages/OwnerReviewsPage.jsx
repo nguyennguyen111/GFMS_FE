@@ -110,7 +110,7 @@ export default function OwnerReviewsPage() {
       <div className="orv-filters">
         <input
           className="orv-input"
-          placeholder="Tìm theo hội viên, huấn luyện viên, phòng tập, nội dung..."
+          placeholder="Tìm theo hội viên, PT, phòng tập, nội dung..."
           value={filters.q}
           onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
           onKeyDown={(e) => {
@@ -153,7 +153,7 @@ export default function OwnerReviewsPage() {
               <tr>
                 <th>Hội viên</th>
                 <th>Loại đánh giá</th>
-                <th>Huấn luyện viên</th>
+                <th>PT</th>
                 <th>Phòng tập</th>
                 <th>Điểm</th>
                 <th>Nội dung</th>

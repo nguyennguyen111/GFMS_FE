@@ -6,16 +6,18 @@ import ChatBot from "../components/chatbot/ChatBot";
 
 export default function WebsiteLayout() {
   const location = useLocation();
-  const isCompact = location.pathname.startsWith("/member");
+  const isCompact = location.pathname !== "/";
 
   return (
-    <div className={`site ${isCompact ? "site--compact" : ""}`.trim()}>
-      <Header />
-      <main className="site-main">
-        <Outlet />
-      </main>
-      <Footer />
+    <>
+      <div className={`site ${isCompact ? "site--compact" : ""}`.trim()}>
+        <Header compact />
+        <main className="site-main">
+          <Outlet />
+        </main>
+        <Footer compact />
+      </div>
       <ChatBot />
-    </div>
+    </>
   );
 }

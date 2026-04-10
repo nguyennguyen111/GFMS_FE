@@ -67,8 +67,8 @@ const createWelcomeMessage = (auth) => ({
   id: uid(),
   role: "assistant",
   content: auth.isMember
-    ? `Chào ${auth.username}, mình là trợ lý GFMS.`
-    : "Chào bạn, mình là trợ lý GFMS.",
+    ? `Chào ${auth.username}, mình là trợ lý GFMS. Bạn cứ hỏi tự nhiên về lịch, gói tập, PT, ăn uống hoặc mục tiêu tập luyện nhé.`
+    : "Chào bạn, mình là trợ lý GFMS. Bạn cứ hỏi tự nhiên về gym, PT, gói tập, ăn uống hoặc mục tiêu tập luyện nhé.",
   cards: null,
   actions: [],
 });
@@ -365,7 +365,7 @@ export default function ChatBot() {
     }
   };
 
-  const statusText = authState.isMember ? `Đang hỗ trợ ${authState.username}` : "Hỗ trợ giải đáp thắc mắc";
+  const statusText = authState.isMember ? `Đang hỗ trợ ${authState.username}` : "Hỗ trợ khách và thành viên";
 
   const emptyHints = useMemo(
     () =>
@@ -409,7 +409,8 @@ export default function ChatBot() {
               <div className="gfms-ai-hero">
                 <div className="gfms-ai-hero-icon"><Bot size={22} /></div>
                 <div className="gfms-ai-hero-title">Xin chào, mình là GFMS AI</div>
-                <div className="gfms-ai-hero-subtitle">Mình có thể giúp gì cho bạn?</div>
+                <div className="gfms-ai-hero-subtitle">Bạn cứ chat tự nhiên. Mình sẽ trả lời ngắn gọn, đúng trọng tâm và bám dữ liệu hệ thống khi cần.</div>
+                <div className="gfms-ai-hero-hints">Ví dụ: {emptyHints.join(" • ")}</div>
               </div>
             ) : null}
 
@@ -454,7 +455,7 @@ export default function ChatBot() {
               className="gfms-ai-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Nhập tin nhắn..."
+              placeholder="Hỏi tự nhiên như: tuần này tôi có lịch gì, tôi nên ăn gì..."
             />
             <button className="gfms-ai-send" type="submit" disabled={loading || !text.trim()}>
               <Send size={18} />

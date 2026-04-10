@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getMyPTProfile, getPTScheduleRaw, updatePTSchedule } from "../../services/ptService";
-import NiceModal from "../common/NiceModal";
 
 import "./PTScheduleUpdate.css";
 
@@ -122,34 +121,6 @@ const validateScheduleAgainstGym = (clean, gym) => {
   return null;
 };
 
-const validateScheduleBasics = (clean) => {
-  for (const d of DAY_KEYS) {
-    const slots = Array.isArray(clean?.[d]) ? clean[d] : [];
-    const withMin = slots.map((slot) => ({
-      ...slot,
-      startMin: parseHHmmToMin(slot.start),
-      endMin: parseHHmmToMin(slot.end),
-    }));
-
-    for (const s of withMin) {
-      if (s.startMin === null || s.endMin === null) {
-        return `${dayLabelVi[d]}: giờ bắt đầu/kết thúc không hợp lệ.`;
-      }
-      if (s.endMin <= s.startMin) {
-        return `${dayLabelVi[d]}: giờ kết thúc phải lớn hơn giờ bắt đầu.`;
-      }
-    }
-
-    const sorted = [...withMin].sort((a, b) => a.startMin - b.startMin);
-    for (let i = 1; i < sorted.length; i += 1) {
-      if (sorted[i].startMin < sorted[i - 1].endMin) {
-        return `${dayLabelVi[d]}: các khung giờ bị trùng nhau, vui lòng chỉnh lại.`;
-      }
-    }
-  }
-  return null;
-};
-
 const PTScheduleUpdate = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -160,7 +131,7 @@ const PTScheduleUpdate = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState(EMPTY);
-  const [modalState, setModalState] = useState(null);
+  const [msg, setMsg] = useState("");
   const [gym, setGym] = useState(null);
 
   const user = useMemo(() => {
@@ -250,29 +221,25 @@ const PTScheduleUpdate = () => {
 
     try {
       setSaving(true);
+      setMsg("");
 
       const clean = buildCleanSchedule(schedule);
-      const basicErr = validateScheduleBasics(clean);
-      if (basicErr) {
-        setModalState({ title: "Không thể lưu lịch", message: basicErr, tone: "danger" });
-        setSaving(false);
-        return;
-      }
 
       const gymErr = validateScheduleAgainstGym(clean, gym);
       if (gymErr) {
-        setModalState({ title: "Không thể lưu lịch", message: gymErr, tone: "danger" });
+        setMsg(`❌ ${gymErr}`);
         setSaving(false);
         return;
       }
 
       await updatePTSchedule(ptId, clean);
 
+      setMsg("✅ Lưu lịch rảnh thành công!");
       navigate(`/pt/${ptId}/schedule`);
     } catch (e) {
       console.error(e);
       const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
-      setModalState({ title: "Không thể lưu lịch", message: err, tone: "danger" });
+      setMsg(`❌ ${err}`);
     } finally {
       setSaving(false);
     }
@@ -339,6 +306,17 @@ const PTScheduleUpdate = () => {
             </div>
           </div>
 
+          {msg ? (
+            <div
+              className="ptSU__error"
+              style={{
+                borderColor: "rgba(244,137,21,0.35)",
+                background: "rgba(244,137,21,0.10)",
+              }}
+            >
+              {msg}
+            </div>
+          ) : null}
         </div>
 
         <div className="ptSU__grid">
@@ -384,19 +362,6 @@ const PTScheduleUpdate = () => {
           ))}
         </div>
       </div>
-      <NiceModal
-        open={Boolean(modalState)}
-        onClose={() => setModalState(null)}
-        tone={modalState?.tone || "info"}
-        title={modalState?.title || "Thông báo"}
-        footer={
-          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
-            Đã hiểu
-          </button>
-        }
-      >
-        <p>{modalState?.message}</p>
-      </NiceModal>
     </div>
   );
 };

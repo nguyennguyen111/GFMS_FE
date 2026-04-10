@@ -2,69 +2,7 @@
   width: 100%;
 }
 
-.ptm-page .mm2-head .mm2-kicker {
-  color: #d6ff00;
-}
-
-.ptm-page .mm2-shell .mm2-sidebar,
-.ptm-page .mm2-shell .mm2-chat {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: rgba(255, 255, 255, 0.045) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-}
-
-.ptm-page .mm2-sidebar-top,
-.ptm-page .mm2-chat-head {
-  background: rgba(0, 0, 0, 0.16) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-.ptm-page .mm2-search {
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.ptm-page .mm2-row {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-.ptm-page .mm2-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.ptm-page .mm2-row.active {
-  border-color: rgba(214, 255, 0, 0.38) !important;
-  background: linear-gradient(135deg, rgba(214, 255, 0, 0.12), rgba(255, 255, 255, 0.03)) !important;
-}
-
-.ptm-page .mm2-messages {
-  background: rgba(0, 0, 0, 0.14) !important;
-}
-
-.ptm-page .mm2-bubble-row.theirs .mm2-bubble {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.ptm-page .mm2-bubble-row.mine .mm2-bubble {
-  background: rgba(214, 255, 0, 0.14) !important;
-  border: 1px solid rgba(214, 255, 0, 0.35) !important;
-  color: #eef2ff !important;
-}
-
-.ptm-page .mm2-compose {
-  border-top-color: rgba(255, 255, 255, 0.08) !important;
-  background: rgba(0, 0, 0, 0.16) !important;
-}
-
-.ptm-page .mm2-tool {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.ptm-page .mm2-send {
-  background: linear-gradient(135deg, rgba(214, 255, 0, 0.26), rgba(184, 220, 0, 0.16));
-  border: 1px solid rgba(214, 255, 0, 0.4);
-  color: #d6ff00;
+.ptm-shell .mm2-sidebar,
+.ptm-shell .mm2-chat {
+  background: linear-gradient(180deg, rgba(13, 18, 24, 0.98), rgba(9, 11, 16, 0.95));
 }

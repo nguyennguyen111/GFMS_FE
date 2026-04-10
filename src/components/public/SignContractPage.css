@@ -67,14 +67,6 @@
 
 .sc-hint{margin-top:8px;opacity:.76;font-size:12px}
 
-.sc-warnBanner{
-  margin-top:10px;padding:10px 12px;border-radius:12px;
-  font-size:12px;line-height:1.45;opacity:.95;
-  border:1px solid rgba(255,186,0,0.45);
-  background:rgba(255,186,0,0.10);
-  color:rgba(255,248,220,0.96);
-}
-
 .sc-okBox{margin-top:14px;padding:12px;border-radius:14px;background:rgba(0, 200, 120, 0.10);border:1px solid rgba(0,200,120,0.20)}
 .sc-okTitle{font-weight:900}
 .sc-okMsg{opacity:.86;margin-top:4px}

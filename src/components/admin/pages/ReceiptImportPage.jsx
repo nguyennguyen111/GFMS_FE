@@ -45,7 +45,7 @@ export default function ReceiptImportPage() {
       const firstGymId = String((gymRes?.data || [])?.[0]?.id || "");
       setGymId(firstGymId);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải dữ liệu ban đầu thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Load init failed");
     }
   };
 
@@ -71,7 +71,7 @@ export default function ReceiptImportPage() {
       setLoading(true);
       setErr("");
 
-      if (!gymId) throw new Error("Bạn phải chọn phòng gym");
+      if (!gymId) throw new Error("Bạn phải chọn Gym");
 
       const cleanItems = items
         .map((it) => ({
@@ -100,7 +100,7 @@ export default function ReceiptImportPage() {
       setPurchaseOrderId("");
       setItems([{ equipmentId: "", quantity: 1, unitPrice: "", notes: "" }]);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tạo phiếu nhận thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Create receipt failed");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ export default function ReceiptImportPage() {
       <div className="rip-head">
         <div>
           <h2 className="rip-title">Nhận hàng</h2>
-          <div className="rip-sub">Tạo phiếu nhận hàng gắn với đơn mua và cập nhật tồn kho sau xác nhận</div>
+          <div className="rip-sub">Tạo phiếu nhận hàng (Goods Receipt) gắn với đơn mua và cập nhật tồn kho sau xác nhận</div>
         </div>
       </div>
 
@@ -120,9 +120,9 @@ export default function ReceiptImportPage() {
       <div className="rip-card">
         <div className="rip-grid">
           <div className="rip-field">
-            <label>Phòng gym / Chi nhánh</label>
+            <label>Gym / Chi nhánh</label>
             <select value={gymId} onChange={(e) => setGymId(e.target.value)}>
-              <option value="">-- Chọn phòng gym --</option>
+              <option value="">-- Chọn gym --</option>
               {gyms.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name} {g.address ? `- ${g.address}` : ""}
@@ -149,7 +149,7 @@ export default function ReceiptImportPage() {
           </div>
 
           <div className="rip-field">
-            <label>Mã đơn mua PO (tuỳ chọn)</label>
+            <label>PurchaseOrderId (optional)</label>
             <input value={purchaseOrderId} onChange={(e) => setPurchaseOrderId(e.target.value)} placeholder="VD: 123" />
           </div>
 
@@ -203,16 +203,12 @@ export default function ReceiptImportPage() {
                     min="0"
                     value={it.unitPrice}
                     onChange={(e) => updateRow(idx, { unitPrice: e.target.value })}
-                    placeholder="(tuỳ chọn)"
+                    placeholder="(optional)"
                   />
                 </div>
 
                 <div>
-                  <input
-                    value={it.notes}
-                    onChange={(e) => updateRow(idx, { notes: e.target.value })}
-                    placeholder="(tuỳ chọn)"
-                  />
+                  <input value={it.notes} onChange={(e) => updateRow(idx, { notes: e.target.value })} placeholder="(optional)" />
                 </div>
 
                 <div className="rip-actions">

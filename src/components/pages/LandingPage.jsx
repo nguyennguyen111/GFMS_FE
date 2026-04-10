@@ -43,11 +43,13 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       <Hero />
-      <Stats stats={highlights.stats} loading={loading} />
-      <GymNetwork gyms={highlights.gyms} loading={loading} />
-      <Trainers trainers={highlights.trainers} loading={loading} />
-      <Pricing packages={highlights.packages} loading={loading} />
-      <CTA testimonials={highlights.testimonials} />
+      <div className="landing-page-shell site-container">
+        <Stats stats={highlights.stats} loading={loading} />
+        <GymNetwork gyms={highlights.gyms} loading={loading} />
+        <Trainers trainers={highlights.trainers} loading={loading} />
+        <Pricing packages={highlights.packages} loading={loading} />
+        <CTA testimonials={highlights.testimonials} />
+      </div>
     </div>
   );
 };

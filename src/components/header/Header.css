@@ -569,3 +569,8 @@
 
 /* disable square hover on top nav/profile; keep dropdown hover only */
 .modern-nav-link:hover, .nav-link:hover, .profile-btn:hover { box-shadow:none !important; background:transparent !important; outline:none !important; }
+
+
+.header.modern-header.header--compact .header-container {
+  max-width: min(80vw, 1280px);
+}
