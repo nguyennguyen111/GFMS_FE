@@ -43,7 +43,9 @@ const readAuthState = () => {
     username: user.username || user.email || "bạn",
     isMember,
     userId: user.id || null,
-    authKey: isMember ? `member:${user.id || user.username || "unknown"}` : `user:${user.id || user.username || "unknown"}`,
+    authKey: isMember
+      ? `member:${user.id || user.username || "unknown"}`
+      : `user:${user.id || user.username || "unknown"}`,
   };
 };
 
@@ -104,7 +106,7 @@ function HorizontalCardList({ cards, onAction }) {
   const scrollByCard = (dir) => {
     const rail = railRef.current;
     if (!rail) return;
-    rail.scrollBy({ left: dir * 320, behavior: "smooth" });
+    rail.scrollBy({ left: dir * 280, behavior: "smooth" });
   };
 
   return (
@@ -114,10 +116,10 @@ function HorizontalCardList({ cards, onAction }) {
       {cards.items.length > 1 ? (
         <div className="gfms-ai-card-controls">
           <button type="button" className="gfms-ai-icon-btn" onClick={() => scrollByCard(-1)}>
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
           <button type="button" className="gfms-ai-icon-btn" onClick={() => scrollByCard(1)}>
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
         </div>
       ) : null}
@@ -125,6 +127,7 @@ function HorizontalCardList({ cards, onAction }) {
       <div ref={railRef} className="gfms-ai-card-rail">
         {cards.items.map((item) => {
           const clickable = typeof item?.action === "object" && item.action;
+
           return (
             <article
               key={item.id || item.title}
@@ -144,7 +147,9 @@ function HorizontalCardList({ cards, onAction }) {
                 className="gfms-ai-card-image"
                 style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
               >
-                {!item.imageUrl ? <div className="gfms-ai-card-image-fallback">{item.title?.[0] || "G"}</div> : null}
+                {!item.imageUrl ? (
+                  <div className="gfms-ai-card-image-fallback">{item.title?.[0] || "G"}</div>
+                ) : null}
                 {item.badge ? <span className="gfms-ai-card-badge">{item.badge}</span> : null}
               </div>
 
@@ -199,6 +204,7 @@ export default function ChatBot() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
   const messagesRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
 
   const [authState, setAuthState] = useState(readAuthState());
   const [open, setOpen] = useState(false);
@@ -206,6 +212,15 @@ export default function ChatBot() {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([createWelcomeMessage(readAuthState())]);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  const scrollToBottom = (behavior = "smooth") => {
+    const box = messagesRef.current;
+    if (!box) return;
+    box.scrollTo({
+      top: box.scrollHeight,
+      behavior,
+    });
+  };
 
   const persistSession = (nextMessages, nextAuthKey = authState.authKey) => {
     try {
@@ -225,6 +240,7 @@ export default function ChatBot() {
     setLoading(false);
     setText("");
     setShowScrollToBottom(false);
+    shouldAutoScrollRef.current = true;
     persistSession(welcome, nextAuth.authKey);
   };
 
@@ -242,6 +258,7 @@ export default function ChatBot() {
 
     window.addEventListener("authChanged", syncAuth);
     window.addEventListener("storage", syncAuth);
+
     return () => {
       window.removeEventListener("authChanged", syncAuth);
       window.removeEventListener("storage", syncAuth);
@@ -252,6 +269,7 @@ export default function ChatBot() {
     try {
       const raw = sessionStorage.getItem(`${CHATBOT_SESSION_KEY}:${authState.authKey}`);
       if (!raw) return;
+
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed?.messages) && parsed.messages.length) {
         setMessages(parsed.messages);
@@ -266,17 +284,29 @@ export default function ChatBot() {
   useEffect(() => {
     const box = messagesRef.current;
     if (!box) return;
-    if (isNearBottom(box)) {
+
+    if (shouldAutoScrollRef.current) {
       requestAnimationFrame(() => {
-        box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+        scrollToBottom(messages.length <= 2 ? "auto" : "smooth");
       });
     }
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (!open) return;
+    requestAnimationFrame(() => {
+      scrollToBottom("auto");
+      inputRef.current?.focus();
+    });
+  }, [open]);
+
   const handleScroll = () => {
     const box = messagesRef.current;
     if (!box) return;
-    setShowScrollToBottom(!isNearBottom(box));
+
+    const nearBottom = isNearBottom(box);
+    shouldAutoScrollRef.current = nearBottom;
+    setShowScrollToBottom(!nearBottom);
   };
 
   const appendMessage = (msg) => {
@@ -327,6 +357,7 @@ export default function ChatBot() {
     const pageContext = buildPageContext(location.pathname);
     const nextHistory = getSanitizedHistory(messages, nextUserMsg);
 
+    shouldAutoScrollRef.current = true;
     setMessages((prev) => [...prev, nextUserMsg]);
     setText("");
     setLoading(true);
@@ -365,7 +396,9 @@ export default function ChatBot() {
     }
   };
 
-  const statusText = authState.isMember ? `Đang hỗ trợ ${authState.username}` : "Hỗ trợ giải đáp thắc mắc";
+  const statusText = authState.isMember
+    ? `Đang hỗ trợ ${authState.username}`
+    : "Hỗ trợ giải đáp thắc mắc";
 
   const emptyHints = useMemo(
     () =>
@@ -381,7 +414,7 @@ export default function ChatBot() {
     <div className="gfms-ai-chatbox-root">
       {!open ? (
         <button className="gfms-ai-fab" onClick={() => setOpen(true)} type="button">
-          <MessageCircle size={20} />
+          <MessageCircle size={18} />
           <span>Trợ lý AI</span>
         </button>
       ) : null}
@@ -391,7 +424,7 @@ export default function ChatBot() {
           <div className="gfms-ai-header">
             <div className="gfms-ai-header-left">
               <div className="gfms-ai-badge">
-                <Bot size={17} />
+                <Bot size={16} />
               </div>
               <div>
                 <div className="gfms-ai-title">GFMS AI Assistant</div>
@@ -400,28 +433,53 @@ export default function ChatBot() {
             </div>
 
             <button className="gfms-ai-close" onClick={() => setOpen(false)} type="button">
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
 
           <div className="gfms-ai-messages" ref={messagesRef} onScroll={handleScroll}>
             {showIntroHero ? (
               <div className="gfms-ai-hero">
-                <div className="gfms-ai-hero-icon"><Bot size={22} /></div>
+                <div className="gfms-ai-hero-icon">
+                  <Bot size={20} />
+                </div>
                 <div className="gfms-ai-hero-title">Xin chào, mình là GFMS AI</div>
                 <div className="gfms-ai-hero-subtitle">Mình có thể giúp gì cho bạn?</div>
+
+                <div className="gfms-ai-hero-hints">
+                  {emptyHints.map((hint, index) => (
+                    <button
+                      key={`${hint}-${index}`}
+                      type="button"
+                      className="gfms-ai-suggestion-chip"
+                      onClick={() => {
+                        setText(hint);
+                        setTimeout(() => inputRef.current?.focus(), 50);
+                      }}
+                    >
+                      {hint}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
 
-            {messages.map((msg, index) => (
-              showIntroHero && index === 0 ? null : <div key={msg.id} className={`gfms-ai-message ${msg.role === "user" ? "is-user" : "is-assistant"}`}>
-                <div className="gfms-ai-bubble">
-                  <p className="gfms-ai-message-text">{msg.content}</p>
-                  {msg.cards ? <HorizontalCardList cards={msg.cards} onAction={runAction} /> : null}
-                  {msg.role === "assistant" ? <ActionButtons actions={msg.actions} onAction={runAction} /> : null}
+            {messages.map((msg, index) =>
+              showIntroHero && index === 0 ? null : (
+                <div
+                  key={msg.id}
+                  className={`gfms-ai-message ${msg.role === "user" ? "is-user" : "is-assistant"}`}
+                >
+                  <div className="gfms-ai-bubble">
+                    <p className="gfms-ai-message-text">{msg.content}</p>
+                    {msg.cards ? <HorizontalCardList cards={msg.cards} onAction={runAction} /> : null}
+                    {msg.role === "assistant" ? (
+                      <ActionButtons actions={msg.actions} onAction={runAction} />
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
 
             {loading ? (
               <div className="gfms-ai-message is-assistant">
@@ -436,9 +494,12 @@ export default function ChatBot() {
             <button
               type="button"
               className="gfms-ai-scroll-bottom"
-              onClick={() => messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: "smooth" })}
+              onClick={() => {
+                shouldAutoScrollRef.current = true;
+                scrollToBottom("smooth");
+              }}
             >
-              <ChevronRight size={16} style={{ transform: "rotate(90deg)" }} />
+              <ChevronRight size={14} style={{ transform: "rotate(90deg)" }} />
             </button>
           ) : null}
 
@@ -457,7 +518,7 @@ export default function ChatBot() {
               placeholder="Nhập tin nhắn..."
             />
             <button className="gfms-ai-send" type="submit" disabled={loading || !text.trim()}>
-              <Send size={18} />
+              <Send size={16} />
             </button>
           </form>
         </div>
