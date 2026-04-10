@@ -38,12 +38,14 @@ export default function useTrainerConversationSocket({ peerUserId, conversationK
     const onNew = async (payload) => {
       if (payload?.conversationKey !== conversationKey) return;
       setMessages((prev) => (prev.some((x) => Number(x.id) === Number(payload.id)) ? prev : [...prev, payload]));
+      window.dispatchEvent(new Event("trainerMessagesChanged"));
       if (Number(payload?.senderId) === Number(peerUserId)) {
         try { await markTrainerConversationRead(peerUserId); } catch {}
       }
     };
     const onRead = () => {
       setMessages((prev) => prev.map((x) => (Number(x.receiverId) === Number(peerUserId) ? { ...x, isRead: true } : x)));
+      window.dispatchEvent(new Event("trainerMessagesChanged"));
     };
     const onTyping = (payload) => {
       if (payload?.conversationKey !== conversationKey) return;
@@ -70,6 +72,7 @@ export default function useTrainerConversationSocket({ peerUserId, conversationK
   const sendMessage = useCallback(async (content) => {
     const saved = await sendTrainerConversationMessage(peerUserId, content);
     setMessages((prev) => (prev.some((x) => Number(x.id) === Number(saved?.id)) ? prev : [...prev, saved]));
+    window.dispatchEvent(new Event("trainerMessagesChanged"));
     return saved;
   }, [peerUserId]);
 
