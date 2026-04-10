@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./MemberReviewsPage.css";
 import {
   createReview,
@@ -100,6 +101,7 @@ function ReviewCard({ review }) {
 }
 
 export default function MemberReviewsPage() {
+  const [searchParams] = useSearchParams();
   const [eligible, setEligible] = useState({
     trainer: [],
     package: [],
@@ -145,6 +147,13 @@ export default function MemberReviewsPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const type = String(searchParams.get("type") || "").toLowerCase();
+    if (["trainer","package","gym"].includes(type)) {
+      setForm((prev) => ({ ...prev, reviewType: type }));
+    }
+  }, [searchParams]);
+
   const currentTargets = useMemo(() => {
     const directTargets = eligible?.[form.reviewType] || [];
     if (directTargets.length) return directTargets;
@@ -172,14 +181,20 @@ export default function MemberReviewsPage() {
   );
 
   useEffect(() => {
+    const activationId = Number(searchParams.get("activationId") || 0);
     if (!targetOptions.length) {
       setForm((prev) => ({ ...prev, targetKey: "" }));
+      return;
+    }
+    const matched = activationId ? targetOptions.find((x) => Number(x.packageActivationId || x.activationId) === activationId) : null;
+    if (matched) {
+      setForm((prev) => ({ ...prev, targetKey: matched.key }));
       return;
     }
     if (!targetOptions.some((x) => x.key === form.targetKey)) {
       setForm((prev) => ({ ...prev, targetKey: targetOptions[0].key }));
     }
-  }, [targetOptions, form.targetKey]);
+  }, [targetOptions, form.targetKey, searchParams]);
 
   const metrics = useMemo(() => {
     const total = reviews.length;

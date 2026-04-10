@@ -47,6 +47,7 @@ import PTDemoVideos from "./components/pt-portal/PTDemoVideos";
 import PTRequests from "./components/pt-portal/PTRequests";
 import PTNotificationsPage from "./components/pt-portal/PTNotificationsPage";
 import PTMessagesPage from "./components/pt-portal/PTMessagesPage";
+import PTRescheduleRequestsPage from "./components/pt-portal/PTRescheduleRequestsPage";
 
 /* ================= MARKETPLACE ================= */
 import WebsiteLayout from "./layouts/WebsiteLayout";
@@ -221,6 +222,7 @@ function App() {
           <Route path="payroll" element={<Navigate to="/pt/finance" replace />} />
           <Route path="wallet" element={<Navigate to="/pt/finance" replace />} />
           <Route path="requests" element={<PTRequests />} />
+          <Route path="reschedule-requests" element={<PTRescheduleRequestsPage />} />
           <Route path="notifications" element={<PTNotificationsPage />} />
 
           {/* PT pages (need :id) */}
