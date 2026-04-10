@@ -5,7 +5,7 @@ import {
   markAllTrainerNotificationsRead,
   markTrainerNotificationRead,
 } from "../services/trainerNotificationService";
-import { getCurrentUser } from "../utils/auth";
+import { getCurrentUser, getAccessToken } from "../utils/auth";
 import { isTrainerRelevantNotification } from "../utils/ptNotificationFilter";
 
 export default function useTrainerNotifications() {
@@ -15,7 +15,7 @@ export default function useTrainerNotifications() {
 
   useEffect(() => {
     const user = getCurrentUser();
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     const gid = Number(user?.groupId ?? user?.group_id ?? 0);
     if (!token || gid !== 3) {
       setItems([]);
