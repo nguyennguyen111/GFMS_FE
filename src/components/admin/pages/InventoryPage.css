@@ -72,7 +72,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1000px;
+  min-width: 920px;
 }
 .table th,
 .table td {
@@ -92,6 +92,51 @@
 }
 .table tbody tr:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.inv-thumb {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.inv-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: rgba(238, 242, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.inv-desc {
+  white-space: normal !important;
+  max-width: 420px;
+  line-height: 1.4;
+  color: rgba(238, 242, 255, 0.88);
+}
+
+.inv-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.inv-badge.active {
+  background: rgba(255, 138, 0, 0.12);
+  border-color: rgba(255, 138, 0, 0.28);
+  color: rgba(255, 176, 0, 0.92);
+}
+
+.inv-badge.inactive {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(238, 242, 255, 0.72);
 }
 
 .empty {
