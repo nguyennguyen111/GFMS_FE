@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./EquipmentPage.css";
 import axios from "../../../setup/axios";
 
@@ -20,7 +21,6 @@ import { translateEquipmentCategoryName } from "../../../utils/equipmentCategory
 
 const emptyForm = {
   name: "",
-  code: "",
   description: "",
   categoryId: "",
   unit: "VND",
@@ -33,23 +33,37 @@ const emptyForm = {
 const validateEquipmentForm = (form, mode = "create") => {
   const errors = [];
   const name = String(form.name || "").trim();
-  const code = String(form.code || "").trim();
   const price = Number(form.price ?? 0);
   const quantity = Number(form.quantity ?? 0);
 
   if (!name) errors.push("Tên thiết bị là bắt buộc.");
   if (name.length > 255) errors.push("Tên thiết bị quá dài (tối đa 255 ký tự).");
 
-  if (code && !/^[A-Za-z0-9._-]+$/.test(code)) {
-    errors.push("Mã thiết bị chỉ được chứa chữ, số và ký tự . _ -");
+  if (!Number.isFinite(price) || price <= 0) {
+    errors.push("Giá bán phải lớn hơn 0.");
   }
 
-  if (!Number.isFinite(price) || price < 0) {
-    errors.push("Giá bán phải là số và không được âm.");
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    errors.push(
+      mode === "create"
+        ? "Số lượng ban đầu phải lớn hơn 0."
+        : "Số lượng phải lớn hơn 0."
+    );
   }
 
-  if (mode === "create" && (!Number.isFinite(quantity) || quantity < 0)) {
-    errors.push("Số lượng ban đầu phải là số và không được âm.");
+  if (mode === "create") {
+    const catId = Number(form.categoryId);
+    if (!form.categoryId || !Number.isFinite(catId) || catId <= 0) {
+      errors.push("Vui lòng chọn danh mục.");
+    }
+    const supId = Number(form.preferredSupplierId);
+    if (!form.preferredSupplierId || !Number.isFinite(supId) || supId <= 0) {
+      errors.push("Vui lòng chọn nhà cung cấp.");
+    }
+    const desc = String(form.description || "").trim();
+    if (!desc) {
+      errors.push("Vui lòng nhập mô tả thiết bị.");
+    }
   }
 
   return errors;
@@ -73,6 +87,11 @@ export default function EquipmentPage() {
   const [mode, setMode] = useState("create"); // create | edit
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  /** Giữ mã từ DB khi sửa (không hiện form) để PUT gửi lại đúng backend */
+  const [persistedCode, setPersistedCode] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const saveLockRef = useRef(false);
+  const [createImages, setCreateImages] = useState([]);
 
   // modal images
   const [imgOpen, setImgOpen] = useState(false);
@@ -131,6 +150,8 @@ export default function EquipmentPage() {
   const openCreate = () => {
     setMode("create");
     setEditingId(null);
+    setPersistedCode(null);
+    setCreateImages([]);
     setForm({ ...emptyForm, status: "active" });
     setErr("");
     setShow(true);
@@ -139,14 +160,14 @@ export default function EquipmentPage() {
   const openEdit = (row) => {
     setMode("edit");
     setEditingId(row.id);
+    setPersistedCode(row.code != null && row.code !== "" ? String(row.code) : null);
     setForm({
       name: row.name ?? "",
-      code: row.code ?? "",
       description: row.description ?? "",
       categoryId: row.categoryId ? String(row.categoryId) : "",
       unit: "VND",
       price: Number(row.price ?? 0),
-      quantity: 0,
+      quantity: Number(row.adminStockQuantity ?? row.quantity ?? 0) || 0,
       preferredSupplierId: row.preferredSupplierId ? String(row.preferredSupplierId) : "",
       status: row.status ?? "active",
     });
@@ -157,9 +178,13 @@ export default function EquipmentPage() {
   const closeModal = () => {
     setShow(false);
     setErr("");
+    setCreateImages([]);
   };
 
   const save = async () => {
+    if (saving || saveLockRef.current) return;
+    saveLockRef.current = true;
+    setSaving(true);
     setErr("");
     try {
       const validationErrors = validateEquipmentForm(form, mode);
@@ -170,7 +195,7 @@ export default function EquipmentPage() {
 
       const payload = {
         name: form.name?.trim(),
-        code: form.code?.trim() || null,
+        code: mode === "create" ? null : persistedCode != null ? String(persistedCode).trim() || null : null,
         description: form.description?.trim() || null,
         categoryId: form.categoryId ? Number(form.categoryId) : null,
         preferredSupplierId: form.preferredSupplierId ? Number(form.preferredSupplierId) : null,
@@ -188,7 +213,19 @@ export default function EquipmentPage() {
       }
 
       if (mode === "create") {
-        await createEquipment(payload);
+        const created = await createEquipment(payload);
+        const createdId = Number(created?.id ?? created?.data?.id ?? created?.data?.data?.id ?? 0);
+        if (createdId > 0 && createImages.length > 0) {
+          try {
+            await uploadEquipmentImages(createdId, createImages);
+          } catch (uploadErr) {
+            alert(
+              uploadErr?.response?.data?.message ||
+                uploadErr?.message ||
+                "Tạo thiết bị thành công nhưng tải ảnh thất bại. Bạn có thể vào nút 'Ảnh' để tải lại."
+            );
+          }
+        }
       } else {
         await updateEquipment(editingId, payload);
       }
@@ -197,6 +234,9 @@ export default function EquipmentPage() {
       fetchList();
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || "Lưu thất bại");
+    } finally {
+      setSaving(false);
+      saveLockRef.current = false;
     }
   };
 
@@ -257,7 +297,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Danh mục thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
+            Quản lý danh mục, giá và nhà cung cấp. Tổng tồn theo từng phòng gym xem tại mục <strong>Kho thiết bị</strong>.
           </div>
         </div>
 
@@ -269,7 +309,7 @@ export default function EquipmentPage() {
       <div className="eq-filters">
         <input
           className="eq-input"
-          placeholder="Tìm theo tên / mã / brand / model..."
+          placeholder="Tìm theo tên, brand, model..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
@@ -307,7 +347,6 @@ export default function EquipmentPage() {
             <tr>
               <th>ID</th>
               <th>Ảnh</th>
-              <th>Mã</th>
               <th>Tên</th>
               <th>Danh mục</th>
               <th>Đơn vị</th>
@@ -320,7 +359,7 @@ export default function EquipmentPage() {
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td className="eq-empty" colSpan={9}>
+                <td className="eq-empty" colSpan={8}>
                   Không có dữ liệu
                 </td>
               </tr>
@@ -347,7 +386,6 @@ export default function EquipmentPage() {
                       )}
                     </td>
 
-                    <td>{row.code || "-"}</td>
                     <td className="eq-strong">
                       {row.name}
                       {row.brand || row.model ? (
@@ -395,56 +433,49 @@ export default function EquipmentPage() {
         </table>
       </div>
 
-      {/* ===== Modal Create/Edit ===== */}
-      {show ? (
-        <div className="eq-modal__backdrop" onMouseDown={closeModal}>
-          <div
-            className="eq-modal"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="eq-modal__header">
-              <div>
-                <div className="eq-modal__title">
-                  {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
-                </div>
-                <div className="eq-modal__subtitle">
-                  Dùng để quản lý tồn kho theo gym + ghi nhật ký nhập/xuất
-                </div>
-              </div>
+      {/* ===== Modal Create/Edit (portal: tránh bị cắt bởi overflow layout admin) ===== */}
+      {show
+        ? createPortal(
+            <div className="eq-modal__backdrop" onMouseDown={closeModal}>
+              <div
+                className="eq-modal eq-modal--form"
+                onMouseDown={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="eq-modal__header">
+                  <div>
+                    <div className="eq-modal__title">
+                      {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
+                    </div>
+                    <div className="eq-modal__subtitle">
+                      Điền thông tin danh mục &amp; giá. Số lượng ban đầu (nếu có) dùng nhập tồn kho admin khi tạo mới.
+                    </div>
+                  </div>
 
-              <button className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
-                ✕
-              </button>
-            </div>
+                  <button type="button" className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
+                    ✕
+                  </button>
+                </div>
 
-            <div className="eq-modal__body">
-              <div className="eq-formgrid">
-                <label className="eq-field">
+                <div className="eq-modal__body">
+                  <div className="eq-formgrid">
+                    <label className="eq-field eq-field--full">
+                      <span className="eq-label">
+                        Tên <b>*</b>
+                      </span>
+                      <input
+                        className="eq-input"
+                        value={form.name}
+                        onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                        placeholder="VD: Máy chạy bộ thương mại"
+                      />
+                    </label>
+
+                    <label className="eq-field">
                   <span className="eq-label">
-                    Tên <b>*</b>
+                    Danh mục{mode === "create" ? <> <b>*</b></> : null}
                   </span>
-                  <input
-                    className="eq-input"
-                    value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="VD: Commercial Treadmill Pro"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Mã</span>
-                  <input
-                    className="eq-input"
-                    value={form.code}
-                    onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
-                    placeholder="VD: EQ-TREADMILL-001"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Danh mục</span>
                   <select
                     className="eq-select"
                     value={form.categoryId}
@@ -489,7 +520,9 @@ export default function EquipmentPage() {
                 </label>
 
                 <label className="eq-field eq-col2">
-                  <span className="eq-label">Nhà cung cấp</span>
+                  <span className="eq-label">
+                    Nhà cung cấp{mode === "create" ? <> <b>*</b></> : null}
+                  </span>
                   <select
                     className="eq-select"
                     value={form.preferredSupplierId}
@@ -505,7 +538,9 @@ export default function EquipmentPage() {
                 </label>
 
                 <label className="eq-field eq-col2">
-                  <span className="eq-label">Mô tả</span>
+                  <span className="eq-label">
+                    Mô tả{mode === "create" ? <> <b>*</b></> : null}
+                  </span>
                   <textarea
                     className="eq-textarea"
                     rows={3}
@@ -514,6 +549,27 @@ export default function EquipmentPage() {
                     placeholder="VD: Thiết bị cao cấp cho phòng gym..."
                   />
                 </label>
+
+                {mode === "create" ? (
+                  <label className="eq-field eq-col2">
+                    <span className="eq-label">Ảnh thiết bị</span>
+                    <input
+                      className="eq-input-file"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateImages(files);
+                      }}
+                    />
+                    <div className="eq-hint">
+                      {createImages.length
+                        ? `Đã chọn ${createImages.length} ảnh. Ảnh sẽ được tải lên ngay sau khi tạo thiết bị.`
+                        : "Bạn có thể chọn nhiều ảnh ngay khi tạo mới."}
+                    </div>
+                  </label>
+                ) : null}
 
                 <label className="eq-field eq-col2">
                   <span className="eq-label">Trạng thái</span>
@@ -529,27 +585,35 @@ export default function EquipmentPage() {
                     * Ngừng sử dụng: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
                   </div>
                 </label>
+                  </div>
+
+                  {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
+                </div>
+
+                <div className="eq-modal__footer">
+                  <button type="button" className="eq-btn eq-btn--ghost" onClick={closeModal}>
+                    Huỷ
+                  </button>
+                  <button
+                    type="button"
+                    className="eq-btn eq-btn--primary"
+                    onClick={save}
+                    disabled={saving}
+                  >
+                    {saving ? "Đang lưu..." : "Lưu"}
+                  </button>
+                </div>
               </div>
-
-              {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
-            </div>
-
-            <div className="eq-modal__footer">
-              <button className="eq-btn eq-btn--ghost" onClick={closeModal}>
-                Huỷ
-              </button>
-              <button className="eq-btn eq-btn--primary" onClick={save}>
-                Lưu
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
 
       {/* ===== Modal Images ===== */}
-      {imgOpen && imgEquipment ? (
-        <div className="eq-modal__backdrop" onMouseDown={closeImages}>
-          <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
+      {imgOpen && imgEquipment
+        ? createPortal(
+            <div className="eq-modal__backdrop" onMouseDown={closeImages}>
+              <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
             <div className="eq-modal__header">
               <div>
                 <div className="eq-modal__title">Ảnh thiết bị</div>
@@ -652,13 +716,15 @@ export default function EquipmentPage() {
             </div>
 
             <div className="eq-modal__footer">
-              <button className="eq-btn eq-btn--ghost" onClick={closeImages}>
+              <button type="button" className="eq-btn eq-btn--ghost" onClick={closeImages}>
                 Đóng
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
