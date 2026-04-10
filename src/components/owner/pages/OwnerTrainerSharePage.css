@@ -489,7 +489,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3000;
+  z-index: 999;
   padding: 14px;
   animation: fadeIn 0.2s ease;
 }
@@ -507,15 +507,13 @@
 
 .ots-modal__content {
   position: relative;
-  background:
-    radial-gradient(120% 120% at 10% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 40%),
-    linear-gradient(170deg, rgba(12, 12, 12, 0.98) 0%, rgba(8, 8, 8, 0.99) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  max-width: 740px;
+  background: linear-gradient(145deg, rgba(25, 32, 48, 0.98) 0%, rgba(18, 24, 38, 0.98) 100%);
+  border: 1px solid rgba(214, 255, 0, 0.22);
+  border-radius: 16px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, .7), 0 0 0 1px rgba(214, 255, 0, 0.1);
+  max-width: 760px;
   width: 100%;
-  max-height: 78vh;
+  max-height: 86vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
 }
@@ -535,30 +533,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  background: linear-gradient(180deg, rgba(214, 255, 0, 0.08) 0%, transparent 100%);
 }
 
 .ots-modal__header h2 {
   font-size: 18px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #f2ffb5 0%, #d8ff55 55%, #b7ec22 100%);
+  font-weight: 900;
+  background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 52%, #b8dc00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
   letter-spacing: -0.01em;
-  min-width: 0;
-  max-width: calc(100% - 52px);
-  overflow-wrap: anywhere;
 }
 
 .ots-modal__close {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 20px;
-  color: #e8ffad;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   line-height: 1;
   padding: 0;
@@ -573,34 +568,33 @@
 }
 
 .ots-modal__close:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.36);
-  color: #f6ffd8;
-  transform: translateY(-1px);
+  background: rgba(255, 80, 80, 0.14);
+  border-color: rgba(255, 80, 80, 0.28);
+  color: #fff;
+  transform: rotate(90deg);
 }
 
 /* Form */
 .ots-form {
-  padding: 12px 12px 0;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .ots-field {
   margin-bottom: 0;
-  padding: 10px 10px 11px;
-  background: linear-gradient(145deg, rgba(20, 20, 20, 0.92), rgba(14, 14, 14, 0.92));
+  padding: 12px 14px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .ots-field:focus-within {
-  border-color: rgba(214, 255, 0, 0.36);
+  border-color: rgba(214, 255, 0, 0.38);
   box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.1);
-  background: linear-gradient(145deg, rgba(24, 24, 24, 0.95), rgba(16, 16, 16, 0.95));
+  background: linear-gradient(145deg, rgba(214, 255, 0, 0.08), rgba(214, 255, 0, 0.03));
 }
 
 .ots-field__label {
@@ -608,7 +602,7 @@
   margin-bottom: 7px;
   font-size: 11px;
   font-weight: 700;
-  color: rgba(233, 255, 178, 0.94);
+  color: rgba(255, 255, 255, 0.82);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -620,7 +614,7 @@
 
 .ots-field__hint {
   font-size: 11px;
-  color: rgba(222, 240, 170, 0.68);
+  color: rgba(255, 255, 255, 0.62);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -638,11 +632,10 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 40px;
-  padding: 8px 10px;
-  background: linear-gradient(145deg, rgba(9, 9, 9, 0.96), rgba(5, 5, 5, 0.96));
+  padding: 10px 12px;
+  background: rgba(6, 12, 24, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #efffcb;
+  color: #fff;
   border-radius: 12px;
   font-size: 14px;
   font-family: inherit;
@@ -657,7 +650,7 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   color-scheme: dark;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d8ff55'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d6ff00'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 14px;
@@ -665,23 +658,23 @@
 }
 
 .ots-select option {
-  background: #101605;
-  color: #f1ffd1;
+  background: rgba(10, 15, 25, 0.98);
+  color: #fff;
   padding: 10px;
   font-weight: 500;
 }
 
 .ots-input::placeholder,
 .ots-textarea::placeholder {
-  color: rgba(219, 238, 170, 0.45);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .ots-input:focus,
 .ots-select:focus,
 .ots-textarea:focus {
-  background: linear-gradient(145deg, rgba(14, 14, 14, 0.98), rgba(8, 8, 8, 0.98));
-  border-color: rgba(214, 255, 0, 0.5);
-  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.12), 0 8px 22px rgba(214, 255, 0, 0.06);
+  background: rgba(8, 14, 28, 0.98);
+  border-color: rgba(214, 255, 0, 0.52);
+  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.14), 0 8px 24px rgba(214, 255, 0, 0.08);
 }
 
 .ots-input:disabled,
@@ -732,7 +725,7 @@
 
 .ots-textarea {
   resize: vertical;
-  min-height: 74px;
+  min-height: 96px;
   line-height: 1.5;
 }
 
@@ -900,7 +893,7 @@
 
 .ots-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-items: start;
   width: 100%;
@@ -925,46 +918,12 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 12px;
-  padding: 10px 12px;
-  margin: 0 -12px -12px;
-  background: linear-gradient(180deg, rgba(12, 12, 12, 0.8), rgba(7, 7, 7, 0.94));
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0 0 20px 20px;
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  backdrop-filter: blur(6px);
-}
-
-.ots-form__actions .ots-btn {
-  min-width: 116px;
-  border-radius: 12px;
-  padding: 9px 14px;
-  font-size: 13px;
-}
-
-.ots-form__actions .ots-btn--secondary {
-  background: rgba(33, 40, 12, 0.65);
-  border-color: rgba(190, 236, 40, 0.22);
-  color: #d9ef9b;
-}
-
-.ots-form__actions .ots-btn--secondary:hover {
-  background: rgba(44, 53, 16, 0.8);
-  border-color: rgba(190, 236, 40, 0.35);
-}
-
-.ots-form__actions .ots-btn--primary {
-  background: linear-gradient(135deg, #d8ff55 0%, #b7ec22 100%);
-  border-color: rgba(216, 255, 85, 0.65);
-  color: #1f2b06;
-  font-weight: 800;
-}
-
-.ots-form__actions .ots-btn--primary:hover {
-  background: linear-gradient(135deg, #e7ff88 0%, #c8f53a 100%);
-  border-color: rgba(231, 255, 136, 0.8);
+  margin-top: 16px;
+  padding: 14px 18px;
+  margin: 0 -18px -18px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 16px 16px;
 }
 
 /* Responsive */
@@ -1244,7 +1203,7 @@
 }
 
 .ots-schedule-item.trainer-share-block .ots-member {
-  color: #d4a574; /* Lighter brown for "Chia sẻ huấn luyện viên" */
+  color: #d4a574; /* Lighter brown for "Chia sẻ PT" */
   font-weight: 600;
 }
 
@@ -1434,7 +1393,7 @@
 
 .ots-availability-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
   overflow-y: auto;
   overflow-x: auto;
@@ -1459,38 +1418,6 @@
   margin-bottom: 14px;
 }
 
-.ots-availability-card__identity {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.ots-availability-card__avatarWrap {
-  width: 54px;
-  height: 54px;
-  border-radius: 12px;
-  border: 1px solid rgba(214, 255, 0, 0.38);
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.ots-availability-card__avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.ots-availability-card__avatarFallback {
-  color: #e8ff9a;
-  font-size: 20px;
-  font-weight: 800;
-}
-
 .ots-availability-card__name {
   color: #ffffff;
   font-size: 16px;
@@ -1502,15 +1429,6 @@
   color: rgba(238, 242, 255, 0.62);
   font-size: 12px;
   overflow-wrap: anywhere;
-}
-
-.ots-availability-card__level {
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: rgba(214, 255, 0, 0.88);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .ots-availability-badge {
@@ -1622,23 +1540,7 @@
   overflow-y: auto;
   padding-right: 6px;
   margin-right: -2px;
-  max-height: calc(100vh - 355px);
-}
-
-.ots-bookings-pagination {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.ots-bookings-pagination > span {
-  color: rgba(238, 242, 255, 0.76);
-  font-size: 12px;
-  font-weight: 700;
+  max-height: calc(100vh - 300px);
 }
 
 .ots-page--bookings .ots-availability-panel__meta,
@@ -1674,10 +1576,6 @@
 
 @media (max-width: 1400px) {
   .ots-bookings-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .ots-availability-grid {
     grid-template-columns: 1fr;
   }
 

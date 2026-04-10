@@ -31,7 +31,7 @@ export default function ExportPage() {
       const res = await getStocks({ page: 1, limit: 200, q, gymId: nextGymId || gymId || undefined });
       setStocks(res?.data || []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải tồn kho thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Load stocks failed");
     }
   };
 
@@ -55,9 +55,9 @@ export default function ExportPage() {
       setLoading(true);
       setErr("");
 
-      if (!gymId) throw new Error("Bạn phải chọn phòng gym");
-      if (!stockId) throw new Error("Chọn một dòng tồn kho trước");
-      if (!selected) throw new Error("Không tìm thấy dòng tồn kho");
+      if (!gymId) throw new Error("Bạn phải chọn Gym");
+      if (!stockId) throw new Error("Chọn 1 dòng tồn kho trước");
+      if (!selected) throw new Error("Stock not found");
 
       const payload = {
         gymId: Number(gymId),
@@ -73,7 +73,7 @@ export default function ExportPage() {
       setNotes("");
       await loadStocks(gymId);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Xuất kho thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Export failed");
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function ExportPage() {
       <div className="ex-head">
         <div>
           <h2 className="ex-title">Xuất kho</h2>
-          <div className="ex-sub">Giảm tồn kho thiết bị và ghi nhật ký kho</div>
+          <div className="ex-sub">Giảm tồn kho (EquipmentStock) + ghi nhật ký (Inventory)</div>
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export default function ExportPage() {
       <div className="ex-card">
         <div className="ex-row">
           <select className="ex-select" value={gymId} onChange={(e) => setGymId(e.target.value)}>
-            <option value="">-- Chọn phòng gym --</option>
+            <option value="">-- Chọn gym --</option>
             {gyms.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -114,8 +114,7 @@ export default function ExportPage() {
               <option value="">-- Chọn --</option>
               {options.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.equipmentName || `Thiết bị ${s.equipmentId}`} ({s.equipmentCode || "—"}) • Khả dụng:{" "}
-                  {s.availableQuantity}
+                  {s.equipmentName || `EQ ${s.equipmentId}`} ({s.equipmentCode || "—"}) • Avail: {s.availableQuantity}
                 </option>
               ))}
             </select>
@@ -124,15 +123,15 @@ export default function ExportPage() {
           <div className="ex-field">
             <label>Số lượng xuất</label>
             <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-            <div className="ex-hint">Khả dụng: {selected ? selected.availableQuantity : "—"}</div>
+            <div className="ex-hint">Available: {selected ? selected.availableQuantity : "—"}</div>
           </div>
 
           <div className="ex-field">
             <label>Lý do</label>
             <select value={reason} onChange={(e) => setReason(e.target.value)}>
-              <option value="adjustment">Điều chỉnh</option>
-              <option value="other">Khác</option>
-              <option value="transfer_out">Chuyển đi</option>
+              <option value="adjustment">adjustment</option>
+              <option value="other">other</option>
+              <option value="transfer_out">transfer_out</option>
             </select>
           </div>
 

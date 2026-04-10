@@ -193,7 +193,7 @@ export default function SuppliersPage() {
       <div className="sup-filters">
         <input
           className="sup-input"
-          placeholder="Tìm theo tên / mã / SĐT / email..."
+          placeholder="Tìm theo tên / mã / phone / email..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
@@ -220,7 +220,7 @@ export default function SuppliersPage() {
         <table className="sup-table__tbl">
           <thead>
             <tr>
-              <th>Mã bản ghi</th>
+              <th>ID</th>
               <th>Mã</th>
               <th>Tên</th>
               <th>Phone</th>
@@ -322,7 +322,7 @@ export default function SuppliersPage() {
                     onChange={(e) =>
                       setForm((s) => ({ ...s, name: e.target.value }))
                     }
-                    placeholder="VD: Công ty TNHH Thiết bị Gym ABC"
+                    placeholder="VD: Gym Essentials Vietnam"
                   />
                 </label>
 
@@ -395,7 +395,7 @@ export default function SuppliersPage() {
                     onChange={(e) =>
                       setForm((s) => ({ ...s, notes: e.target.value }))
                     }
-                    placeholder="VD: Cung cấp phụ kiện phòng gym..."
+                    placeholder="VD: Supplier for gym accessories..."
                   />
                 </label>
 

@@ -48,6 +48,20 @@ export const admApproveFranchiseRequest = (id) =>
 export const admRejectFranchiseRequest = (id, body) =>
   axios.patch(`/api/admin/inventory/franchise-requests/${id}/reject`, body);
 
+/* ================= MODULE 6.1: AUDIT LOGS ================= */
+export const admGetAuditLogs = (params) =>
+  axios.get("/api/admin/inventory/audit-logs", { params });
+
+/* ================= MODULE 6.2: REPORTS ================= */
+export const admGetReportSummary = (params) =>
+  axios.get("/api/admin/inventory/reports/summary", { params });
+
+export const admGetReportRevenue = (params) =>
+  axios.get("/api/admin/inventory/reports/revenue", { params });
+
+export const admGetReportInventory = (params) =>
+  axios.get("/api/admin/inventory/reports/inventory", { params });
+
 /* ================= DASHBOARD ================= */
 export const admGetDashboardOverview = (params) =>
   axios.get("/api/admin/inventory/dashboard/overview", { params });

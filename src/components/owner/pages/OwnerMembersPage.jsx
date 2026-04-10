@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ownerMemberService from "../../../services/ownerMemberService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import "./OwnerMembersPage.css";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
-import { showAppToast } from "../../../utils/appToast";
-import { showAppConfirm } from "../../../utils/appDialog";
 
 const OwnerMembersPage = () => {
   const { selectedGymId, selectedGymName } = useSelectedGym();
@@ -17,70 +15,22 @@ const OwnerMembersPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const notify = useCallback((message, type = "info", title = "Thông báo") => {
-    showAppToast({ message: String(message || ""), type, title });
-  }, []);
-
-  const confirmAction = useCallback(async (message) => {
-    const result = await showAppConfirm({
-      title: "Xác nhận thao tác",
-      message: String(message || ""),
-      confirmText: "Xác nhận",
-      cancelText: "Hủy",
-    });
-    return Boolean(result?.confirmed);
-  }, []);
-
   const [availableUsers, setAvailableUsers] = useState([]);
-  const [userPickerOpen, setUserPickerOpen] = useState(false);
-  const [userPickerQuery, setUserPickerQuery] = useState("");
-  const userPickerRef = useRef(null);
-  const filteredAvailableUsers = availableUsers.filter((user) => {
-    const groupId = Number(user?.groupId);
-    const hasNoRole = !user?.groupId && user?.groupId !== 0;
-    const isGuestOrMember = [4, 5].includes(groupId);
-    const noPurchasedPackage = user?.hasPurchasedPackage === false || Number(user?.packageCount || 0) === 0;
-    return hasNoRole || isGuestOrMember || noPurchasedPackage;
-  });
-  const visibleAvailableUsers = useMemo(() => {
-    const q = String(userPickerQuery || "").trim().toLowerCase();
-    if (!q) return filteredAvailableUsers;
-    return filteredAvailableUsers.filter((user) => {
-      const username = String(user?.username || "").toLowerCase();
-      const email = String(user?.email || "").toLowerCase();
-      return username.includes(q) || email.includes(q);
-    });
-  }, [filteredAvailableUsers, userPickerQuery]);
   const [newMember, setNewMember] = useState({ targetUserId: "", gymId: "" });
   const [editMember, setEditMember] = useState({ id: "", gymId: "", status: "active" });
-  const selectedAvailableUser = useMemo(
-    () => filteredAvailableUsers.find((user) => String(user.id) === String(newMember.targetUserId)),
-    [filteredAvailableUsers, newMember.targetUserId]
-  );
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
     setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
     setNewMember((prev) => ({ ...prev, gymId: scopedGymId }));
     setEditMember((prev) => ({ ...prev, gymId: scopedGymId || prev.gymId }));
-  }, [notify, selectedGymId]);
+  }, [selectedGymId]);
 
   useEffect(() => {
     loadGyms();
     loadMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!showCreateModal || !userPickerOpen) return;
-    const onClickOutside = (event) => {
-      if (userPickerRef.current && !userPickerRef.current.contains(event.target)) {
-        setUserPickerOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [showCreateModal, userPickerOpen]);
 
   const loadGyms = async () => {
     try {
@@ -147,53 +97,51 @@ const OwnerMembersPage = () => {
       const response = await ownerMemberService.getAvailableUsers();
       setAvailableUsers(Array.isArray(response.data) ? response.data : []);
       setNewMember((prev) => ({ ...prev, gymId: selectedGymId ? String(selectedGymId) : prev.gymId }));
-      setUserPickerOpen(false);
-      setUserPickerQuery("");
       setShowCreateModal(true);
     } catch (error) {
       console.error("Lỗi khi load danh sách users:", error);
-      notify(error.response?.data?.message || "Không thể tải danh sách users", "error", "Không thành công");
+      alert(error.response?.data?.message || "Không thể tải danh sách users");
     }
-  }, [notify, selectedGymId]);
+  }, [selectedGymId]);
 
   const handleCloseCreateModal = useCallback(() => {
     setShowCreateModal(false);
-    setUserPickerOpen(false);
-    setUserPickerQuery("");
     setNewMember({ targetUserId: "", gymId: selectedGymId ? String(selectedGymId) : "" });
   }, [selectedGymId]);
 
   const handleCreateMember = useCallback(async (e) => {
     e.preventDefault();
     if (!newMember.targetUserId || !newMember.gymId) {
-      notify("Vui lòng chọn user và phòng tập", "error", "Thiếu dữ liệu");
+      alert("Vui lòng chọn user và phòng tập");
       return;
     }
 
     try {
       await ownerMemberService.createMember(newMember);
-      notify("Tạo hội viên thành công!", "success", "Thành công");
+      alert("Tạo hội viên thành công!");
       handleCloseCreateModal();
       // Reset về trang 1 và reload
       loadMembers(1);
     } catch (error) {
       console.error("Lỗi khi tạo hội viên:", error);
-      notify(error.response?.data?.message || "Tạo hội viên thất bại", "error", "Không thành công");
+      alert(error.response?.data?.message || "Tạo hội viên thất bại");
     }
-  }, [newMember, handleCloseCreateModal, loadMembers, notify]);
+  }, [newMember, handleCloseCreateModal, loadMembers]);
 
   const handleDeleteMember = useCallback(async (id, username) => {
-    const confirmed = await confirmAction(`Xác nhận xóa hội viên "${username}"? Hành động này không thể hoàn tác.`);
-    if (!confirmed) return;
+    if (!window.confirm(`Xác nhận xóa hội viên "${username}"? Hành động này không thể hoàn tác.`)) {
+      return;
+    }
+
     try {
       await ownerMemberService.deleteMember(id);
-      notify("Đã xóa hội viên thành công!", "success", "Thành công");
+      alert("Đã xóa hội viên thành công!");
       loadMembers(1);
     } catch (error) {
       console.error("Lỗi khi xóa hội viên:", error);
-      notify(error.response?.data?.message || "Xóa hội viên thất bại", "error", "Không thành công");
+      alert(error.response?.data?.message || "Xóa hội viên thất bại");
     }
-  }, [confirmAction, loadMembers, notify]);
+  }, [loadMembers]);
 
   const handleRemoveMemberPackages = useCallback(async (member) => {
     if (!member?.id) return;
@@ -203,23 +151,27 @@ const OwnerMembersPage = () => {
       : 0;
 
     if (activePackages === 0) {
-      notify("Hội viên hiện không có gói đang hoạt động.", "info", "Thông tin");
+      alert("Hội viên hiện không có gói đang hoạt động.");
       return;
     }
 
     const memberName = member.User?.username || "hội viên";
-    const confirmed = await confirmAction(`Xác nhận xóa ${activePackages} gói đang hoạt động của "${memberName}"?`);
+    const confirmed = window.confirm(
+      `Xác nhận xóa ${activePackages} gói đang hoạt động của "${memberName}"?`
+    );
+
     if (!confirmed) return;
+
     try {
       await ownerMemberService.updateMember(member.id, { currentPackageId: null });
-      notify("Đã xóa gói thành công. Bạn có thể xóa hội viên nếu không còn booking.", "success", "Thành công");
+      alert("Đã xóa gói thành công. Bạn có thể xóa hội viên nếu không còn booking.");
       await loadMembers(pagination.page);
       await handleViewDetail(member.id);
     } catch (error) {
       console.error("Lỗi khi xóa gói của hội viên:", error);
-      notify(error.response?.data?.message || "Xóa gói thất bại", "error", "Không thành công");
+      alert(error.response?.data?.message || "Xóa gói thất bại");
     }
-  }, [confirmAction, handleViewDetail, loadMembers, notify, pagination.page]);
+  }, [handleViewDetail, loadMembers, pagination.page]);
 
   const handleOpenEditModal = useCallback((member) => {
     setEditMember({
@@ -243,31 +195,39 @@ const OwnerMembersPage = () => {
         gymId: editMember.gymId,
         status: editMember.status,
       });
-      notify("Cập nhật hội viên thành công!", "success", "Thành công");
+      alert("Cập nhật hội viên thành công!");
       handleCloseEditModal();
       loadMembers(pagination.page);
     } catch (error) {
       console.error("Lỗi khi cập nhật hội viên:", error);
-      notify(error.response?.data?.message || "Cập nhật hội viên thất bại", "error", "Không thành công");
+      alert(error.response?.data?.message || "Cập nhật hội viên thất bại");
     }
-  }, [editMember, handleCloseEditModal, loadMembers, notify, pagination.page]);
+  }, [editMember, handleCloseEditModal, loadMembers, pagination.page]);
 
   const handleToggleMemberStatus = useCallback(async (member) => {
     const isActivating = member.status !== "active";
     const action = isActivating ? "hoạt động" : "ngừng hoạt động";
 
-    const confirmed = await confirmAction(`Bạn có chắc muốn ${action} hội viên "${member.User?.username}"?`);
-    if (!confirmed) return;
+    if (!window.confirm(`Bạn có chắc muốn ${action} hội viên "${member.User?.username}"?`)) {
+      return;
+    }
+
     try {
       const response = await ownerMemberService.toggleMemberStatus(member.id);
-      notify(response.message || `Đã ${action} hội viên thành công!`, "success", "Thành công");
-      if (showModal) handleCloseModal();
+      alert(response.message || `Đã ${action} hội viên thành công!`);
+      
+      // Close detail modal if open
+      if (showModal) {
+        handleCloseModal();
+      }
+      
+      // Reload members to update status
       await loadMembers(pagination.page);
     } catch (error) {
       console.error(`Lỗi khi ${action} hội viên:`, error);
-      notify(error.response?.data?.message || `Lỗi khi ${action} hội viên`, "error", "Không thành công");
+      alert(error.response?.data?.message || `Lỗi khi ${action} hội viên`);
     }
-  }, [confirmAction, showModal, handleCloseModal, loadMembers, notify, pagination.page]);
+  }, [showModal, handleCloseModal, loadMembers, pagination.page]);
 
   const getStatusText = (status) => {
     const statusMap = {
@@ -550,53 +510,19 @@ const OwnerMembersPage = () => {
               <form onSubmit={handleCreateMember} className="modal-form">
               <div className="form-group">
                 <label>Chọn người dùng *</label>
-                <div className="member-user-picker" ref={userPickerRef}>
-                  <button
-                    type="button"
-                    className={`member-user-picker__trigger ${userPickerOpen ? "is-open" : ""}`}
-                    onClick={() => setUserPickerOpen((prev) => !prev)}
-                  >
-                    <span>
-                      {selectedAvailableUser
-                        ? `${selectedAvailableUser.username} (${selectedAvailableUser.email})`
-                        : "-- Chọn user --"}
-                    </span>
-                    <span className="member-user-picker__caret">{userPickerOpen ? "▴" : "▾"}</span>
-                  </button>
-                  <input type="hidden" value={newMember.targetUserId} required readOnly />
-                  {userPickerOpen ? (
-                    <div className="member-user-picker__menu">
-                      <input
-                        type="text"
-                        className="member-user-picker__search"
-                        placeholder="Tìm username hoặc email..."
-                        value={userPickerQuery}
-                        onChange={(e) => setUserPickerQuery(e.target.value)}
-                      />
-                      <div className="member-user-picker__list">
-                        {visibleAvailableUsers.length === 0 ? (
-                          <div className="member-user-picker__empty">Không có user phù hợp</div>
-                        ) : (
-                          visibleAvailableUsers.map((user) => (
-                            <button
-                              key={user.id}
-                              type="button"
-                              className={`member-user-picker__item ${
-                                String(newMember.targetUserId) === String(user.id) ? "is-selected" : ""
-                              }`}
-                              onClick={() => {
-                                setNewMember({ ...newMember, targetUserId: String(user.id) });
-                                setUserPickerOpen(false);
-                              }}
-                            >
-                              {user.username} ({user.email})
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+                <select
+                  value={newMember.targetUserId}
+                  onChange={(e) => setNewMember({ ...newMember, targetUserId: e.target.value })}
+                  required
+                  className="form-select"
+                >
+                  <option value="">-- Chọn user --</option>
+                  {availableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.username} ({user.email})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Chọn phòng tập *</label>

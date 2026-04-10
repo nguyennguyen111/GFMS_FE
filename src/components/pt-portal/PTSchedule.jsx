@@ -64,10 +64,6 @@ const PTSchedule = () => {
   const [attBooking, setAttBooking] = useState(null);
   const [attCache, setAttCache] = useState({});
   const [attendanceBlockModal, setAttendanceBlockModal] = useState(null);
-  const [noticeModal, setNoticeModal] = useState(null);
-  const [busyReasonModalOpen, setBusyReasonModalOpen] = useState(false);
-  const [busyReason, setBusyReason] = useState("");
-  const [busyReasonError, setBusyReasonError] = useState("");
 
   const START_HOUR = 5;
   const END_HOUR = 23;
@@ -208,7 +204,7 @@ const PTSchedule = () => {
         e?.response?.data?.EM ||
         e?.message ||
         "Không thể hoàn tác điểm danh.";
-      setNoticeModal({ title: "Không thể hoàn tác", message: msg, tone: "danger" });
+      window.alert(msg);
     } finally {
       setAttLoading(false);
     }
@@ -237,23 +233,12 @@ const PTSchedule = () => {
 
   const requestBusySlot = async () => {
     if (!attBooking?.id) return;
-    setBusyReason("");
-    setBusyReasonError("");
-    setBusyReasonModalOpen(true);
-  };
-
-  const submitBusySlotRequest = async () => {
-    if (!attBooking?.id) return;
-    if (!String(busyReason || "").trim()) {
-      setBusyReasonError("Vui lòng nhập lý do trước khi gửi yêu cầu.");
-      return;
-    }
+    const reason = window.prompt("Nhập lý do bận (không bắt buộc):", "");
+    if (reason === null) return;
     setAttLoading(true);
     try {
-      await ptRequestBusySlot({ bookingId: attBooking.id, reason: String(busyReason || "").trim() });
-      setBusyReasonModalOpen(false);
-      setBusyReasonError("");
-      setNoticeModal({ title: "Thành công", message: "Đã gửi yêu cầu báo bận cho chủ phòng tập.", tone: "success" });
+      await ptRequestBusySlot({ bookingId: attBooking.id, reason: String(reason || "").trim() });
+      window.alert("Đã gửi yêu cầu báo bận cho chủ phòng tập.");
     } catch (e) {
       const msg =
         e?.response?.data?.message ||
@@ -261,7 +246,7 @@ const PTSchedule = () => {
         e?.response?.data?.EM ||
         e?.message ||
         "Không thể gửi yêu cầu báo bận.";
-      setNoticeModal({ title: "Không thể gửi yêu cầu", message: msg, tone: "danger" });
+      window.alert(msg);
     } finally {
       setAttLoading(false);
     }
@@ -451,73 +436,6 @@ const PTSchedule = () => {
         }
       >
         <p>{attendanceBlockModal}</p>
-      </NiceModal>
-
-      <NiceModal
-        open={Boolean(noticeModal)}
-        onClose={() => setNoticeModal(null)}
-        zIndex={1300}
-        tone={noticeModal?.tone || "info"}
-        title={noticeModal?.title || "Thông báo"}
-        footer={
-          <button
-            type="button"
-            className="nice-modal__btn nice-modal__btn--primary"
-            onClick={() => setNoticeModal(null)}
-          >
-            Đã hiểu
-          </button>
-        }
-      >
-        <p>{noticeModal?.message}</p>
-      </NiceModal>
-
-      <NiceModal
-        open={busyReasonModalOpen}
-        onClose={() => {
-          if (attLoading) return;
-          setBusyReasonModalOpen(false);
-          setBusyReasonError("");
-        }}
-        zIndex={1300}
-        tone="info"
-        title="Nhập lý do báo bận"
-        footer={
-          <>
-            <button
-              type="button"
-              className="nice-modal__btn nice-modal__btn--ghost"
-              onClick={() => setBusyReasonModalOpen(false)}
-              disabled={attLoading}
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              className="nice-modal__btn nice-modal__btn--primary"
-              onClick={submitBusySlotRequest}
-              disabled={attLoading}
-            >
-              {attLoading ? "Đang gửi..." : "Gửi yêu cầu"}
-            </button>
-          </>
-        }
-      >
-        <label htmlFor="pt-busy-reason-input" className="nice-modal__label">
-          Lý do bận
-        </label>
-        <textarea
-          id="pt-busy-reason-input"
-          value={busyReason}
-          onChange={(e) => {
-            setBusyReason(e.target.value);
-            if (busyReasonError) setBusyReasonError("");
-          }}
-          rows={3}
-          placeholder="Nhập lý do nếu có..."
-          className="nice-modal__textarea"
-        />
-        {busyReasonError ? <p className="ptSchedule__busyReasonError">{busyReasonError}</p> : null}
       </NiceModal>
     </div>
   );

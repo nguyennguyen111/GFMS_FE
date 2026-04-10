@@ -29,6 +29,10 @@ const next3DatesByPattern = (pattern, from = new Date()) => {
   const base = new Date(from);
   base.setHours(0, 0, 0, 0);
 
+  if (pattern.includes(base.getDay())) {
+    out.push(toISO(base));
+  }
+
   const d = new Date(base);
   let safe = 0;
 
@@ -69,7 +73,7 @@ export default function Step4StartDate({
         <span className="bw-sectionTag">Bước 4</span>
         <h2 className="bw-sectionTitle">Chọn ngày bắt đầu</h2>
         <p className="bw-hint">
-          Chỉ hiển thị 3 ngày phù hợp gần nhất để bạn chọn nhanh hơn.
+          Hiển thị 3 ngày phù hợp gần nhất. Nếu hôm nay vẫn còn khung giờ hợp lệ thì bạn có thể đặt ngay trong ngày.
         </p>
       </header>
 

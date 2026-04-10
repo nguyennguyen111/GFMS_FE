@@ -1,4 +1,4 @@
-/* Scoped tokens — đồng bộ huấn luyện viên / member (PTLayout .pt-app: lime #d6ff00) */
+/* Scoped tokens — đồng bộ PT / member (PTLayout .pt-app: lime #d6ff00) */
 .owner-app{
   --bg: #0e0e0e;
   --panel: rgba(255,255,255,.07);
@@ -25,9 +25,6 @@
     linear-gradient(180deg, #0e0e0e 0%, #0a0a0a 45%, #080808 100%);
   display: grid;
   grid-template-columns: minmax(300px, 320px) 1fr;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: clip;
 }
 
 .od2-layout::before{
@@ -47,15 +44,13 @@
 
 .od2-sidebar{
   position: sticky;
-  top: calc(var(--header-h, 80px) + 18px);
+  top: var(--header-h, 80px);
   height: calc(100vh - var(--header-h, 80px));
   padding: 16px;
   border-right: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
   backdrop-filter: blur(14px);
   z-index: 1;
-  display: flex;
-  flex-direction: column;
 }
 
 .owner-app .od2-sidebar{
@@ -63,7 +58,6 @@
   height: auto;
   max-height: calc(100vh - var(--header-h, 80px) - 36px);
   align-self: flex-start;
-  top: calc(var(--header-h, 80px) + 18px);
   border-radius: 24px;
   border-right: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -155,8 +149,7 @@
 
 .od2-nav{
   overflow: auto;
-  flex: 1 1 auto;
-  min-height: 0;
+  height: calc(100vh - var(--header-h, 80px) - 220px);
   padding-right: 6px;
 }
 
@@ -207,8 +200,7 @@
 }
 
 .od2-footer{
-  margin-top: auto;
-  padding-top: 12px;
+  margin-top: 12px;
   display:flex; align-items:center; justify-content:space-between;
   gap: 10px;
 }
@@ -232,9 +224,6 @@
   padding: 18px 18px 26px;
   position: relative;
   z-index: 1;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: hidden;
 }
 
 .od2-branchBanner {
@@ -329,11 +318,6 @@
 }
 
 .od2-content{ margin-top: 0; }
-.od2-content{
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: hidden;
-}
 
 @media (max-width: 980px){
   .od2-search input{ width: 180px; }
@@ -344,11 +328,5 @@
   .owner-app .od2-sidebar{
     margin: 12px 0 12px 8px;
     max-height: none;
-  }
-  .od2-menuFab{
-    display: none;
-  }
-  .od2-profile .od2-iconBtn{
-    display: none;
   }
 }

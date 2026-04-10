@@ -5,11 +5,11 @@ import Footer from "../components/footer/Footer";
 export default function LandingLayout() {
   return (
     <div className="site">
-      <Header />
+      <Header compact />
       <main className="site-main">
         <Outlet />
       </main>
-      <Footer />
+      <Footer compact />
     </div>
   );
 }

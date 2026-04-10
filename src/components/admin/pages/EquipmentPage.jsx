@@ -4,9 +4,7 @@ import axios from "../../../setup/axios";
 
 import {
   createEquipment,
-  deleteEquipment,
   discontinueEquipment,
-  getSuppliers,
   getEquipmentCategories,
   getEquipments,
   updateEquipment,
@@ -16,43 +14,18 @@ import {
   setPrimaryEquipmentImage,
   deleteEquipmentImage,
 } from "../../../services/equipmentSupplierInventoryService";
-import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
 
 const emptyForm = {
   name: "",
   code: "",
   description: "",
   categoryId: "",
-  unit: "VND",
-  price: 0,
-  quantity: 0,
-  preferredSupplierId: "",
+  brand: "",
+  model: "",
+  unit: "piece",
+  minStockLevel: 0,
+  maxStockLevel: 0,
   status: "active",
-};
-
-const validateEquipmentForm = (form, mode = "create") => {
-  const errors = [];
-  const name = String(form.name || "").trim();
-  const code = String(form.code || "").trim();
-  const price = Number(form.price ?? 0);
-  const quantity = Number(form.quantity ?? 0);
-
-  if (!name) errors.push("Tên thiết bị là bắt buộc.");
-  if (name.length > 255) errors.push("Tên thiết bị quá dài (tối đa 255 ký tự).");
-
-  if (code && !/^[A-Za-z0-9._-]+$/.test(code)) {
-    errors.push("Mã thiết bị chỉ được chứa chữ, số và ký tự . _ -");
-  }
-
-  if (!Number.isFinite(price) || price < 0) {
-    errors.push("Giá bán phải là số và không được âm.");
-  }
-
-  if (mode === "create" && (!Number.isFinite(quantity) || quantity < 0)) {
-    errors.push("Số lượng ban đầu phải là số và không được âm.");
-  }
-
-  return errors;
 };
 
 export default function EquipmentPage() {
@@ -61,7 +34,6 @@ export default function EquipmentPage() {
 
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
 
   // filters
   const [q, setQ] = useState("");
@@ -88,12 +60,11 @@ export default function EquipmentPage() {
     setLoading(true);
     setErr("");
     try {
-      const [catRes, supRes] = await Promise.all([getEquipmentCategories(), getSuppliers({ page: 1, limit: 500, status: "active" })]);
+      const [catRes] = await Promise.all([getEquipmentCategories()]);
       setCategories(catRes?.data?.data ?? catRes?.data ?? []);
-      setSuppliers(supRes?.data?.data ?? supRes?.data ?? []);
       await fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải dữ liệu ban đầu thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Load init failed");
     } finally {
       setLoading(false);
     }
@@ -115,7 +86,7 @@ export default function EquipmentPage() {
       const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
       setItems(normalized);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải danh sách thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Load failed");
     } finally {
       setLoading(false);
     }
@@ -144,10 +115,11 @@ export default function EquipmentPage() {
       code: row.code ?? "",
       description: row.description ?? "",
       categoryId: row.categoryId ? String(row.categoryId) : "",
-      unit: "VND",
-      price: Number(row.price ?? 0),
-      quantity: 0,
-      preferredSupplierId: row.preferredSupplierId ? String(row.preferredSupplierId) : "",
+      brand: row.brand ?? "",
+      model: row.model ?? "",
+      unit: row.unit ?? "piece",
+      minStockLevel: Number(row.minStockLevel ?? 0),
+      maxStockLevel: Number(row.maxStockLevel ?? 0),
       status: row.status ?? "active",
     });
     setErr("");
@@ -162,23 +134,16 @@ export default function EquipmentPage() {
   const save = async () => {
     setErr("");
     try {
-      const validationErrors = validateEquipmentForm(form, mode);
-      if (validationErrors.length) {
-        setErr(validationErrors.join(" "));
-        return;
-      }
-
       const payload = {
         name: form.name?.trim(),
         code: form.code?.trim() || null,
         description: form.description?.trim() || null,
         categoryId: form.categoryId ? Number(form.categoryId) : null,
-        preferredSupplierId: form.preferredSupplierId ? Number(form.preferredSupplierId) : null,
-        unit: "VND",
-        price: Number(form.price ?? 0) || 0,
-        quantity: Number(form.quantity ?? 0) || 0,
-        minStockLevel: 0,
-        maxStockLevel: 0,
+        brand: form.brand?.trim() || null,
+        model: form.model?.trim() || null,
+        unit: form.unit?.trim() || "piece",
+        minStockLevel: Number(form.minStockLevel ?? 0) || 0,
+        maxStockLevel: Number(form.maxStockLevel ?? 0) || 0,
         status: form.status === "discontinued" ? "discontinued" : "active",
       };
 
@@ -187,16 +152,13 @@ export default function EquipmentPage() {
         return;
       }
 
-      if (mode === "create") {
-        await createEquipment(payload);
-      } else {
-        await updateEquipment(editingId, payload);
-      }
+      if (mode === "create") await createEquipment(payload);
+      else await updateEquipment(editingId, payload);
 
       closeModal();
       fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Lưu thất bại");
+      setErr(e?.response?.data?.message || e?.message || "Save failed");
     }
   };
 
@@ -208,19 +170,6 @@ export default function EquipmentPage() {
       fetchList();
     } catch (e) {
       alert(e?.response?.data?.message || e?.message || "Discontinue failed");
-    }
-  };
-
-  const onDelete = async (row) => {
-    const okConfirm = window.confirm(
-      `Xóa vĩnh viễn thiết bị "${row.name}"?\n\nChỉ xóa được khi chưa phát sinh dữ liệu kho/chứng từ.`
-    );
-    if (!okConfirm) return;
-    try {
-      await deleteEquipment(row.id);
-      await fetchList();
-    } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Xóa thiết bị thất bại");
     }
   };
 
@@ -257,7 +206,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Danh mục thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
+            Master data thiết bị — tồn kho theo gym chỉ thay đổi khi nhận hàng từ PO hoặc điều chỉnh hợp lệ (không nhập tay số lượng tồn tại đây)
           </div>
         </div>
 
@@ -283,15 +232,15 @@ export default function EquipmentPage() {
           <option value="all">Tất cả danh mục</option>
           {(categories || []).map((c) => (
             <option key={c.id} value={c.id}>
-              {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
+              {c.name} {c.code ? `(${c.code})` : ""}
             </option>
           ))}
         </select>
 
         <select className="eq-select" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
-          <option value="active">Đang hoạt động</option>
-          <option value="discontinued">Ngừng sử dụng</option>
+          <option value="active">Active</option>
+          <option value="discontinued">Discontinued</option>
         </select>
 
         <button className="eq-btn" onClick={onSearch} disabled={loading}>
@@ -311,7 +260,8 @@ export default function EquipmentPage() {
               <th>Tên</th>
               <th>Danh mục</th>
               <th>Đơn vị</th>
-              <th>Giá bán</th>
+              <th>Min</th>
+              <th>Max</th>
               <th>Trạng thái</th>
               <th style={{ width: 320 }}>Hành động</th>
             </tr>
@@ -320,16 +270,13 @@ export default function EquipmentPage() {
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td className="eq-empty" colSpan={9}>
+                <td className="eq-empty" colSpan={10}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
               visibleItems.map((row) => {
-                const catObj = catMap.get(Number(row.categoryId));
-                const catRawName = row.categoryName || catObj?.name || "";
-                const catRawCode = catObj?.code || "";
-                const cat = translateEquipmentCategoryName(catRawName, catRawCode) || "-";
+                const cat = row.categoryName || catMap.get(Number(row.categoryId))?.name || "-";
                 const isActive = row.status === "active";
                 return (
                   <tr key={row.id}>
@@ -343,7 +290,7 @@ export default function EquipmentPage() {
                           alt={row.name}
                         />
                       ) : (
-                        <div className="eq-thumb placeholder">Chưa có ảnh</div>
+                        <div className="eq-thumb placeholder">No Image</div>
                       )}
                     </td>
 
@@ -358,10 +305,11 @@ export default function EquipmentPage() {
                     </td>
                     <td>{cat}</td>
                     <td>{row.unit || "-"}</td>
-                    <td>{Number(row.price || 0).toLocaleString("vi-VN")} đ</td>
+                    <td>{row.minStockLevel ?? 0}</td>
+                    <td>{row.maxStockLevel ?? 0}</td>
                     <td>
                       <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
-                        {isActive ? "Đang hoạt động" : "Ngừng sử dụng"}
+                        {isActive ? "Active" : "Discontinued"}
                       </span>
                     </td>
                     <td className="eq-actions">
@@ -379,12 +327,6 @@ export default function EquipmentPage() {
                         disabled={!isActive}
                       >
                         Ẩn thiết bị
-                      </button>
-                      <button
-                        className="eq-btn eq-btn--danger"
-                        onClick={() => onDelete(row)}
-                      >
-                        Xóa
                       </button>
                     </td>
                   </tr>
@@ -453,7 +395,7 @@ export default function EquipmentPage() {
                     <option value="">-- Chọn --</option>
                     {(categories || []).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
+                        {c.name} {c.code ? `(${c.code})` : ""}
                       </option>
                     ))}
                   </select>
@@ -461,47 +403,32 @@ export default function EquipmentPage() {
 
                 <label className="eq-field">
                   <span className="eq-label">Đơn vị</span>
-                  <input className="eq-input" value="VND" readOnly />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Giá bán (VNĐ)</span>
                   <input
                     className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.price}
-                    onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-                    placeholder="VD: 25000000"
+                    value={form.unit}
+                    onChange={(e) => setForm((s) => ({ ...s, unit: e.target.value }))}
+                    placeholder="VD: piece / set"
                   />
                 </label>
 
                 <label className="eq-field">
-                  <span className="eq-label">Số lượng</span>
+                  <span className="eq-label">Brand</span>
                   <input
                     className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.quantity}
-                    onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
-                    placeholder="VD: 10"
+                    value={form.brand}
+                    onChange={(e) => setForm((s) => ({ ...s, brand: e.target.value }))}
+                    placeholder="VD: Life Fitness"
                   />
                 </label>
 
-                <label className="eq-field eq-col2">
-                  <span className="eq-label">Nhà cung cấp</span>
-                  <select
-                    className="eq-select"
-                    value={form.preferredSupplierId}
-                    onChange={(e) => setForm((s) => ({ ...s, preferredSupplierId: e.target.value }))}
-                  >
-                    <option value="">-- Chọn nhà cung cấp --</option>
-                    {(suppliers || []).map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.code ? `(${s.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                <label className="eq-field">
+                  <span className="eq-label">Model</span>
+                  <input
+                    className="eq-input"
+                    value={form.model}
+                    onChange={(e) => setForm((s) => ({ ...s, model: e.target.value }))}
+                    placeholder="VD: T5"
+                  />
                 </label>
 
                 <label className="eq-field eq-col2">
@@ -511,7 +438,29 @@ export default function EquipmentPage() {
                     rows={3}
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                    placeholder="VD: Thiết bị cao cấp cho phòng gym..."
+                    placeholder="VD: High-end commercial treadmill..."
+                  />
+                </label>
+
+                <label className="eq-field">
+                  <span className="eq-label">Min stock</span>
+                  <input
+                    className="eq-input"
+                    type="number"
+                    min="0"
+                    value={form.minStockLevel}
+                    onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
+                  />
+                </label>
+
+                <label className="eq-field">
+                  <span className="eq-label">Max stock</span>
+                  <input
+                    className="eq-input"
+                    type="number"
+                    min="0"
+                    value={form.maxStockLevel}
+                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
                   />
                 </label>
 
@@ -522,11 +471,11 @@ export default function EquipmentPage() {
                     value={form.status}
                     onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
                   >
-                    <option value="active">Đang hoạt động</option>
-                    <option value="discontinued">Ngừng sử dụng</option>
+                    <option value="active">active</option>
+                    <option value="discontinued">discontinued</option>
                   </select>
                   <div className="eq-hint">
-                    * Ngừng sử dụng: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
+                    * Discontinued: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
                   </div>
                 </label>
               </div>
@@ -579,7 +528,7 @@ export default function EquipmentPage() {
                       setGallery(res?.data?.data ?? res?.data ?? []);
                       await fetchList(); // để refresh ảnh đại diện ngoài bảng
                     } catch (err2) {
-                      alert(err2?.response?.data?.message || err2?.message || "Tải ảnh lên thất bại");
+                      alert(err2?.response?.data?.message || err2?.message || "Upload failed");
                     } finally {
                       setUploading(false);
                       e.target.value = "";
@@ -597,7 +546,7 @@ export default function EquipmentPage() {
                     <div key={img.id} className={`eq-card-img ${img.isPrimary ? "primary" : ""}`}>
                       <img src={absUrl(img.url)} alt={img.altText || "equipment"} />
 
-                      {img.isPrimary ? <div className="eq-badge2">Ảnh đại diện</div> : null}
+                      {img.isPrimary ? <div className="eq-badge2">Primary</div> : null}
 
                       <div className="eq-img-actions">
                         {!img.isPrimary ? (
@@ -612,8 +561,8 @@ export default function EquipmentPage() {
                               } catch (err3) {
                                 alert(
                                   err3?.response?.data?.message ||
-                                  err3?.message ||
-                                    "Đặt ảnh đại diện thất bại"
+                                    err3?.message ||
+                                    "Set primary failed"
                                 );
                               }
                             }}
@@ -637,7 +586,7 @@ export default function EquipmentPage() {
                               alert(
                                 err4?.response?.data?.message ||
                                   err4?.message ||
-                                  "Xoá ảnh thất bại"
+                                  "Delete image failed"
                               );
                             }
                           }}

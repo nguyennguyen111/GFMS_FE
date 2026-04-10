@@ -1,18 +1,16 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { adminFranchiseApi } from "../../../services/adminFranchiseApi";
-import { franchiseSigningHref } from "../../../utils/franchiseSigning";
 import "./FranchiseRequestsPage.css";
 
-const STATUS_LABEL = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối" };
+const STATUS_LABEL = { pending: "Pending", approved: "Approved", rejected: "Rejected" };
 
 const CONTRACT_LABEL = {
-  not_sent: "Bản nháp",
-  sent: "Đã gửi",
-  viewed: "Đã xem",
-  signed: "Đã ký",
-  completed: "Hoàn tất",
-  void: "Vô hiệu",
+  not_sent: "Draft",
+  sent: "Sent",
+  viewed: "Viewed",
+  signed: "Signed",
+  completed: "Completed",
+  void: "Void",
 };
 
 const SHOW_DEV_ACTIONS = process.env.NODE_ENV !== "production";
@@ -44,6 +42,7 @@ function sortRowsStable(list) {
 }
 
 const canApprove = (r) => r.status === "pending";
+const canReject = (r) => r.status === "pending";
 
 const canSendContract = (r) => r.status === "approved" && r.contractStatus === "not_sent";
 const canResend = (r) =>
@@ -59,120 +58,63 @@ const canCountersign = (r) => r.status === "approved" && r.contractStatus === "s
 const isCompleted = (r) => r.contractStatus === "completed" && r.gymId;
 
 export default function FranchiseRequestsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [detailRowOverride, setDetailRowOverride] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
 
-  const [actionMenuId, setActionMenuId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [openFilesId, setOpenFilesId] = useState(null);
   const [details, setDetails] = useState({ open: false, id: null });
 
-  const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
-  const qDebounceInit = useRef(true);
   const [status, setStatus] = useState("all");
   const [contractStatus, setContractStatus] = useState("all");
-
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [meta, setMeta] = useState({ totalItems: 0, totalPages: 1 });
 
   const [modal, setModal] = useState({ open: false, type: "", id: null, text: "" });
   const [signModal, setSignModal] = useState({ open: false, id: null, signerName: "Admin" });
   const signPadRef = useRef(null);
 
 
-  const loadFranchises = useCallback(async () => {
+  async function load(extraParams) {
     setLoading(true);
     setError("");
     try {
-      const params = {
-        page,
-        limit: pageSize,
-        ...(status !== "all" ? { status } : {}),
-        ...(contractStatus !== "all" ? { contractStatus } : {}),
-        ...(q.trim() ? { q: q.trim() } : {}),
-      };
-      const res = await adminFranchiseApi.list(params);
-      const payload = res.data;
-      const data = sortRowsStable(normalizeListResponse(payload));
+      const res = await adminFranchiseApi.list(extraParams);
+      const data = sortRowsStable(normalizeListResponse(res.data));
       setRows(data);
-      const m = payload?.meta;
-      const total = Number(m?.totalItems);
-      const pages = Number(m?.totalPages);
-      setMeta({
-        totalItems: Number.isFinite(total) ? total : data.length,
-        totalPages: Number.isFinite(pages) && pages > 0 ? pages : 1,
-      });
     } catch (e) {
-      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Tải dữ liệu thất bại");
+      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Load failed");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, status, contractStatus, q]);
+  }
 
   useEffect(() => {
-    if (qDebounceInit.current) {
-      qDebounceInit.current = false;
-      return undefined;
-    }
-    const t = setTimeout(() => {
-      setQ(qInput.trim());
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [qInput]);
+    load();
+  }, []);
 
   useEffect(() => {
-    loadFranchises();
-  }, [loadFranchises]);
+    if (openMenuId === null && openFilesId === null) return;
 
-  useEffect(() => {
-    if (loading) return;
-    const tp = Math.max(1, meta.totalPages || 1);
-    if (page > tp) setPage(tp);
-  }, [loading, page, meta.totalPages]);
-
-  useLayoutEffect(() => {
-    const h = Number(searchParams.get("highlight"));
-    if (!Number.isFinite(h) || h <= 0) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await adminFranchiseApi.detail(h);
-        const r = res.data?.data ?? res.data;
-        if (!cancelled && r?.id) {
-          setDetailRowOverride(r);
-          setDetails({ open: true, id: r.id });
-        }
-      } catch {
-        /* ignore */
-      } finally {
-        if (!cancelled) setSearchParams({}, { replace: true });
-      }
-    })();
-    return () => {
-      cancelled = true;
+    const onClickOutside = () => {
+      setOpenMenuId(null);
+      setOpenFilesId(null);
     };
-  }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (actionMenuId === null) return undefined;
-
-    const onClickOutside = () => setActionMenuId(null);
     const onKeyDown = (e) => {
-      if (e.key === "Escape") setActionMenuId(null);
+      if (e.key === 'Escape') {
+        setOpenMenuId(null);
+        setOpenFilesId(null);
+      }
     };
 
-    document.addEventListener("click", onClickOutside);
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener('click', onClickOutside);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener("click", onClickOutside);
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener('click', onClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
     };
-  }, [actionMenuId]);
+  }, [openMenuId, openFilesId]);
 
 
   async function runAction(id, fn, opts = {}) {
@@ -184,9 +126,9 @@ export default function FranchiseRequestsPage() {
         if (!ok) return;
       }
       await fn();
-      await loadFranchises();
+      await load();
     } catch (e) {
-      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Thao tác thất bại");
+      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Action failed");
     } finally {
       setBusyId(null);
     }
@@ -205,7 +147,6 @@ export default function FranchiseRequestsPage() {
 
   function closeDetails() {
     setDetails({ open: false, id: null });
-    setDetailRowOverride(null);
   }
 
   async function submitModal() {
@@ -219,7 +160,7 @@ export default function FranchiseRequestsPage() {
     }
     if (type === "reject") {
       if (!text.trim()) {
-        setError("Vui lòng nhập lý do từ chối");
+        setError("Rejection reason is required");
         return;
       }
       await runAction(id, () => adminFranchiseApi.reject(id, { rejectionReason: text }));
@@ -254,7 +195,7 @@ export default function FranchiseRequestsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Tải xuống thất bại");
+      alert(e?.response?.data?.message || e?.message || "Download failed");
     }
   }
 
@@ -273,164 +214,111 @@ export default function FranchiseRequestsPage() {
     const id = signModal.id;
     const signatureDataUrl = signPadRef.current?.exportPngDataUrl?.();
     if (!signatureDataUrl) {
-      alert("Vui lòng ký tay chữ ký quản trị viên trước.");
+      alert("Please draw admin signature first.");
       return;
     }
 
     await runAction(
       id,
       () => adminFranchiseApi.countersign(id, { signerName: signModal.signerName, signatureDataUrl }),
-      {
-        confirmText:
-          "Xác nhận ký đối chiếu và hoàn tất? Hệ thống sẽ tạo phòng gym và khóa bản PDF cuối.",
-      }
+      { confirmText: "Admin countersign and complete? This will create gym + freeze final PDF." }
     );
 
     closeSignModal();
   }
 
-  const totalPages = Math.max(1, meta.totalPages || 1);
-  const fromIdx = meta.totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
-  const toIdx = Math.min(page * pageSize, meta.totalItems);
+const filtered = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      const okStatus = status === "all" ? true : r.status === status;
+      const okContract = contractStatus === "all" ? true : r.contractStatus === contractStatus;
+
+      const text = `${r.businessName || ""} ${r.location || ""} ${r.contactPerson || ""} ${
+        r.contactEmail || ""
+      } ${r.contractUrl || ""}`.toLowerCase();
+
+      const okQ = !qq ? true : text.includes(qq);
+      return okStatus && okContract && okQ;
+    });
+  }, [rows, q, status, contractStatus]);
 
   return (
-    <div className="fr-page fr-page--enterprise">
+    <div className="fr-page">
       <div className="fr-header">
         <div>
-          <div className="fr-title">Yêu cầu nhượng quyền</div>
+          <div className="fr-title">Franchise Requests</div>
           <div className="fr-subtitle">
-            Duyệt → Gửi lời mời (email) → Đã xem → Chủ ký → Quản trị đối chiếu → Hoàn tất → Tạo phòng gym
+            Approve → Send Invite (Email) → Viewed → Owner Signed → Admin Countersign → Completed → Create Gym
           </div>
         </div>
 
         <div className="fr-actions">
-          <button className="fr-btn fr-btn-ghost" type="button" onClick={() => loadFranchises()} disabled={loading}>
-            Làm mới
+          <button className="fr-btn fr-btn-ghost" onClick={() => load()} disabled={loading}>
+            Refresh
           </button>
         </div>
       </div>
 
-      <div className="fr-summary">
-        <div className="fr-summary__item">
-          <span className="fr-summary__label">Tổng bản ghi</span>
-          <span className="fr-summary__value">{meta.totalItems.toLocaleString("vi-VN")}</span>
-        </div>
-        <div className="fr-summary__item">
-          <span className="fr-summary__label">Trang hiển thị</span>
-          <span className="fr-summary__value">
-            {meta.totalItems === 0 ? "0" : `${fromIdx}–${toIdx}`}
-          </span>
-        </div>
-      </div>
-
-      <div className="fr-toolbar fr-toolbar--enterprise">
+      <div className="fr-toolbar">
         <div className="fr-search">
-          <label className="fr-fieldLabel" htmlFor="fr-search-q">
-            Tìm kiếm
-          </label>
           <input
-            id="fr-search-q"
             className="fr-input"
-            placeholder="Doanh nghiệp, địa điểm, liên hệ, URL hợp đồng…"
-            value={qInput}
-            onChange={(e) => setQInput(e.target.value)}
-            autoComplete="off"
+            placeholder="Search business / location / contact / contract url..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
           />
-          <div className="fr-fieldHint">Có hiệu lực sau khi gõ xong (~0,4s)</div>
         </div>
 
-        <div className="fr-toolbar__right">
-          <div className="fr-field">
-            <label className="fr-fieldLabel" htmlFor="fr-filter-status">
-              Trạng thái duyệt
-            </label>
-            <select
-              id="fr-filter-status"
-              className="fr-select"
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="all">Tất cả</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="rejected">Từ chối</option>
-            </select>
-          </div>
+        <div className="fr-filters">
+          <select className="fr-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
 
-          <div className="fr-field">
-            <label className="fr-fieldLabel" htmlFor="fr-filter-contract">
-              Hợp đồng
-            </label>
-            <select
-              id="fr-filter-contract"
-              className="fr-select"
-              value={contractStatus}
-              onChange={(e) => {
-                setContractStatus(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="all">Tất cả</option>
-              <option value="not_sent">Bản nháp</option>
-              <option value="sent">Đã gửi</option>
-              <option value="viewed">Đã xem</option>
-              <option value="signed">Đã ký</option>
-              <option value="completed">Hoàn tất</option>
-              <option value="void">Vô hiệu</option>
-            </select>
-          </div>
-
-          <div className="fr-field fr-field--narrow">
-            <label className="fr-fieldLabel" htmlFor="fr-page-size">
-              / trang
-            </label>
-            <select
-              id="fr-page-size"
-              className="fr-select"
-              value={String(pageSize)}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
-          </div>
+          <select
+            className="fr-select"
+            value={contractStatus}
+            onChange={(e) => setContractStatus(e.target.value)}
+          >
+            <option value="all">All Contract</option>
+            <option value="not_sent">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="viewed">Viewed</option>
+            <option value="signed">Signed</option>
+            <option value="completed">Completed</option>
+            <option value="void">Void</option>
+          </select>
         </div>
       </div>
 
       {error ? <div className="fr-alert">{error}</div> : null}
 
-      <div className="fr-card fr-card--enterprise">
+      <div className="fr-card">
         {loading ? (
-          <div className="fr-empty fr-empty--loading">Đang tải dữ liệu…</div>
-        ) : rows.length === 0 ? (
-          <div className="fr-empty">Không có yêu cầu phù hợp bộ lọc.</div>
+          <div className="fr-empty">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="fr-empty">No requests found.</div>
         ) : (
-          <>
-            <div className="fr-tableWrap">
-            <table className="fr-table fr-table--enterprise">
+          <div className="fr-tableWrap">
+            <table className="fr-table">
               <thead>
                 <tr>
-                  <th className="fr-th--id">Mã</th>
-                  <th>Doanh nghiệp</th>
-                  <th className="fr-th--hideSm">Địa điểm</th>
-                  <th>Liên hệ</th>
-                  <th className="fr-th--num">Đầu tư</th>
-                  <th className="fr-th--status">Trạng thái</th>
-                  <th className="fr-th--contract">Hợp đồng</th>
-                  <th className="fr-th--gym">Gym</th>
-                  <th className="fr-th--actions">Thao tác</th>
+                  <th style={{ width: 90 }}>ID</th>
+                  <th>Business</th>
+                  <th>Location</th>
+                  <th>Contact</th>
+                  <th style={{ width: 150 }}>Investment</th>
+                  <th style={{ width: 140 }}>Status</th>
+                  <th style={{ width: 240 }}>Contract</th>
+                  <th style={{ width: 90 }}>Gym</th>
+                  <th style={{ width: 720 }}>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((r) => {
+                {filtered.map((r) => {
                   const busy = busyId === r.id;
 
                   return (
@@ -442,7 +330,7 @@ export default function FranchiseRequestsPage() {
                         <div className="fr-muted">{r.businessPlan || ""}</div>
                       </td>
 
-                      <td className="fr-td--hideSm">{r.location || "-"}</td>
+                      <td>{r.location || "-"}</td>
 
                       <td>
                         <div className="fr-main">{r.contactPerson || "-"}</div>
@@ -471,229 +359,234 @@ export default function FranchiseRequestsPage() {
                             </span>
 
                             <span className={`fr-linkBadge ${r.contractUrl ? "" : "fr-linkBadge-off"}`}>
-                              {r.contractUrl ? "Đã có liên kết" : "Chưa có liên kết"}
+                              {r.contractUrl ? "Link ready" : "No link"}
                             </span>
                           </div>
 
-                          <ContractStepper compact status={r.contractStatus} />
+                          <ContractStepper status={r.contractStatus} />
 
                           {r.status === "approved" && (r.contractStatus === "sent" || r.contractStatus === "viewed") ? (
-                            <div className="fr-muted">Đang chờ chủ phòng ký…</div>
+                            <div className="fr-muted">Waiting owner sign…</div>
                           ) : null}
                         </div>
                       </td>
 
                       <td>{r.gymId ? <span className="fr-mono">#{r.gymId}</span> : "-"}</td>
 
-                      <td>
+                                            <td>
                         <div className="fr-actionsCell" onClick={(e) => e.stopPropagation()}>
-                          <div className="fr-btnRow fr-btnRow--enterprise">
+                          <div className="fr-btnRow">
+                            {/* Primary actions */}
                             {canApprove(r) ? (
                               <>
                                 <button
-                                  type="button"
-                                  className="fr-btn fr-btn-primary fr-btn--sm"
+                                  className="fr-btn fr-btn-primary"
                                   disabled={busy}
                                   onClick={() => openModal("approve", r.id)}
                                 >
-                                  Duyệt
+                                  Approve
                                 </button>
+
                                 <button
-                                  type="button"
-                                  className="fr-btn fr-btn-danger fr-btn--sm"
+                                  className="fr-btn fr-btn-danger"
                                   disabled={busy}
                                   onClick={() => openModal("reject", r.id)}
                                 >
-                                  Từ chối
+                                  Reject
                                 </button>
                               </>
                             ) : (
                               <>
                                 {canSendContract(r) ? (
                                   <button
-                                    type="button"
-                                    className="fr-btn fr-btn-primary fr-btn--sm"
+                                    className="fr-btn fr-btn-primary"
                                     disabled={busy}
                                     onClick={() =>
                                       runAction(r.id, () => adminFranchiseApi.sendContract(r.id), {
-                                        confirmText: "Gửi lời mời ký hợp đồng tới chủ phòng?",
+                                        confirmText: "Send signing invite to owner?",
                                       })
                                     }
                                   >
-                                    Gửi lời mời
+                                    Send Invite
                                   </button>
                                 ) : canCountersign(r) ? (
                                   <button
-                                    type="button"
-                                    className="fr-btn fr-btn-warning fr-btn--sm"
+                                    className="fr-btn fr-btn-warning"
                                     disabled={busy}
                                     onClick={() => openSignModal(r.id)}
                                   >
-                                    Ký đối chiếu
+                                    Countersign
                                   </button>
                                 ) : canResend(r) ? (
                                   <button
-                                    type="button"
-                                    className="fr-btn fr-btn-secondary fr-btn--sm"
+                                    className="fr-btn fr-btn-secondary"
                                     disabled={busy}
                                     onClick={() =>
                                       runAction(r.id, () => adminFranchiseApi.resendInvite(r.id), {
-                                        confirmText: "Gửi lại lời mời (liên kết mới)?",
+                                        confirmText: "Resend signing invite (new link)?",
                                       })
                                     }
                                   >
-                                    Gửi lại
+                                    Resend
                                   </button>
                                 ) : (
-                                  <button type="button" className="fr-btn fr-btn-ghost fr-btn--sm" disabled>
+                                  <button className="fr-btn fr-btn-ghost" disabled>
                                     —
                                   </button>
                                 )}
                               </>
                             )}
 
-                            <button
-                              type="button"
-                              className="fr-btn fr-btn-ghost fr-btn--sm"
-                              disabled={busy}
-                              onClick={() => openDetails(r.id)}
-                            >
-                              Chi tiết
+                            <button className="fr-btn fr-btn-ghost" disabled={busy} onClick={() => openDetails(r.id)}>
+                              Details
                             </button>
 
-                            {isCompleted(r) ? <span className="fr-done fr-done--inline">Hoàn tất</span> : null}
-
+                            {/* Files menu */}
                             <div className="fr-menuWrap" onClick={(e) => e.stopPropagation()}>
                               <button
-                                type="button"
-                                className="fr-btn fr-btn-ghost fr-menuBtn fr-btn--sm"
+                                className="fr-btn fr-btn-ghost fr-menuBtn"
                                 disabled={busy}
-                                onClick={() => setActionMenuId((cur) => (cur === r.id ? null : r.id))}
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setOpenFilesId((cur) => (cur === r.id ? null : r.id));
+                                }}
                               >
-                                Menu ▾
+                                Files ▾
                               </button>
 
-                              {actionMenuId === r.id ? (
-                                <div className="fr-menu fr-menu--wide" onClick={(e) => e.stopPropagation()}>
-                                  <div className="fr-menuHeading">Tệp PDF</div>
+                              {openFilesId === r.id ? (
+                                <div className="fr-menu" onClick={(e) => e.stopPropagation()}>
                                   <button
-                                    type="button"
                                     className="fr-menuItem"
                                     disabled={busy}
                                     onClick={() => {
-                                      setActionMenuId(null);
+                                      setOpenFilesId(null);
                                       downloadDoc(r.id, "original");
                                     }}
                                   >
-                                    Tải PDF gốc
+                                    Download original PDF
                                   </button>
+
                                   <button
-                                    type="button"
                                     className={`fr-menuItem ${
-                                      !(r.contractStatus === "signed" || r.contractStatus === "completed")
-                                        ? "disabled"
-                                        : ""
+                                      !(r.contractStatus === "signed" || r.contractStatus === "completed") ? "disabled" : ""
                                     }`}
                                     disabled={busy || !(r.contractStatus === "signed" || r.contractStatus === "completed")}
                                     onClick={() => {
-                                      setActionMenuId(null);
+                                      setOpenFilesId(null);
                                       downloadDoc(r.id, "owner_signed");
                                     }}
                                   >
-                                    Tải PDF đã ký (chủ phòng)
+                                    Download owner-signed PDF
                                   </button>
+
                                   <button
-                                    type="button"
                                     className={`fr-menuItem ${r.contractStatus !== "completed" ? "disabled" : ""}`}
                                     disabled={busy || r.contractStatus !== "completed"}
                                     onClick={() => {
-                                      setActionMenuId(null);
+                                      setOpenFilesId(null);
                                       downloadDoc(r.id, "final");
                                     }}
                                   >
-                                    Tải PDF bản chính thức
+                                    Download final PDF
                                   </button>
+
                                   <button
-                                    type="button"
                                     className={`fr-menuItem ${r.contractStatus !== "completed" ? "disabled" : ""}`}
                                     disabled={busy || r.contractStatus !== "completed"}
                                     onClick={() => {
-                                      setActionMenuId(null);
+                                      setOpenFilesId(null);
                                       downloadDoc(r.id, "certificate");
                                     }}
                                   >
-                                    Tải chứng nhận
+                                    Download certificate
                                   </button>
+                                </div>
+                              ) : null}
+                            </div>
 
-                                  <div className="fr-menuHeading">Liên kết &amp; hệ thống</div>
+                            {/* More menu */}
+                            <div className="fr-menuWrap" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="fr-btn fr-btn-ghost fr-menuBtn"
+                                disabled={busy}
+                                onClick={() => {
+                                  setOpenFilesId(null);
+                                  setOpenMenuId((cur) => (cur === r.id ? null : r.id));
+                                }}
+                              >
+                                More ▾
+                              </button>
+
+                              {openMenuId === r.id ? (
+                                <div className="fr-menu" onClick={(e) => e.stopPropagation()}>
                                   {r.contractUrl ? (
                                     <>
                                       <button
-                                        type="button"
                                         className="fr-menuItem"
                                         disabled={busy}
                                         onClick={() => {
-                                          setActionMenuId(null);
-                                          window.open(franchiseSigningHref(r.contractUrl), "_blank", "noopener,noreferrer");
+                                          setOpenMenuId(null);
+                                          window.open(r.contractUrl, "_blank", "noopener,noreferrer");
                                         }}
                                       >
-                                        Mở liên kết ký
+                                        Open signing link
                                       </button>
                                       <button
-                                        type="button"
                                         className="fr-menuItem"
                                         disabled={busy}
                                         onClick={() => {
-                                          setActionMenuId(null);
-                                          copyToClipboard(franchiseSigningHref(r.contractUrl));
+                                          setOpenMenuId(null);
+                                          copyToClipboard(r.contractUrl);
                                         }}
                                       >
-                                        Sao chép liên kết ký
+                                        Copy signing link
                                       </button>
+                                      <div className="fr-menuSep" />
                                     </>
                                   ) : null}
+
                                   <button
-                                    type="button"
                                     className="fr-menuItem"
                                     disabled={busy}
                                     onClick={() => {
-                                      setActionMenuId(null);
+                                      setOpenMenuId(null);
                                       runAction(r.id, () => adminFranchiseApi.getContractStatus(r.id));
                                     }}
                                   >
-                                    Làm mới trạng thái
+                                    Refresh status
                                   </button>
 
                                   {SHOW_DEV_ACTIONS ? (
                                     <>
-                                      <div className="fr-menuHeading">Dev</div>
+                                      <div className="fr-menuSep" />
                                       <button
-                                        type="button"
                                         className={`fr-menuItem ${!canSimulateViewed(r) ? "disabled" : ""}`}
                                         disabled={busy || !canSimulateViewed(r)}
                                         onClick={() => {
-                                          setActionMenuId(null);
+                                          setOpenMenuId(null);
                                           runAction(r.id, () => adminFranchiseApi.simulateEvent(r.id, "viewed"));
                                         }}
                                       >
-                                        Mô phỏng: đã xem
+                                        Simulate: viewed
                                       </button>
                                       <button
-                                        type="button"
                                         className={`fr-menuItem ${!canSimulateOwnerSigned(r) ? "disabled" : ""}`}
                                         disabled={busy || !canSimulateOwnerSigned(r)}
                                         onClick={() => {
-                                          setActionMenuId(null);
+                                          setOpenMenuId(null);
                                           runAction(r.id, () => adminFranchiseApi.simulateEvent(r.id, "owner_signed"));
                                         }}
                                       >
-                                        Mô phỏng: chủ đã ký
+                                        Simulate: owner signed
                                       </button>
                                     </>
                                   ) : null}
                                 </div>
                               ) : null}
                             </div>
+
+                            {isCompleted(r) ? <span className="fr-done">✅ Completed</span> : null}
                           </div>
                         </div>
                       </td>
@@ -702,50 +595,7 @@ export default function FranchiseRequestsPage() {
                 })}
               </tbody>
             </table>
-            </div>
-
-            <footer className="fr-paginationBar" aria-label="Phân trang">
-              <div className="fr-paginationBar__info">
-                Trang <strong>{page}</strong> / {totalPages}
-                <span className="fr-paginationBar__dot">·</span>
-                {meta.totalItems.toLocaleString("vi-VN")} bản ghi
-              </div>
-              <div className="fr-paginationBar__nav">
-                <button
-                  type="button"
-                  className="fr-btn fr-btn-ghost fr-btn--sm"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage(1)}
-                >
-                  « Đầu
-                </button>
-                <button
-                  type="button"
-                  className="fr-btn fr-btn-ghost fr-btn--sm"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹ Trước
-                </button>
-                <button
-                  type="button"
-                  className="fr-btn fr-btn-ghost fr-btn--sm"
-                  disabled={page >= totalPages || loading}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Sau ›
-                </button>
-                <button
-                  type="button"
-                  className="fr-btn fr-btn-ghost fr-btn--sm"
-                  disabled={page >= totalPages || loading}
-                  onClick={() => setPage(totalPages)}
-                >
-                  Cuối »
-                </button>
-              </div>
-            </footer>
-          </>
+          </div>
         )}
       </div>
 
@@ -754,56 +604,54 @@ export default function FranchiseRequestsPage() {
         <div className="fr-modalOverlay" onClick={closeDetails}>
           <div className="fr-modal fr-modalWide" onClick={(e) => e.stopPropagation()}>
             {(() => {
-              const r =
-                rows.find((x) => x.id === details.id) ||
-                (detailRowOverride && detailRowOverride.id === details.id ? detailRowOverride : null);
-              if (!r) return <div className="fr-empty">Không tìm thấy.</div>;
+              const r = rows.find((x) => x.id === details.id);
+              if (!r) return <div className="fr-empty">Not found.</div>;
 
               return (
                 <>
-                  <div className="fr-modalTitle">Yêu cầu nhượng quyền #{r.id}</div>
+                  <div className="fr-modalTitle">Franchise Request #{r.id}</div>
 
                   <div className="fr-detailGrid">
                     <div className="fr-detailCard">
-                      <div className="fr-detailLabel">Doanh nghiệp</div>
+                      <div className="fr-detailLabel">Business</div>
                       <div className="fr-detailValue">{r.businessName || "-"}</div>
                       <div className="fr-detailMuted">{r.location || "-"}</div>
                     </div>
 
                     <div className="fr-detailCard">
-                      <div className="fr-detailLabel">Liên hệ</div>
+                      <div className="fr-detailLabel">Contact</div>
                       <div className="fr-detailValue">{r.contactPerson || "-"}</div>
                       <div className="fr-detailMuted">{r.contactEmail || "-"}</div>
                     </div>
 
                     <div className="fr-detailCard">
-                      <div className="fr-detailLabel">Đầu tư</div>
+                      <div className="fr-detailLabel">Investment</div>
                       <div className="fr-detailValue fr-mono">{formatMoney(r.investmentAmount)}</div>
-                      <div className="fr-detailMuted">Tạo lúc: {r.createdAt ? new Date(r.createdAt).toLocaleString() : "-"}</div>
+                      <div className="fr-detailMuted">Created: {r.createdAt ? new Date(r.createdAt).toLocaleString() : "-"}</div>
                     </div>
 
                     <div className="fr-detailCard">
-                      <div className="fr-detailLabel">Hợp đồng</div>
+                      <div className="fr-detailLabel">Contract</div>
                       <div className="fr-detailValue">{CONTRACT_LABEL[r.contractStatus] || r.contractStatus}</div>
-                      <div className="fr-detailMuted">Phòng gym: {r.gymId ? `#${r.gymId}` : "-"}</div>
+                      <div className="fr-detailMuted">Gym: {r.gymId ? `#${r.gymId}` : "-"}</div>
                     </div>
                   </div>
 
                   {r.contractUrl ? (
                     <div className="fr-detailLink">
                       <div className="fr-muted" style={{ marginBottom: 6 }}>
-                        Liên kết ký
+                        Signing link
                       </div>
                       <div className="fr-linkRow">
-                        <div className="fr-linkText fr-mono">{franchiseSigningHref(r.contractUrl)}</div>
-                        <button className="fr-btn fr-btn-ghost" onClick={() => copyToClipboard(franchiseSigningHref(r.contractUrl))}>
-                          Sao chép
+                        <div className="fr-linkText fr-mono">{r.contractUrl}</div>
+                        <button className="fr-btn fr-btn-ghost" onClick={() => copyToClipboard(r.contractUrl)}>
+                          Copy
                         </button>
                         <button
                           className="fr-btn fr-btn-secondary"
-                          onClick={() => window.open(franchiseSigningHref(r.contractUrl), "_blank", "noopener,noreferrer")}
+                          onClick={() => window.open(r.contractUrl, "_blank", "noopener,noreferrer")}
                         >
-                          Mở
+                          Open
                         </button>
                       </div>
                     </div>
@@ -823,13 +671,12 @@ export default function FranchiseRequestsPage() {
                                 return adminFranchiseApi.sendContract(r.id);
                               },
                               {
-                                confirmText:
-                                  "Phát hành lại hợp đồng (đặt lại + gửi lời mời)? Chủ phòng cần ký lại.",
+                                confirmText: "Re-issue contract (RESET + Send Invite)? Owner will need to sign again.",
                               }
                             )
                           }
                         >
-                          Phát hành lại (VN)
+                          Re-issue (VN)
                         </button>
                       ) : null}
 
@@ -838,11 +685,11 @@ export default function FranchiseRequestsPage() {
                           className="fr-btn fr-btn-primary"
                           onClick={() =>
                             runAction(r.id, () => adminFranchiseApi.sendContract(r.id), {
-                              confirmText: "Gửi lời mời ký hợp đồng tới chủ phòng?",
+                              confirmText: "Send signing invite to owner?",
                             })
                           }
                         >
-                          Gửi lời mời
+                          Send Invite
                         </button>
                       ) : null}
 
@@ -851,26 +698,26 @@ export default function FranchiseRequestsPage() {
                           className="fr-btn fr-btn-secondary"
                           onClick={() =>
                             runAction(r.id, () => adminFranchiseApi.resendInvite(r.id), {
-                              confirmText: "Gửi lại lời mời (liên kết mới)?",
+                              confirmText: "Resend signing invite (new link)?",
                             })
                           }
                         >
-                          Gửi lại
+                          Resend
                         </button>
                       ) : null}
 
                       {canCountersign(r) ? (
                         <button className="fr-btn fr-btn-warning" onClick={() => openSignModal(r.id)}>
-                          Ký đối chiếu
+                          Countersign
                         </button>
                       ) : null}
 
                       <button className="fr-btn fr-btn-ghost" onClick={() => downloadDoc(r.id, "original")}>
-                        Tải bản gốc
+                        Download Original
                       </button>
 
                       <button className="fr-btn fr-btn-ghost" onClick={closeDetails}>
-                        Đóng
+                        Close
                       </button>
                     </div>
                   </div>
@@ -884,28 +731,24 @@ export default function FranchiseRequestsPage() {
         <div className="fr-modalOverlay" onClick={closeModal}>
           <div className="fr-modal" onClick={(e) => e.stopPropagation()}>
             <div className="fr-modalTitle">
-              {modal.type === "approve" ? "Duyệt yêu cầu" : "Từ chối yêu cầu"}
+              {modal.type === "approve" ? "Approve Request" : "Reject Request"}
             </div>
 
             <textarea
               className="fr-textarea"
               rows={5}
-              placeholder={
-                modal.type === "approve"
-                  ? "Ghi chú duyệt (không bắt buộc)..."
-                  : "Lý do từ chối (bắt buộc)..."
-              }
+              placeholder={modal.type === "approve" ? "Review notes (optional)..." : "Rejection reason (required)..."}
               value={modal.text}
               onChange={(e) => setModal((m) => ({ ...m, text: e.target.value }))}
             />
 
             <div className="fr-modalActions">
               <button className="fr-btn fr-btn-ghost" onClick={closeModal} disabled={busyId !== null}>
-                Hủy
+                Cancel
               </button>
 
               <button className="fr-btn fr-btn-primary" onClick={submitModal} disabled={busyId !== null}>
-                Gửi
+                Submit
               </button>
             </div>
           </div>
@@ -915,20 +758,20 @@ export default function FranchiseRequestsPage() {
       {signModal.open ? (
         <div className="fr-modalOverlay" onClick={closeSignModal}>
           <div className="fr-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="fr-modalTitle">Ký đối chiếu (quản trị)</div>
+            <div className="fr-modalTitle">Admin Countersign</div>
 
             <div className="fr-muted" style={{ marginBottom: 10 }}>
-              Ký tay để nhúng vào PDF và hoàn tất hợp đồng.
+              Draw admin signature to embed into PDF and complete the contract.
             </div>
 
             <label className="fr-muted" style={{ display: "block", marginBottom: 6 }}>
-              Tên người ký
+              Signer name
             </label>
             <input
               className="fr-input"
               value={signModal.signerName}
               onChange={(e) => setSignModal((m) => ({ ...m, signerName: e.target.value }))}
-              placeholder="Quản trị viên"
+              placeholder="Admin"
             />
 
             <div style={{ height: 10 }} />
@@ -937,13 +780,13 @@ export default function FranchiseRequestsPage() {
 
             <div className="fr-btnRow" style={{ marginTop: 12, justifyContent: "flex-end" }}>
               <button className="fr-btn fr-btn-ghost" onClick={() => signPadRef.current?.clear?.()}>
-                Xóa nét
+                Clear
               </button>
               <button className="fr-btn fr-btn-ghost" onClick={closeSignModal}>
-                Hủy
+                Cancel
               </button>
               <button className="fr-btn fr-btn-warning" onClick={submitCountersign} disabled={busyId !== null}>
-                Ký đối chiếu & hoàn tất
+                Countersign & Complete
               </button>
             </div>
           </div>
@@ -963,19 +806,16 @@ function contractStepIndex(status) {
   return map[s] ?? 0;
 }
 
-function ContractStepper({ status, compact }) {
+function ContractStepper({ status }) {
   const idx = contractStepIndex(status);
-  const steps = ["Nháp", "Đã gửi", "Đã xem", "Đã ký", "Hoàn tất"];
+  const steps = ["Draft", "Sent", "Viewed", "Signed", "Completed"];
 
   if (String(status) === "void") {
-    return <div className="fr-stepperVoid">Đã vô hiệu</div>;
+    return <div className="fr-stepperVoid">Voided</div>;
   }
 
   return (
-    <div
-      className={`fr-stepper ${compact ? "fr-stepper--compact" : ""}`}
-      title={`Trạng thái hợp đồng: ${String(status || "-")}`}
-    >
+    <div className="fr-stepper" title={`Contract status: ${String(status || "-")}`}> 
       {steps.map((label, i) => (
         <div key={label} className={`fr-step ${i <= idx ? "active" : ""}`}>
           <span className="fr-dot" />

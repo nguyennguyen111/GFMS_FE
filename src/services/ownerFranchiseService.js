@@ -17,12 +17,5 @@ export const ownerUpdateFranchiseRequest = (id, data) =>
   axios.put(`/api/owner/franchise-requests/${id}`, data);
 
 // Xóa franchise request (chỉ khi pending)
-export const ownerDeleteFranchiseRequest = (id) =>
+export const ownerDeleteFranchiseRequest = (id) => 
   axios.delete(`/api/owner/franchise-requests/${id}`);
-
-/** Tải PDF hợp đồng nhượng quyền (JWT owner) — cùng loại file với menu admin */
-export const ownerDownloadFranchiseContractPdf = (id, type = "final") =>
-  axios.get(`/api/owner/franchise-requests/${id}/contract/document`, {
-    params: { type },
-    responseType: "blob",
-  });
