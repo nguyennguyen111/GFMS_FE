@@ -6,17 +6,18 @@ import {
   markTrainerNotificationRead,
 } from "../services/trainerNotificationService";
 import { getCurrentUser } from "../utils/auth";
+import { getAccessToken } from "../utils/auth";
 import { isTrainerRelevantNotification } from "../utils/ptNotificationFilter";
 
 export default function useTrainerNotifications() {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const user = getCurrentUser();
+  const token = getAccessToken();
+  const gid = Number(user?.groupId ?? user?.group_id ?? 0);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    const token = localStorage.getItem("accessToken");
-    const gid = Number(user?.groupId ?? user?.group_id ?? 0);
     if (!token || gid !== 3) {
       setItems([]);
       setUnreadCount(0);
@@ -68,7 +69,7 @@ export default function useTrainerNotifications() {
       socket.off("notification:read", onRead);
       socket.off("notification:read-all", onReadAll);
     };
-  }, []);
+  }, [token, gid]);
 
   return useMemo(
     () => ({

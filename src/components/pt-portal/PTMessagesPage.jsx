@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, MapPin, Mic, Paperclip, Search, SendHorizonal, Square } from "lucide-react";
 import "../member/pages/MemberMessagesPage.css";
 import "./PTMessagesPage.css";
 import { getTrainerEligibleConversations } from "../../services/trainerMessageService";
 import { uploadChatAsset } from "../../services/chatUploadService";
+import { connectSocket } from "../../services/socketClient";
 import useTrainerConversationSocket from "../../hooks/useTrainerConversationSocket";
 import { decodeChatPayload, encodeChatPayload, previewTextFromPayload } from "../../utils/chatPayload";
 import { showAppToast } from "../../utils/appToast";
@@ -36,22 +37,49 @@ export default function PTMessagesPage() {
   const imageRef = useRef(null);
   const typingTimerRef = useRef(null);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await getTrainerEligibleConversations();
-        if (!mounted) return;
-        const normalized = Array.isArray(data) ? data : [];
-        setConversations(normalized);
-        window.dispatchEvent(new Event("trainerMessagesChanged"));
-
-      } catch (e) {
-        if (mounted) setError(e?.response?.data?.message || e.message || "Không tải được danh sách hội thoại.");
-      } finally { if (mounted) setLoadingList(false); }
-    })();
-    return () => { mounted = false; };
+  const loadConversations = useCallback(async (mountedRef = { current: true }) => {
+    try {
+      const data = await getTrainerEligibleConversations();
+      if (!mountedRef.current) return;
+      const normalized = Array.isArray(data) ? data : [];
+      setConversations(normalized);
+      window.dispatchEvent(new Event("trainerMessagesChanged"));
+    } catch (e) {
+      if (mountedRef.current) {
+        setError(e?.response?.data?.message || e.message || "Không tải được danh sách hội thoại.");
+      }
+    } finally {
+      if (mountedRef.current) setLoadingList(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const mountedRef = { current: true };
+    loadConversations(mountedRef);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [loadConversations]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    const onNotificationNew = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "chat") return;
+      loadConversations();
+    };
+    const onRealtimeMessage = () => {
+      loadConversations();
+    };
+    socket.on("notification:new", onNotificationNew);
+    socket.on("message:new", onRealtimeMessage);
+    window.addEventListener("trainerMessagesChanged", onRealtimeMessage);
+    return () => {
+      socket.off("notification:new", onNotificationNew);
+      socket.off("message:new", onRealtimeMessage);
+      window.removeEventListener("trainerMessagesChanged", onRealtimeMessage);
+    };
+  }, [loadConversations]);
 
   const filteredConversations = useMemo(() => {
     const q = query.trim().toLowerCase();
