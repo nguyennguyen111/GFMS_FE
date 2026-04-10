@@ -15,7 +15,7 @@ import {
 import './LoginPage.css';
 import { GoogleLogin } from '@react-oauth/google';
 import { applyAuthPayload, loginUser, loginWithGoogle } from '../../services/authService';
-import { getRememberedEmail, setRememberedEmail } from '../../services/authSession';
+import { getRememberedEmail, setRememberedEmail, setAuthProvider } from '../../services/authSession';
 import { showAppToast } from '../../utils/appToast';
 
 const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
@@ -104,7 +104,7 @@ const LoginPage = () => {
   };
 
   /** Lưu session + điều hướng — dùng chung cho email/password và Google */
-  const applyLoginSession = (data) => {
+  const applyLoginSession = (data, provider = "local") => {
     if (data?.EC !== 0) return false;
 
     showAppToast({
@@ -128,6 +128,7 @@ const LoginPage = () => {
     const groupId = Number(groupIdRaw);
 
     if (!applyAuthPayload(dt)) return false;
+    setAuthProvider(provider);
 
     const redirect = sessionStorage.getItem('redirectAfterLogin');
     if (redirect && isRedirectAllowedForGroup(groupId, redirect)) {
@@ -160,7 +161,7 @@ const LoginPage = () => {
       else setRememberedEmail("");
       const data = response?.data;
 
-      if (applyLoginSession(data)) {
+      if (applyLoginSession(data, "local")) {
         return;
       }
 
@@ -201,7 +202,7 @@ const LoginPage = () => {
       const response = await loginWithGoogle(credential, rememberMe);
       const data = response?.data;
 
-      if (applyLoginSession(data)) {
+      if (applyLoginSession(data, "google")) {
         return;
       }
 

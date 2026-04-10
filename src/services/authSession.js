@@ -4,6 +4,7 @@ const SAFE_KEYS = {
   role: "role",
   username: "username",
   rememberedEmail: "rememberedEmail",
+  authProvider: "authProvider",
 };
 
 const SESSION_KEYS = {
@@ -28,7 +29,7 @@ const notifyAuthChanged = () => {
 const persistSafeUserData = ({ user, roles, role }) => {
   if (user) {
     localStorage.setItem(SAFE_KEYS.user, JSON.stringify(user));
-    localStorage.setItem(SAFE_KEYS.username, user?.username || user?.email || "Tài khoản");
+    localStorage.setItem(SAFE_KEYS.username, user?.displayName || user?.username || user?.email || "Tài khoản");
   }
   if (roles) {
     localStorage.setItem(SAFE_KEYS.roles, JSON.stringify(roles));
@@ -43,11 +44,16 @@ const clearPersistedAuthData = () => {
   localStorage.removeItem(SAFE_KEYS.roles);
   localStorage.removeItem(SAFE_KEYS.role);
   localStorage.removeItem(SAFE_KEYS.username);
+  localStorage.removeItem(SAFE_KEYS.authProvider);
 };
 
 export const hydrateAuthSessionFromStorage = () => {
   currentUser = safeParse(localStorage.getItem(SAFE_KEYS.user));
-  accessToken = sessionStorage.getItem(SESSION_KEYS.accessToken) || null;
+  accessToken = sessionStorage.getItem(SESSION_KEYS.accessToken) || localStorage.getItem(SESSION_KEYS.accessToken) || null;
+  if (accessToken) {
+    sessionStorage.setItem(SESSION_KEYS.accessToken, accessToken);
+    localStorage.removeItem(SESSION_KEYS.accessToken);
+  }
 };
 
 export const getAccessToken = () => accessToken;
@@ -83,3 +89,14 @@ export const setRememberedEmail = (email) => {
 };
 
 export const getRememberedEmail = () => localStorage.getItem(SAFE_KEYS.rememberedEmail) || "";
+
+export const setAuthProvider = (provider) => {
+  const value = String(provider || '').trim();
+  if (!value) {
+    localStorage.removeItem(SAFE_KEYS.authProvider);
+    return;
+  }
+  localStorage.setItem(SAFE_KEYS.authProvider, value);
+};
+
+export const getAuthProvider = () => localStorage.getItem(SAFE_KEYS.authProvider) || "local";

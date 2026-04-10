@@ -126,6 +126,16 @@ const PTLayout = () => {
                 <span className="pt-shell__dot" />
                 Gửi yêu cầu
               </NavLink>
+
+              <NavLink
+                to="/pt/reschedule-requests"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Yêu cầu đổi lịch
+              </NavLink>
             </nav>
           </aside>
 

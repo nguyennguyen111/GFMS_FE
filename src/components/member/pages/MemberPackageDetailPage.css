@@ -21,7 +21,7 @@
   min-height: 100vh;
   color: var(--mpd2-text);
   width: 100%;
-  max-width: 1440px;
+  max-width: var(--site-max-width);
   margin: 0 auto;
   padding: 40px 32px 90px;
   position: relative;
@@ -416,3 +416,6 @@
     text-align: left;
   }
 }
+.mpd2-headActions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.mpd2-bookBtn.secondary{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12)}
+
+.mpd2-btn.secondary{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12)}
