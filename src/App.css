@@ -1,3 +1,4 @@
+
 .site {
   min-height: 100vh;
   display: flex;
@@ -14,36 +15,38 @@
   width: 100%;
 }
 
+:root {
+  --site-shell-max: min(80vw, 1280px);
+}
+
 .site-container {
-  width: 100%;
-  max-width: 1024px;
+  width: min(100%, var(--site-shell-max));
+  max-width: none;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 
 ::-webkit-scrollbar {
   display: none;
 }
 
-:root {
-  --compact-scale: 0.8;
-  --compact-width: calc(100% / var(--compact-scale));
-  --compact-height: calc(100vh / var(--compact-scale));
-}
-
 .site--compact,
 .auth-compact {
-  width: var(--compact-width);
-  min-height: var(--compact-height);
-  transform: scale(var(--compact-scale));
-  transform-origin: top left;
-}
-
-.auth-compact {
-  min-height: var(--compact-height);
+  width: 100%;
+  min-height: 100vh;
+  zoom: 1;
 }
 
 body:has(.site--compact),
 body:has(.auth-compact) {
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+.site-main > .landing-page {
+  width: 100%;
+  max-width: none;
+}
+
+.site-main > .landing-page .landing-page-shell.site-container {
+  width: min(100%, var(--site-shell-max));
 }

@@ -83,8 +83,8 @@ export default function OwnerNotificationsPage() {
           <h2 className="mh-title mn-title">Thông báo </h2>
           <div className="mh-sub mn-desc">
             {selectedGymId
-              ? `Theo dõi cập nhật của chi nhánh ${selectedGymName || `#${selectedGymId}`}, bao gồm lịch tập, chia sẻ huấn luyện viên và các nghiệp vụ phát sinh.`
-              : "Theo dõi lịch tập, chia sẻ huấn luyện viên, đánh giá và các cập nhật quan trọng của hệ thống quản lý phòng tập."}
+              ? `Theo dõi cập nhật của chi nhánh ${selectedGymName || `#${selectedGymId}`}, bao gồm lịch tập, chia sẻ PT và các nghiệp vụ phát sinh.`
+              : "Theo dõi lịch tập, chia sẻ PT, đánh giá và các cập nhật quan trọng của hệ thống quản lý phòng tập."}
           </div>
         </div>
 

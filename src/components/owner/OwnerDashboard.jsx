@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "../member/member-pages.css";
 import "./OwnerDashboard.css";
@@ -11,6 +11,7 @@ import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
 import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
 import OwnerInventoryPage from "./pages/OwnerInventoryPage";
 import OwnerTransferPage from "./pages/OwnerTransferPage";
+import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
 import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
@@ -26,29 +27,12 @@ import OwnerWithdrawalsPage from "./pages/OwnerWithdrawalsPage";
 import OwnerReviewsPage from "./pages/OwnerReviewsPage";
 import OwnerNotificationsPage from "./pages/OwnerNotificationsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
-import { logoutUser } from "../../services/authService";
 import useSelectedGym from "../../hooks/useSelectedGym";
-import { showAppToast } from "../../utils/appToast";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const { selectedGymName } = useSelectedGym();
-
-  useEffect(() => {
-    const originalAlert = window.alert;
-    window.alert = (message) => {
-      showAppToast({
-        type: "info",
-        title: "Thông báo",
-        message: String(message || ""),
-      });
-    };
-
-    return () => {
-      window.alert = originalAlert;
-    };
-  }, []);
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
@@ -56,7 +40,9 @@ export default function OwnerDashboard() {
   })();
 
   const handleLogout = () => {
-    logoutUser().finally(() => navigate("/login"));
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   const sections = useMemo(() => ([
@@ -82,7 +68,7 @@ export default function OwnerDashboard() {
       title: "Tài chính",
       items: [
         { label: "Giao dịch", to: "/owner/transactions", key: "transactions", },
-        { label: "Doanh thu từ huấn luyện viên", to: "/owner/commissions", key: "commissions",  },
+        { label: "Doanh thu từ PT", to: "/owner/commissions", key: "commissions",  },
         { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals",  },
       ],
     },
@@ -99,9 +85,10 @@ export default function OwnerDashboard() {
       title: "Mua hàng",
       items: [
         { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests",  },
+        { label: "Báo giá", to: "/owner/quotations", key: "quotations", },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", },
         { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", },
-        { label: "Thanh toán thiết bị", to: "/owner/procurement-payments", key: "procurement-payments",  },
+        { label: "Thanh toán PO", to: "/owner/procurement-payments", key: "procurement-payments",  },
       ],
     },
     {
@@ -138,21 +125,15 @@ export default function OwnerDashboard() {
             <div key={sec.title} className="od2-section">
               {!collapsed && <div className="od2-secTitle">{sec.title}</div>}
               {sec.items.map((item) => (
-                (() => {
-                  const fallbackGlyph = String(item.label || "").trim().charAt(0).toUpperCase();
-                  const navIcon = item.icon || (collapsed ? fallbackGlyph : null);
-                  return (
                 <NavLink
                   key={item.key}
                   to={item.to}
                   className={({ isActive }) => `od2-item ${isActive ? "is-active" : ""}`}
                 >
-                  {navIcon ? <span className="od2-ico" aria-hidden>{navIcon}</span> : null}
+                  <span className="od2-ico" aria-hidden>{item.icon}</span>
                   {!collapsed && <span className="od2-label">{item.label}</span>}
                   {!collapsed && <span className="od2-pillDot" />}
                 </NavLink>
-                  );
-                })()
               ))}
             </div>
           ))}
@@ -167,6 +148,16 @@ export default function OwnerDashboard() {
       </aside>
 
       <main className="od2-main">
+        {collapsed && (
+          <button
+            className="od2-menuFab"
+            onClick={() => setCollapsed(false)}
+            title="Mở menu"
+            aria-label="Mở menu"
+          >
+            ☰
+          </button>
+        )}
         <div className="od2-content">
           <div className="od2-branchBanner">
             <span className="od2-branchBanner__label">Chi nhánh đang quản lý</span>
@@ -198,7 +189,7 @@ export default function OwnerDashboard() {
 
             {/* Purchasing */}
             <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
-            <Route path="/quotations" element={<Navigate to="/owner/purchase-requests" replace />} />
+            <Route path="/quotations" element={<OwnerQuotationsPage />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
             <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />

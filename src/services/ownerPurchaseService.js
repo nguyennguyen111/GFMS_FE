@@ -5,8 +5,6 @@ const API = "/api/owner/purchases";
 // Suppliers
 export const ownerGetSuppliers = (params = {}) =>
   axios.get(`${API}/suppliers`, { params });
-export const ownerGetPurchaseEquipments = (params = {}) =>
-  axios.get(`${API}/equipments`, { params });
 
 // Quotations
 export const ownerGetQuotations = (params = {}) =>
@@ -42,17 +40,7 @@ export const ownerGetPurchaseRequests = (params = {}) =>
 
 export const ownerGetPurchaseRequestDetail = (id) =>
   axios.get(`${API}/purchase-requests/${id}`);
-export const ownerCreatePurchaseRequestPayOSLink = (id) =>
-  axios.post(`${API}/purchase-requests/${id}/payos-link`);
-export const ownerConfirmReceivePurchaseRequest = (id) =>
-  axios.patch(`${API}/purchase-requests/${id}/confirm-receive`);
 
 // Procurement payments
 export const ownerGetProcurementPayments = (params = {}) =>
   axios.get(`${API}/procurement-payments`, { params });
-
-export const ownerGetPayablePurchaseOrders = (params = {}) =>
-  axios.get(`${API}/purchase-orders/payable`, { params });
-
-export const ownerCreatePurchaseOrderPayOSLink = (purchaseOrderId, payload = {}) =>
-  axios.post(`${API}/purchase-orders/${purchaseOrderId}/payos-link`, payload);

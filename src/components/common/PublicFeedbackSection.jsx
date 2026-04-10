@@ -22,6 +22,7 @@ export default function PublicFeedbackSection({ title = "Phản hồi", subtitle
     <section className={`pf-section ${compact ? "compact" : ""} ${className}`.trim()}>
       <div className="pf-head">
         <div>
+          <span className="pf-kicker">FEEDBACK THỰC TẾ</span>
           <h3>{title}</h3>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>

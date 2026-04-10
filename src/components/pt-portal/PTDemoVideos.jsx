@@ -11,7 +11,6 @@ import {
   sendPTActivationMaterial,
   deletePTActivationMaterial,
 } from "../../services/ptService";
-import NiceModal from "../common/NiceModal";
 import "./PTDemoVideos.css";
 
 const formatBytes = (value) => {
@@ -24,7 +23,6 @@ const formatBytes = (value) => {
 
 const PTDemoVideos = () => {
   const MAX_VIDEO_MB = 200;
-  const MAX_PLAN_MB = 50;
   const [videos, setVideos] = useState([]);
   const [durationsById, setDurationsById] = useState({});
   const [plans, setPlans] = useState([]);
@@ -42,25 +40,6 @@ const PTDemoVideos = () => {
   const [sendItemId, setSendItemId] = useState("");
   const [sending, setSending] = useState(false);
   const [sentMaterials, setSentMaterials] = useState([]);
-  const [modalState, setModalState] = useState(null);
-
-  const askConfirm = (message, title = "Xác nhận") =>
-    new Promise((resolve) => {
-      setModalState({
-        kind: "confirm",
-        message,
-        title,
-        tone: "info",
-        onConfirm: () => {
-          setModalState(null);
-          resolve(true);
-        },
-        onClose: () => {
-          setModalState(null);
-          resolve(false);
-        },
-      });
-    });
 
   const normalizeList = (raw) => {
     if (Array.isArray(raw)) return raw;
@@ -127,10 +106,6 @@ const PTDemoVideos = () => {
 
   const onUpload = async (e) => {
     e.preventDefault();
-    if (!String(title || "").trim()) {
-      setError("Vui lòng nhập tiêu đề video.");
-      return;
-    }
     if (!file) {
       setError("Vui lòng chọn 1 video.");
       return;
@@ -142,7 +117,7 @@ const PTDemoVideos = () => {
     try {
       setUploading(true);
       setError("");
-      await uploadMyPTDemoVideo({ file, title: String(title || "").trim() });
+      await uploadMyPTDemoVideo({ file, title });
       setTitle("");
       setFile(null);
       await fetchVideos();
@@ -154,7 +129,7 @@ const PTDemoVideos = () => {
   };
 
   const onDelete = async (videoId) => {
-    if (!(await askConfirm("Xóa video demo này?", "Xác nhận xóa"))) return;
+    if (!window.confirm("Xóa video demo này?")) return;
     try {
       await deleteMyPTDemoVideo(videoId);
       setVideos((prev) => prev.filter((v) => String(v.id) !== String(videoId)));
@@ -165,22 +140,14 @@ const PTDemoVideos = () => {
 
   const onUploadPlan = async (e) => {
     e.preventDefault();
-    if (!String(planTitle || "").trim()) {
-      setError("Vui lòng nhập tiêu đề kế hoạch tập luyện.");
-      return;
-    }
     if (!planFile) {
       setError("Vui lòng chọn file kế hoạch (pdf/doc/docx).");
-      return;
-    }
-    if (planFile.size > MAX_PLAN_MB * 1024 * 1024) {
-      setError(`File kế hoạch quá lớn. Giới hạn: ${MAX_PLAN_MB}MB.`);
       return;
     }
     try {
       setUploadingPlan(true);
       setError("");
-      await uploadMyPTTrainingPlan({ file: planFile, title: String(planTitle || "").trim() });
+      await uploadMyPTTrainingPlan({ file: planFile, title: planTitle });
       setPlanTitle("");
       setPlanFile(null);
       await fetchVideos();
@@ -192,7 +159,7 @@ const PTDemoVideos = () => {
   };
 
   const onDeletePlan = async (planId) => {
-    if (!(await askConfirm("Xóa file kế hoạch này?", "Xác nhận xóa"))) return;
+    if (!window.confirm("Xóa file kế hoạch này?")) return;
     try {
       await deleteMyPTTrainingPlan(planId);
       setPlans((prev) => prev.filter((p) => String(p.id) !== String(planId)));
@@ -226,7 +193,7 @@ const PTDemoVideos = () => {
   };
 
   const onDeleteSent = async (materialId) => {
-    if (!(await askConfirm("Xóa tài liệu đã gửi? Học viên sẽ không còn thấy trong danh sách.", "Xác nhận xóa"))) return;
+    if (!window.confirm("Xóa tài liệu đã gửi? Học viên sẽ không còn thấy trong danh sách.")) return;
     try {
       await deletePTActivationMaterial(materialId);
       const res = await getPTActivationMaterials(sendActivationId);
@@ -483,37 +450,6 @@ const PTDemoVideos = () => {
           </div>
         ) : null}
       </form>
-
-      <NiceModal
-        open={Boolean(modalState)}
-        onClose={() => {
-          if (modalState?.kind === "confirm") {
-            modalState?.onClose?.();
-            return;
-          }
-          setModalState(null);
-        }}
-        tone={modalState?.tone || "info"}
-        title={modalState?.title || "Thông báo"}
-        footer={
-          modalState?.kind === "confirm" ? (
-            <>
-              <button type="button" className="nice-modal__btn nice-modal__btn--ghost" onClick={modalState?.onClose}>
-                Hủy
-              </button>
-              <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={modalState?.onConfirm}>
-                Xác nhận
-              </button>
-            </>
-          ) : (
-            <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
-              Đã hiểu
-            </button>
-          )
-        }
-      >
-        <p>{modalState?.message}</p>
-      </NiceModal>
     </div>
   );
 };

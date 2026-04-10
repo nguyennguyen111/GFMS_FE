@@ -26,11 +26,9 @@ import useTrainerMessageUnread from "../../hooks/useTrainerMessageUnread";
 import { getCurrentUser } from "../../utils/auth";
 import { ownerGetMyGyms } from "../../services/ownerGymService";
 import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
-import { getAccessToken } from "../../utils/auth";
-import { logoutUser } from "../../services/authService";
 
 const readAuth = () => {
-  const token = getAccessToken();
+  const token = localStorage.getItem("accessToken");
   const user = getCurrentUser();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
   const username = user?.username || user?.email || "Tài khoản";
@@ -58,7 +56,7 @@ const readAuth = () => {
   };
 };
 
-export default function Header() {
+export default function Header({ compact = false }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -176,7 +174,9 @@ export default function Header() {
   };
 
   const logout = () => {
-    logoutUser().finally(() => go("/"));
+    localStorage.clear();
+    window.dispatchEvent(new Event("authChanged"));
+    go("/");
   };
 
   const handleSelectOwnerGym = (gym) => {
@@ -490,7 +490,7 @@ export default function Header() {
     <>
       <header
         ref={headerRef}
-        className={`header modern-header ${scrolled ? "scrolled" : ""}`}
+        className={`header modern-header ${compact ? "header--compact" : ""} ${scrolled ? "scrolled" : ""}`.trim()}
       >
         <div className="header-container">
           <button

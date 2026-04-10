@@ -3,9 +3,9 @@ import './Footer.css';
 import { Instagram, Youtube, Facebook } from 'lucide-react';
 import logoWordmark from "../../assets/logo-wordmark.png";
 
-const Footer = () => {
+const Footer = ({ compact = false }) => {
   return (
-    <footer className="footer">
+    <footer className={`footer ${compact ? "footer--compact" : ""}`.trim()}>
       <div className="footer-container">
         <div className="footer-logo">
           <img src={logoWordmark} alt="GFMS" className="footer-wordmark" />
