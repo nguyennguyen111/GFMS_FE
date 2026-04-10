@@ -48,6 +48,31 @@
   color:#eef2ff;
 }
 
+/*
+ * <select> trong modal (createPortal → body) không nằm trong .ad-layout:
+ * Windows/Chrome hay vẽ list nền trắng nhưng chữ vẫn #eef2ff → không đọc được.
+ * color-scheme: dark + màu option tường minh.
+ */
+.eq-page .eq-select,
+.eq-modal .eq-select{
+  color-scheme: dark;
+  background-color: rgba(255,255,255,.06);
+  color: #eef2ff;
+}
+
+.eq-page .eq-select option,
+.eq-modal .eq-select option{
+  background-color: #0e1522;
+  color: #eef2ff;
+}
+
+.eq-page .eq-select option:checked,
+.eq-modal .eq-select option:checked{
+  background-color: rgba(255, 138, 0, 0.35);
+  color: #0b0f16;
+  font-weight: 700;
+}
+
 .eq-textarea{
   height: auto;
   padding: 10px 12px;
@@ -185,26 +210,36 @@
   color: rgba(238,242,255,.60);
 }
 
-/* ====== Modal (scoped) ====== */
+/* ====== Modal (scoped; render qua createPortal ra body) ====== */
 .eq-modal__backdrop{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.62);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
-  padding: 16px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  color-scheme: dark;
 }
 
 .eq-modal{
   width: 760px;
-  max-width: 96vw;
+  max-width: min(96vw, 760px);
+  max-height: min(92vh, calc(100dvh - 32px));
   background: rgba(12,18,28,.92);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 20px 70px rgba(0,0,0,.55);
   backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .eq-modal__header{
@@ -214,6 +249,7 @@
   justify-content:space-between;
   gap: 12px;
   border-bottom: 1px solid rgba(255,255,255,.10);
+  flex-shrink: 0;
 }
 
 .eq-modal__title{
@@ -240,6 +276,9 @@
 
 .eq-modal__body{
   padding: 14px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .eq-formgrid{
@@ -254,6 +293,14 @@
   gap: 6px;
 }
 
+.eq-field-hint{
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255,255,255,.55);
+}
+
 .eq-label{
   font-size: 13px;
   color: rgba(238,242,255,.86);
@@ -262,12 +309,99 @@
 
 .eq-col2{ grid-column: 1 / -1; }
 
+/* Ảnh chờ upload trong modal Thêm/Sửa thiết bị */
+.eq-modal-upload{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+
+.eq-modal-upload__input{
+  font-size: 13px;
+  color: rgba(238,242,255,.85);
+  max-width: 100%;
+}
+
+.eq-modal-upload__input::file-selector-button{
+  margin-right: 12px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #eef2ff;
+  cursor: pointer;
+}
+
+.eq-modal-upload__empty{
+  font-size: 13px;
+}
+
+.eq-modal-upload__hint{
+  margin-top: 0;
+}
+
+.eq-pending-grid{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.eq-pending-card{
+  position: relative;
+  width: 88px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.25);
+}
+
+.eq-pending-card__img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.eq-pending-card__remove{
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.eq-pending-card__remove:hover{
+  background: rgba(180,40,40,.9);
+}
+
+.eq-pending-card__remove:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .eq-modal__footer{
   padding: 12px 14px;
   border-top: 1px solid rgba(255,255,255,.10);
   display:flex;
   justify-content:flex-end;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 780px){
@@ -297,7 +431,8 @@
 }
 
 .eq-modal--wide {
-  max-width: 920px;
+  max-width: min(96vw, 920px);
+  max-height: min(92vh, calc(100dvh - 32px));
 }
 
 .eq-upload-row {

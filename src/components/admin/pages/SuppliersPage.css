@@ -48,6 +48,26 @@
   color:#eef2ff;
 }
 
+.sup-page .sup-select,
+.sup-modal .sup-select{
+  color-scheme: dark;
+  background-color: rgba(255,255,255,.06);
+  color: #eef2ff;
+}
+
+.sup-page .sup-select option,
+.sup-modal .sup-select option{
+  background-color: #0e1522;
+  color: #eef2ff;
+}
+
+.sup-page .sup-select option:checked,
+.sup-modal .sup-select option:checked{
+  background-color: rgba(255, 138, 0, 0.35);
+  color: #0b0f16;
+  font-weight: 700;
+}
+
 .sup-textarea{
   height: auto;
   padding: 10px 12px;
@@ -165,26 +185,36 @@
   color: rgba(238,242,255,.70);
 }
 
-/* ====== Modal (scoped) ====== */
+/* ====== Modal (portal → body, giống EquipmentPage) ====== */
 .sup-modal__backdrop{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.62);
-  display: grid;
-  place-items: center;
-  z-index: 1000;
-  padding: 16px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  color-scheme: dark;
 }
 
 .sup-modal{
-  width: 720px;
-  max-width: 96vw;
+  width: 760px;
+  max-width: min(96vw, 760px);
+  max-height: min(92vh, calc(100dvh - 32px));
   background: rgba(12,18,28,.92);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 20px 70px rgba(0,0,0,.55);
   backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .sup-modal__header{
@@ -194,6 +224,7 @@
   justify-content:space-between;
   gap: 12px;
   border-bottom: 1px solid rgba(255,255,255,.10);
+  flex-shrink: 0;
 }
 
 .sup-modal__title{
@@ -220,6 +251,9 @@
 
 .sup-modal__body{
   padding: 14px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .sup-formgrid{
@@ -240,7 +274,8 @@
 }
 .sup-label b{ color: rgba(255,176,0,.95); }
 
-.sup-col2{ grid-column: 1 / -1; }
+.sup-col2,
+.sup-field--full{ grid-column: 1 / -1; }
 
 .sup-checkrow{
   grid-column: 1 / -1;
@@ -275,9 +310,10 @@
   display:flex;
   justify-content:flex-end;
   gap: 10px;
+  flex-shrink: 0;
 }
 
-@media (max-width: 720px){
+@media (max-width: 780px){
   .sup-formgrid{ grid-template-columns: 1fr; }
   .sup-filters .sup-input{ max-width: none; }
 }

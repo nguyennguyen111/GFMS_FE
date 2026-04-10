@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import "./SuppliersPage.css";
 
 import {
@@ -281,157 +282,160 @@ export default function SuppliersPage() {
         </table>
       </div>
 
-      {show ? (
-        <div className="sup-modal__backdrop" onMouseDown={closeModal}>
-          <div
-            className="sup-modal"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="sup-modal__header">
-              <div>
-                <div className="sup-modal__title">
-                  {mode === "create"
-                    ? "Thêm nhà cung cấp"
-                    : "Cập nhật nhà cung cấp"}
-                </div>
-                <div className="sup-modal__subtitle">
-                  Thông tin vendor dùng cho nghiệp vụ nhập kho / đối soát chứng từ
-                </div>
-              </div>
-
-              <button
-                className="sup-iconbtn"
-                onClick={closeModal}
-                aria-label="Đóng"
+      {show
+        ? createPortal(
+            <div className="sup-modal__backdrop" onMouseDown={closeModal}>
+              <div
+                className="sup-modal"
+                onMouseDown={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
               >
-                ✕
-              </button>
-            </div>
-
-            <div className="sup-modal__body">
-              <div className="sup-formgrid">
-                <label className="sup-field">
-                  <span className="sup-label">
-                    Tên <b>*</b>
-                  </span>
-                  <input
-                    className="sup-input"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, name: e.target.value }))
-                    }
-                    placeholder="VD: Công ty TNHH Thiết bị Gym ABC"
-                  />
-                </label>
-
-                <label className="sup-field">
-                  <span className="sup-label">Mã</span>
-                  <input
-                    className="sup-input"
-                    value={form.code}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, code: e.target.value }))
-                    }
-                    placeholder="VD: GEV-004"
-                  />
-                </label>
-
-                <label className="sup-field">
-                  <span className="sup-label">Phone</span>
-                  <input
-                    className="sup-input"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, phone: e.target.value }))
-                    }
-                    placeholder="VD: 0901234004"
-                  />
-                </label>
-
-                <label className="sup-field">
-                  <span className="sup-label">Email</span>
-                  <input
-                    className="sup-input"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, email: e.target.value }))
-                    }
-                    placeholder="VD: info@vendor.com"
-                  />
-                </label>
-
-                <label className="sup-field sup-field--full">
-                  <span className="sup-label">Địa chỉ</span>
-                  <input
-                    className="sup-input"
-                    value={form.address}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, address: e.target.value }))
-                    }
-                    placeholder="VD: 321 Cách Mạng Tháng 8, Q3, HCM"
-                  />
-                </label>
-
-                <label className="sup-field">
-                  <span className="sup-label">Mã số thuế</span>
-                  <input
-                    className="sup-input"
-                    value={form.taxCode}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, taxCode: e.target.value }))
-                    }
-                    placeholder="VD: 0312345678"
-                  />
-                </label>
-
-                <label className="sup-field sup-field--full">
-                  <span className="sup-label">Ghi chú</span>
-                  <textarea
-                    className="sup-textarea"
-                    rows={3}
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, notes: e.target.value }))
-                    }
-                    placeholder="VD: Cung cấp phụ kiện phòng gym..."
-                  />
-                </label>
-
-                <label className="sup-checkrow">
-                  <input
-                    type="checkbox"
-                    checked={!!form.isActive}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, isActive: e.target.checked }))
-                    }
-                  />
+                <div className="sup-modal__header">
                   <div>
-                    <div className="sup-checkrow__title">Đang hoạt động</div>
-                    <div className="sup-checkrow__hint">
-                      Tắt để ngưng giao dịch / ẩn khỏi luồng nhập kho
+                    <div className="sup-modal__title">
+                      {mode === "create"
+                        ? "Thêm nhà cung cấp"
+                        : "Cập nhật nhà cung cấp"}
+                    </div>
+                    <div className="sup-modal__subtitle">
+                      Thông tin vendor dùng cho nghiệp vụ nhập kho / đối soát chứng từ
                     </div>
                   </div>
-                </label>
+
+                  <button
+                    className="sup-iconbtn"
+                    onClick={closeModal}
+                    aria-label="Đóng"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="sup-modal__body">
+                  <div className="sup-formgrid">
+                    <label className="sup-field">
+                      <span className="sup-label">
+                        Tên <b>*</b>
+                      </span>
+                      <input
+                        className="sup-input"
+                        value={form.name}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, name: e.target.value }))
+                        }
+                        placeholder="VD: Công ty TNHH Thiết bị Gym ABC"
+                      />
+                    </label>
+
+                    <label className="sup-field">
+                      <span className="sup-label">Mã</span>
+                      <input
+                        className="sup-input"
+                        value={form.code}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, code: e.target.value }))
+                        }
+                        placeholder="VD: GEV-004"
+                      />
+                    </label>
+
+                    <label className="sup-field">
+                      <span className="sup-label">Phone</span>
+                      <input
+                        className="sup-input"
+                        value={form.phone}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, phone: e.target.value }))
+                        }
+                        placeholder="VD: 0901234004"
+                      />
+                    </label>
+
+                    <label className="sup-field">
+                      <span className="sup-label">Email</span>
+                      <input
+                        className="sup-input"
+                        value={form.email}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, email: e.target.value }))
+                        }
+                        placeholder="VD: info@vendor.com"
+                      />
+                    </label>
+
+                    <label className="sup-field sup-field--full">
+                      <span className="sup-label">Địa chỉ</span>
+                      <input
+                        className="sup-input"
+                        value={form.address}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, address: e.target.value }))
+                        }
+                        placeholder="VD: 321 Cách Mạng Tháng 8, Q3, HCM"
+                      />
+                    </label>
+
+                    <label className="sup-field">
+                      <span className="sup-label">Mã số thuế</span>
+                      <input
+                        className="sup-input"
+                        value={form.taxCode}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, taxCode: e.target.value }))
+                        }
+                        placeholder="VD: 0312345678"
+                      />
+                    </label>
+
+                    <label className="sup-field sup-field--full">
+                      <span className="sup-label">Ghi chú</span>
+                      <textarea
+                        className="sup-textarea"
+                        rows={3}
+                        value={form.notes}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, notes: e.target.value }))
+                        }
+                        placeholder="VD: Cung cấp phụ kiện phòng gym..."
+                      />
+                    </label>
+
+                    <label className="sup-checkrow">
+                      <input
+                        type="checkbox"
+                        checked={!!form.isActive}
+                        onChange={(e) =>
+                          setForm((s) => ({ ...s, isActive: e.target.checked }))
+                        }
+                      />
+                      <div>
+                        <div className="sup-checkrow__title">Đang hoạt động</div>
+                        <div className="sup-checkrow__hint">
+                          Tắt để ngưng giao dịch / ẩn khỏi luồng nhập kho
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {err ? (
+                    <div className="sup-alert sup-alert--inmodal">{err}</div>
+                  ) : null}
+                </div>
+
+                <div className="sup-modal__footer">
+                  <button className="sup-btn sup-btn--ghost" onClick={closeModal}>
+                    Huỷ
+                  </button>
+                  <button className="sup-btn sup-btn--primary" onClick={save}>
+                    Lưu
+                  </button>
+                </div>
               </div>
-
-              {err ? (
-                <div className="sup-alert sup-alert--inmodal">{err}</div>
-              ) : null}
-            </div>
-
-            <div className="sup-modal__footer">
-              <button className="sup-btn sup-btn--ghost" onClick={closeModal}>
-                Huỷ
-              </button>
-              <button className="sup-btn sup-btn--primary" onClick={save}>
-                Lưu
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
