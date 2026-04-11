@@ -155,21 +155,26 @@ export default function MemberReviewsPage() {
   }, [searchParams]);
 
   const currentTargets = useMemo(() => {
-    const directTargets = eligible?.[form.reviewType] || [];
-    if (directTargets.length) return directTargets;
+  const directTargets = Array.isArray(eligible?.[form.reviewType])
+    ? eligible[form.reviewType]
+    : [];
 
-    if (form.reviewType === "trainer" && Array.isArray(eligible?.courses)) {
-      return eligible.courses.map((item) => ({
+  if (directTargets.length) return directTargets;
+
+  if (form.reviewType === "trainer" && Array.isArray(eligible?.courses)) {
+    return eligible.courses
+      .filter((item) => !item.reviewed)
+      .map((item) => ({
         reviewType: "trainer",
         activationId: item.activationId,
         trainerId: item.trainerId,
         label: item.trainerName || "PT",
         subtitle: `${item.packageName || "Gói tập"} (${item.completedSessions || 0}/${item.totalSessions || 0} buổi)`,
       }));
-    }
+  }
 
-    return [];
-  }, [eligible, form.reviewType]);
+  return [];
+}, [eligible, form.reviewType]);
 
   const targetOptions = useMemo(
     () =>
