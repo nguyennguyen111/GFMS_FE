@@ -14,6 +14,11 @@ const ownerBookingService = {
     });
     return response.data;
   },
+
+  async getBookingDetail(bookingId) {
+    const response = await axios.get(`${API_URL}/${bookingId}`);
+    return response.data;
+  },
 };
 
 export default ownerBookingService;

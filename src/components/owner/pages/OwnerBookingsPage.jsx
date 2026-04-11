@@ -552,6 +552,10 @@ const OwnerBookingsPage = () => {
           endTime: String(requestData?.endTime || ""),
           fromBusyRequestId: String(requestId || ""),
         });
+        const borrowSpec = String(requestData?.borrowSpecialization || "").trim();
+        if (borrowSpec && TRAINER_SPECIALIZATION_OPTIONS.includes(borrowSpec)) {
+          query.set("borrowSpecialization", borrowSpec);
+        }
         navigate(`/owner/trainers?${query.toString()}`);
         return;
       }
