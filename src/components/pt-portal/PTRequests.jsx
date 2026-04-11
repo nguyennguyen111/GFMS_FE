@@ -203,6 +203,15 @@ export default function PTRequests() {
     }
   };
 
+  const shareRowCanClaim = (s) => {
+    const st = String(s?.status || "").toLowerCase();
+    const tid = s?.trainerId;
+    const hasTrainer = tid != null && tid !== "";
+    if (st === "open" && !hasTrainer) return true;
+    if ((st === "pending_trainer" || st === "waiting_acceptance") && hasTrainer) return true;
+    return false;
+  };
+
   useEffect(() => {
     fetchRequests();
     fetchShareRequests();
@@ -227,9 +236,14 @@ export default function PTRequests() {
       if (String(payload?.notificationType || "").toLowerCase() !== "request_update") return;
       fetchRequests();
     };
+    const onTrainerShareChanged = () => {
+      fetchShareRequests();
+    };
     socket.on("notification:new", onNewNotification);
+    socket.on("trainer_share:changed", onTrainerShareChanged);
     return () => {
       socket.off("notification:new", onNewNotification);
+      socket.off("trainer_share:changed", onTrainerShareChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.requestType]);
@@ -378,7 +392,9 @@ export default function PTRequests() {
 
       {/* LIST */}
       <div className="ptr-card" style={{ marginBottom: 14 }}>
-        <p className="ptr-subtitle">Khung giờ mượn huấn luyện viên đang mở</p>
+        <p className="ptr-subtitle">
+          Mượn huấn luyện viên — khung giờ mở &amp; yêu cầu gán cho bạn
+        </p>
         <div className="ptr-divider" />
         <div className="ptr-tablewrap">
           <table className="ptr-table">
@@ -387,29 +403,53 @@ export default function PTRequests() {
                 <th>Gym cho mượn</th>
                 <th>Gym cần huấn luyện viên</th>
                 <th>Thời gian</th>
+                <th>Trạng thái</th>
                 <th>Ghi chú</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loadingShares ? (
-                <tr><td colSpan={5} className="ptr-empty">Đang tải...</td></tr>
+                <tr><td colSpan={6} className="ptr-empty">Đang tải...</td></tr>
               ) : shareRequests.length === 0 ? (
-                <tr><td colSpan={5} className="ptr-empty">Không có khung giờ mở</td></tr>
+                <tr><td colSpan={6} className="ptr-empty">Không có yêu cầu nào</td></tr>
               ) : (
-                shareRequests.map((s) => (
+                shareRequests.map((s) => {
+                  const st = String(s?.status || "").toLowerCase();
+                  const hasTrainer = s?.trainerId != null && s?.trainerId !== "";
+                  const statusLabel =
+                    st === "open"
+                      ? "Mở — có thể nhận"
+                      : st === "pending_trainer" || (st === "waiting_acceptance" && hasTrainer)
+                        ? "Chờ bạn nhận lịch"
+                        : st === "waiting_acceptance"
+                          ? "Chờ chủ phòng duyệt"
+                          : st === "approved"
+                            ? "Đã duyệt"
+                            : st || "—";
+                  return (
                   <tr key={s.id}>
                     <td>{s.fromGym?.name || `Gym #${s.fromGymId}`}</td>
                     <td>{s.toGym?.name || `Gym #${s.toGymId}`}</td>
-                    <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${s.startTime}-${s.endTime})` : ""}</td>
+                    <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${String(s.startTime).slice(0, 5)}-${String(s.endTime).slice(0, 5)})` : ""}</td>
+                    <td>{statusLabel}</td>
                     <td title={s.notes || ""}>{s.notes || "-"}</td>
                     <td>
-                      <button className="ptr-btn primary" onClick={() => handleClaimShare(s.id)} type="button">
-                        Nhận khung giờ
-                      </button>
+                      {shareRowCanClaim(s) ? (
+                        <button className="ptr-btn primary" onClick={() => handleClaimShare(s.id)} type="button">
+                          Nhận khung giờ
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: "0.9rem", color: "#64748b" }}>
+                          {st === "waiting_acceptance" && !hasTrainer
+                            ? "Chờ chủ phòng xác nhận"
+                            : "—"}
+                        </span>
+                      )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

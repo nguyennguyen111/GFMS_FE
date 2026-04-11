@@ -21,16 +21,20 @@ import useSelectedGym from "../../../hooks/useSelectedGym";
 import { useSearchParams } from "react-router-dom";
 import { showAppConfirm } from "../../../utils/appDialog";
 import { normalizeSingleImageSrc } from "../../../utils/image";
+import { specializationToVietnamese } from "../../../utils/specializationI18n";
+import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecializations";
 
 const STATUS_LABELS = {
   // Trainer Share statuses
   waiting_acceptance: { label: "Chờ chấp nhận", color: "info" },
+  pending_trainer: { label: "Chờ PT nhận lịch", color: "warning" },
   approved: { label: "Đã chấp nhận", color: "success" },
   shared: { label: "Lịch mượn huấn luyện viên", color: "info" },
   rejected: { label: "Từ chối", color: "danger" },
   rejected_by_partner: { label: "Đối tác từ chối", color: "danger" },
 
   // Booking statuses
+  pending: { label: "Chờ xác nhận", color: "info" },
   confirmed: { label: "Đã xác nhận", color: "info" },
   in_progress: { label: "Đang diễn ra", color: "warning" },
   completed: { label: "Hoàn thành", color: "success" },
@@ -110,6 +114,63 @@ function getMemberScheduleStatus(statusValue) {
   const mapped = STATUS_LABELS[key]?.label || key || "Không xác định";
   return { key, label: mapped };
 }
+
+/** Trạng thái hiển thị: ưu tiên trạng thái buổi; “báo bận” là ngữ cảnh phụ khi buổi đã xong. */
+function getMemberSlotStatusPresentation(booking) {
+  const st = String(booking?.status || "").toLowerCase();
+  const busyHistory =
+    Boolean(booking?.busyRequested) ||
+    hasBusyRequestMarker(booking?.notes);
+  const sched = getMemberScheduleStatus(booking?.status);
+
+  if (st === "completed") {
+    return {
+      primaryLabel: sched.label,
+      detailLine: busyHistory
+        ? "Trước đó có huấn luyện viên báo bận; buổi đã được đổi PT / xử lý và hoàn tất."
+        : null,
+      cssTone: "completed",
+      cardBusyBorder: false,
+    };
+  }
+
+  if (st === "cancelled" || st === "no_show") {
+    return {
+      primaryLabel: sched.label,
+      detailLine: busyHistory
+        ? "Buổi có ghi nhận liên quan báo bận hoặc xin nghỉ."
+        : null,
+      cssTone: st === "no_show" ? "no_show" : "cancelled",
+      cardBusyBorder: false,
+    };
+  }
+
+  if (busyHistory) {
+    return {
+      primaryLabel: sched.label,
+      detailLine:
+        "Huấn luyện viên báo bận slot này — cần mượn PT hoặc điều chỉnh lịch kịp thời.",
+      cssTone: "busy-requested",
+      cardBusyBorder: true,
+    };
+  }
+
+  const tone =
+    st && ["confirmed", "in_progress", "pending"].includes(st) ? st : "confirmed";
+  return {
+    primaryLabel: sched.label,
+    detailLine: null,
+    cssTone: tone,
+    cardBusyBorder: false,
+  };
+}
+
+function sessionTypeLabelVi(raw) {
+  const t = String(raw || "").trim().toLowerCase();
+  if (t === "trainer_share") return "Mượn / chia sẻ huấn luyện viên";
+  return String(raw || "").trim() || "—";
+}
+
 function cleanQueryParams(params) {
   return Object.fromEntries(
     Object.entries(params).filter(([, value]) => {
@@ -276,12 +337,69 @@ function buildHourlySlotsFromRanges(ranges = []) {
   });
 }
 
+function parseBorrowSpecTokens(raw) {
+  return String(raw || "")
+    .split(/[\n,;|]+/)
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function trainerMatchesBorrowSpecialization(trainerSpecialization, borrowSpec) {
+  const need = String(borrowSpec || "").trim();
+  if (!need) return true;
+  const tokens = parseBorrowSpecTokens(trainerSpecialization);
+  return tokens.some((t) => t === need || t.includes(need) || need.includes(t));
+}
+
+/** Map chuyên môn form mượn từ PT báo bận (API hoặc chuỗi specialization thô) */
+function borrowSpecializationFromBusySlot(slot) {
+  const fromApi = String(slot?.borrowSpecialization || "").trim();
+  if (fromApi && TRAINER_SPECIALIZATION_OPTIONS.includes(fromApi)) return fromApi;
+  const raw = String(slot?.busyTrainerSpecialization || "").trim();
+  if (!raw) return "";
+  for (const opt of TRAINER_SPECIALIZATION_OPTIONS) {
+    if (trainerMatchesBorrowSpecialization(raw, opt)) return opt;
+  }
+  return "";
+}
+
+function borrowCanonicalFromTrainerSpecialization(trainerSpecialization) {
+  const raw = String(trainerSpecialization || "").trim();
+  if (!raw) return "";
+  for (const opt of TRAINER_SPECIALIZATION_OPTIONS) {
+    if (trainerMatchesBorrowSpecialization(raw, opt)) return opt;
+  }
+  return "";
+}
+
+/** Gợi chuyên môn chuẩn từ tên gói (vd. "Tăng Cơ Toàn Diện (Activation #107)") */
+function borrowCanonicalFromPackageLabel(raw) {
+  let s = String(raw || "").trim();
+  s = s.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+  const vi = specializationToVietnamese(s);
+  if (!vi) return "";
+  for (const opt of TRAINER_SPECIALIZATION_OPTIONS) {
+    if (opt === vi) return opt;
+    if (trainerMatchesBorrowSpecialization(vi, opt)) return opt;
+  }
+  for (const part of vi
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)) {
+    for (const opt of TRAINER_SPECIALIZATION_OPTIONS) {
+      if (trainerMatchesBorrowSpecialization(part, opt)) return opt;
+    }
+  }
+  return "";
+}
+
 const INITIAL_FORM = {
   trainerId: "",
   fromGymId: "",
   toGymId: "",
   memberId: "",
   memberPackageActivationId: "",
+  borrowSpecialization: "",
   scheduleMode: "single",
   startDate: "",
   endDate: "",
@@ -346,6 +464,12 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     useState(false);
   const [trainerAvailabilityPage, setTrainerAvailabilityPage] = useState(1);
   const [memberSchedulePage, setMemberSchedulePage] = useState(1);
+  const [memberBookingDetailOpen, setMemberBookingDetailOpen] = useState(false);
+  const [memberBookingDetail, setMemberBookingDetail] = useState(null);
+  const [memberBookingDetailLoading, setMemberBookingDetailLoading] =
+    useState(false);
+  const [memberBookingDetailError, setMemberBookingDetailError] =
+    useState("");
   const [eligibleTrainers, setEligibleTrainers] = useState([]);
   const [loadingEligibleTrainers, setLoadingEligibleTrainers] = useState(false);
 
@@ -387,6 +511,14 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     const startDate = normalizeDateValue(searchParams.get("startDate"));
     const startTime = normalizeTimeValue(searchParams.get("startTime"));
     const endTime = normalizeTimeValue(searchParams.get("endTime"));
+    const borrowSpecRaw = String(
+      searchParams.get("borrowSpecialization") || "",
+    ).trim();
+    const borrowSpecialization = TRAINER_SPECIALIZATION_OPTIONS.includes(
+      borrowSpecRaw,
+    )
+      ? borrowSpecRaw
+      : "";
 
     setEditing(null);
     setActiveTab("shares");
@@ -401,6 +533,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       endDate: startDate,
       startTime,
       endTime,
+      borrowSpecialization,
       note: prev.note || "",
     }));
   }, [isBookingsPage, searchParams, selectedGymId]);
@@ -486,6 +619,78 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     );
   }, [receivedShares, selectedGymId]);
 
+  const filteredMemberBusySlots = React.useMemo(() => {
+    if (!form.memberId) return [];
+    return memberBusySlots.filter(
+      (slot) =>
+        !form.memberPackageActivationId ||
+        String(slot.packageActivationId || slot.packageId || "") ===
+          String(form.memberPackageActivationId),
+    );
+  }, [form.memberId, form.memberPackageActivationId, memberBusySlots]);
+
+  /** Ngày/giờ đang khớp đúng đơn báo bận duy nhất trong danh sách lọc */
+  const busyScheduleLocked = React.useMemo(() => {
+    if (editing) return false;
+    if (filteredMemberBusySlots.length !== 1) return false;
+    const s = filteredMemberBusySlots[0];
+    return (
+      form.startDate === s.date &&
+      normalizeTimeValue(form.startTime) ===
+        normalizeTimeValue(s.startTime) &&
+      normalizeTimeValue(form.endTime) === normalizeTimeValue(s.endTime)
+    );
+  }, [
+    editing,
+    filteredMemberBusySlots,
+    form.startDate,
+    form.startTime,
+    form.endTime,
+  ]);
+
+  useEffect(() => {
+    if (editing) return;
+    if (loadingMemberBusySlots) return;
+    if (!form.memberId) return;
+    if (filteredMemberBusySlots.length !== 1) return;
+    const slot = filteredMemberBusySlots[0];
+    const mappedSpec = borrowSpecializationFromBusySlot(slot);
+    setForm((prev) => {
+      const nextBorrow = mappedSpec || prev.borrowSpecialization;
+      const matchesSlot =
+        prev.startDate === slot.date &&
+        normalizeTimeValue(prev.startTime) ===
+          normalizeTimeValue(slot.startTime) &&
+        normalizeTimeValue(prev.endTime) ===
+          normalizeTimeValue(slot.endTime);
+      const emptySchedule =
+        !prev.startDate || !prev.startTime || !prev.endTime;
+      if (!emptySchedule && !matchesSlot) {
+        return prev;
+      }
+      if (
+        matchesSlot &&
+        String(prev.borrowSpecialization || "") === String(nextBorrow || "")
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        startDate: slot.date,
+        endDate: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        trainerId: "",
+        borrowSpecialization: nextBorrow,
+      };
+    });
+  }, [
+    editing,
+    loadingMemberBusySlots,
+    form.memberId,
+    filteredMemberBusySlots,
+  ]);
+
   const selectedTrainer = React.useMemo(
     () =>
       trainers.find(
@@ -493,6 +698,44 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       ) || null,
     [form.trainerId, trainers],
   );
+
+  const effectiveBorrowSpecialization = React.useMemo(() => {
+    const direct = String(form.borrowSpecialization || "").trim();
+    if (direct) return direct;
+    if (selectedTrainer?.specialization) {
+      return borrowCanonicalFromTrainerSpecialization(
+        selectedTrainer.specialization,
+      );
+    }
+    return "";
+  }, [form.borrowSpecialization, selectedTrainer]);
+
+  /**
+   * Gộp khung giờ: chỉ PT cùng chuyên môn hiệu lực (từ gói / slot báo bận / PT chọn).
+   */
+  const trainersForSlotMerge = React.useMemo(() => {
+    const spec = String(effectiveBorrowSpecialization || "").trim();
+    if (!spec) return [];
+    return availableTrainers.filter((t) =>
+      trainerMatchesBorrowSpecialization(t.specialization, spec),
+    );
+  }, [availableTrainers, effectiveBorrowSpecialization]);
+
+  /** Chỉ PT cùng chuyên môn và còn rảnh đúng khung giờ (giống PT báo bận). */
+  const trainerBorrowSelectOptions = React.useMemo(() => {
+    if (editing && selectedTrainer) return [selectedTrainer];
+    if (!form.startDate || !form.startTime || !form.endTime) return [];
+    if (!String(effectiveBorrowSpecialization || "").trim()) return [];
+    return eligibleTrainers;
+  }, [
+    editing,
+    selectedTrainer,
+    form.startDate,
+    form.startTime,
+    form.endTime,
+    effectiveBorrowSpecialization,
+    eligibleTrainers,
+  ]);
 
   const leadTimeError = React.useMemo(() => {
     if (!form.startDate || !form.startTime) return "";
@@ -509,30 +752,67 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     return "";
   }, [form.startDate, form.startTime]);
 
+  /** Booking thật sự chiếm slot PT (bỏ share, báo bận, buổi member đang thay). */
+  const filterBookingsForBusySlotCheck = useCallback(
+    (dateKey, bookings) => {
+      if (!Array.isArray(bookings)) return [];
+      return bookings.filter((booking) => {
+        const rawType = String(
+          booking?.type || booking?.sessionType || "",
+        ).toLowerCase();
+        if (rawType === "trainer_share") return false;
+        if (booking?.busyRequested) return false;
+        const bidMember = String(
+          booking?.memberId ?? booking?.Member?.id ?? "",
+        );
+        if (
+          form.memberId &&
+          bidMember === String(form.memberId) &&
+          dateKey === form.startDate
+        ) {
+          const bs = normalizeTimeValue(booking.startTime);
+          const be = normalizeTimeValue(booking.endTime);
+          const fs = normalizeTimeValue(form.startTime);
+          const fe = normalizeTimeValue(form.endTime);
+          if (fs && fe && bs && be && fs < be && fe > bs) {
+            return false;
+          }
+        }
+        return true;
+      });
+    },
+    [form.memberId, form.startDate, form.startTime, form.endTime],
+  );
+
   const bookingsByDate = React.useMemo(() => {
     const map = new Map();
     (Array.isArray(shareTrainerSchedule) ? shareTrainerSchedule : []).forEach(
       (daySchedule) => {
         const dateKey = daySchedule?.date;
         if (!dateKey) return;
-        const bookings = Array.isArray(daySchedule?.bookings)
-          ? daySchedule.bookings.filter(
-              (booking) => booking?.type !== "trainer_share",
-            )
-          : [];
+        const bookings = filterBookingsForBusySlotCheck(
+          dateKey,
+          daySchedule?.bookings,
+        );
         map.set(dateKey, bookings);
       },
     );
     return map;
-  }, [shareTrainerSchedule]);
+  }, [shareTrainerSchedule, filterBookingsForBusySlotCheck]);
 
   const hasBookingConflictForSlot = useCallback(
     (dateValue, startTime, endTime) => {
       if (!dateValue || !startTime || !endTime) return false;
+      const st = normalizeTimeValue(startTime);
+      const et = normalizeTimeValue(endTime);
+      if (!st || !et) return false;
       const bookings = bookingsByDate.get(dateValue) || [];
-      return bookings.some(
-        (booking) => startTime < booking.endTime && endTime > booking.startTime,
-      );
+      return bookings.some((booking) => {
+        const bs = normalizeTimeValue(booking.startTime);
+        const be = normalizeTimeValue(booking.endTime);
+        if (!bs || !be) return false;
+        return st < be && et > bs;
+      });
     },
     [bookingsByDate],
   );
@@ -565,7 +845,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       const dayKey = getDayKeyFromDate(dateValue);
       if (!dayKey) return [];
       const slotMap = new Map();
-      availableTrainers.forEach((trainer) => {
+      trainersForSlotMerge.forEach((trainer) => {
         buildHourlySlotsFromRanges(
           trainer?.availableHours?.[dayKey] || [],
         ).forEach((slot) => {
@@ -576,7 +856,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         a.start.localeCompare(b.start),
       );
     },
-    [availableTrainers],
+    [trainersForSlotMerge],
   );
 
   const singleDateGymSlotOptions = React.useMemo(() => {
@@ -613,6 +893,11 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         return;
       }
 
+      if (!String(effectiveBorrowSpecialization || "").trim()) {
+        setEligibleTrainers([]);
+        return;
+      }
+
       let targetRanges = [];
       if (
         form.scheduleMode === "single" &&
@@ -629,7 +914,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         ];
       }
 
-      if (!targetRanges.length || !availableTrainers.length) {
+      if (!targetRanges.length || !trainersForSlotMerge.length) {
         setEligibleTrainers([]);
         return;
       }
@@ -637,7 +922,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       setLoadingEligibleTrainers(true);
       try {
         const matched = [];
-        for (const trainer of availableTrainers) {
+        for (const trainer of trainersForSlotMerge) {
           let isTrainerEligible = true;
           for (const slot of targetRanges) {
             const dayKey = getDayKeyFromDate(slot.date);
@@ -683,7 +968,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
 
     run();
   }, [
-    availableTrainers,
+    trainersForSlotMerge,
+    effectiveBorrowSpecialization,
     form.scheduleMode,
     form.startDate,
     form.startTime,
@@ -856,6 +1142,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             packageId: r?.requestData?.packageId || null,
             packageName: r?.requestData?.packageName || null,
             status: String(r?.status || "").toUpperCase(),
+            bookingId: r?.requestData?.bookingId ?? null,
+            busyTrainerId: r?.requestData?.busyTrainerId ?? null,
+            busyTrainerSpecialization: r?.requestData?.busyTrainerSpecialization || "",
+            borrowSpecialization: r?.requestData?.borrowSpecialization || "",
           }))
           .filter((x) => x.date && x.startTime && x.endTime)
           .sort((a, b) =>
@@ -872,6 +1162,52 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     };
     loadMemberBusySlots();
   }, [form.memberId, form.toGymId]);
+
+  useEffect(() => {
+    if (editing) return;
+    if (String(form.borrowSpecialization || "").trim()) return;
+    if (!form.memberPackageActivationId || !memberPackageOptions.length) return;
+    const row = memberPackageOptions.find(
+      (p) =>
+        String(p.packageActivationId || p.packageId || p.key || "") ===
+        String(form.memberPackageActivationId),
+    );
+    const derived = borrowCanonicalFromPackageLabel(row?.packageName || "");
+    if (!derived) return;
+    setForm((prev) =>
+      String(prev.borrowSpecialization || "").trim()
+        ? prev
+        : { ...prev, borrowSpecialization: derived },
+    );
+  }, [
+    editing,
+    form.borrowSpecialization,
+    form.memberPackageActivationId,
+    memberPackageOptions,
+  ]);
+
+  useEffect(() => {
+    if (editing) return;
+    if (!form.trainerId) return;
+    if (loadingEligibleTrainers) return;
+    if (!form.startDate || !form.startTime || !form.endTime) return;
+    if (!String(effectiveBorrowSpecialization || "").trim()) return;
+    if (
+      eligibleTrainers.some((t) => String(t.id) === String(form.trainerId))
+    ) {
+      return;
+    }
+    setForm((p) => ({ ...p, trainerId: "" }));
+  }, [
+    editing,
+    form.trainerId,
+    form.startDate,
+    form.startTime,
+    form.endTime,
+    effectiveBorrowSpecialization,
+    eligibleTrainers,
+    loadingEligibleTrainers,
+  ]);
 
   const loadLookups = async () => {
     setLoadingLookups(true);
@@ -1041,6 +1377,34 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     isBookingsPage,
     selectedGymId,
   ]);
+
+  const openMemberBookingDetail = useCallback(async (bookingId) => {
+    const id = Number(bookingId);
+    if (!Number.isInteger(id) || id < 1) return;
+    setMemberBookingDetailOpen(true);
+    setMemberBookingDetail(null);
+    setMemberBookingDetailError("");
+    setMemberBookingDetailLoading(true);
+    try {
+      const res = await ownerBookingService.getBookingDetail(id);
+      setMemberBookingDetail(res?.data ?? null);
+    } catch (err) {
+      setMemberBookingDetailError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Không tải được chi tiết buổi tập",
+      );
+    } finally {
+      setMemberBookingDetailLoading(false);
+    }
+  }, []);
+
+  const closeMemberBookingDetail = useCallback(() => {
+    setMemberBookingDetailOpen(false);
+    setMemberBookingDetail(null);
+    setMemberBookingDetailError("");
+    setMemberBookingDetailLoading(false);
+  }, []);
 
   const loadShares = useCallback(
     async (page = currentPage) => {
@@ -1266,7 +1630,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       activeTab === "shares" || activeTab === "received" || isBookingsPage,
     onRefresh: refreshTrainerShareData,
     events: ["notification:new", "trainer_share:changed"],
-    notificationTypes: ["trainer_share"],
+    notificationTypes: ["trainer_share", "booking_update"],
   });
 
   useEffect(() => {
@@ -1328,6 +1692,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       fromGymId: share.fromGymId || "",
       toGymId: share.toGymId || "",
       memberId: share.memberId || "",
+      borrowSpecialization: share.borrowSpecialization || "",
       memberPackageActivationId: "",
       startDate:
         primarySchedule?.date ||
@@ -1355,6 +1720,41 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
+    const borrowForSubmit = String(effectiveBorrowSpecialization || "").trim();
+
+    if (!editing && !borrowForSubmit) {
+      setError(
+        "Chọn slot báo bận (điền nhanh) hoặc chọn huấn luyện viên để hệ thống biết chuyên môn mượn.",
+      );
+      return;
+    }
+
+    if (
+      !editing &&
+      !form.trainerId &&
+      !loadingEligibleTrainers &&
+      eligibleTrainers.length === 0
+    ) {
+      setError(
+        "Không có huấn luyện viên cùng chuyên môn còn rảnh khung giờ này tại phòng tập nguồn.",
+      );
+      return;
+    }
+
+    if (
+      !editing &&
+      form.trainerId &&
+      selectedTrainer &&
+      borrowForSubmit &&
+      !trainerMatchesBorrowSpecialization(
+        selectedTrainer.specialization,
+        borrowForSubmit,
+      )
+    ) {
+      setError("Huấn luyện viên đã chọn không khớp chuyên môn mượn.");
+      return;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -1372,25 +1772,18 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
-    // Validate time conflict
-    if (shareTrainerSchedule.length > 0) {
-      const hasConflict = shareTrainerSchedule.some((daySchedule) => {
-        // Find time range for this day
-        let dayTimeRange = null;
-
-        dayTimeRange = { startTime: form.startTime, endTime: form.endTime };
-
-        if (!dayTimeRange) return false;
-
-        return daySchedule.bookings
-          .filter((b) => b.type !== "trainer_share")
-          .some((s) => {
-            return (
-              dayTimeRange.startTime < s.endTime &&
-              dayTimeRange.endTime > s.startTime
-            );
-          });
-      });
+    // Validate time conflict (chỉ ngày đang chọn; cùng logic lọc với chọn slot)
+    if (form.startDate) {
+      const bookings = bookingsByDate.get(form.startDate) || [];
+      const st = normalizeTimeValue(form.startTime);
+      const et = normalizeTimeValue(form.endTime);
+      const hasConflict =
+        Boolean(st && et) &&
+        bookings.some((s) => {
+          const bs = normalizeTimeValue(s.startTime);
+          const be = normalizeTimeValue(s.endTime);
+          return Boolean(bs && be && st < be && et > bs);
+        });
 
       if (hasConflict) {
         setError(
@@ -1431,6 +1824,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           notes: form.notes || "",
           shareType: DEFAULT_SHARE_TYPE,
           commissionSplit: DEFAULT_COMMISSION_SPLIT,
+          borrowSpecialization: String(effectiveBorrowSpecialization || "").trim(),
         };
         await ownerCreateTrainerShare(sharePayload);
         setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
@@ -1564,6 +1958,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             >
               <option value="">Tất cả</option>
               <option value="waiting_acceptance">Chờ chấp nhận</option>
+              <option value="pending_trainer">Chờ PT nhận lịch</option>
               <option value="approved">Đã chấp nhận</option>
               <option value="rejected">Từ chối</option>
             </select>
@@ -1657,7 +2052,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="ots-actions">
-                          {share.status === "waiting_acceptance" && (
+                          {(share.status === "waiting_acceptance" ||
+                            share.status === "pending_trainer") && (
                             <>
                               <button
                                 className="ots-btn ots-btn--sm ots-btn--secondary"
@@ -1755,11 +2151,11 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               </div>
             </div>
             <div className="ots-stat-card ots-stat-card--warning">
-              <div className="ots-stat-card__label">Chờ chấp nhận</div>
+              <div className="ots-stat-card__label">Chờ xử lý</div>
               <div className="ots-stat-card__value">
                 {
-                  visibleReceivedShares.filter(
-                    (s) => s.status === "waiting_acceptance",
+                  visibleReceivedShares.filter((s) =>
+                    ["waiting_acceptance", "pending_trainer"].includes(s.status),
                   ).length
                 }
               </div>
@@ -1807,6 +2203,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             >
               <option value="">Tất cả trạng thái</option>
               <option value="waiting_acceptance">Chờ chấp nhận</option>
+              <option value="pending_trainer">Chờ PT nhận lịch</option>
               <option value="approved">Đã chấp nhận</option>
               <option value="rejected_by_partner">Đã từ chối</option>
             </select>
@@ -1891,7 +2288,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       <td>
                         <span
                           className={`ots-badge ${
-                            share.status === "waiting_acceptance"
+                            share.status === "waiting_acceptance" ||
+                            share.status === "pending_trainer"
                               ? "ots-badge--warning"
                               : share.status === "approved"
                                 ? "ots-badge--success"
@@ -1922,6 +2320,24 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                                 title="Chấp nhận"
                               >
                                 Chấp nhận
+                              </button>
+                              <button
+                                className="ots-btn ots-btn--sm ots-btn--danger"
+                                onClick={() => handleRejectShare(share.id)}
+                                title="Từ chối"
+                              >
+                                Từ chối
+                              </button>
+                            </>
+                          )}
+                          {share.status === "pending_trainer" && (
+                            <>
+                              <button
+                                className="ots-btn ots-btn--sm ots-btn--info"
+                                onClick={() => handleViewTrainerSchedule(share)}
+                                title="Xem lịch huấn luyện viên"
+                              >
+                                Lịch
                               </button>
                               <button
                                 className="ots-btn ots-btn--sm ots-btn--danger"
@@ -2253,7 +2669,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                   Lịch tập hội viên
                 </h3>
                 <p className="ots-availability-panel__subtitle">
-                  Danh sách lịch tập của hội viên theo chi nhánh và ngày đã chọn
+                  Danh sách lịch tập của hội viên theo chi nhánh và ngày đã chọn.
+                  Bấm vào một buổi để xem đầy đủ thông tin.
                 </p>
               </div>
             </div>
@@ -2267,21 +2684,33 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             ) : (
               <div className="ots-member-schedule-list">
                 {paginatedMemberDailyBookings.map((booking) => {
-                  const busyRequested =
-                    Boolean(booking?.busyRequested) ||
-                    hasBusyRequestMarker(booking?.notes);
-                  const scheduleStatus = getMemberScheduleStatus(
-                    booking?.status,
-                  );
+                  const slotPres = getMemberSlotStatusPresentation(booking);
+                  const shareSlot =
+                    String(booking?.sessionType || "").toLowerCase() ===
+                    "trainer_share";
                   return (
                     <div
                       key={booking.id}
-                      className={`ots-member-schedule-item ${busyRequested ? "is-busy-requested" : ""}`}
+                      role="button"
+                      tabIndex={0}
+                      className={`ots-member-schedule-item ots-member-schedule-item--clickable ${slotPres.cardBusyBorder ? "is-busy-requested" : ""}`}
+                      onClick={() => openMemberBookingDetail(booking.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openMemberBookingDetail(booking.id);
+                        }
+                      }}
                     >
                       <div className="ots-member-schedule-item__left">
                         <div className="ots-member-schedule-item__time">
                           {normalizeTimeValue(booking.startTime)} -{" "}
                           {normalizeTimeValue(booking.endTime)}
+                          {shareSlot ? (
+                            <span className="ots-member-schedule-item__slotTag">
+                              Mượn PT
+                            </span>
+                          ) : null}
                         </div>
                         <div className="ots-member-schedule-item__meta">
                           Hội viên:{" "}
@@ -2297,11 +2726,16 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         </div>
                       </div>
                       <div
-                        className={`ots-member-schedule-item__status ${busyRequested ? "is-busy-requested" : ""} ${!busyRequested ? `is-${scheduleStatus.key}` : ""}`}
+                        className={`ots-member-schedule-item__status is-${slotPres.cssTone}`}
                       >
-                        {busyRequested
-                          ? "Huấn luyện viên báo bận"
-                          : scheduleStatus.label}
+                        <span className="ots-member-schedule-item__statusPrimary">
+                          {slotPres.primaryLabel}
+                        </span>
+                        {slotPres.detailLine ? (
+                          <span className="ots-member-schedule-item__statusSub">
+                            {slotPres.detailLine}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -2337,6 +2771,166 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 </button>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {memberBookingDetailOpen && (
+        <div className="ots-modal">
+          <div
+            className="ots-modal__backdrop"
+            onClick={closeMemberBookingDetail}
+          />
+          <div className="ots-modal__content ots-modal__content--booking-detail">
+            <div className="ots-modal__header">
+              <h2>Chi tiết buổi tập</h2>
+              <button
+                type="button"
+                className="ots-modal__close"
+                onClick={closeMemberBookingDetail}
+                aria-label="Đóng"
+              >
+                ×
+              </button>
+            </div>
+            <div className="ots-modal__body ots-booking-detail-body">
+              {memberBookingDetailLoading ? (
+                <p className="ots-empty-text">Đang tải chi tiết...</p>
+              ) : memberBookingDetailError ? (
+                <p className="ots-alert ots-alert--danger">
+                  {memberBookingDetailError}
+                </p>
+              ) : memberBookingDetail ? (
+                (() => {
+                  const b = memberBookingDetail;
+                  const slotPres = getMemberSlotStatusPresentation(b);
+                  const mu = b.Member?.User;
+                  const tu = b.Trainer?.User;
+                  const fmtDt = (v) => {
+                    if (!v) return "—";
+                    const d = new Date(v);
+                    return Number.isNaN(d.getTime())
+                      ? String(v)
+                      : d.toLocaleString("vi-VN");
+                  };
+                  const row = (label, value) => (
+                    <div className="ots-booking-detail__row" key={label}>
+                      <div className="ots-booking-detail__label">{label}</div>
+                      <div className="ots-booking-detail__value">{value}</div>
+                    </div>
+                  );
+                  return (
+                    <div className="ots-booking-detail">
+                      {row("Mã buổi", `#${b.id}`)}
+                      {row(
+                        "Thời gian",
+                        <>
+                          {formatDate(b.bookingDate)} •{" "}
+                          {normalizeTimeValue(b.startTime)} –{" "}
+                          {normalizeTimeValue(b.endTime)}
+                        </>,
+                      )}
+                      {row("Chi nhánh", b.Gym?.name || "—")}
+                      {row(
+                        "Hội viên",
+                        <>
+                          {mu?.username || (b.memberId ? `#${b.memberId}` : "—")}
+                          {mu?.email ? (
+                            <>
+                              <br />
+                              <span className="ots-booking-detail__muted">
+                                {mu.email}
+                              </span>
+                            </>
+                          ) : null}
+                          {mu?.phone ? (
+                            <>
+                              <br />
+                              <span className="ots-booking-detail__muted">
+                                {mu.phone}
+                              </span>
+                            </>
+                          ) : null}
+                        </>,
+                      )}
+                      {b.Member?.membershipNumber
+                        ? row("Mã thẻ hội viên", b.Member.membershipNumber)
+                        : null}
+                      {row(
+                        "Huấn luyện viên",
+                        <>
+                          {tu?.username ||
+                            (b.trainerId ? `#${b.trainerId}` : "—")}
+                          {b.Trainer?.specialization ? (
+                            <>
+                              <br />
+                              <span className="ots-booking-detail__muted">
+                                {specializationToVietnamese(
+                                  b.Trainer.specialization,
+                                )}
+                              </span>
+                            </>
+                          ) : null}
+                        </>,
+                      )}
+                      {row("Gói / dịch vụ", b.Package?.name || "—")}
+                      {row("Loại buổi", sessionTypeLabelVi(b.sessionType))}
+                      {row(
+                        "Trạng thái buổi",
+                        <div className="ots-booking-detail__statusBlock">
+                          <span
+                            className={`ots-booking-detail__statusPill is-${slotPres.cssTone}`}
+                          >
+                            {slotPres.primaryLabel}
+                          </span>
+                          {slotPres.detailLine ? (
+                            <div className="ots-booking-detail__statusDetail">
+                              {slotPres.detailLine}
+                            </div>
+                          ) : null}
+                        </div>,
+                      )}
+                      {b.checkinTime
+                        ? row("Check-in", fmtDt(b.checkinTime))
+                        : null}
+                      {b.checkoutTime
+                        ? row("Check-out", fmtDt(b.checkoutTime))
+                        : null}
+                      {b.rating
+                        ? row("Đánh giá", `${b.rating}/5`)
+                        : null}
+                      {b.reviewComment
+                        ? row("Nhận xét hội viên", b.reviewComment)
+                        : null}
+                      {b.sessionNotes
+                        ? row("Ghi chú buổi tập", b.sessionNotes)
+                        : null}
+                      {b.notes ? (
+                        <div className="ots-booking-detail__notes-block">
+                          <div className="ots-booking-detail__label">
+                            Ghi chú hệ thống / nội bộ
+                          </div>
+                          <pre className="ots-booking-detail__notes-pre">
+                            {String(b.notes)}
+                          </pre>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()
+              ) : (
+                <p className="ots-empty-text">Không có dữ liệu.</p>
+              )}
+            </div>
+            <div className="ots-modal__footer">
+              <button
+                type="button"
+                className="ots-btn ots-btn--secondary"
+                onClick={closeMemberBookingDetail}
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2388,6 +2982,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       ...form,
                       fromGymId: e.target.value,
                       trainerId: "",
+                      borrowSpecialization: "",
+                      startTime: "",
+                      endTime: "",
                     })
                   }
                   required
@@ -2403,40 +3000,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         {g.name} ({g.address || g.location || "N/A"})
                       </option>
                     ))}
-                </select>
-              </Field>
-
-              <Field
-                label="Huấn luyện viên cần mượn"
-                hint="Có thể để trống, nhưng cần chọn huấn luyện viên trước khi chọn khung giờ realtime 1 tiếng"
-              >
-                <select
-                  className="ots-select"
-                  value={form.trainerId}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      trainerId: e.target.value,
-                      startTime: "",
-                      endTime: "",
-                      endDate: "",
-                    })
-                  }
-                  disabled={
-                    !form.fromGymId || loadingLookups || Boolean(editing)
-                  }
-                >
-                  <option value="">
-                    {!form.fromGymId
-                      ? "-- Chọn phòng tập trước --"
-                      : "-- Chọn huấn luyện viên --"}
-                  </option>
-                  {availableTrainers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.User?.username || "N/A"}{" "}
-                      {t.specialization ? `(${t.specialization})` : ""}
-                    </option>
-                  ))}
                 </select>
               </Field>
 
@@ -2537,42 +3100,50 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     <div className="op-trainer-hint">
                       Đang tải slot huấn luyện viên báo bận...
                     </div>
-                  ) : memberBusySlots.length === 0 ? (
+                  ) : filteredMemberBusySlots.length === 0 ? (
                     <div className="op-trainer-hint">
-                      Chưa có slot huấn luyện viên báo bận cho hội viên này.
+                      Chưa có slot huấn luyện viên báo bận cho hội viên này
+                      {form.memberPackageActivationId
+                        ? " (theo gói đã chọn)"
+                        : ""}
+                      .
                     </div>
                   ) : (
                     <div className="op-trainer-list">
-                      {memberBusySlots
-                        .filter(
-                          (slot) =>
-                            !form.memberPackageActivationId ||
-                            String(
-                              slot.packageActivationId || slot.packageId || "",
-                            ) === String(form.memberPackageActivationId),
-                        )
-                        .map((slot) => (
+                      {filteredMemberBusySlots.map((slot) => {
+                          const slotBorrow = borrowSpecializationFromBusySlot(slot);
+                          return (
                           <button
                             key={`busy-${slot.id}-${slot.date}-${slot.startTime}`}
                             type="button"
                             className="op-trainer-item is-selected"
                             onClick={() =>
-                              setForm((prev) => ({
-                                ...prev,
-                                startDate: slot.date,
-                                endDate: slot.date,
-                                startTime: slot.startTime,
-                                endTime: slot.endTime,
-                              }))
+                              setForm((prev) => {
+                                const mappedSpec = borrowSpecializationFromBusySlot(slot);
+                                return {
+                                  ...prev,
+                                  startDate: slot.date,
+                                  endDate: slot.date,
+                                  startTime: slot.startTime,
+                                  endTime: slot.endTime,
+                                  trainerId: "",
+                                  borrowSpecialization:
+                                    mappedSpec || prev.borrowSpecialization,
+                                };
+                              })
                             }
                           >
                             <span className="op-trainer-text">
                               <strong>{formatDate(slot.date)}</strong> •{" "}
                               {slot.startTime} - {slot.endTime}
                               {slot.packageName ? ` • ${slot.packageName}` : ""}
+                              {slotBorrow
+                                ? ` • CM: ${specializationToVietnamese(slotBorrow) || slotBorrow}`
+                                : ""}
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                     </div>
                   )}
                 </Field>
@@ -2583,7 +3154,15 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               {/* Single date mode */}
               {form.scheduleMode === "single" && (
                 <>
-                  <Field label="Ngày mượn huấn luyện viên" required>
+                  <Field
+                    label="Ngày mượn huấn luyện viên"
+                    required
+                    hint={
+                      busyScheduleLocked && !editing
+                        ? "Ngày này lấy theo đơn báo bận (một slot duy nhất). Đổi hội viên / gói hoặc chọn slot khác ở trên nếu cần."
+                        : undefined
+                    }
+                  >
                     <input
                       type="date"
                       className="ots-input"
@@ -2595,10 +3174,17 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                           endDate: e.target.value,
                           startTime: "",
                           endTime: "",
+                          trainerId: "",
                         })
                       }
                       min={new Date().toISOString().split("T")[0]}
                       required
+                      readOnly={busyScheduleLocked && !editing}
+                      style={
+                        busyScheduleLocked && !editing
+                          ? { opacity: 0.85, cursor: "not-allowed" }
+                          : undefined
+                      }
                     />
                   </Field>
                   <div className="ots-row">
@@ -2606,13 +3192,17 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       label="Khung giờ huấn luyện viên"
                       required={Boolean(selectedTrainer)}
                       hint={
-                        !selectedTrainer
-                          ? "Không chọn huấn luyện viên: hệ thống hiển thị khung giờ tổng hợp của phòng tập nguồn"
-                          : singleDateAllSlots.length === 0
-                            ? "Huấn luyện viên không có ca làm việc trong ngày này"
-                            : singleDateSlotOptions.length === 0
-                              ? "Tất cả slot trong ngày này đã bận"
-                              : undefined
+                        busyScheduleLocked && !editing
+                          ? "Khung giờ theo đơn báo bận (không đổi ở đây)."
+                          : !selectedTrainer
+                            ? String(effectiveBorrowSpecialization || "").trim()
+                              ? "Khung giờ gộp từ các PT cùng chuyên môn (theo slot báo bận hoặc PT đã chọn) tại phòng nguồn — mỗi khung 1 tiếng."
+                              : "Không chọn PT: hiển thị khung giờ tổng hợp mọi PT phòng nguồn. Chọn slot báo bận hoặc chọn PT để lọc theo chuyên môn."
+                            : singleDateAllSlots.length === 0
+                              ? "Huấn luyện viên không có ca làm việc trong ngày này"
+                              : singleDateSlotOptions.length === 0
+                                ? "Tất cả slot trong ngày này đã bận"
+                                : undefined
                       }
                     >
                       <select
@@ -2633,6 +3223,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                           });
                         }}
                         disabled={
+                          (busyScheduleLocked && !editing) ||
                           !form.startDate ||
                           (selectedTrainer
                             ? singleDateAllSlots.length === 0
@@ -2663,14 +3254,80 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       </select>
                       {!selectedTrainer && (
                         <small className="op-spec-empty-help">
-                          Khung giờ tổng hợp từ huấn luyện viên của phòng tập
-                          nguồn (1 tiếng/khung).
+                          {String(effectiveBorrowSpecialization || "").trim()
+                            ? "Chỉ các khung mà ít nhất một PT cùng chuyên môn (đã xác định) đăng ký rảnh."
+                            : "Gộp khung giờ mọi PT phòng nguồn; chọn slot báo bận hoặc PT để thu hẹp theo chuyên môn."}
                         </small>
                       )}
                     </Field>
                   </div>
                 </>
               )}
+
+              <Field
+                label="Huấn luyện viên cần mượn"
+                hint="Chỉ liệt kê PT cùng chuyên môn (theo gói / slot báo bận) và còn rảnh đúng ngày — giờ đã chọn (mặc định theo báo bận nếu chỉ một slot). Để trống để gửi yêu cầu mở cho tất cả PT trong danh sách."
+              >
+                <select
+                  className="ots-select"
+                  value={form.trainerId}
+                  onChange={(e) => {
+                    const trainerId = e.target.value;
+                    const t = availableTrainers.find(
+                      (x) => String(x.id) === String(trainerId),
+                    );
+                    let nextBorrow = form.borrowSpecialization;
+                    if (trainerId && t?.specialization) {
+                      const derived = borrowCanonicalFromTrainerSpecialization(
+                        t.specialization,
+                      );
+                      if (derived) nextBorrow = derived;
+                    }
+                    setForm({
+                      ...form,
+                      trainerId,
+                      startTime: "",
+                      endTime: "",
+                      borrowSpecialization: nextBorrow,
+                      endDate: "",
+                    });
+                  }}
+                  disabled={
+                    Boolean(editing) ||
+                    !form.fromGymId ||
+                    loadingLookups ||
+                    !form.startDate ||
+                    !form.startTime ||
+                    !form.endTime ||
+                    !String(effectiveBorrowSpecialization || "").trim() ||
+                    loadingEligibleTrainers
+                  }
+                >
+                  <option value="">
+                    {!form.fromGymId
+                      ? "-- Chọn phòng tập nguồn trước --"
+                      : loadingEligibleTrainers
+                        ? "-- Đang kiểm tra PT rảnh... --"
+                        : !form.startDate ||
+                            !form.startTime ||
+                            !form.endTime
+                          ? "-- Chọn slot báo bận hoặc đợi hệ thống điền ngày — giờ --"
+                          : !String(effectiveBorrowSpecialization || "").trim()
+                            ? "-- Chọn gói hoặc slot báo bận (chuyên môn) --"
+                            : trainerBorrowSelectOptions.length === 0
+                              ? "-- Không có PT rảnh cùng chuyên môn --"
+                              : "-- Không chỉ định (gửi cho mọi PT trong danh sách) --"}
+                  </option>
+                  {trainerBorrowSelectOptions.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.User?.username || "N/A"}{" "}
+                      {t.specialization
+                        ? `(${specializationToVietnamese(t.specialization) || t.specialization})`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
               {/* Đã bỏ các chế độ date_range và multiple_dates */}
 
@@ -2691,15 +3348,11 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     <div className="ots-schedule-days">
                       {shareTrainerSchedule.map((daySchedule, dayIdx) => {
                         const filteredBookings =
-                          daySchedule.bookings?.filter(
-                            (b) => b.type !== "trainer_share",
-                          ) || [];
+                          filterBookingsForBusySlotCheck(
+                            daySchedule.date,
+                            daySchedule.bookings,
+                          );
                         const hasBookings = filteredBookings.length > 0;
-
-                        const dayTimeRange = {
-                          startTime: form.startTime,
-                          endTime: form.endTime,
-                        };
 
                         return (
                           <div key={dayIdx} className="ots-schedule-day">
@@ -2717,13 +3370,20 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             {hasBookings && (
                               <div className="ots-schedule-list">
                                 {filteredBookings.map((s, idx) => {
-                                  // Check conflict nếu có time range
+                                  const st = normalizeTimeValue(form.startTime);
+                                  const et = normalizeTimeValue(form.endTime);
+                                  const bs = normalizeTimeValue(s.startTime);
+                                  const be = normalizeTimeValue(s.endTime);
                                   const isConflict =
-                                    dayTimeRange &&
-                                    dayTimeRange.startTime &&
-                                    dayTimeRange.endTime &&
-                                    dayTimeRange.startTime < s.endTime &&
-                                    dayTimeRange.endTime > s.startTime;
+                                    daySchedule.date === form.startDate &&
+                                    Boolean(
+                                      st &&
+                                        et &&
+                                        bs &&
+                                        be &&
+                                        st < be &&
+                                        et > bs,
+                                    );
 
                                   return (
                                     <div
@@ -2759,42 +3419,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       })}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {!selectedTrainer && form.startTime && form.endTime && (
-                <div className="op-row">
-                  <label>
-                    Huấn luyện viên đang rảnh theo khung giờ đã chọn
-                  </label>
-                  {loadingEligibleTrainers ? (
-                    <div className="op-trainer-hint">
-                      Đang kiểm tra realtime...
-                    </div>
-                  ) : eligibleTrainers.length === 0 ? (
-                    <div className="op-trainer-hint">
-                      Hiện chưa có huấn luyện viên nào rảnh khung giờ này.
-                    </div>
-                  ) : (
-                    <div className="op-trainer-list">
-                      {eligibleTrainers.map((trainer) => (
-                        <div
-                          key={trainer.id}
-                          className="op-trainer-item is-selected"
-                        >
-                          <span className="op-trainer-text">
-                            <strong>
-                              {trainer?.User?.username ||
-                                `Huấn luyện viên #${trainer.id}`}
-                            </strong>
-                            {trainer?.User?.phone
-                              ? ` • ${trainer.User.phone}`
-                              : ""}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -3141,9 +3765,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
 
                   {shareTrainerSchedule.map((schedule, idx) => {
                     const filteredScheduleBookings =
-                      schedule.bookings?.filter(
-                        (b) => b.type !== "trainer_share",
-                      ) || [];
+                      filterBookingsForBusySlotCheck(
+                        schedule.date,
+                        schedule.bookings,
+                      );
                     return (
                       <div
                         key={idx}
@@ -3314,6 +3939,18 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     </button>
                   </>
                 )}
+                {selectedShareForSchedule.status === "pending_trainer" && (
+                  <button
+                    type="button"
+                    className="ots-btn ots-btn--danger"
+                    onClick={() => {
+                      setShowScheduleModal(false);
+                      handleRejectShare(selectedShareForSchedule.id);
+                    }}
+                  >
+                    Từ chối yêu cầu
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -3424,7 +4061,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             </div>
 
             <div className="modal-footer">
-              {selectedShare.status === "waiting_acceptance" && (
+              {(selectedShare.status === "waiting_acceptance" ||
+                selectedShare.status === "pending_trainer") && (
                 <>
                   <button
                     onClick={() => {
