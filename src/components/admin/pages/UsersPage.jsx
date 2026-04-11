@@ -292,10 +292,20 @@ export default function UsersPage() {
     }
   };
 
-  const gotoPage = (p) => {
-    if (p < 1 || p > meta.totalPages) return;
-    fetchUsers({ page: p, limit: meta.limit, searchText: search, sb: sortBy, so: sortOrder, st: statusFilter });
+  const gotoPage = (nextPage) => {
+    const safePage = Math.max(1, Math.min(Number(meta.totalPages || 1), Number(nextPage || 1)));
+    if (safePage === Number(meta.page || 1)) return;
+    fetchUsers({ page: safePage, limit: meta.limit, searchText: search, sb: sortBy, so: sortOrder, st: statusFilter });
   };
+
+  const visiblePages = useMemo(() => {
+    const total = Math.max(1, Number(meta.totalPages || 1));
+    const current = Math.max(1, Math.min(total, Number(meta.page || 1)));
+    const maxButtons = 7;
+    const start = Math.max(1, Math.min(current - Math.floor(maxButtons / 2), total - maxButtons + 1));
+    const end = Math.min(total, start + maxButtons - 1);
+    return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
+  }, [meta.page, meta.totalPages]);
 
   const headerSortIcon = (field) => {
     if (sortBy !== field) return "↕";
@@ -401,19 +411,15 @@ export default function UsersPage() {
             </button>
 
             <div className="up-pages">
-              {Array.from({ length: Math.min(7, meta.totalPages) }).map((_, i) => {
-                const start = Math.max(1, meta.page - 3);
-                const p = Math.min(meta.totalPages, start + i);
-                return (
-                  <button
-                    key={p}
-                    className={`up-page ${p === meta.page ? "is-active" : ""}`}
-                    onClick={() => gotoPage(p)}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
+              {visiblePages.map((p) => (
+                <button
+                  key={p}
+                  className={`up-page ${p === meta.page ? "is-active" : ""}`}
+                  onClick={() => gotoPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
 
             <button className="up-btn up-btn--ghost" onClick={() => gotoPage(meta.page + 1)} disabled={meta.page >= meta.totalPages}>
