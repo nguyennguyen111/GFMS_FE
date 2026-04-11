@@ -5,7 +5,9 @@
 .gp-owner { display: flex; flex-direction: column; gap: 2px; }
 
 .gp-detail {
-  max-width: 880px;
+  width: 100%;
+  max-width: none;
+  align-self: stretch;
 }
 
 .gp-detail__body {

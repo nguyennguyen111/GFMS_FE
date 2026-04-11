@@ -8,12 +8,10 @@ import {
   ownerGetFranchiseRequestDetail,
   ownerCreateFranchiseRequest,
   ownerUpdateFranchiseRequest,
-  ownerDeleteFranchiseRequest,
   ownerDownloadFranchiseContractPdf,
 } from "../../../services/ownerFranchiseService";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
-import { showAppConfirm } from "../../../utils/appDialog";
 
 /** Giống admin FranchiseRequestsPage — trạng thái luồng hợp đồng */
 const CONTRACT_LABEL = {
@@ -106,6 +104,7 @@ export default function OwnerFranchiseRequestsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailRequest, setDetailRequest] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
+  const [submitting, setSubmitting] = useState(false);
 
   const [filters, setFilters] = useState({ q: "", status: "" });
   const [currentPage, setCurrentPage] = useState(1);
@@ -318,6 +317,22 @@ export default function OwnerFranchiseRequestsPage() {
     setDetailRequest(null);
   };
 
+  const getDecisionMessage = useCallback((req) => {
+    if (!req) return "—";
+    const rawReason = req.rejectionReason || req.reviewNotes || "";
+    if (req.status === "approved") {
+      return rawReason?.trim()
+        ? `Yêu cầu nhượng quyền #${req.id} đã được duyệt. Ghi chú admin: ${rawReason.trim()}`
+        : `Yêu cầu nhượng quyền #${req.id} đã được duyệt. Bước tiếp theo: ký hợp đồng nhượng quyền.`;
+    }
+    if (req.status === "rejected") {
+      return rawReason?.trim()
+        ? `Yêu cầu nhượng quyền #${req.id} bị từ chối. Lý do: ${rawReason.trim()}`
+        : `Yêu cầu nhượng quyền #${req.id} bị từ chối.`;
+    }
+    return "—";
+  }, []);
+
   // Mở modal sửa
   const handleEdit = (req) => {
     closeActionMenu();
@@ -337,8 +352,10 @@ export default function OwnerFranchiseRequestsPage() {
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     setSuccess("");
+    setSubmitting(true);
 
     try {
       if (editing) {
@@ -350,30 +367,11 @@ export default function OwnerFranchiseRequestsPage() {
       }
 
       setShowModal(false);
-      loadRequests();
+      await loadRequests();
     } catch (err) {
       setError(err.response?.data?.message || "Có lỗi xảy ra");
-    }
-  };
-
-  // Xóa request
-  const handleDelete = async (id) => {
-    const confirmResult = await showAppConfirm({
-      title: "Xác nhận xóa",
-      message: "Bạn có chắc muốn xóa yêu cầu này?",
-      confirmText: "Xóa",
-      cancelText: "Hủy",
-    });
-    if (!confirmResult.confirmed) return;
-
-    try {
-      setError("");
-      setSuccess("");
-      await ownerDeleteFranchiseRequest(id);
-      setSuccess("Đã xóa yêu cầu");
-      loadRequests();
-    } catch (err) {
-      setError(err.response?.data?.message || "Không thể xóa");
+    } finally {
+      setSubmitting(false);
     }
   };
   // Format date
@@ -500,15 +498,6 @@ export default function OwnerFranchiseRequestsPage() {
                             }}
                           >
                             Sửa
-                          </button>
-                          <button
-                            className="ofr-btn ofr-btn--sm ofr-btn--danger"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(req.id);
-                            }}
-                          >
-                            Xóa
                           </button>
                         </>
                       )}
@@ -740,6 +729,16 @@ export default function OwnerFranchiseRequestsPage() {
                     <div className="ofr-detail__panel">{detailRequest.businessPlan || "Chưa có mô tả."}</div>
                   </div>
 
+                  {(detailRequest.status === "approved" || detailRequest.status === "rejected") ? (
+                    <div className="ofr-detail__section">
+                      <div className="ofr-detail__label">Phản hồi từ admin</div>
+                      <div className="ofr-detail__panel">
+                        <div><strong>Lý do / ghi chú:</strong> {detailRequest.rejectionReason || detailRequest.reviewNotes || "—"}</div>
+                        <div style={{ marginTop: 8 }}><strong>Tin nhắn đã gửi:</strong> {getDecisionMessage(detailRequest)}</div>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="ofr-form__actions ofr-form__actions--detail">
                     {detailRequest.status === "pending" && (
                       <button
@@ -857,8 +856,8 @@ export default function OwnerFranchiseRequestsPage() {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="ofr-btn ofr-btn--primary">
-                  {editing ? "Cập nhật" : "Tạo mới"}
+                <button type="submit" className="ofr-btn ofr-btn--primary" disabled={submitting}>
+                  {submitting ? (editing ? "Đang cập nhật..." : "Đang tạo...") : (editing ? "Cập nhật" : "Tạo mới")}
                 </button>
               </div>
             </form>
