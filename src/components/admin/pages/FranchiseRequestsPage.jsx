@@ -15,7 +15,7 @@ const CONTRACT_LABEL = {
   void: "Vô hiệu",
 };
 
-const SHOW_DEV_ACTIONS = process.env.NODE_ENV !== "production";
+const SHOW_DEV_ACTIONS = false;
 
 function formatMoney(v) {
   if (v === null || v === undefined) return "-";
@@ -57,6 +57,22 @@ const canSimulateOwnerSigned = (r) =>
 
 const canCountersign = (r) => r.status === "approved" && r.contractStatus === "signed";
 const isCompleted = (r) => r.contractStatus === "completed" && r.gymId;
+
+function buildDecisionMessage(r) {
+  if (!r) return "-";
+  const note = String(r.rejectionReason || r.reviewNotes || "").trim();
+  if (r.status === "approved") {
+    return note
+      ? `Yêu cầu nhượng quyền #${r.id} đã được duyệt. Ghi chú admin: ${note}`
+      : `Yêu cầu nhượng quyền #${r.id} đã được duyệt. Bước tiếp theo: ký hợp đồng nhượng quyền.`;
+  }
+  if (r.status === "rejected") {
+    return note
+      ? `Yêu cầu nhượng quyền #${r.id} bị từ chối. Lý do: ${note}`
+      : `Yêu cầu nhượng quyền #${r.id} bị từ chối.`;
+  }
+  return "-";
+}
 
 export default function FranchiseRequestsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -663,34 +679,6 @@ export default function FranchiseRequestsPage() {
                                   >
                                     Làm mới trạng thái
                                   </button>
-
-                                  {SHOW_DEV_ACTIONS ? (
-                                    <>
-                                      <div className="fr-menuHeading">Dev</div>
-                                      <button
-                                        type="button"
-                                        className={`fr-menuItem ${!canSimulateViewed(r) ? "disabled" : ""}`}
-                                        disabled={busy || !canSimulateViewed(r)}
-                                        onClick={() => {
-                                          setActionMenuId(null);
-                                          runAction(r.id, () => adminFranchiseApi.simulateEvent(r.id, "viewed"));
-                                        }}
-                                      >
-                                        Mô phỏng: đã xem
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className={`fr-menuItem ${!canSimulateOwnerSigned(r) ? "disabled" : ""}`}
-                                        disabled={busy || !canSimulateOwnerSigned(r)}
-                                        onClick={() => {
-                                          setActionMenuId(null);
-                                          runAction(r.id, () => adminFranchiseApi.simulateEvent(r.id, "owner_signed"));
-                                        }}
-                                      >
-                                        Mô phỏng: chủ đã ký
-                                      </button>
-                                    </>
-                                  ) : null}
                                 </div>
                               ) : null}
                             </div>
@@ -805,6 +793,24 @@ export default function FranchiseRequestsPage() {
                         >
                           Mở
                         </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {(r.status === "approved" || r.status === "rejected") ? (
+                    <div className="fr-detailLink">
+                      <div className="fr-muted" style={{ marginBottom: 6 }}>Phản hồi xử lý</div>
+                      <div className="fr-detailGrid">
+                        <div className="fr-detailCard">
+                          <div className="fr-detailLabel">Lý do / ghi chú</div>
+                          <div className="fr-detailValue">{r.rejectionReason || r.reviewNotes || "-"}</div>
+                          <div className="fr-detailMuted">Người xử lý: {r.reviewer?.username || r.reviewer?.email || "-"}</div>
+                        </div>
+                        <div className="fr-detailCard">
+                          <div className="fr-detailLabel">Tin nhắn đã gửi owner</div>
+                          <div className="fr-detailValue">{buildDecisionMessage(r)}</div>
+                          <div className="fr-detailMuted">Trạng thái: {STATUS_LABEL[r.status] || r.status}</div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
