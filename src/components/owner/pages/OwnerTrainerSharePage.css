@@ -579,6 +579,156 @@
   transform: translateY(-1px);
 }
 
+.ots-modal__content--booking-detail {
+  max-width: 560px;
+}
+
+.ots-modal__body {
+  padding: 16px 20px 8px;
+}
+
+.ots-modal__footer {
+  padding: 12px 20px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ots-booking-detail-body {
+  min-height: 100px;
+}
+
+.ots-booking-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ots-booking-detail__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 38%) 1fr;
+  gap: 10px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 13px;
+  align-items: start;
+}
+
+.ots-booking-detail__row:last-of-type {
+  border-bottom: none;
+}
+
+.ots-booking-detail__label {
+  color: rgba(226, 232, 240, 0.55);
+  font-weight: 600;
+}
+
+.ots-booking-detail__value {
+  color: #f1f5f9;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.ots-booking-detail__muted {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 12px;
+}
+
+.ots-booking-detail__badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ots-booking-detail__badge--busy {
+  background: rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fffbeb;
+}
+
+.ots-booking-detail__statusBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ots-booking-detail__statusPill {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.ots-booking-detail__statusPill.is-completed {
+  background: rgba(0, 227, 166, 0.2);
+  border-color: rgba(0, 227, 166, 0.45);
+  color: #e7fff6;
+}
+
+.ots-booking-detail__statusPill.is-in_progress {
+  background: rgba(214, 255, 0, 0.22);
+  border-color: rgba(214, 255, 0, 0.52);
+  color: #f8ffe0;
+}
+
+.ots-booking-detail__statusPill.is-confirmed,
+.ots-booking-detail__statusPill.is-pending {
+  background: rgba(0, 186, 255, 0.2);
+  border-color: rgba(0, 186, 255, 0.45);
+  color: #e0f2ff;
+}
+
+.ots-booking-detail__statusPill.is-busy-requested {
+  background: rgba(245, 158, 11, 0.24);
+  border-color: rgba(245, 158, 11, 0.52);
+  color: rgba(255, 251, 235, 0.96);
+}
+
+.ots-booking-detail__statusPill.is-cancelled,
+.ots-booking-detail__statusPill.is-no_show {
+  background: rgba(255, 85, 85, 0.2);
+  border-color: rgba(255, 85, 85, 0.45);
+  color: #ffe8e8;
+}
+
+.ots-booking-detail__statusDetail {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.82);
+  max-width: 100%;
+}
+
+.ots-booking-detail__notes-block {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.ots-booking-detail__notes-pre {
+  margin: 8px 0 0;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  font-size: 12px;
+  color: rgba(241, 245, 249, 0.92);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 /* Form */
 .ots-form {
   padding: 12px 12px 0;
@@ -1958,6 +2108,15 @@
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
+.ots-member-schedule-item--clickable {
+  cursor: pointer;
+}
+
+.ots-member-schedule-item--clickable:focus-visible {
+  outline: 2px solid rgba(214, 255, 0, 0.75);
+  outline-offset: 2px;
+}
+
 .ots-member-schedule-item:hover {
   border-color: rgba(251, 191, 36, 0.45);
   background: linear-gradient(145deg, rgba(30, 41, 59, 0.62), rgba(15, 23, 42, 0.5));
@@ -1975,10 +2134,26 @@
 }
 
 .ots-member-schedule-item__time {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 13px;
   font-weight: 700;
   color: #f8fafc;
   letter-spacing: 0.01em;
+}
+
+.ots-member-schedule-item__slotTag {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: rgba(224, 255, 192, 0.96);
+  border: 1px solid rgba(167, 196, 104, 0.45);
+  background: rgba(84, 120, 44, 0.28);
 }
 
 .ots-member-schedule-item__meta {
@@ -1993,15 +2168,37 @@
 
 .ots-member-schedule-item__status {
   flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  max-width: min(52%, 240px);
   padding: 6px 11px;
   border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
   color: rgba(241, 245, 249, 0.95);
   background: rgba(59, 130, 246, 0.2);
   border: 1px solid rgba(59, 130, 246, 0.38);
+}
+
+.ots-member-schedule-item__statusPrimary {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+
+.ots-member-schedule-item__statusSub {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: rgba(248, 250, 252, 0.9);
+  text-align: right;
+  white-space: normal;
 }
 
 .ots-member-schedule-item__status.is-busy-requested {
@@ -2010,7 +2207,8 @@
   color: rgba(255, 251, 235, 0.96);
 }
 
-.ots-member-schedule-item__status.is-confirmed {
+.ots-member-schedule-item__status.is-confirmed,
+.ots-member-schedule-item__status.is-pending {
   background: rgba(0, 186, 255, 0.2);
   border-color: rgba(0, 186, 255, 0.45);
   color: #e0f2ff;

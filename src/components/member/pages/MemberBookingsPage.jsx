@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import "./MemberBookingPage.css";
 import { memberGetMyBookings } from "../../../services/memberBookingService";
+import { connectSocket } from "../../../services/socketClient";
 import BookingDetailModal from "./BookingDetailModal";
 
 const DAY_NAMES = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
@@ -88,6 +89,24 @@ export default function MemberBookingsCalendarPage() {
     loadBookings();
   }, [loadBookings]);
 
+  useEffect(() => {
+    const socket = connectSocket();
+    const onBookingStatusChanged = () => {
+      loadBookings();
+    };
+    const onNotificationNew = (payload) => {
+      const t = String(
+        payload?.notificationType || payload?.type || "",
+      ).toLowerCase();
+      if (t === "booking_update") loadBookings();
+    };
+    socket.on("booking:status-changed", onBookingStatusChanged);
+    socket.on("notification:new", onNotificationNew);
+    return () => {
+      socket.off("booking:status-changed", onBookingStatusChanged);
+      socket.off("notification:new", onNotificationNew);
+    };
+  }, [loadBookings]);
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekCursor, i));
