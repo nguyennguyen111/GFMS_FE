@@ -11,17 +11,8 @@ import {
   ownerDownloadFranchiseContractPdf,
 } from "../../../services/ownerFranchiseService";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
+import { FRANCHISE_CONTRACT_STATUS_LABEL as CONTRACT_LABEL } from "../../../utils/franchiseContractLabels";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
-
-/** Giống admin FranchiseRequestsPage — trạng thái luồng hợp đồng */
-const CONTRACT_LABEL = {
-  not_sent: "Bản nháp",
-  sent: "Đã gửi",
-  viewed: "Đã xem",
-  signed: "Đã ký",
-  completed: "Hoàn tất",
-  void: "Vô hiệu",
-};
 
 function contractStepIndex(status) {
   const s = String(status || "not_sent");
