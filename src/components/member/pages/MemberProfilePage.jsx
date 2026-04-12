@@ -14,7 +14,11 @@ import { mpGetGyms } from "../../../services/marketplaceService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
 import { getAuthProvider } from "../../../services/authSession";
-import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecializations";
+import {
+  TRAINER_SPECIALIZATION_OPTIONS,
+  canonicalizeTrainerSpecializationSelections,
+  trainerSpecializationIdsFromSelections,
+} from "../../../constants/trainerSpecializations";
 
 const safeParse = (s) => {
   try {
@@ -224,7 +228,6 @@ export default function MemberProfilePage() {
   const [trainerSpecializations, setTrainerSpecializations] = useState([]);
   const [trainerCertification, setTrainerCertification] = useState("");
   const [trainerCertificateLinksText, setTrainerCertificateLinksText] = useState("");
-  const [trainerHourlyRate, setTrainerHourlyRate] = useState("");
   const [trainerGymId, setTrainerGymId] = useState("");
   const [trainerGyms, setTrainerGyms] = useState([]);
   const [trainerGymsLoading, setTrainerGymsLoading] = useState(false);
@@ -301,8 +304,31 @@ export default function MemberProfilePage() {
   const loadTrainerGyms = async () => {
     setTrainerGymsLoading(true);
     try {
-      const res = await mpGetGyms();
-      const list = Array.isArray(res?.data?.DT) ? res.data.DT : [];
+      // Marketplace GET /gyms returns DT as { items, pagination }, not a bare array.
+      const firstRes = await mpGetGyms({ page: 1, limit: 24 });
+      const firstDt = firstRes?.data?.DT;
+      let list = Array.isArray(firstDt)
+        ? firstDt
+        : Array.isArray(firstDt?.items)
+          ? [...firstDt.items]
+          : [];
+      const totalPages = Number(
+        (!Array.isArray(firstDt) && firstDt?.pagination?.totalPages) || 1,
+      );
+      if (totalPages > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, idx) =>
+            mpGetGyms({ page: idx + 2, limit: 24 }),
+          ),
+        );
+        list = [
+          ...list,
+          ...rest.flatMap((r) => {
+            const d = r?.data?.DT;
+            return Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : [];
+          }),
+        ];
+      }
       setTrainerGyms(list);
     } catch (_e) {
       setTrainerGyms([]);
@@ -601,6 +627,19 @@ export default function MemberProfilePage() {
       return;
     }
 
+    const specializationPayload = canonicalizeTrainerSpecializationSelections(trainerSpecializations);
+    const specializationIds = trainerSpecializationIdsFromSelections(trainerSpecializations);
+    if (
+      specializationPayload.length === 0 ||
+      specializationIds.length !== trainerSpecializations.length
+    ) {
+      setTrainerReqNotice({
+        type: "error",
+        message: "Chuyên môn không hợp lệ. Vui lòng bỏ chọn và chọn lại từ danh sách.",
+      });
+      return;
+    }
+
     if (!Number.isInteger(gymId) || gymId <= 0) {
       setTrainerReqNotice({
         type: "error",
@@ -615,15 +654,6 @@ export default function MemberProfilePage() {
       return;
     }
 
-    const hourlyRate = Number(trainerHourlyRate);
-    if (!Number.isFinite(hourlyRate) || hourlyRate <= 0) {
-      setTrainerReqNotice({
-        type: "error",
-        message: "Giá/giờ phải lớn hơn 0.",
-      });
-      return;
-    }
-
     setTrainerReqNotice({ type: "", message: "" });
     setTrainerReqSaving(true);
     try {
@@ -632,10 +662,10 @@ export default function MemberProfilePage() {
         content,
         application: {
           gymId,
-          specializations: trainerSpecializations,
+          specializationIds,
+          specializations: specializationPayload,
           certification: trainerCertification,
           certificationLinks: links.value,
-          hourlyRate,
         },
       });
       const message = res?.data?.EM || "Đã gửi đơn trở thành huấn luyện viên.";
@@ -645,7 +675,6 @@ export default function MemberProfilePage() {
       setTrainerSpecializations([]);
       setTrainerCertification("");
       setTrainerCertificateLinksText("");
-      setTrainerHourlyRate("");
       setTrainerGymId(user?.gym?.id ? String(user.gym.id) : "");
       setShowTrainerReqModal(false);
       await loadMyTrainerRequests();
@@ -1171,18 +1200,6 @@ export default function MemberProfilePage() {
                 placeholder="https://..."
                 value={trainerCertificateLinksText}
                 onChange={(e) => setTrainerCertificateLinksText(e.target.value)}
-              />
-            </div>
-
-            <div className="mprof-field full">
-              <div className="mprof-label">GIÁ/GIỜ (Đ)</div>
-              <input
-                className="mprof-input"
-                type="number"
-                min="1"
-                placeholder="Nhập giá theo giờ"
-                value={trainerHourlyRate}
-                onChange={(e) => setTrainerHourlyRate(e.target.value)}
               />
             </div>
 
