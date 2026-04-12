@@ -48,7 +48,7 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (relatedType === "transfer" || notificationType === "transfer") {
-    return withQuery("/owner/transfers", "transferId", relatedId);
+    return withQuery("/owner/equipment", "transferId", relatedId);
   }
 
   if (notificationType === "payment") {
