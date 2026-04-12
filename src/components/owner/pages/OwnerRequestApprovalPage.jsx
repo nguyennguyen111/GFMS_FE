@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./OwnerRequestApprovalPage.css";
 import { approveRequest, rejectRequest, getRequests } from "../../../services/ownerRequestService";
+import { showAppToast } from "../../../utils/appToast";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 
@@ -97,8 +98,15 @@ const OwnerRequestApprovalPage = () => {
       const typeLabel = getRequestTypeLabel(request?.requestType);
       await approveRequest(request?.id, `Đã duyệt đơn ${typeLabel}.`);
       await fetchRequests(pagination.page);
+      showAppToast({ type: "success", title: "Đã duyệt", message: `Đơn ${typeLabel} đã được duyệt.` });
     } catch (error) {
       console.error("Error approving request:", error);
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.EM ||
+        error?.message ||
+        "Không thể duyệt yêu cầu.";
+      showAppToast({ type: "error", title: "Duyệt thất bại", message: String(msg) });
     }
   };
 
