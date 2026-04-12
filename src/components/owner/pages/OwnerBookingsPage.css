@@ -56,6 +56,21 @@
   background: rgba(2, 10, 25, 0.85);
   color: #eef2ff;
   font-size: 13px;
+  /* Tránh dropdown native nền sáng + chữ sáng (không đọc được) */
+  color-scheme: dark;
+}
+
+.obp-internal-assign-select option,
+.obp-internal-assign-select optgroup {
+  background: #0c1628;
+  color: #e8eef8;
+}
+
+.obp-internal-assign-select option:checked,
+.obp-internal-assign-select option:hover,
+.obp-internal-assign-select option:focus {
+  background: #1a3a5c;
+  color: #ffffff;
 }
 .owner-bookings-page {
   color: #eef2ff;
