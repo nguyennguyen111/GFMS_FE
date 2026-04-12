@@ -10,7 +10,6 @@ import OwnerPackagesPage from "./pages/OwnerPackagesPage";
 import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
 import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
 import OwnerInventoryPage from "./pages/OwnerInventoryPage";
-import OwnerTransferPage from "./pages/OwnerTransferPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
 import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
@@ -91,7 +90,6 @@ export default function OwnerDashboard() {
       items: [
         { label: "Thiết bị", to: "/owner/equipment", key: "equipment",  },
         { label: "Tồn kho", to: "/owner/inventory", key: "inventory",  },
-        { label: "Chuyển kho", to: "/owner/transfers", key: "transfers",  },
         { label: "Bảo trì", to: "/owner/maintenance", key: "maintenance",  },
       ],
     },
@@ -193,7 +191,7 @@ export default function OwnerDashboard() {
             {/* Inventory & Equipment */}
             <Route path="/equipment" element={<OwnerEquipmentPage />} />
             <Route path="/inventory" element={<OwnerInventoryPage />} />
-            <Route path="/transfers" element={<OwnerTransferPage />} />
+            <Route path="/transfers" element={<Navigate to="/owner/equipment" replace />} />
             <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
             {/* Purchasing */}

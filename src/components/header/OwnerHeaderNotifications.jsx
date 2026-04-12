@@ -50,7 +50,7 @@ function getNotificationVisual(item) {
     return { Icon: CalendarDays, label: "Nhận hàng", tone: "booking" };
   }
   if (type === "transfer") {
-    return { Icon: RefreshCw, label: "Chuyển kho", tone: "system" };
+    return { Icon: RefreshCw, label: "Thiết bị / kho", tone: "system" };
   }
   if (type === "promo") {
     return { Icon: Tag, label: "Ưu đãi", tone: "promo" };
