@@ -2,18 +2,10 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useSearchParams } from "react-router-dom";
 import { adminFranchiseApi } from "../../../services/adminFranchiseApi";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
+import { FRANCHISE_CONTRACT_STATUS_LABEL as CONTRACT_LABEL } from "../../../utils/franchiseContractLabels";
 import "./FranchiseRequestsPage.css";
 
 const STATUS_LABEL = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối" };
-
-const CONTRACT_LABEL = {
-  not_sent: "Bản nháp",
-  sent: "Đã gửi",
-  viewed: "Đã xem",
-  signed: "Đã ký",
-  completed: "Hoàn tất",
-  void: "Vô hiệu",
-};
 
 const SHOW_DEV_ACTIONS = false;
 

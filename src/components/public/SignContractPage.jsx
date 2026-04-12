@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { publicFranchiseContractApi } from "../../services/publicFranchiseContractApi";
+import { FRANCHISE_CONTRACT_STATUS_LABEL } from "../../utils/franchiseContractLabels";
 import "./SignContractPage.css";
 
 export default function SignContractPage() {
@@ -14,7 +15,7 @@ export default function SignContractPage() {
   const [data, setData] = useState(null);
 
   const [agree, setAgree] = useState(false);
-  const [signerName, setSignerName] = useState("Owner");
+  const [signerName, setSignerName] = useState("Chủ phòng");
   const sigRef = useRef(null);
 
   const safeToken = useMemo(() => (token ? token.slice(0, 6) + "..." + token.slice(-6) : ""), [token]);
@@ -40,7 +41,7 @@ export default function SignContractPage() {
         else setDocType("original");
       } catch (e) {
         if (!mounted) return;
-        setError(e?.response?.data?.message || e?.message || "Invalid/expired link");
+        setError(e?.response?.data?.message || e?.message || "Liên kết không hợp lệ hoặc đã hết hạn.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -48,7 +49,7 @@ export default function SignContractPage() {
     if (token) load();
     else {
       setLoading(false);
-      setError("Missing token");
+      setError("Thiếu mã liên kết (token).");
     }
     return () => {
       mounted = false;
@@ -61,10 +62,10 @@ export default function SignContractPage() {
     setOkMsg("");
     try {
       const signatureDataUrl = sigRef.current?.exportPngDataUrl();
-      if (!signatureDataUrl) throw new Error("Please provide your signature first.");
+      if (!signatureDataUrl) throw new Error("Vui lòng ký tay trong khung chữ ký trước khi gửi.");
 
       const res = await publicFranchiseContractApi.sign(token, { signerName, signatureDataUrl, consent: agree, consentVersion: "v1" });
-      setOkMsg(res.data?.message || "Signed successfully");
+      setOkMsg(res.data?.message || "Đã ký thành công.");
 
       // reload
       const fresh = await publicFranchiseContractApi.getByToken(token);
@@ -72,7 +73,7 @@ export default function SignContractPage() {
       setData(payload);
       setDocType("owner_signed");
     } catch (e) {
-      setError(e?.response?.data?.message || e?.message || "Sign failed");
+      setError(e?.response?.data?.message || e?.message || "Ký không thành công.");
     } finally {
       setSigning(false);
     }
@@ -98,58 +99,62 @@ export default function SignContractPage() {
           <div className="sc-brand">
             <div className="sc-brandBadge">F</div>
             <div>
-              <div className="sc-title">Electronic Contract Signing</div>
+              <div className="sc-title">Ký điện tử hợp đồng</div>
               <div className="sc-subtitle">
-                Secure link · token <span className="sc-mono">{safeToken || "-"}</span>
+                Liên kết bảo mật · mã thông báo <span className="sc-mono">{safeToken || "-"}</span>
               </div>
             </div>
           </div>
 
           <Link to="/" className="sc-homeLink">
-            ← Home
+            ← Trang chủ
           </Link>
         </div>
 
         <div className="sc-card">
           {loading ? (
-            <div className="sc-loading">Loading contract…</div>
+            <div className="sc-loading">Đang tải hợp đồng…</div>
           ) : error ? (
             <div className="sc-errorBox">
-              <div className="sc-errorTitle">Error</div>
+              <div className="sc-errorTitle">Lỗi</div>
               <div className="sc-errorMsg">{error}</div>
               <div className="sc-errorHint">
-                Ask admin to resend the invite to generate a new link.
+                Vui lòng liên hệ quản trị để gửi lại lời mời và tạo liên kết mới.
               </div>
             </div>
           ) : (
             <>
               <div className="sc-grid2">
-                <Info label="Business" value={data?.businessName} />
-                <Info label="Location" value={data?.location} />
-                <Info label="Contact" value={data?.contactPerson} />
+                <Info label="Cơ sở / doanh nghiệp" value={data?.businessName} />
+                <Info label="Địa điểm" value={data?.location} />
+                <Info label="Người liên hệ" value={data?.contactPerson} />
                 <Info label="Email" value={data?.contactEmail} />
-                <Info label="Contract Status" value={data?.contractStatus} mono />
-                <Info label="Request ID" value={data?.id ? `#${data.id}` : "-"} mono />
+                <Info
+                  label="Trạng thái hợp đồng"
+                  value={FRANCHISE_CONTRACT_STATUS_LABEL[data?.contractStatus] || data?.contractStatus || "-"}
+                  mono
+                />
+                <Info label="Mã yêu cầu" value={data?.id ? `#${data.id}` : "-"} mono />
               </div>
 
               <div className="sc-section">
                 <div className="sc-rowWrap">
-                  <div className="sc-sectionTitle">PDF Preview</div>
+                  <div className="sc-sectionTitle">Xem trước PDF</div>
 
                   <select
                     value={docType}
                     onChange={(e) => setDocType(e.target.value)}
                     className="sc-select"
                   >
-                    <option value="original">Original</option>
+                    <option value="original">Bản gốc</option>
                     <option value="owner_signed" disabled={!canViewOwnerSigned}>
-                      Owner Signed
+                      Đã ký (chủ phòng)
                     </option>
                     <option value="final" disabled={!canViewFinal}>
-                      Final (Admin countersigned)
+                      Bản chính (admin đối chiếu)
                     </option>
                     <option value="certificate" disabled={!canViewCertificate}>
-                      Certificate
+                      Chứng nhận hoàn tất
                     </option>
                   </select>
 
@@ -158,7 +163,7 @@ export default function SignContractPage() {
                     onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, docType, { mode: "proxy" }), "_blank")}
                     className="sc-btn sc-btnGhost"
                   >
-                    Open in new tab
+                    Mở tab mới
                   </button>
                 </div>
 
@@ -171,12 +176,12 @@ export default function SignContractPage() {
                 ) : null}
 
                 <div className="sc-pdfFrame">
-                  <iframe title="contract-pdf" src={iframeSrc} style={{ width: "100%", height: 520, border: 0 }} />
+                  <iframe title="Xem PDF hợp đồng" src={iframeSrc} style={{ width: "100%", height: 520, border: 0 }} />
                 </div>
 
                 <div className="sc-hint">
-                  ✅ This is closer to real enterprise e-sign: PDF is generated server-side, signatures are embedded into
-                  PDF, and the server stores SHA-256 hashes + certificate.
+                  ✅ Luồng gần với ký điện tử doanh nghiệp: PDF được tạo phía máy chủ, chữ ký nhúng vào file PDF, hệ thống
+                  lưu mã băm SHA-256 và chứng nhận hoàn tất.
                 </div>
               </div>
 
@@ -184,7 +189,7 @@ export default function SignContractPage() {
                 <div className="sc-okBox">
                   <div className="sc-okTitle">✅ {okMsg}</div>
                   <div className="sc-okMsg">
-                    Now wait for admin to countersign. After that, you can download the final PDF + certificate.
+                    Vui lòng chờ quản trị đối chiếu. Sau đó bạn có thể tải PDF bản chính và chứng nhận hoàn tất.
                   </div>
                 </div>
               ) : null}
@@ -192,18 +197,18 @@ export default function SignContractPage() {
               {/* Signing area */}
               <div className="sc-gridSign">
                 <div className="sc-subCard">
-                  <div className="sc-subCardTitle">Your Signature</div>
+                  <div className="sc-subCardTitle">Chữ ký của bạn</div>
 
                   <div className="sc-rowWrap" style={{ marginBottom: 8 }}>
-                    <label className="sc-label">Name on signature</label>
+                    <label className="sc-label">Họ tên trên chữ ký</label>
                     <input
                       value={signerName}
                       onChange={(e) => setSignerName(e.target.value)}
-                      placeholder="Owner name"
+                      placeholder="Họ tên chủ phòng"
                       className="sc-input"
                     />
                     <button onClick={() => sigRef.current?.clear()} className="sc-btn sc-btnGhost">
-                      Clear
+                      Xóa
                     </button>
                   </div>
 
@@ -212,45 +217,45 @@ export default function SignContractPage() {
                   <div className="sc-rowWrap" style={{ marginTop: 10 }}>
                     <label className="sc-consent">
                       <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                      <span>I agree to sign electronically (e-sign consent).</span>
+                      <span>Tôi đồng ý ký điện tử (đồng ý ký số theo quy định).</span>
                     </label>
 
                     <button
                       onClick={onSign}
-                      disabled={!agree || signing || data?.contractStatus !== "viewed" && data?.contractStatus !== "sent"}
+                      disabled={!agree || signing || (data?.contractStatus !== "viewed" && data?.contractStatus !== "sent")}
                       style={{ marginLeft: "auto" }}
                       className={`sc-btn sc-btnPrimary ${(!agree || signing) ? "is-disabled" : ""}`}
-                      title={!agree ? "Please agree first" : "Sign contract"}
+                      title={!agree ? "Vui lòng tick đồng ý trước" : "Ký hợp đồng"}
                     >
-                      {signing ? "Signing…" : "Sign"}
+                      {signing ? "Đang ký…" : "Ký"}
                     </button>
                   </div>
 
                   <div className="sc-hint" style={{ marginTop: 10 }}>
-                    Tip: Signing link is one-time use. If it expires, ask admin to resend.
+                    Gợi ý: Liên kết ký thường chỉ dùng một lần. Nếu hết hạn, vui lòng nhờ quản trị gửi lại.
                   </div>
                 </div>
 
                 <div className="sc-subCard">
-                  <div className="sc-subCardTitle">Downloads</div>
-                  <DownloadRow label="Original PDF" onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, "original", { mode: "proxy" }), "_blank")} />
+                  <div className="sc-subCardTitle">Tải xuống</div>
+                  <DownloadRow label="PDF gốc" onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, "original", { mode: "proxy" }), "_blank")} />
                   <DownloadRow
-                    label="Owner-signed PDF"
+                    label="PDF đã ký (chủ phòng)"
                     disabled={!canViewOwnerSigned}
                     onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, "owner_signed", { mode: "proxy" }), "_blank")}
                   />
                   <DownloadRow
-                    label="Final countersigned PDF"
+                    label="PDF bản chính (đã đối chiếu)"
                     disabled={!canViewFinal}
                     onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, "final", { mode: "proxy" }), "_blank")}
                   />
                   <DownloadRow
-                    label="Certificate of Completion"
+                    label="Chứng nhận hoàn tất"
                     disabled={!canViewCertificate}
                     onClick={() => window.open(publicFranchiseContractApi.documentUrl(token, "certificate", { mode: "proxy" }), "_blank")}
                   />
                   <div className="sc-hint" style={{ marginTop: 10 }}>
-                    After admin countersigns, the final PDF + certificate become available here.
+                    Sau khi quản trị đối chiếu, PDF bản chính và chứng nhận sẽ hiển thị tại đây.
                   </div>
                 </div>
               </div>
