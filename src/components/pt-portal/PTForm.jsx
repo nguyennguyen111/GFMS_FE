@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { createPT, updatePT, getPTDetails, uploadMyPTProfileImage } from "../../services/ptService";
+import { specializationToVietnamese } from "../../utils/specializationI18n";
+import NiceModal from "../common/NiceModal";
 import "./PTForm.css";
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const makeCertId = () => `cert_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const isValidHttpUrl = (value) => /^https?:\/\/\S+$/i.test(String(value || "").trim());
 
 const PTForm = () => {
   const { id } = useParams();
@@ -20,6 +23,7 @@ const PTForm = () => {
     status: "active",
     bio: "",
     avatarUrl: "",
+    address: "",
     certificates: [],
 
     // UI-only (tuỳ backend)
@@ -34,6 +38,11 @@ const PTForm = () => {
   const [uploadingCertificate, setUploadingCertificate] = useState(false);
   const [certDraftName, setCertDraftName] = useState("");
   const [certDraftUrl, setCertDraftUrl] = useState("");
+  const [modalState, setModalState] = useState(null);
+
+  const showAlert = (message, title = "Thông báo", tone = "info") => {
+    setModalState({ message, title, tone });
+  };
 
   // drag state
   const previewRef = useRef(null);
@@ -72,7 +81,7 @@ const PTForm = () => {
               ? [
                   {
                     id: makeCertId(),
-                    name: String(t?.certification || "Certificate").trim(),
+                    name: String(t?.certification || "Chứng chỉ").trim(),
                     url: String(oldCertificateUrl || "").trim(),
                   },
                 ]
@@ -89,13 +98,14 @@ const PTForm = () => {
 
         setPT({
           userId: t?.userId != null ? String(t.userId) : "",
-          specialization: t?.specialization || "",
+          specialization: specializationToVietnamese(t?.specialization || ""),
           certification: t?.certification || "",
           hourlyRate: t?.hourlyRate ?? 0,
           experienceYears: t?.experienceYears ?? 0,
           status: t?.status || "active",
           bio: t?.bio || "",
           avatarUrl: profileImages?.avatarUrl || t?.avatarUrl || "",
+          address: t?.User?.address || "",
           certificates: fallbackCerts,
 
           // cover fields: ưu tiên backend -> fallback local
@@ -126,12 +136,18 @@ const PTForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    if (name === "hourlyRate" || name === "experienceYears") {
+      const n = Number(value);
+      setPT((prev) => ({
+        ...prev,
+        [name]: Number.isNaN(n) ? 0 : Math.max(0, n),
+      }));
+      return;
+    }
+
     setPT((prev) => ({
       ...prev,
-      [name]:
-        name === "hourlyRate" || name === "experienceYears"
-          ? Number(value)
-          : value,
+      [name]: value,
     }));
   };
 
@@ -187,7 +203,7 @@ const PTForm = () => {
       if (url) setPT((prev) => ({ ...prev, avatarUrl: url }));
     } catch (error) {
       console.error("Upload avatar failed:", error);
-      alert(error?.response?.data?.message || "Upload avatar thất bại");
+      showAlert(error?.response?.data?.message || "Upload avatar thất bại", "Lỗi", "danger");
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -204,7 +220,7 @@ const PTForm = () => {
       if (url) setPT((prev) => ({ ...prev, coverImageUrl: url }));
     } catch (error) {
       console.error("Upload cover failed:", error);
-      alert(error?.response?.data?.message || "Upload ảnh cover thất bại");
+      showAlert(error?.response?.data?.message || "Upload ảnh cover thất bại", "Lỗi", "danger");
     } finally {
       setUploadingCover(false);
       e.target.value = "";
@@ -228,7 +244,7 @@ const PTForm = () => {
           certificates: [
             {
               id: makeCertId(),
-              name: certDraftName.trim() || file.name || "Certificate",
+              name: certDraftName.trim() || file.name || "Chứng chỉ",
               url,
             },
             ...(Array.isArray(prev.certificates) ? prev.certificates : []),
@@ -239,7 +255,7 @@ const PTForm = () => {
       }
     } catch (error) {
       console.error("Upload certificate failed:", error);
-      alert(error?.response?.data?.message || "Upload chứng chỉ thất bại");
+      showAlert(error?.response?.data?.message || "Upload chứng chỉ thất bại", "Lỗi", "danger");
     } finally {
       setUploadingCertificate(false);
       e.target.value = "";
@@ -250,12 +266,16 @@ const PTForm = () => {
     const name = certDraftName.trim();
     const url = certDraftUrl.trim();
     if (!name && !url) return;
+    if (url && !isValidHttpUrl(url)) {
+      showAlert("Link chứng chỉ không hợp lệ. Vui lòng nhập URL bắt đầu bằng http/https.", "Thiếu thông tin", "danger");
+      return;
+    }
     setPT((prev) => ({
       ...prev,
       certificates: [
         {
           id: makeCertId(),
-          name: name || "Certificate",
+          name: name || "Chứng chỉ",
           url,
         },
         ...(Array.isArray(prev.certificates) ? prev.certificates : []),
@@ -286,6 +306,32 @@ const PTForm = () => {
         }))
         .filter((c) => c.name || c.url);
 
+      if (Number(pt.hourlyRate) < 0 || Number(pt.experienceYears) < 0) {
+        showAlert("Các trường số không được là số âm.", "Thiếu thông tin", "danger");
+        return;
+      }
+      if (String(pt.bio || "").length > 1000) {
+        showAlert("Phần giới thiệu tối đa 1000 ký tự.", "Thiếu thông tin", "danger");
+        return;
+      }
+      if (String(pt.address || "").length > 255) {
+        showAlert("Địa chỉ tối đa 255 ký tự.", "Thiếu thông tin", "danger");
+        return;
+      }
+      if (pt.coverImageUrl && !isValidHttpUrl(pt.coverImageUrl)) {
+        showAlert("URL ảnh bìa không hợp lệ.", "Thiếu thông tin", "danger");
+        return;
+      }
+      if (pt.avatarUrl && !isValidHttpUrl(pt.avatarUrl)) {
+        showAlert("URL ảnh đại diện không hợp lệ.", "Thiếu thông tin", "danger");
+        return;
+      }
+      const invalidCert = normalizedCertificates.find((c) => c.url && !isValidHttpUrl(c.url));
+      if (invalidCert) {
+        showAlert("Có chứng chỉ chứa URL không hợp lệ. Vui lòng kiểm tra lại.", "Thiếu thông tin", "danger");
+        return;
+      }
+
       const payload = {
         userId: pt.userId === "" ? undefined : Number(pt.userId),
         specialization: pt.specialization,
@@ -295,6 +341,7 @@ const PTForm = () => {
         experienceYears: Number(pt.experienceYears),
         status: pt.status,
         bio: pt.bio,
+        userAddress: String(pt.address || "").trim(),
         socialLinks: {
           profileImages: {
             avatarUrl: pt.avatarUrl || "",
@@ -308,7 +355,11 @@ const PTForm = () => {
       };
 
       if (!payload.userId || Number.isNaN(payload.userId)) {
-        alert("❌ Thiếu User ID. Hãy nhập userId (id trong bảng user).");
+        showAlert("Thiếu User ID. Hãy nhập userId (id trong bảng user).", "Thiếu thông tin");
+        return;
+      }
+      if (payload.userId <= 0) {
+        showAlert("User ID phải lớn hơn 0.", "Thiếu thông tin", "danger");
         return;
       }
 
@@ -325,18 +376,18 @@ const PTForm = () => {
           })
         );
 
-        alert("✅ Cập nhật PT thành công");
+        showAlert("Cập nhật PT thành công", "Thành công", "success");
         navigate(`/pt/${ptId}/details`, { replace: true });
       } else {
         await createPT(payload);
-        alert("✅ Tạo PT thành công");
+        showAlert("Tạo PT thành công", "Thành công", "success");
         navigate("/pt/clients");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
       const msg =
         error?.response?.data?.message || "❌ Lỗi khi lưu PT. Kiểm tra backend.";
-      alert(msg);
+      showAlert(msg, "Lỗi", "danger");
     }
   };
 
@@ -345,7 +396,7 @@ const PTForm = () => {
       <div className="ptf-shell">
         <div className="ptf-topbar">
           <div>
-            <h1 className="ptf-title">PT Profile</h1>
+            <h1 className="ptf-title">Hồ sơ PT</h1>
             <p className="ptf-subtitle">
               Cập nhật thông tin huấn luyện viên theo giao diện dashboard.
             </p>
@@ -363,31 +414,30 @@ const PTForm = () => {
 
         {loading ? (
           <div className="ptf-card">
-            <p className="ptf-muted">Loading...</p>
+            <p className="ptf-muted">Đang tải...</p>
           </div>
         ) : (
           <form id="ptf-form" className="ptf-grid" onSubmit={handleSubmit}>
-            {/* Card: PT Profile */}
             <section className="ptf-card ptf-card--span2">
               <div className="ptf-cardHead">
-                <h3 className="ptf-cardTitle">PT Profile</h3>
+                <h3 className="ptf-cardTitle">Hồ sơ PT</h3>
                 <span className={`ptf-pill ${headerStatus === "active" ? "is-active" : "is-inactive"}`}>
-                  {headerStatus}
+                  {headerStatus === "active" ? "Đang hoạt động" : "Ngưng hoạt động"}
                 </span>
               </div>
 
-              <label className="ptf-label">Avatar</label>
+              <label className="ptf-label">Ảnh đại diện</label>
               <div className="ptf-uploadRow">
                 <div className="ptf-avatarPreview">
-                  {pt.avatarUrl ? <img src={pt.avatarUrl} alt="avatar" /> : <span>Avatar</span>}
+                  {pt.avatarUrl ? <img src={pt.avatarUrl} alt="" /> : <span>Ảnh đại diện</span>}
                 </div>
                 <label className="ptf-uploadBtn">
-                  {uploadingAvatar ? "Đang upload..." : "Upload avatar"}
+                  {uploadingAvatar ? "Đang tải lên..." : "Tải ảnh đại diện lên"}
                   <input type="file" accept="image/*" onChange={onUploadAvatar} hidden />
                 </label>
               </div>
 
-              <label className="ptf-label">Cover Image URL</label>
+              <label className="ptf-label">URL ảnh bìa</label>
               <input
                 className="ptf-input"
                 name="coverImageUrl"
@@ -400,7 +450,7 @@ const PTForm = () => {
 
               <div className="ptf-uploadRow ptf-uploadRow--cover">
                 <label className="ptf-uploadBtn">
-                  {uploadingCover ? "Đang upload..." : "Upload ảnh cover"}
+                  {uploadingCover ? "Đang tải lên..." : "Tải ảnh bìa lên"}
                   <input type="file" accept="image/*" onChange={onUploadCover} hidden />
                 </label>
               </div>
@@ -412,7 +462,7 @@ const PTForm = () => {
                   className="ptf-resetBtn"
                   onClick={() => setPT((p) => ({ ...p, coverPosX: 50, coverPosY: 50 }))}
                 >
-                  Reset
+                  Đặt lại
                 </button>
               </div>
 
@@ -430,11 +480,11 @@ const PTForm = () => {
                 }
                 title="Giữ chuột và kéo để chỉnh vị trí ảnh"
               >
-                {!pt.coverImageUrl && <div className="ptf-coverEmpty">Cover preview</div>}
+                {!pt.coverImageUrl && <div className="ptf-coverEmpty">Xem trước ảnh bìa</div>}
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
-                Bio
+                Giới thiệu
               </label>
               <textarea
                 className="ptf-textarea"
@@ -446,55 +496,66 @@ const PTForm = () => {
               />
             </section>
 
-            {/* Basic Info */}
             <section className="ptf-card">
-              <h3 className="ptf-cardTitle">Basic Info</h3>
+              <h3 className="ptf-cardTitle">Thông tin cơ bản</h3>
 
-              <label className="ptf-label">User ID</label>
+              <label className="ptf-label">Mã người dùng</label>
               <input
                 className="ptf-input"
                 type="number"
                 name="userId"
                 value={pt.userId}
                 onChange={(e) =>
-                  setPT((prev) => ({ ...prev, userId: e.target.value }))
+                  setPT((prev) => ({ ...prev, userId: String(e.target.value).replace("-", "") }))
                 }
                 placeholder="User ID (bắt buộc)"
+                min="1"
               />
 
-              <label className="ptf-label">Status</label>
+              <label className="ptf-label">Trạng thái</label>
               <select
                 className="ptf-input"
                 name="status"
                 value={pt.status}
                 onChange={handleChange}
               >
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Ngưng hoạt động</option>
               </select>
 
-              <label className="ptf-label">Years of experience</label>
+              <label className="ptf-label">Địa chỉ</label>
+              <input
+                className="ptf-input"
+                type="text"
+                name="address"
+                value={pt.address}
+                onChange={handleChange}
+                placeholder="Nhập địa chỉ của bạn"
+                maxLength={255}
+              />
+
+              <label className="ptf-label">Số năm kinh nghiệm</label>
               <input
                 className="ptf-input"
                 type="number"
                 name="experienceYears"
                 value={pt.experienceYears}
                 onChange={handleChange}
+                min="0"
               />
             </section>
 
-            {/* Skills */}
             <section className="ptf-card">
-              <h3 className="ptf-cardTitle">Skills</h3>
+              <h3 className="ptf-cardTitle">Kỹ năng</h3>
 
-              <label className="ptf-label">Specialties (comma separated)</label>
+              <label className="ptf-label">Chuyên môn (phân tách bằng dấu phẩy)</label>
               <input
                 className="ptf-input"
                 type="text"
                 name="specialization"
                 value={pt.specialization}
                 onChange={handleChange}
-                placeholder="Weight Loss, Strength Training"
+                placeholder="Ví dụ: Giảm cân, Tăng sức mạnh"
               />
 
               <label className="ptf-label">Tên chứng chỉ</label>
@@ -503,7 +564,7 @@ const PTForm = () => {
                 type="text"
                 value={certDraftName}
                 onChange={(e) => setCertDraftName(e.target.value)}
-                placeholder="Ví dụ: ACE Certified Personal Trainer"
+                placeholder="Ví dụ: Chứng chỉ huấn luyện viên ACE"
               />
               <label className="ptf-label">Link ảnh chứng chỉ</label>
               <input
@@ -535,7 +596,7 @@ const PTForm = () => {
                   (Array.isArray(pt.certificates) ? pt.certificates : []).map((cert) => (
                     <div className="ptf-certItem" key={cert.id}>
                       <div className="ptf-certText">
-                        <strong>{cert.name || "Certificate"}</strong>
+                        <strong>{cert.name || "Chứng chỉ"}</strong>
                         {cert.url ? (
                           <a href={cert.url} target="_blank" rel="noreferrer" className="ptf-certLink">
                             Mở ảnh
@@ -557,7 +618,7 @@ const PTForm = () => {
               </div>
 
               <label className="ptf-label" style={{ marginTop: 10 }}>
-                Hourly Rate
+                Giá theo giờ
               </label>
               <input
                 className="ptf-input"
@@ -565,11 +626,25 @@ const PTForm = () => {
                 name="hourlyRate"
                 value={pt.hourlyRate}
                 onChange={handleChange}
+                min="0"
               />
             </section>
           </form>
         )}
       </div>
+      <NiceModal
+        open={Boolean(modalState)}
+        onClose={() => setModalState(null)}
+        tone={modalState?.tone || "info"}
+        title={modalState?.title || "Thông báo"}
+        footer={
+          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{modalState?.message}</p>
+      </NiceModal>
     </div>
   );
 };

@@ -22,6 +22,12 @@
 .mp3-page {
   min-height: 100vh;
   color: var(--mp3-text);
+  width: 100%;
+  max-width: var(--site-max-width);
+  margin: 0 auto;
+  padding: 40px 32px 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .mp3-header {
@@ -540,6 +546,10 @@
 }
 
 @media (max-width: 768px) {
+  .mp3-page {
+    padding: 24px 16px 80px;
+  }
+
   .mp3-header {
     flex-direction: column;
     align-items: stretch;
@@ -579,3 +589,4 @@
     font-size: 38px;
   }
 }
+.mp3-footActions{display:flex;gap:10px;align-items:center;justify-content:space-between}.mp3-detailBtn.ghost{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}

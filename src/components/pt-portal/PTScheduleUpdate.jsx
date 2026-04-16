@@ -1,7 +1,7 @@
-// src/components/pt-portal/PTScheduleUpdate.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getMyPTProfile, getPTScheduleRaw, updatePTSchedule } from "../../services/ptService";
+import NiceModal from "../common/NiceModal";
 
 import "./PTScheduleUpdate.css";
 
@@ -25,10 +25,8 @@ const days = [
   { key: "sunday", label: "Chủ nhật" },
 ];
 
-// ===== sanitize schedule before sending to BE =====
 const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-// Extract "HH:MM" even if UI/browser returns "08:00 SA" / "09:00 CH"
 const toHHMM = (v) => {
   const s = String(v ?? "");
   const m = s.match(/\b\d{2}:\d{2}\b/);
@@ -41,12 +39,115 @@ const buildCleanSchedule = (raw) => {
     const slots = Array.isArray(raw?.[k]) ? raw[k] : [];
     out[k] = slots
       .map((x) => ({
-        start: toHHMM(x?.start),  // Chuyển đổi giá trị time thành HH:MM
+        start: toHHMM(x?.start),
         end: toHHMM(x?.end),
       }))
-      .filter((x) => x.start && x.end);  // Kiểm tra rằng cả start và end đều hợp lệ
+      .filter((x) => x.start && x.end);
   }
   return out;
+};
+
+const extractHHmm = (v) => {
+  const s = String(v ?? "").trim();
+  const m = s.match(/\b([01]\d|2[0-3]):([0-5]\d)\b/);
+  return m ? `${m[1]}:${m[2]}` : null;
+};
+
+const parseHHmmToMin = (hhmm) => {
+  const x = extractHHmm(hhmm);
+  if (!x) return null;
+  const [h, m] = x.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const parseGymOperating = (raw) => {
+  if (!raw) return null;
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const mf = obj.monFri || obj.mon_fri;
+  const we = obj.weekend;
+  if (!mf?.open || !mf?.close || !we?.open || !we?.close) return null;
+  const mo = parseHHmmToMin(mf.open);
+  const mc = parseHHmmToMin(mf.close);
+  const wo = parseHHmmToMin(we.open);
+  const wc = parseHHmmToMin(we.close);
+  if (mo === null || mc === null || wo === null || wc === null) return null;
+  if (mc <= mo || wc <= wo) return null;
+  return {
+    monFri: { open: extractHHmm(mf.open), close: extractHHmm(mf.close), openMin: mo, closeMin: mc },
+    weekend: { open: extractHHmm(we.open), close: extractHHmm(we.close), openMin: wo, closeMin: wc },
+  };
+};
+
+const dayLabelVi = {
+  monday: "Thứ 2",
+  tuesday: "Thứ 3",
+  wednesday: "Thứ 4",
+  thursday: "Thứ 5",
+  friday: "Thứ 6",
+  saturday: "Thứ 7",
+  sunday: "Chủ nhật",
+};
+
+const windowForDay = (dayKey, parsed) => {
+  if (!parsed) return null;
+  const monFriDays = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  return monFriDays.includes(dayKey) ? parsed.monFri : parsed.weekend;
+};
+
+const validateScheduleAgainstGym = (clean, gym) => {
+  const ohRaw = gym?.operatingHours;
+  if (ohRaw == null || ohRaw === "") return null;
+  const parsed = parseGymOperating(ohRaw);
+  if (!parsed) return null;
+  for (const d of DAY_KEYS) {
+    const win = windowForDay(d, parsed);
+    if (!win) continue;
+    for (const slot of clean[d] || []) {
+      const s = parseHHmmToMin(slot.start);
+      const e = parseHHmmToMin(slot.end);
+      if (s === null || e === null) continue;
+      if (s < win.openMin || e > win.closeMin) {
+        return `${dayLabelVi[d]}: khung ${slot.start}–${slot.end} ngoài giờ mở cửa phòng gym (${win.open}–${win.close}).`;
+      }
+    }
+  }
+  return null;
+};
+
+const validateScheduleBasics = (clean) => {
+  for (const d of DAY_KEYS) {
+    const slots = Array.isArray(clean?.[d]) ? clean[d] : [];
+    const withMin = slots.map((slot) => ({
+      ...slot,
+      startMin: parseHHmmToMin(slot.start),
+      endMin: parseHHmmToMin(slot.end),
+    }));
+
+    for (const s of withMin) {
+      if (s.startMin === null || s.endMin === null) {
+        return `${dayLabelVi[d]}: giờ bắt đầu/kết thúc không hợp lệ.`;
+      }
+      if (s.endMin <= s.startMin) {
+        return `${dayLabelVi[d]}: giờ kết thúc phải lớn hơn giờ bắt đầu.`;
+      }
+    }
+
+    const sorted = [...withMin].sort((a, b) => a.startMin - b.startMin);
+    for (let i = 1; i < sorted.length; i += 1) {
+      if (sorted[i].startMin < sorted[i - 1].endMin) {
+        return `${dayLabelVi[d]}: các khung giờ bị trùng nhau, vui lòng chỉnh lại.`;
+      }
+    }
+  }
+  return null;
 };
 
 const PTScheduleUpdate = () => {
@@ -59,7 +160,8 @@ const PTScheduleUpdate = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [schedule, setSchedule] = useState(EMPTY);
-  const [msg, setMsg] = useState("");
+  const [modalState, setModalState] = useState(null);
+  const [gym, setGym] = useState(null);
 
   const user = useMemo(() => {
     try {
@@ -69,7 +171,8 @@ const PTScheduleUpdate = () => {
     }
   }, []);
 
-  // 1) Resolve đúng PT đang đăng nhập
+  const gymHoursParsed = useMemo(() => parseGymOperating(gym?.operatingHours), [gym?.operatingHours]);
+
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -79,10 +182,11 @@ const PTScheduleUpdate = () => {
     const run = async () => {
       try {
         setResolveError("");
-        const me = await getMyPTProfile(); // GET /api/pt/me
+        const me = await getMyPTProfile();
         const myId = String(me?.id);
 
         setPtId(myId);
+        setGym(me?.Gym || null);
 
         if (id && id !== "undefined" && String(id) !== myId) {
           navigate(`/pt/${myId}/schedule-update`, { replace: true });
@@ -100,15 +204,14 @@ const PTScheduleUpdate = () => {
     run();
   }, [id, navigate, user]);
 
-  // 2) Load schedule theo ptId resolved
   useEffect(() => {
     if (!ptId) return;
 
     const run = async () => {
       try {
         setLoading(true);
-       const sch = await getPTScheduleRaw(ptId);
-setSchedule({ ...EMPTY, ...(sch || {}) });
+        const sch = await getPTScheduleRaw(ptId);
+        setSchedule({ ...EMPTY, ...(sch || {}) });
 
       } catch (e) {
         console.error(e);
@@ -121,7 +224,6 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
     run();
   }, [ptId]);
 
-  // Helpers
   const addSlot = (dayKey) => {
     setSchedule((prev) => ({
       ...prev,
@@ -143,27 +245,39 @@ setSchedule({ ...EMPTY, ...(sch || {}) });
     }));
   };
 
-const handleSave = async () => {
-  if (!ptId) return;
+  const handleSave = async () => {
+    if (!ptId) return;
 
-  try {
-    setSaving(true);
-    setMsg("");
+    try {
+      setSaving(true);
 
-    const clean = buildCleanSchedule(schedule);  // Chuẩn hóa dữ liệu lịch
+      const clean = buildCleanSchedule(schedule);
+      const basicErr = validateScheduleBasics(clean);
+      if (basicErr) {
+        setModalState({ title: "Không thể lưu lịch", message: basicErr, tone: "danger" });
+        setSaving(false);
+        return;
+      }
 
-    await updatePTSchedule(ptId, clean);  // Gửi dữ liệu như đối tượng JSON
+      const gymErr = validateScheduleAgainstGym(clean, gym);
+      if (gymErr) {
+        setModalState({ title: "Không thể lưu lịch", message: gymErr, tone: "danger" });
+        setSaving(false);
+        return;
+      }
 
-    setMsg("✅ Lưu lịch rảnh thành công!");
-    navigate(`/pt/${ptId}/schedule`);
-  } catch (e) {
-    console.error(e);
-    const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
-    setMsg(`❌ ${err}`);
-  } finally {
-    setSaving(false);
-  }
-};
+      await updatePTSchedule(ptId, clean);
+
+      navigate(`/pt/${ptId}/schedule`);
+    } catch (e) {
+      console.error(e);
+      const err = e?.response?.data?.message || e?.EM || e?.message || "Lưu thất bại";
+      setModalState({ title: "Không thể lưu lịch", message: err, tone: "danger" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (resolveError) {
     return (
       <div className="ptSUPage">
@@ -198,6 +312,18 @@ const handleSave = async () => {
             <div>
               <h1>Cập nhật lịch rảnh</h1>
               <div className="ptSU__sub">PT #{ptId}</div>
+              {gym?.name ? (
+                <div className="ptSU__sub" style={{ marginTop: 6 }}>
+                  Phòng gym: {gym.name}
+                  {gymHoursParsed ? (
+                    <span>
+                      {" "}
+                      — Giờ mở cửa: T2–T6 {gymHoursParsed.monFri.open}–{gymHoursParsed.monFri.close}; T7–CN{" "}
+                      {gymHoursParsed.weekend.open}–{gymHoursParsed.weekend.close}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="ptSU__actions">
@@ -213,17 +339,6 @@ const handleSave = async () => {
             </div>
           </div>
 
-          {msg ? (
-            <div
-              className="ptSU__error"
-              style={{
-                borderColor: "rgba(244,137,21,0.35)",
-                background: "rgba(244,137,21,0.10)",
-              }}
-            >
-              {msg}
-            </div>
-          ) : null}
         </div>
 
         <div className="ptSU__grid">
@@ -269,6 +384,19 @@ const handleSave = async () => {
           ))}
         </div>
       </div>
+      <NiceModal
+        open={Boolean(modalState)}
+        onClose={() => setModalState(null)}
+        tone={modalState?.tone || "info"}
+        title={modalState?.title || "Thông báo"}
+        footer={
+          <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{modalState?.message}</p>
+      </NiceModal>
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPTDetails, updatePTSkills } from '../../services/ptService';
+import { specializationToVietnamese } from '../../utils/specializationI18n';
+import NiceModal from "../common/NiceModal";
 import './PTSkills.css';
 
 const PTSkills = () => {
@@ -13,14 +15,16 @@ const PTSkills = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [modalState, setModalState] = useState(null);
 
   useEffect(() => {
     const run = async () => {
       try {
         setLoading(true);
         const data = await getPTDetails(ptId);
-        setSpecialization(data?.specialization || '');
-        setCertification(data?.certification || '');
+        const t = data?.DT || data;
+        setSpecialization(specializationToVietnamese(t?.specialization || ''));
+        setCertification(t?.certification || '');
       } catch (e) {
         console.error(e);
         setError('Không tải được thông tin PT.');
@@ -43,7 +47,7 @@ const PTSkills = () => {
         specialization: specialization.trim(),
         certification: certification.trim(),
       });
-      alert('✅ Cập nhật kỹ năng/chứng chỉ thành công');
+      setModalState({ title: "Thành công", message: "Cập nhật kỹ năng/chứng chỉ thành công", tone: "success" });
     } catch (e) {
       console.error(e);
       setError('Lưu thất bại (500). Kiểm tra endpoint /skills.');
@@ -67,7 +71,7 @@ const PTSkills = () => {
       <div className="ptSkillsPage__inner">
         <div className="ptSkillsTop">
           <button className="ptBack" onClick={() => navigate('/pt/dashboard')}>
-            ← Dashboard PT
+            ← Bảng điều khiển PT
           </button>
 
           <div className="ptSkills__header">
@@ -86,22 +90,22 @@ const PTSkills = () => {
 
         <div className="ptSkills__card">
           <div className="ptSkills__field">
-            <label>Kỹ năng / Chuyên môn (specialization)</label>
+            <label>Kỹ năng / Chuyên môn</label>
             <textarea
               rows="3"
               value={specialization}
               onChange={(e) => setSpecialization(e.target.value)}
-              placeholder="Ví dụ: Weight Loss, Strength Training..."
+              placeholder="Ví dụ: Giảm cân, Tăng sức mạnh, Yoga..."
             />
           </div>
 
           <div className="ptSkills__field">
-            <label>Chứng chỉ (certification)</label>
+            <label>Chứng chỉ</label>
             <textarea
               rows="3"
               value={certification}
               onChange={(e) => setCertification(e.target.value)}
-              placeholder="Ví dụ: ACE Certified Personal Trainer..."
+              placeholder="Ví dụ: Chứng chỉ ACE, NASM-CPT..."
             />
           </div>
 
@@ -109,6 +113,20 @@ const PTSkills = () => {
             {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </div>
+
+        <NiceModal
+          open={Boolean(modalState)}
+          onClose={() => setModalState(null)}
+          tone={modalState?.tone || "info"}
+          title={modalState?.title || "Thông báo"}
+          footer={
+            <button type="button" className="nice-modal__btn nice-modal__btn--primary" onClick={() => setModalState(null)}>
+              Đã hiểu
+            </button>
+          }
+        >
+          <p>{modalState?.message}</p>
+        </NiceModal>
       </div>
     </div>
   );

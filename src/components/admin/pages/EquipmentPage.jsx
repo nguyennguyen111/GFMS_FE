@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./EquipmentPage.css";
 import axios from "../../../setup/axios";
 
 import {
   createEquipment,
+  deleteEquipment,
   discontinueEquipment,
+  getSuppliers,
   getEquipmentCategories,
   getEquipments,
   updateEquipment,
@@ -14,18 +17,56 @@ import {
   setPrimaryEquipmentImage,
   deleteEquipmentImage,
 } from "../../../services/equipmentSupplierInventoryService";
+import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
 
 const emptyForm = {
   name: "",
-  code: "",
   description: "",
   categoryId: "",
-  brand: "",
-  model: "",
-  unit: "piece",
-  minStockLevel: 0,
-  maxStockLevel: 0,
+  unit: "VND",
+  price: 0,
+  quantity: 0,
+  preferredSupplierId: "",
   status: "active",
+};
+
+const validateEquipmentForm = (form, mode = "create") => {
+  const errors = [];
+  const name = String(form.name || "").trim();
+  const price = Number(form.price ?? 0);
+  const quantity = Number(form.quantity ?? 0);
+
+  if (!name) errors.push("Tên thiết bị là bắt buộc.");
+  if (name.length > 255) errors.push("Tên thiết bị quá dài (tối đa 255 ký tự).");
+
+  if (!Number.isFinite(price) || price <= 0) {
+    errors.push("Giá bán phải lớn hơn 0.");
+  }
+
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    errors.push(
+      mode === "create"
+        ? "Số lượng ban đầu phải lớn hơn 0."
+        : "Số lượng phải lớn hơn 0."
+    );
+  }
+
+  if (mode === "create") {
+    const catId = Number(form.categoryId);
+    if (!form.categoryId || !Number.isFinite(catId) || catId <= 0) {
+      errors.push("Vui lòng chọn danh mục.");
+    }
+    const supId = Number(form.preferredSupplierId);
+    if (!form.preferredSupplierId || !Number.isFinite(supId) || supId <= 0) {
+      errors.push("Vui lòng chọn nhà cung cấp.");
+    }
+    const desc = String(form.description || "").trim();
+    if (!desc) {
+      errors.push("Vui lòng nhập mô tả thiết bị.");
+    }
+  }
+
+  return errors;
 };
 
 export default function EquipmentPage() {
@@ -34,6 +75,7 @@ export default function EquipmentPage() {
 
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // filters
   const [q, setQ] = useState("");
@@ -45,6 +87,11 @@ export default function EquipmentPage() {
   const [mode, setMode] = useState("create"); // create | edit
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  /** Giữ mã từ DB khi sửa (không hiện form) để PUT gửi lại đúng backend */
+  const [persistedCode, setPersistedCode] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const saveLockRef = useRef(false);
+  const [createImages, setCreateImages] = useState([]);
 
   // modal images
   const [imgOpen, setImgOpen] = useState(false);
@@ -60,11 +107,12 @@ export default function EquipmentPage() {
     setLoading(true);
     setErr("");
     try {
-      const [catRes] = await Promise.all([getEquipmentCategories()]);
+      const [catRes, supRes] = await Promise.all([getEquipmentCategories(), getSuppliers({ page: 1, limit: 500, status: "active" })]);
       setCategories(catRes?.data?.data ?? catRes?.data ?? []);
+      setSuppliers(supRes?.data?.data ?? supRes?.data ?? []);
       await fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Load init failed");
+      setErr(e?.response?.data?.message || e?.message || "Tải dữ liệu ban đầu thất bại");
     } finally {
       setLoading(false);
     }
@@ -86,7 +134,7 @@ export default function EquipmentPage() {
       const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
       setItems(normalized);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Load failed");
+      setErr(e?.response?.data?.message || e?.message || "Tải danh sách thất bại");
     } finally {
       setLoading(false);
     }
@@ -102,6 +150,8 @@ export default function EquipmentPage() {
   const openCreate = () => {
     setMode("create");
     setEditingId(null);
+    setPersistedCode(null);
+    setCreateImages([]);
     setForm({ ...emptyForm, status: "active" });
     setErr("");
     setShow(true);
@@ -110,16 +160,15 @@ export default function EquipmentPage() {
   const openEdit = (row) => {
     setMode("edit");
     setEditingId(row.id);
+    setPersistedCode(row.code != null && row.code !== "" ? String(row.code) : null);
     setForm({
       name: row.name ?? "",
-      code: row.code ?? "",
       description: row.description ?? "",
       categoryId: row.categoryId ? String(row.categoryId) : "",
-      brand: row.brand ?? "",
-      model: row.model ?? "",
-      unit: row.unit ?? "piece",
-      minStockLevel: Number(row.minStockLevel ?? 0),
-      maxStockLevel: Number(row.maxStockLevel ?? 0),
+      unit: "VND",
+      price: Number(row.price ?? 0),
+      quantity: Number(row.adminStockQuantity ?? row.quantity ?? 0) || 0,
+      preferredSupplierId: row.preferredSupplierId ? String(row.preferredSupplierId) : "",
       status: row.status ?? "active",
     });
     setErr("");
@@ -129,21 +178,32 @@ export default function EquipmentPage() {
   const closeModal = () => {
     setShow(false);
     setErr("");
+    setCreateImages([]);
   };
 
   const save = async () => {
+    if (saving || saveLockRef.current) return;
+    saveLockRef.current = true;
+    setSaving(true);
     setErr("");
     try {
+      const validationErrors = validateEquipmentForm(form, mode);
+      if (validationErrors.length) {
+        setErr(validationErrors.join(" "));
+        return;
+      }
+
       const payload = {
         name: form.name?.trim(),
-        code: form.code?.trim() || null,
+        code: mode === "create" ? null : persistedCode != null ? String(persistedCode).trim() || null : null,
         description: form.description?.trim() || null,
         categoryId: form.categoryId ? Number(form.categoryId) : null,
-        brand: form.brand?.trim() || null,
-        model: form.model?.trim() || null,
-        unit: form.unit?.trim() || "piece",
-        minStockLevel: Number(form.minStockLevel ?? 0) || 0,
-        maxStockLevel: Number(form.maxStockLevel ?? 0) || 0,
+        preferredSupplierId: form.preferredSupplierId ? Number(form.preferredSupplierId) : null,
+        unit: "VND",
+        price: Number(form.price ?? 0) || 0,
+        quantity: Number(form.quantity ?? 0) || 0,
+        minStockLevel: 0,
+        maxStockLevel: 0,
         status: form.status === "discontinued" ? "discontinued" : "active",
       };
 
@@ -152,13 +212,31 @@ export default function EquipmentPage() {
         return;
       }
 
-      if (mode === "create") await createEquipment(payload);
-      else await updateEquipment(editingId, payload);
+      if (mode === "create") {
+        const created = await createEquipment(payload);
+        const createdId = Number(created?.id ?? created?.data?.id ?? created?.data?.data?.id ?? 0);
+        if (createdId > 0 && createImages.length > 0) {
+          try {
+            await uploadEquipmentImages(createdId, createImages);
+          } catch (uploadErr) {
+            alert(
+              uploadErr?.response?.data?.message ||
+                uploadErr?.message ||
+                "Tạo thiết bị thành công nhưng tải ảnh thất bại. Bạn có thể vào nút 'Ảnh' để tải lại."
+            );
+          }
+        }
+      } else {
+        await updateEquipment(editingId, payload);
+      }
 
       closeModal();
       fetchList();
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Save failed");
+      setErr(e?.response?.data?.message || e?.message || "Lưu thất bại");
+    } finally {
+      setSaving(false);
+      saveLockRef.current = false;
     }
   };
 
@@ -170,6 +248,19 @@ export default function EquipmentPage() {
       fetchList();
     } catch (e) {
       alert(e?.response?.data?.message || e?.message || "Discontinue failed");
+    }
+  };
+
+  const onDelete = async (row) => {
+    const okConfirm = window.confirm(
+      `Xóa vĩnh viễn thiết bị "${row.name}"?\n\nChỉ xóa được khi chưa phát sinh dữ liệu kho/chứng từ.`
+    );
+    if (!okConfirm) return;
+    try {
+      await deleteEquipment(row.id);
+      await fetchList();
+    } catch (e) {
+      alert(e?.response?.data?.message || e?.message || "Xóa thiết bị thất bại");
     }
   };
 
@@ -206,7 +297,7 @@ export default function EquipmentPage() {
         <div>
           <h2 className="eq-title">Thiết bị</h2>
           <div className="eq-sub">
-            Danh mục thiết bị dùng cho nhập kho / tồn kho / xuất kho (theo chi nhánh gym)
+            Quản lý danh mục, giá và nhà cung cấp. Tổng tồn theo từng phòng gym xem tại mục <strong>Kho thiết bị</strong>.
           </div>
         </div>
 
@@ -218,7 +309,7 @@ export default function EquipmentPage() {
       <div className="eq-filters">
         <input
           className="eq-input"
-          placeholder="Tìm theo tên / mã / brand / model..."
+          placeholder="Tìm theo tên, brand, model..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
@@ -232,15 +323,15 @@ export default function EquipmentPage() {
           <option value="all">Tất cả danh mục</option>
           {(categories || []).map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} {c.code ? `(${c.code})` : ""}
+              {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
             </option>
           ))}
         </select>
 
         <select className="eq-select" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
-          <option value="active">Active</option>
-          <option value="discontinued">Discontinued</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="discontinued">Ngừng sử dụng</option>
         </select>
 
         <button className="eq-btn" onClick={onSearch} disabled={loading}>
@@ -256,12 +347,10 @@ export default function EquipmentPage() {
             <tr>
               <th>ID</th>
               <th>Ảnh</th>
-              <th>Mã</th>
               <th>Tên</th>
               <th>Danh mục</th>
               <th>Đơn vị</th>
-              <th>Min</th>
-              <th>Max</th>
+              <th>Giá bán</th>
               <th>Trạng thái</th>
               <th style={{ width: 320 }}>Hành động</th>
             </tr>
@@ -270,13 +359,16 @@ export default function EquipmentPage() {
           <tbody>
             {visibleItems.length === 0 ? (
               <tr>
-                <td className="eq-empty" colSpan={10}>
+                <td className="eq-empty" colSpan={8}>
                   Không có dữ liệu
                 </td>
               </tr>
             ) : (
               visibleItems.map((row) => {
-                const cat = row.categoryName || catMap.get(Number(row.categoryId))?.name || "-";
+                const catObj = catMap.get(Number(row.categoryId));
+                const catRawName = row.categoryName || catObj?.name || "";
+                const catRawCode = catObj?.code || "";
+                const cat = translateEquipmentCategoryName(catRawName, catRawCode) || "-";
                 const isActive = row.status === "active";
                 return (
                   <tr key={row.id}>
@@ -290,11 +382,10 @@ export default function EquipmentPage() {
                           alt={row.name}
                         />
                       ) : (
-                        <div className="eq-thumb placeholder">No Image</div>
+                        <div className="eq-thumb placeholder">Chưa có ảnh</div>
                       )}
                     </td>
 
-                    <td>{row.code || "-"}</td>
                     <td className="eq-strong">
                       {row.name}
                       {row.brand || row.model ? (
@@ -305,11 +396,10 @@ export default function EquipmentPage() {
                     </td>
                     <td>{cat}</td>
                     <td>{row.unit || "-"}</td>
-                    <td>{row.minStockLevel ?? 0}</td>
-                    <td>{row.maxStockLevel ?? 0}</td>
+                    <td>{Number(row.price || 0).toLocaleString("vi-VN")} đ</td>
                     <td>
                       <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
-                        {isActive ? "Active" : "Discontinued"}
+                        {isActive ? "Đang hoạt động" : "Ngừng sử dụng"}
                       </span>
                     </td>
                     <td className="eq-actions">
@@ -328,6 +418,12 @@ export default function EquipmentPage() {
                       >
                         Ẩn thiết bị
                       </button>
+                      <button
+                        className="eq-btn eq-btn--danger"
+                        onClick={() => onDelete(row)}
+                      >
+                        Xóa
+                      </button>
                     </td>
                   </tr>
                 );
@@ -337,56 +433,49 @@ export default function EquipmentPage() {
         </table>
       </div>
 
-      {/* ===== Modal Create/Edit ===== */}
-      {show ? (
-        <div className="eq-modal__backdrop" onMouseDown={closeModal}>
-          <div
-            className="eq-modal"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="eq-modal__header">
-              <div>
-                <div className="eq-modal__title">
-                  {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
-                </div>
-                <div className="eq-modal__subtitle">
-                  Dùng để quản lý tồn kho theo gym + ghi nhật ký nhập/xuất
-                </div>
-              </div>
+      {/* ===== Modal Create/Edit (portal: tránh bị cắt bởi overflow layout admin) ===== */}
+      {show
+        ? createPortal(
+            <div className="eq-modal__backdrop" onMouseDown={closeModal}>
+              <div
+                className="eq-modal eq-modal--form"
+                onMouseDown={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="eq-modal__header">
+                  <div>
+                    <div className="eq-modal__title">
+                      {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
+                    </div>
+                    <div className="eq-modal__subtitle">
+                      Điền thông tin danh mục &amp; giá. Số lượng ban đầu (nếu có) dùng nhập tồn kho admin khi tạo mới.
+                    </div>
+                  </div>
 
-              <button className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
-                ✕
-              </button>
-            </div>
+                  <button type="button" className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
+                    ✕
+                  </button>
+                </div>
 
-            <div className="eq-modal__body">
-              <div className="eq-formgrid">
-                <label className="eq-field">
+                <div className="eq-modal__body">
+                  <div className="eq-formgrid">
+                    <label className="eq-field eq-field--full">
+                      <span className="eq-label">
+                        Tên <b>*</b>
+                      </span>
+                      <input
+                        className="eq-input"
+                        value={form.name}
+                        onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                        placeholder="VD: Máy chạy bộ thương mại"
+                      />
+                    </label>
+
+                    <label className="eq-field">
                   <span className="eq-label">
-                    Tên <b>*</b>
+                    Danh mục{mode === "create" ? <> <b>*</b></> : null}
                   </span>
-                  <input
-                    className="eq-input"
-                    value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="VD: Commercial Treadmill Pro"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Mã</span>
-                  <input
-                    className="eq-input"
-                    value={form.code}
-                    onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
-                    placeholder="VD: EQ-TREADMILL-001"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Danh mục</span>
                   <select
                     className="eq-select"
                     value={form.categoryId}
@@ -395,7 +484,7 @@ export default function EquipmentPage() {
                     <option value="">-- Chọn --</option>
                     {(categories || []).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} {c.code ? `(${c.code})` : ""}
+                        {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
                       </option>
                     ))}
                   </select>
@@ -403,66 +492,84 @@ export default function EquipmentPage() {
 
                 <label className="eq-field">
                   <span className="eq-label">Đơn vị</span>
+                  <input className="eq-input" value="VND" readOnly />
+                </label>
+
+                <label className="eq-field">
+                  <span className="eq-label">Giá bán (VNĐ)</span>
                   <input
                     className="eq-input"
-                    value={form.unit}
-                    onChange={(e) => setForm((s) => ({ ...s, unit: e.target.value }))}
-                    placeholder="VD: piece / set"
+                    type="number"
+                    min="0"
+                    value={form.price}
+                    onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
+                    placeholder="VD: 25000000"
                   />
                 </label>
 
                 <label className="eq-field">
-                  <span className="eq-label">Brand</span>
+                  <span className="eq-label">Số lượng</span>
                   <input
                     className="eq-input"
-                    value={form.brand}
-                    onChange={(e) => setForm((s) => ({ ...s, brand: e.target.value }))}
-                    placeholder="VD: Life Fitness"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Model</span>
-                  <input
-                    className="eq-input"
-                    value={form.model}
-                    onChange={(e) => setForm((s) => ({ ...s, model: e.target.value }))}
-                    placeholder="VD: T5"
+                    type="number"
+                    min="0"
+                    value={form.quantity}
+                    onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
+                    placeholder="VD: 10"
                   />
                 </label>
 
                 <label className="eq-field eq-col2">
-                  <span className="eq-label">Mô tả</span>
+                  <span className="eq-label">
+                    Nhà cung cấp{mode === "create" ? <> <b>*</b></> : null}
+                  </span>
+                  <select
+                    className="eq-select"
+                    value={form.preferredSupplierId}
+                    onChange={(e) => setForm((s) => ({ ...s, preferredSupplierId: e.target.value }))}
+                  >
+                    <option value="">-- Chọn nhà cung cấp --</option>
+                    {(suppliers || []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.code ? `(${s.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="eq-field eq-col2">
+                  <span className="eq-label">
+                    Mô tả{mode === "create" ? <> <b>*</b></> : null}
+                  </span>
                   <textarea
                     className="eq-textarea"
                     rows={3}
                     value={form.description}
                     onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                    placeholder="VD: High-end commercial treadmill..."
+                    placeholder="VD: Thiết bị cao cấp cho phòng gym..."
                   />
                 </label>
 
-                <label className="eq-field">
-                  <span className="eq-label">Min stock</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.minStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, minStockLevel: e.target.value }))}
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Max stock</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.maxStockLevel}
-                    onChange={(e) => setForm((s) => ({ ...s, maxStockLevel: e.target.value }))}
-                  />
-                </label>
+                {mode === "create" ? (
+                  <label className="eq-field eq-col2">
+                    <span className="eq-label">Ảnh thiết bị</span>
+                    <input
+                      className="eq-input-file"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateImages(files);
+                      }}
+                    />
+                    <div className="eq-hint">
+                      {createImages.length
+                        ? `Đã chọn ${createImages.length} ảnh. Ảnh sẽ được tải lên ngay sau khi tạo thiết bị.`
+                        : "Bạn có thể chọn nhiều ảnh ngay khi tạo mới."}
+                    </div>
+                  </label>
+                ) : null}
 
                 <label className="eq-field eq-col2">
                   <span className="eq-label">Trạng thái</span>
@@ -471,34 +578,42 @@ export default function EquipmentPage() {
                     value={form.status}
                     onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
                   >
-                    <option value="active">active</option>
-                    <option value="discontinued">discontinued</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="discontinued">Ngừng sử dụng</option>
                   </select>
                   <div className="eq-hint">
-                    * Discontinued: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
+                    * Ngừng sử dụng: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
                   </div>
                 </label>
+                  </div>
+
+                  {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
+                </div>
+
+                <div className="eq-modal__footer">
+                  <button type="button" className="eq-btn eq-btn--ghost" onClick={closeModal}>
+                    Huỷ
+                  </button>
+                  <button
+                    type="button"
+                    className="eq-btn eq-btn--primary"
+                    onClick={save}
+                    disabled={saving}
+                  >
+                    {saving ? "Đang lưu..." : "Lưu"}
+                  </button>
+                </div>
               </div>
-
-              {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
-            </div>
-
-            <div className="eq-modal__footer">
-              <button className="eq-btn eq-btn--ghost" onClick={closeModal}>
-                Huỷ
-              </button>
-              <button className="eq-btn eq-btn--primary" onClick={save}>
-                Lưu
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
 
       {/* ===== Modal Images ===== */}
-      {imgOpen && imgEquipment ? (
-        <div className="eq-modal__backdrop" onMouseDown={closeImages}>
-          <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
+      {imgOpen && imgEquipment
+        ? createPortal(
+            <div className="eq-modal__backdrop" onMouseDown={closeImages}>
+              <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
             <div className="eq-modal__header">
               <div>
                 <div className="eq-modal__title">Ảnh thiết bị</div>
@@ -528,7 +643,7 @@ export default function EquipmentPage() {
                       setGallery(res?.data?.data ?? res?.data ?? []);
                       await fetchList(); // để refresh ảnh đại diện ngoài bảng
                     } catch (err2) {
-                      alert(err2?.response?.data?.message || err2?.message || "Upload failed");
+                      alert(err2?.response?.data?.message || err2?.message || "Tải ảnh lên thất bại");
                     } finally {
                       setUploading(false);
                       e.target.value = "";
@@ -546,7 +661,7 @@ export default function EquipmentPage() {
                     <div key={img.id} className={`eq-card-img ${img.isPrimary ? "primary" : ""}`}>
                       <img src={absUrl(img.url)} alt={img.altText || "equipment"} />
 
-                      {img.isPrimary ? <div className="eq-badge2">Primary</div> : null}
+                      {img.isPrimary ? <div className="eq-badge2">Ảnh đại diện</div> : null}
 
                       <div className="eq-img-actions">
                         {!img.isPrimary ? (
@@ -561,8 +676,8 @@ export default function EquipmentPage() {
                               } catch (err3) {
                                 alert(
                                   err3?.response?.data?.message ||
-                                    err3?.message ||
-                                    "Set primary failed"
+                                  err3?.message ||
+                                    "Đặt ảnh đại diện thất bại"
                                 );
                               }
                             }}
@@ -586,7 +701,7 @@ export default function EquipmentPage() {
                               alert(
                                 err4?.response?.data?.message ||
                                   err4?.message ||
-                                  "Delete image failed"
+                                  "Xoá ảnh thất bại"
                               );
                             }
                           }}
@@ -601,13 +716,15 @@ export default function EquipmentPage() {
             </div>
 
             <div className="eq-modal__footer">
-              <button className="eq-btn eq-btn--ghost" onClick={closeImages}>
+              <button type="button" className="eq-btn eq-btn--ghost" onClick={closeImages}>
                 Đóng
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

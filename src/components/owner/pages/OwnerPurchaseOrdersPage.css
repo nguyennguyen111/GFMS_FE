@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 20px;
   color: #eef2ff;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: "Be Vietnam Pro", "Nunito Sans", "Segoe UI", sans-serif;
 }
 
 .opo-head {
@@ -28,8 +28,61 @@
   font-size: 14px;
 }
 
+.opo-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  margin-bottom: 6px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
+
+.opo-search-input,
+.opo-status-select {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.6);
+  color: #eef2ff;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.opo-search-input::placeholder {
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.opo-search-input:focus,
+.opo-status-select:focus {
+  outline: none;
+  border-color: rgba(0, 186, 255, 0.56);
+  box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.12);
+}
+
+.opo-filter-btn {
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(184, 220, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  color: #eef2ff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.opo-filter-btn:hover {
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.35), rgba(255, 176, 0, 0.2));
+  transform: translateY(-2px);
+}
+
 .opo-container {
   display: block;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .opo-list {
@@ -58,7 +111,7 @@
 .opo-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -74,7 +127,7 @@
 }
 
 .opo-table tbody tr:hover {
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
 }
 
 .opo-table td {
@@ -115,9 +168,9 @@
 }
 
 .opo-badge-received {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(20, 184, 166, 0.16);
+  color: #14b8a6;
+  border: 1px solid rgba(20, 184, 166, 0.32);
 }
 
 .opo-loading {
@@ -136,8 +189,8 @@
 
 .pagination button {
   padding: 8px 12px;
-  background: rgba(255, 138, 0, 0.18);
-  border: 1px solid rgba(255, 138, 0, 0.3);
+  background: rgba(184, 220, 0, 0.18);
+  border: 1px solid rgba(184, 220, 0, 0.3);
   color: #eef2ff;
   border-radius: 12px;
   cursor: pointer;
@@ -147,7 +200,7 @@
 }
 
 .pagination button:hover:not(:disabled) {
-  background: rgba(255, 138, 0, 0.28);
+  background: rgba(184, 220, 0, 0.28);
   transform: translateY(-2px);
 }
 
@@ -218,6 +271,14 @@
 }
 
 @media (max-width: 768px) {
+  .opo-filters {
+    flex-direction: column;
+  }
+
+  .opo-filter-btn {
+    width: 100%;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
     gap: 10px;

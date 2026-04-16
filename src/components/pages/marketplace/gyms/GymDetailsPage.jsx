@@ -19,6 +19,7 @@ import {
 } from "../../../../services/marketplaceService";
 import ImageWithFallback from "../../../common/ImageWithFallback";
 import { getCurrentUser } from "../../../../utils/auth";
+import PublicFeedbackSection from "../../../common/PublicFeedbackSection";
 import "./GymDetailsPage.css";
 
 const Stat = ({ icon, label, value }) => (
@@ -66,8 +67,8 @@ export default function GymDetailsPage() {
         if (!mounted) return;
 
         setGym(gymRes.data?.DT || null);
-        setTrainers(trainerRes.data?.DT || []);
-        setPackages(packageRes.data?.DT || []);
+        setTrainers(Array.isArray(trainerRes.data?.DT?.items) ? trainerRes.data.DT.items : Array.isArray(trainerRes.data?.DT) ? trainerRes.data.DT : []);
+        setPackages(Array.isArray(packageRes.data?.DT?.items) ? packageRes.data.DT.items : Array.isArray(packageRes.data?.DT) ? packageRes.data.DT : []);
       } finally {
         setLoading(false);
       }
@@ -192,9 +193,9 @@ export default function GymDetailsPage() {
           <Stat icon={<Users size={18} />} label="Huấn luyện viên" value={trainers.length} />
           <Stat icon={<Package size={18} />} label="Gói tập" value={packages.length} />
           <Stat
-            icon={<Clock3 size={18} />}
-            label="Giờ mở cửa"
-            value={gym.operatingHours || "—"}
+            icon={<Star size={18} />}
+            label="Đánh giá"
+            value={`${Number(gym.avgRating || 0).toFixed(1)} (${Number(gym.reviewCount || 0)})`}
           />
           <Stat icon={<Phone size={18} />} label="Liên hệ" value={gym.phone || "—"} />
         </section>
@@ -234,7 +235,8 @@ export default function GymDetailsPage() {
                         <div className="gd-itemTitle">{t.User?.username || "PT"}</div>
                         <div className="gd-itemMeta">
                           <Star size={14} fill="currentColor" />
-                          <span>{Number(t.rating || 0).toFixed(1)}</span>
+                          <span>{Number(t.avgRating || t.rating || 0).toFixed(1)}</span>
+                          <span>({Number(t.reviewCount || 0)})</span>
                           <span>•</span>
                           <span>{t.specialization || "Personal Trainer"}</span>
                         </div>
@@ -277,6 +279,10 @@ export default function GymDetailsPage() {
 
                       <div className="gd-pkgMeta">
                         <span className="gd-miniTag">
+                          <Users size={14} />
+                          <span>PT chung toàn gym</span>
+                        </span>
+                        <span className="gd-miniTag">
                           <Dumbbell size={14} />
                           <span>{p.sessions} buổi</span>
                         </span>
@@ -298,6 +304,13 @@ export default function GymDetailsPage() {
                 <div className="gd-muted">Chưa có gói tập.</div>
               )}
             </Card>
+
+            <PublicFeedbackSection
+              title="Feedback"
+              subtitle="Các đánh giá nổi bật của hội viên về gym và các gói tập thuộc cơ sở này."
+              items={gym.feedback || []}
+              className="gd-feedbackSection"
+            />
           </div>
 
           <div className="gd-right">
@@ -338,7 +351,7 @@ export default function GymDetailsPage() {
                 <div className="gd-gallery">
                   {gym.images.slice(0, 6).map((url, i) => (
                     <div className="gd-galleryItem" key={i}>
-                      <img src={url} alt={`Gym photo ${i + 1}`} />
+                      <img src={url} alt={`Ảnh gym ${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -347,15 +360,16 @@ export default function GymDetailsPage() {
               )}
 
               <button className="gd-cta2" onClick={requireLoginThenGoBooking}>
-                Đặt lịch PT ngay
+                Đặt lịch ngay
               </button>
 
               <div className="gd-ctaNote">
-                Chọn PT và lịch tập trong bước tiếp theo.
+                Chọn Gói tập, PT và lịch tập trong bước tiếp theo.
               </div>
             </Card>
           </div>
         </section>
+
       </div>
     </div>
   );

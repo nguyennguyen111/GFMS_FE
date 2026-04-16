@@ -34,7 +34,7 @@ const PTList = () => {
         </Link>
       </header>
 
-      {loading && <p>Loading...</p>}
+      {loading && <p>Đang tải...</p>}
       {error && <p style={{ color: '#ff9b9b', fontWeight: 700 }}>{error}</p>}
 
       {!loading && !error && (
@@ -61,7 +61,7 @@ const PTList = () => {
                   <div style={{ fontWeight: 900 }}>
                     {t?.User?.username ? t.User.username : `PT #${t.id}`}
                     <span style={{ marginLeft: 10, color: '#9c9c9c', fontWeight: 700 }}>
-                      ({t.status || 'active'})
+                      ({String(t.status || "active").toLowerCase() === "inactive" ? "ngưng hoạt động" : "đang hoạt động"})
                     </span>
                   </div>
                   <div style={{ color: '#D9D9D9', marginTop: 6 }}>
@@ -81,7 +81,7 @@ const PTList = () => {
                     <button className="btn">Cập nhật lịch</button>
                   </Link>
                   <Link to={`/pt/${t.id}/skills`} style={{ textDecoration: 'none' }}>
-                    <button className="btn">Skills</button>
+                    <button className="btn">Kỹ năng</button>
                   </Link>
                   <Link to={`/pt/edit/${t.id}`} style={{ textDecoration: 'none' }}>
                     <button className="btn">Sửa</button>

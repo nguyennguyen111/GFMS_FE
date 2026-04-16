@@ -54,7 +54,7 @@ const PTProfile = () => {
   return (
     <div className="ptp-wrap">
       <div className="ptp-card">
-        <h2>PT Profile</h2>
+        <h2>Hồ sơ PT</h2>
         <p>
           {loading
             ? "Đang kiểm tra hồ sơ..."

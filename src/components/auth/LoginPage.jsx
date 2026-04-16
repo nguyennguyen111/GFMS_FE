@@ -13,16 +13,23 @@ import {
   Building2,
 } from 'lucide-react';
 import './LoginPage.css';
-import { loginUser } from '../../services/authService';
-import { setCurrentUser } from '../../utils/auth';
+import { GoogleLogin } from '@react-oauth/google';
+import { applyAuthPayload, loginUser, loginWithGoogle } from '../../services/authService';
+import { getRememberedEmail, setRememberedEmail, setAuthProvider } from '../../services/authSession';
+import { showAppToast } from '../../utils/appToast';
+
+const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+const showGoogleLogin = Boolean(googleClientId);
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(getRememberedEmail());
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(Boolean(getRememberedEmail()));
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -81,6 +88,64 @@ const LoginPage = () => {
     return false;
   };
 
+  const loginErrorMap = {
+    'User not found': 'Email không tồn tại trong hệ thống',
+    'Wrong password': 'Mật khẩu không đúng',
+    'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
+    'Account inactive': 'Tài khoản đã bị vô hiệu hoá',
+    'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ',
+    'Invalid or expired Google token': 'Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn',
+    'Invalid Google token payload': 'Phiên đăng nhập Google không hợp lệ',
+    'Google account has no email': 'Tài khoản Google không có email',
+    'Google email is not verified': 'Email Google chưa được xác minh',
+    'Missing Google credential': 'Thiếu thông tin xác thực Google',
+    'Google login is not configured on server (missing GOOGLE_CLIENT_ID)':
+      'Đăng nhập Google chưa được cấu hình trên server',
+  };
+
+  /** Lưu session + điều hướng — dùng chung cho email/password và Google */
+  const applyLoginSession = (data, provider = "local") => {
+    if (data?.EC !== 0) return false;
+
+    showAppToast({
+      type: 'success',
+      title: 'Đăng nhập',
+      message: data?.EM || 'Đăng nhập thành công',
+    });
+
+    const dt = data?.DT || {};
+    const user = dt?.user || null;
+    if (!user) {
+      showAppToast({
+        type: 'error',
+        title: 'Đăng nhập',
+        message: 'Không lấy được thông tin người dùng',
+      });
+      return false;
+    }
+
+    const groupIdRaw = user?.groupId ?? user?.group_id;
+    const groupId = Number(groupIdRaw);
+
+    if (!applyAuthPayload(dt)) return false;
+    setAuthProvider(provider);
+
+    const redirect = sessionStorage.getItem('redirectAfterLogin');
+    if (redirect && isRedirectAllowedForGroup(groupId, redirect)) {
+      sessionStorage.removeItem('redirectAfterLogin');
+      navigate(redirect, { replace: true });
+      return true;
+    }
+
+    if (redirect) {
+      sessionStorage.removeItem('redirectAfterLogin');
+    }
+
+    const homePath = getHomePathByGroupId(groupId);
+    navigate(homePath, { replace: true });
+    return true;
+  };
+
   const handleLogin = async () => {
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -91,65 +156,21 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await loginUser(email, password);
+      const response = await loginUser(email, password, rememberMe);
+      if (rememberMe) setRememberedEmail(email);
+      else setRememberedEmail("");
       const data = response?.data;
 
-      console.log('Login response:', data);
-
-      if (data?.EC === 0) {
-        alert(`✅ ${data?.EM || 'Đăng nhập thành công'}`);
-
-        const dt = data?.DT || {};
-        const user = dt?.user || null;
-        const accessToken = dt?.accessToken || dt?.access_Token || '';
-
-        if (!user) {
-          alert('❌ Không lấy được thông tin người dùng');
-          return;
-        }
-
-        const groupIdRaw = user?.groupId ?? user?.group_id;
-        const groupId = Number(groupIdRaw);
-
-        console.log('✅ USER:', user);
-        console.log('✅ accessToken:', accessToken);
-        console.log('✅ groupId:', groupId);
-
-        if (accessToken) {
-          localStorage.setItem('accessToken', accessToken);
-        }
-
-        setCurrentUser(user);
-
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('roles', JSON.stringify(dt?.roles || []));
-
-        const redirect = sessionStorage.getItem('redirectAfterLogin');
-        if (redirect && isRedirectAllowedForGroup(groupId, redirect)) {
-          sessionStorage.removeItem('redirectAfterLogin');
-          navigate(redirect, { replace: true });
-          return;
-        }
-
-        if (redirect) {
-          sessionStorage.removeItem('redirectAfterLogin');
-        }
-
-        const homePath = getHomePathByGroupId(groupId);
-        navigate(homePath, { replace: true });
+      if (applyLoginSession(data, "local")) {
         return;
       }
 
       const serverError = data?.EM || 'Có lỗi xảy ra';
-      const errorMap = {
-        'User not found': 'Email không tồn tại trong hệ thống',
-        'Wrong password': 'Mật khẩu không đúng',
-        'Missing required fields': 'Vui lòng điền đầy đủ thông tin',
-        'Account inactive': 'Tài khoản đã bị vô hiệu hoá',
-        'Account suspended': 'Tài khoản đang bị khoá/tạm đình chỉ',
-      };
-
-      alert(`❌ ${errorMap[serverError] || serverError}`);
+      showAppToast({
+        type: 'error',
+        title: 'Đăng nhập',
+        message: loginErrorMap[serverError] || serverError,
+      });
     } catch (error) {
       console.error('Login error:', error);
 
@@ -160,9 +181,49 @@ const LoginPage = () => {
         errorMessage = 'Không thể kết nối đến server';
       }
 
-      alert(`❌ ${errorMessage}`);
+      showAppToast({ type: 'error', title: 'Đăng nhập', message: errorMessage });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    if (!credential) {
+      showAppToast({
+        type: 'error',
+        title: 'Đăng nhập',
+        message: 'Không nhận được mã xác thực từ Google',
+      });
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const response = await loginWithGoogle(credential, rememberMe);
+      const data = response?.data;
+
+      if (applyLoginSession(data, "google")) {
+        return;
+      }
+
+      const serverError = data?.EM || 'Đăng nhập Google thất bại';
+      showAppToast({
+        type: 'error',
+        title: 'Đăng nhập',
+        message: loginErrorMap[serverError] || serverError,
+      });
+    } catch (error) {
+      console.error('Google login error:', error);
+      let errorMessage = 'Có lỗi xảy ra khi đăng nhập Google';
+      if (error.response?.data?.EM) {
+        const em = error.response.data.EM;
+        errorMessage = loginErrorMap[em] || em;
+      } else if (error.request) {
+        errorMessage = 'Không thể kết nối đến server';
+      }
+      showAppToast({ type: 'error', title: 'Đăng nhập', message: errorMessage });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -197,7 +258,7 @@ const LoginPage = () => {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    <div className="login-page">
+    <div className="login-page auth-compact">
       <div className="login-page__glow login-page__glow--left" />
       <div className="login-page__glow login-page__glow--right" />
 
@@ -285,6 +346,7 @@ const LoginPage = () => {
                     onBlur={handleEmailBlur}
                     placeholder="email@gfms.com"
                     className={`login-input ${errors.email ? 'is-error' : ''}`}
+                    autoComplete="username"
                   />
                 </div>
                 {errors.email && <span className="login-error">{errors.email}</span>}
@@ -315,6 +377,7 @@ const LoginPage = () => {
                     onBlur={handlePasswordBlur}
                     placeholder="••••••••"
                     className={`login-input ${errors.password ? 'is-error' : ''}`}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -328,7 +391,21 @@ const LoginPage = () => {
                 {errors.password && <span className="login-error">{errors.password}</span>}
               </div>
 
-              <button type="submit" className="login-submit" disabled={isLoading}>
+              <div className="login-rememberBox">
+                <label className="login-rememberRow">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <span>Lưu đăng nhập trên thiết bị này</span>
+                </label>
+                <p className="login-rememberHint">
+                  Không lưu mật khẩu. Chỉ duy trì phiên an toàn bằng cookie bảo mật.
+                </p>
+              </div>
+
+              <button type="submit" className="login-submit" disabled={isLoading || googleLoading}>
                 {isLoading ? (
                   <>
                     <span className="login-spinner" />
@@ -341,6 +418,67 @@ const LoginPage = () => {
                   </>
                 )}
               </button>
+
+              {!showGoogleLogin && process.env.NODE_ENV === 'development' && (
+                <p className="login-googleConfigHint">
+                  <strong>Đăng nhập Google</strong> chưa bật: thêm{' '}
+                  <code>REACT_APP_GOOGLE_CLIENT_ID</code> vào file <code>.env</code> trong thư mục{' '}
+                  <code>GFMS_FE</code> (cùng giá trị với <code>GOOGLE_CLIENT_ID</code> ở backend), rồi{' '}
+                  <strong>tắt và chạy lại</strong> <code>npm start</code>.
+                </p>
+              )}
+
+              {showGoogleLogin && (
+                <>
+                  <div className="login-oauthDivider login-oauthDivider--enterprise">
+                    <span>hoặc</span>
+                  </div>
+                  <div className="login-googleEnterprise">
+                    <div className="login-googleEnterprise-panel">
+                      <div className="login-googleEnterprise-header">
+                        <div className="login-googleEnterprise-iconWrap" aria-hidden>
+                          <ShieldCheck size={22} strokeWidth={1.75} />
+                        </div>
+                        <div className="login-googleEnterprise-copy">
+                          <p className="login-googleEnterprise-desc">
+                            Xác thực qua Google — hỗ trợ Google Workspace và tài khoản Gmail được cấp quyền truy cập.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="login-googleEnterprise-action">
+                        <GoogleLogin
+                          onSuccess={(res) => {
+                            if (res?.credential) handleGoogleCredential(res.credential);
+                          }}
+                          onError={() => {
+                            showAppToast({
+                              type: 'error',
+                              title: 'Đăng nhập',
+                              message: 'Đăng nhập Google bị từ chối hoặc lỗi',
+                            });
+                          }}
+                          useOneTap={false}
+                          theme="outline"
+                          size="large"
+                          width={320}
+                          text="signin_with"
+                          shape="rectangular"
+                          logo_alignment="left"
+                        />
+                      </div>
+                      <p className="login-googleEnterprise-trust">
+                        <span className="login-googleEnterprise-trustDot" aria-hidden />
+                        OAuth 2.0 · Kết nối TLS · Không lưu mật khẩu Google trên máy chủ GFMS
+                      </p>
+                    </div>
+                    {googleLoading && (
+                      <p className="login-googleHint login-googleHint--enterprise">
+                        Đang xác thực với Google…
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="login-registerBox">
                 <p>

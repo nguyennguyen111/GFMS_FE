@@ -235,3 +235,19 @@ export const replyPTReview = async (reviewId, reply) => {
   return res.data;
 };
 
+
+
+export const getMyPTRescheduleRequests = async () => {
+  const res = await axios.get(`${BASE}/me/reschedule-requests`, ptConfig());
+  return res.data;
+};
+
+export const approvePTRescheduleRequest = async (id, payload = {}) => {
+  const res = await axios.patch(`${BASE}/reschedule-requests/${id}/approve`, payload, ptConfig());
+  return res.data;
+};
+
+export const rejectPTRescheduleRequest = async (id, payload = {}) => {
+  const res = await axios.patch(`${BASE}/reschedule-requests/${id}/reject`, payload, ptConfig());
+  return res.data;
+};

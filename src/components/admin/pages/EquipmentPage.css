@@ -59,6 +59,15 @@
   color: rgba(238,242,255,.45);
 }
 
+.eq-input-file{
+  width: 100%;
+  border-radius: 14px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: #eef2ff;
+}
+
 .eq-filters .eq-input{ max-width: 420px; }
 .eq-filters .eq-select{ max-width: 220px; }
 
@@ -207,6 +216,28 @@
   backdrop-filter: blur(12px);
 }
 
+/* Form modal: scroll nội dung, không nuốt nút */
+.eq-modal--form{
+  max-height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  color-scheme: dark;
+}
+.eq-modal--form .eq-modal__body{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.eq-modal .eq-select,
+.eq-modal .eq-input,
+.eq-modal .eq-textarea{
+  color-scheme: dark;
+}
+.eq-modal .eq-select option{
+  background: #121c28;
+  color: #eef2ff;
+}
+
 .eq-modal__header{
   padding: 14px 14px;
   display:flex;
@@ -261,6 +292,7 @@
 .eq-label b{ color: rgba(255,176,0,.95); }
 
 .eq-col2{ grid-column: 1 / -1; }
+.eq-field--full{ grid-column: 1 / -1; }
 
 .eq-modal__footer{
   padding: 12px 14px;

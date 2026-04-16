@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import "./SuppliersPage.css";
 
 import {
@@ -193,7 +194,7 @@ export default function SuppliersPage() {
       <div className="sup-filters">
         <input
           className="sup-input"
-          placeholder="Tìm theo tên / mã / phone / email..."
+          placeholder="Tìm theo tên / mã / SĐT / email..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
@@ -220,7 +221,7 @@ export default function SuppliersPage() {
         <table className="sup-table__tbl">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Mã bản ghi</th>
               <th>Mã</th>
               <th>Tên</th>
               <th>Phone</th>
@@ -281,7 +282,8 @@ export default function SuppliersPage() {
         </table>
       </div>
 
-      {show ? (
+      {show
+        ? createPortal(
         <div className="sup-modal__backdrop" onMouseDown={closeModal}>
           <div
             className="sup-modal"
@@ -322,7 +324,7 @@ export default function SuppliersPage() {
                     onChange={(e) =>
                       setForm((s) => ({ ...s, name: e.target.value }))
                     }
-                    placeholder="VD: Gym Essentials Vietnam"
+                    placeholder="VD: Công ty TNHH Thiết bị Gym ABC"
                   />
                 </label>
 
@@ -362,7 +364,7 @@ export default function SuppliersPage() {
                   />
                 </label>
 
-                <label className="sup-field sup-field--full">
+                <label className="sup-field">
                   <span className="sup-label">Địa chỉ</span>
                   <input
                     className="sup-input"
@@ -395,7 +397,7 @@ export default function SuppliersPage() {
                     onChange={(e) =>
                       setForm((s) => ({ ...s, notes: e.target.value }))
                     }
-                    placeholder="VD: Supplier for gym accessories..."
+                    placeholder="VD: Cung cấp phụ kiện phòng gym..."
                   />
                 </label>
 
@@ -430,8 +432,10 @@ export default function SuppliersPage() {
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body
+      )
+        : null}
     </div>
   );
 }

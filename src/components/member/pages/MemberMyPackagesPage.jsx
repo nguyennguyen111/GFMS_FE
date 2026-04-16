@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -10,7 +10,6 @@ import {
   Ticket,
 } from "lucide-react";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
-import { confirmPayosPayment } from "../../../services/paymentService";
 import "./MemberMyPackagesPage.css";
 
 const fmtMoney = (v) => {
@@ -40,7 +39,6 @@ const normalizeStatus = (x) => {
 
 export default function MemberMyPackagesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,34 +65,13 @@ export default function MemberMyPackagesPage() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search || "");
-    const payosStatus = params.get("payos");
-    const orderCode = params.get("orderCode");
-
-    if (!payosStatus) return;
-
-    const runConfirm = async () => {
-      try {
-        if (payosStatus === "success" && orderCode) {
-          await confirmPayosPayment(orderCode);
-        }
-      } catch (e) {
-        setErr(e.response?.data?.message || "Xác nhận thanh toán PayOS thất bại.");
-      } finally {
-        load();
-        navigate(location.pathname, { replace: true });
-      }
-    };
-
-    runConfirm();
-  }, [location.pathname, location.search, navigate, load]);
 
   const mappedRows = useMemo(() => {
     return rows.map((x) => {
       const isPending = String(x.id).startsWith("pending-");
       const status = isPending ? "pending" : normalizeStatus(x.status);
       const sessionsRemaining = Number(x.sessionsRemaining ?? x.sessionsLeft ?? 0);
+      const reviewEligible = Boolean(x.reviewEligible || (status === "archived" && !isPending));
       const totalSessions = Number(x.totalSessions ?? x.Package?.sessions ?? 0);
 
       let progress = 0;
@@ -112,6 +89,7 @@ export default function MemberMyPackagesPage() {
         __sessionsRemaining: sessionsRemaining,
         __totalSessions: totalSessions,
         __progress: progress,
+        __reviewEligible: reviewEligible,
       };
     });
   }, [rows]);
@@ -136,7 +114,7 @@ export default function MemberMyPackagesPage() {
     [filteredRows]
   );
 
-  const archiveRows = useMemo(
+  const usedUpRows = useMemo(
     () => filteredRows.filter((x) => x.__status === "archived"),
     [filteredRows]
   );
@@ -191,7 +169,7 @@ export default function MemberMyPackagesPage() {
               ? "ACTIVE"
               : status === "pending"
               ? "PENDING"
-              : "ARCHIVED"}
+              : "USED UP"}
           </span>
         </div>
 
@@ -235,6 +213,19 @@ export default function MemberMyPackagesPage() {
           {isPending ? (
             <div className="mp3-pendingNote">Đang chờ hoàn tất thanh toán</div>
           ) : (
+            <div className="mp3-footActions">
+            {x.__reviewEligible ? (
+              <button
+                type="button"
+                className="mp3-detailBtn ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/member/reviews?type=package&activationId=${x.id}`);
+                }}
+              >
+                <span>Đánh giá</span>
+              </button>
+            ) : null}
             <button
               type="button"
               className="mp3-detailBtn"
@@ -246,6 +237,7 @@ export default function MemberMyPackagesPage() {
               <span>View details</span>
               <ArrowRight size={16} />
             </button>
+            </div>
           )}
         </div>
       </div>
@@ -282,7 +274,7 @@ export default function MemberMyPackagesPage() {
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="pending">Pending</option>
-              <option value="archived">Archived</option>
+              <option value="archived">Used up</option>
             </select>
           </div>
         </div>
@@ -308,8 +300,6 @@ export default function MemberMyPackagesPage() {
           </button>
         </div>
       </div>
-
-      {err && <div className="mp3-alert">{err}</div>}
 
       {loading ? (
         <div className="mp3-empty">
@@ -348,46 +338,20 @@ export default function MemberMyPackagesPage() {
             )}
           </section>
 
-          <section className="mp3-section is-history">
+          <section className="mp3-section">
             <div className="mp3-sectionHead">
               <div className="mp3-sectionTitleWrap">
-                <h2 className="mp3-sectionTitle">Past History</h2>
+                <h2 className="mp3-sectionTitle">Gói đã dùng hết</h2>
                 <div className="mp3-sectionLine" />
               </div>
-              <div className="mp3-sectionCount">archived</div>
+              <div className="mp3-sectionCount">{usedUpRows.length} used up</div>
             </div>
 
-            {archiveRows.length === 0 ? (
-              <div className="mp3-empty small">Chưa có lịch sử gói đã lưu trữ.</div>
+            {usedUpRows.length === 0 ? (
+              <div className="mp3-empty small">Chưa có gói nào đã dùng hết theo bộ lọc hiện tại.</div>
             ) : (
-              <div className="mp3-historyList">
-                {archiveRows.map((x) => (
-                  <div
-                    key={x.id}
-                    className="mp3-historyRow"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/member/my-packages/${x.id}`)}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/member/my-packages/${x.id}`)}
-                  >
-                    <div className="mp3-historyNameWrap">
-                      <div className="mp3-historyLabel">Package name</div>
-                      <div className="mp3-historyName">{x.Package?.name || "—"}</div>
-                    </div>
-
-                    <div className="mp3-historyStatusWrap">
-                      <div className="mp3-historyLabel">Status</div>
-                      <span className={`mp3-historyBadge ${x.__status}`}>
-                        {x.__status === "archived" ? "COMPLETED" : x.__status.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div className="mp3-historyDateWrap">
-                      <div className="mp3-historyLabel">Date</div>
-                      <div className="mp3-historyDate">{fmtDate(x.expiryDate)}</div>
-                    </div>
-                  </div>
-                ))}
+              <div className="mp3-grid">
+                {usedUpRows.map((x) => renderCard(x, true))}
               </div>
             )}
           </section>

@@ -1,6 +1,6 @@
 import axios from "../setup/axios";
 
-export const mpGetGyms = () => axios.get("/api/marketplace/gyms");
+export const mpGetGyms = (params) => axios.get("/api/marketplace/gyms", { params });
 
 export const mpGetTrainers = (params) =>
   axios.get("/api/marketplace/trainers", { params });
@@ -17,6 +17,9 @@ export const mpGetTrainerDetail = (id) =>
 export const mpGetPackageDetail = (id) =>
   axios.get(`/api/marketplace/packages/${id}`);
 
+export const mpGetPublicReviews = (params) =>
+  axios.get("/api/marketplace/reviews", { params });
+
 /**
  * Public slots for booking wizard step 3
  * params:
@@ -26,3 +29,4 @@ export const mpGetPackageDetail = (id) =>
  */
 export const mpGetSlotsPublic = (params) =>
   axios.get("/api/marketplace/slots", { params });
+export const mpGetLandingHighlights = () => axios.get("/api/marketplace/highlights");

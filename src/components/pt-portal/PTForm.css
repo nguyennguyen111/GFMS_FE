@@ -1,10 +1,10 @@
 .ptf-page{
-  min-height:100vh;
+  min-height:0;
   width:100%;
-  padding:22px 0 48px;
-  background: radial-gradient(circle at top, #18202b, #0f1113 62%);
+  padding:8px 0 32px;
+  background:transparent;
   box-sizing:border-box;
-  color:#fff;
+  color:var(--m-text, rgba(255,255,255,.92));
 }
 
 .ptf-shell{
@@ -24,7 +24,7 @@
   margin:0;
   font-size:34px;
   font-weight:900;
-  color:var(--orange);
+  color:var(--m-gold, #FFB100);
 }
 
 .ptf-subtitle{
@@ -50,7 +50,7 @@
   font-weight:900;
   text-decoration:none;
   background:rgba(255,255,255,0.06);
-  border:1px solid rgba(244,137,21,0.35);
+  border:1px solid rgba(255,177,0,0.38);
   color:rgba(255,255,255,0.9);
   transition:.2s;
 }
@@ -63,7 +63,7 @@
   border:none;
   cursor:pointer;
   font-weight:900;
-  background:var(--orange);
+  background:linear-gradient(135deg, rgba(255,177,0,.92), rgba(255,138,0,.85));
   color:#111;
   transition:.2s;
 }
@@ -121,7 +121,7 @@
   display:block;
   font-size:12px;
   font-weight:900;
-  color:var(--orange);
+  color:var(--m-gold, #FFB100);
   margin:10px 0 6px;
 }
 
@@ -137,8 +137,8 @@
 }
 
 .ptf-input:focus{
-  border-color: rgba(244,137,21,0.35);
-  box-shadow: 0 0 0 3px rgba(244,137,21,0.10);
+  border-color: rgba(255,177,0,0.35);
+  box-shadow: 0 0 0 3px rgba(255,177,0,0.10);
 }
 
 .ptf-textarea{
@@ -154,8 +154,8 @@
 }
 
 .ptf-textarea:focus{
-  border-color: rgba(244,137,21,0.35);
-  box-shadow: 0 0 0 3px rgba(244,137,21,0.10);
+  border-color: rgba(255,177,0,0.35);
+  box-shadow: 0 0 0 3px rgba(255,177,0,0.10);
 }
 
 .ptf-hint{
@@ -178,7 +178,7 @@
 
 .ptf-resetBtn{
   background:transparent;
-  border:1px solid rgba(244,137,21,0.35);
+  border:1px solid rgba(255,177,0,0.38);
   color: rgba(255,255,255,0.9);
   border-radius:10px;
   padding:6px 10px;
@@ -193,7 +193,7 @@
   height:170px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,0.10);
-  background: linear-gradient(90deg, rgba(244,137,21,0.18), rgba(255,255,255,0.05));
+  background: linear-gradient(90deg, rgba(255,177,0,0.2), rgba(255,255,255,0.05));
   overflow:hidden;
   display:flex;
   align-items:center;
@@ -248,7 +248,7 @@
   width:64px;
   height:64px;
   border-radius:999px;
-  border:1px solid rgba(244,137,21,0.35);
+  border:1px solid rgba(255,177,0,0.38);
   background: rgba(255,255,255,0.05);
   display:flex;
   align-items:center;
@@ -269,7 +269,7 @@
   height:36px;
   padding:0 14px;
   border-radius:10px;
-  border:1px solid rgba(244,137,21,0.35);
+  border:1px solid rgba(255,177,0,0.38);
   background: rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.92);
   display:inline-flex;
@@ -311,7 +311,7 @@
 }
 
 .ptf-certLink{
-  color:var(--orange);
+  color:var(--m-gold, #FFB100);
   font-weight:900;
   text-decoration:underline;
 }

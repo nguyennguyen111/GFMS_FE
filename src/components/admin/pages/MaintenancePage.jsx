@@ -1,26 +1,34 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./MaintenancePage.css";
 import {
   admGetMaintenances,
   admGetMaintenanceDetail,
   admApproveMaintenance,
   admRejectMaintenance,
-  admAssignMaintenance,
   admStartMaintenance,
   admCompleteMaintenance,
-  admGetTechnicians,
   admGetGyms,
 } from "../../../services/adminAdminCoreService";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
-  { value: "pending", label: "Pending" },
-  { value: "approve", label: "Approved" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "pending", label: "Chờ xử lý" },
+  { value: "approve", label: "Đã duyệt" },
+  { value: "assigned", label: "Đã phân công" },
+  { value: "in_progress", label: "Đang thực hiện" },
+  { value: "completed", label: "Hoàn tất" },
+  { value: "cancelled", label: "Đã huỷ" },
 ];
+
+const MAINTENANCE_STATUS_VI = {
+  pending: "Chờ xử lý",
+  approve: "Đã duyệt",
+  assigned: "Đã phân công",
+  in_progress: "Đang thực hiện",
+  completed: "Hoàn tất",
+  cancelled: "Đã huỷ",
+};
 
 const money = (v) => {
   const n = Number(v || 0);
@@ -31,10 +39,8 @@ const money = (v) => {
 const gymLabel = (m) => m?.gym?.name || m?.Gym?.name || m?.gymName || m?.gymId || "-";
 const equipmentLabel = (m) =>
   m?.equipment?.name || m?.Equipment?.name || m?.equipmentName || m?.equipmentId || "-";
-const technicianLabel = (m) =>
-  m?.technician?.username || m?.technician?.email || m?.technician?.id || m?.assignedTo || "-";
-
 export default function MaintenancePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
@@ -48,26 +54,9 @@ export default function MaintenancePage() {
 
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
 
-  // ✅ technicians dropdown
-  const [techLoading, setTechLoading] = useState(false);
-  const [technicians, setTechnicians] = useState([]);
-
   // ✅ gyms dropdown
   const [gymLoading, setGymLoading] = useState(false);
   const [gyms, setGyms] = useState([]);
-
-  const fetchTechnicians = async () => {
-    setTechLoading(true);
-    try {
-      const res = await admGetTechnicians();
-      setTechnicians(res?.data?.data || []);
-    } catch (e) {
-      console.warn("fetchTechnicians error:", e);
-      setTechnicians([]);
-    } finally {
-      setTechLoading(false);
-    }
-  };
 
   const fetchGyms = async () => {
     setGymLoading(true);
@@ -132,17 +121,23 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     // ✅ load dropdown data once
-    fetchTechnicians();
     fetchGyms();
     // eslint-disable-next-line
   }, []);
+
+  useLayoutEffect(() => {
+    const h = Number(searchParams.get("highlight"));
+    if (!Number.isFinite(h) || h <= 0) return;
+    setSelectedId(h);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // ---------------- MODALS ----------------
   const openApprove = () =>
     setModal({
       open: true,
       type: "approve",
-      payload: { scheduledDate: "", estimatedCost: "", notes: "" },
+      payload: { scheduledDate: "", notes: "" },
     });
 
   const openReject = () =>
@@ -152,18 +147,18 @@ export default function MaintenancePage() {
       payload: { reason: "" },
     });
 
-  const openAssign = () =>
-    setModal({
-      open: true,
-      type: "assign",
-      payload: { assignedTo: detail?.assignedTo ? String(detail.assignedTo) : "" },
-    });
-
   const openComplete = () =>
     setModal({
       open: true,
       type: "complete",
-      payload: { actualCost: "" },
+      payload: {},
+    });
+
+  const openStart = () =>
+    setModal({
+      open: true,
+      type: "start",
+      payload: {},
     });
 
   const closeModal = () => setModal({ open: false, type: "", payload: {} });
@@ -172,11 +167,8 @@ export default function MaintenancePage() {
   // pending -> approve -> assigned -> in_progress -> completed
   const canApprove = useMemo(() => detail?.status === "pending", [detail]);
 
-  // ✅ chuẩn nghiệp vụ: approve xong assign được; assigned có thể re-assign (đổi kỹ thuật)
-  const canAssign = useMemo(() => ["approve", "assigned"].includes(detail?.status), [detail]);
-
-  // start chỉ khi assigned
-  const canStart = useMemo(() => detail?.status === "assigned", [detail]);
+  // start sau khi duyệt
+  const canStart = useMemo(() => detail?.status === "approve", [detail]);
 
   // ✅ chuẩn nghiệp vụ: complete CHỈ khi in_progress
   const canComplete = useMemo(() => detail?.status === "in_progress", [detail]);
@@ -190,20 +182,8 @@ export default function MaintenancePage() {
       const payload = { ...(modal.payload || {}) };
 
       if (!payload.scheduledDate) {
-        alert("Bạn chưa chọn Scheduled Date");
+        alert("Bạn chưa chọn ngày giờ hẹn");
         return;
-      }
-
-      // ✅ ép number
-      if (payload.estimatedCost !== "" && payload.estimatedCost !== null && payload.estimatedCost !== undefined) {
-        const n = Number(payload.estimatedCost);
-        if (Number.isNaN(n) || n < 0) {
-          alert("Estimated Cost phải là số hợp lệ");
-          return;
-        }
-        payload.estimatedCost = n;
-      } else {
-        delete payload.estimatedCost;
       }
 
       await admApproveMaintenance(selectedId, payload);
@@ -233,27 +213,10 @@ export default function MaintenancePage() {
     }
   };
 
-  const doAssign = async () => {
-    try {
-      const assignedTo = modal?.payload?.assignedTo;
-      if (!assignedTo) {
-        alert("Bạn chưa chọn Technician");
-        return;
-      }
-
-      await admAssignMaintenance(selectedId, { assignedTo: Number(assignedTo) });
-      closeModal();
-      await fetchDetail(selectedId);
-      await fetchList();
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    }
-  };
-
   const doStart = async () => {
-    if (!window.confirm("Start maintenance này?")) return;
     try {
       await admStartMaintenance(selectedId);
+      closeModal();
       await fetchDetail(selectedId);
       await fetchList();
     } catch (e) {
@@ -263,16 +226,7 @@ export default function MaintenancePage() {
 
   const doComplete = async () => {
     try {
-      const payload = { ...(modal.payload || {}) };
-
-      const n = Number(payload.actualCost);
-      if (Number.isNaN(n) || n < 0) {
-        alert("Actual Cost phải là số hợp lệ");
-        return;
-      }
-      payload.actualCost = n;
-
-      await admCompleteMaintenance(selectedId, payload);
+      await admCompleteMaintenance(selectedId, {});
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
@@ -285,15 +239,15 @@ export default function MaintenancePage() {
     <div className="ma-page">
       <div className="ma-head">
         <div>
-          <div className="ma-title">Bảo trì / Sửa chữa</div>
+          <div className="ma-title">Bảo trì thiết bị</div>
           <div className="ma-sub">Duyệt → Phân công → Bắt đầu → Hoàn tất (chuẩn nghiệp vụ)</div>
         </div>
-        <div className="ma-badge">{loading ? "Đang tải..." : "Module 2"}</div>
+        <div className="ma-badge">{loading ? "Đang tải..." : "Mô-đun 2"}</div>
       </div>
 
       <div className="ma-filters">
         <div className="ma-field">
-          <label>Status</label>
+          <label>Trạng thái</label>
           <select value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
             {statusOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -320,11 +274,11 @@ export default function MaintenancePage() {
         </div>
 
         <div className="ma-field ma-field--grow">
-          <label>Search</label>
+          <label>Tìm kiếm</label>
           <input
             value={filters.q}
             onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
-            placeholder="issueDescription / notes..."
+            placeholder="Mô tả sự cố / ghi chú..."
           />
         </div>
 
@@ -352,12 +306,11 @@ export default function MaintenancePage() {
             <table className="ma-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Status</th>
-                  <th>Gym</th>
-                  <th>Equipment</th>
-                  <th>Estimated</th>
-                  <th>Scheduled</th>
+                  <th>Mã</th>
+                  <th>Trạng thái</th>
+                  <th>Phòng gym</th>
+                  <th>Thiết bị</th>
+                  <th>Lịch hẹn</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,17 +322,18 @@ export default function MaintenancePage() {
                   >
                     <td>#{r.id}</td>
                     <td>
-                      <span className={`ma-pill ma-pill--${r.status}`}>{r.status}</span>
+                      <span className={`ma-pill ma-pill--${r.status}`}>
+                        {MAINTENANCE_STATUS_VI[r.status] || r.status}
+                      </span>
                     </td>
                     <td>{gymLabel(r)}</td>
                     <td>{equipmentLabel(r)}</td>
-                    <td>{money(r.estimatedCost)}</td>
                     <td>{r.scheduledDate ? new Date(r.scheduledDate).toLocaleString() : "-"}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="ma-empty">
+                    <td colSpan={5} className="ma-empty">
                       Không có dữ liệu
                     </td>
                   </tr>
@@ -393,7 +347,7 @@ export default function MaintenancePage() {
               ←
             </button>
             <div className="ma-paging__text">
-              Page <b>{meta.page}</b> / {meta.totalPages}
+              Trang <b>{meta.page}</b> / {meta.totalPages}
             </div>
             <button className="ma-btn" disabled={page >= meta.totalPages} onClick={() => setPage((p) => p + 1)}>
               →
@@ -404,79 +358,66 @@ export default function MaintenancePage() {
         <div className="ma-card">
           <div className="ma-card__head">
             <div className="ma-card__title">Chi tiết</div>
-            {!detail ? <div className="ma-card__meta">Chọn 1 request ở bảng</div> : null}
+            {!detail ? <div className="ma-card__meta">Chọn một yêu cầu trong bảng</div> : null}
           </div>
 
           {!detail ? (
-            <div className="ma-empty-box">Chưa có maintenance nào được chọn.</div>
+            <div className="ma-empty-box">Chưa chọn yêu cầu bảo trì nào.</div>
           ) : (
             <>
               <div className="ma-detail">
                 <div className="ma-kv">
-                  <div className="ma-k">ID</div>
+                  <div className="ma-k">Mã</div>
                   <div className="ma-v">#{detail.id}</div>
                 </div>
                 <div className="ma-kv">
-                  <div className="ma-k">Status</div>
+                  <div className="ma-k">Trạng thái</div>
                   <div className="ma-v">
-                    <span className={`ma-pill ma-pill--${detail.status}`}>{detail.status}</span>
+                    <span className={`ma-pill ma-pill--${detail.status}`}>
+                      {MAINTENANCE_STATUS_VI[detail.status] || detail.status}
+                    </span>
                   </div>
                 </div>
                 <div className="ma-kv">
-                  <div className="ma-k">Gym</div>
+                  <div className="ma-k">Phòng gym</div>
                   <div className="ma-v">{gymLabel(detail)}</div>
                 </div>
                 <div className="ma-kv">
-                  <div className="ma-k">Equipment</div>
+                  <div className="ma-k">Thiết bị</div>
                   <div className="ma-v">{equipmentLabel(detail)}</div>
                 </div>
                 <div className="ma-kv">
-                  <div className="ma-k">Issue</div>
+                  <div className="ma-k">Mô tả sự cố</div>
                   <div className="ma-v">{detail.issueDescription || "-"}</div>
                 </div>
 
                 <div className="ma-kv">
-                  <div className="ma-k">Notes</div>
+                  <div className="ma-k">Ghi chú</div>
                   <div className="ma-v" style={{ whiteSpace: "pre-wrap" }}>
                     {detail.notes || "-"}
                   </div>
                 </div>
 
                 <div className="ma-kv">
-                  <div className="ma-k">Scheduled</div>
+                  <div className="ma-k">Lịch hẹn</div>
                   <div className="ma-v">
                     {detail.scheduledDate ? new Date(detail.scheduledDate).toLocaleString() : "-"}
                   </div>
-                </div>
-                <div className="ma-kv">
-                  <div className="ma-k">Estimated</div>
-                  <div className="ma-v">{money(detail.estimatedCost)}</div>
-                </div>
-                <div className="ma-kv">
-                  <div className="ma-k">Actual cost</div>
-                  <div className="ma-v">{money(detail.actualCost)}</div>
-                </div>
-                <div className="ma-kv">
-                  <div className="ma-k">AssignedTo</div>
-                  <div className="ma-v">{technicianLabel(detail)}</div>
                 </div>
               </div>
 
               <div className="ma-actions">
                 <button className="ma-btn" disabled={!canApprove} onClick={openApprove}>
-                  Approve
+                  Duyệt
                 </button>
-                <button className="ma-btn" disabled={!canAssign} onClick={openAssign}>
-                  Assign
-                </button>
-                <button className="ma-btn" disabled={!canStart} onClick={doStart}>
-                  Start
+                <button className="ma-btn" disabled={!canStart} onClick={openStart}>
+                  Bắt đầu
                 </button>
                 <button className="ma-btn" disabled={!canComplete} onClick={openComplete}>
-                  Complete
+                  Hoàn tất
                 </button>
                 <button className="ma-btn ma-btn--danger" disabled={!canReject} onClick={openReject}>
-                  Reject
+                  Từ chối
                 </button>
               </div>
             </>
@@ -489,10 +430,10 @@ export default function MaintenancePage() {
           <div className="ma-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="ma-modal__head">
               <div className="ma-modal__title">
-                {modal.type === "approve" && "Approve Maintenance"}
-                {modal.type === "reject" && "Reject Maintenance"}
-                {modal.type === "assign" && "Assign Technician"}
-                {modal.type === "complete" && "Complete Maintenance"}
+                {modal.type === "approve" && "Duyệt yêu cầu bảo trì"}
+                {modal.type === "reject" && "Từ chối bảo trì"}
+                {modal.type === "start" && "Bắt đầu bảo trì"}
+                {modal.type === "complete" && "Hoàn tất bảo trì"}
               </div>
               <button className="ma-btn ma-btn--ghost" onClick={closeModal}>
                 ✕
@@ -502,7 +443,7 @@ export default function MaintenancePage() {
             {modal.type === "approve" && (
               <div className="ma-modal__body">
                 <div className="ma-field">
-                  <label>Scheduled Date</label>
+                  <label>Ngày giờ hẹn</label>
                   <input
                     type="datetime-local"
                     value={modal.payload.scheduledDate}
@@ -515,20 +456,7 @@ export default function MaintenancePage() {
                   />
                 </div>
                 <div className="ma-field">
-                  <label>Estimated Cost</label>
-                  <input
-                    value={modal.payload.estimatedCost}
-                    onChange={(e) =>
-                      setModal((m) => ({
-                        ...m,
-                        payload: { ...m.payload, estimatedCost: e.target.value },
-                      }))
-                    }
-                    placeholder="VD: 1200000"
-                  />
-                </div>
-                <div className="ma-field">
-                  <label>Notes</label>
+                  <label>Ghi chú</label>
                   <textarea
                     value={modal.payload.notes}
                     onChange={(e) =>
@@ -548,54 +476,25 @@ export default function MaintenancePage() {
               </div>
             )}
 
-            {modal.type === "assign" && (
+            {modal.type === "complete" && (
               <div className="ma-modal__body">
-                <div className="ma-field">
-                  <label>Technician</label>
-                  <select
-                    value={modal.payload.assignedTo}
-                    onChange={(e) =>
-                      setModal((m) => ({
-                        ...m,
-                        payload: { ...m.payload, assignedTo: e.target.value },
-                      }))
-                    }
-                  >
-                    <option value="">{techLoading ? "Đang tải..." : "-- Chọn technician --"}</option>
-                    {technicians.map((u) => (
-                      <option key={u.id} value={String(u.id)}>
-                        {u.username || u.email} (#{u.id})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--primary" onClick={doAssign}>
-                    Phân công
+                  <button className="ma-btn ma-btn--primary" onClick={doComplete}>
+                    Hoàn tất
                   </button>
                 </div>
               </div>
             )}
 
-            {modal.type === "complete" && (
+            {modal.type === "start" && (
               <div className="ma-modal__body">
-                <div className="ma-field">
-                  <label>Actual Cost</label>
-                  <input
-                    value={modal.payload.actualCost}
-                    onChange={(e) =>
-                      setModal((m) => ({
-                        ...m,
-                        payload: { ...m.payload, actualCost: e.target.value },
-                      }))
-                    }
-                    placeholder="VD: 1500000"
-                  />
-                </div>
+                <div>Bạn có chắc muốn bắt đầu bảo trì yêu cầu này?</div>
                 <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--primary" onClick={doComplete}>
-                    Hoàn tất
+                  <button className="ma-btn" onClick={closeModal}>
+                    Hủy
+                  </button>
+                  <button className="ma-btn ma-btn--primary" onClick={doStart}>
+                    Bắt đầu
                   </button>
                 </div>
               </div>

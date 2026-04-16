@@ -2,10 +2,11 @@
   --bd-backdrop: rgba(5, 5, 5, 0.72);
   --bd-card: #111111;
   --bd-card-2: #171717;
+  --bd-card-3: #141414;
   --bd-line: rgba(255, 255, 255, 0.08);
   --bd-line-strong: rgba(255, 255, 255, 0.12);
   --bd-text: #f5f5f5;
-  --bd-muted: rgba(255, 255, 255, 0.6);
+  --bd-muted: rgba(255, 255, 255, 0.65);
   --bd-primary: #d6ff00;
   --bd-error: #ff7351;
   --bd-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
@@ -28,28 +29,40 @@
 }
 
 .bd-modal {
-  width: 100%;
-  max-width: 560px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%),
+  width: min(760px, 100%);
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    ),
     var(--bd-card);
   border-radius: 28px;
   box-shadow: var(--bd-shadow);
   border: 1px solid var(--bd-line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bd-modal.is-detail-mode {
+  max-height: min(760px, calc(100dvh - 40px));
+}
+
+.bd-modal.is-request-mode {
+  max-height: calc(100dvh - 40px);
 }
 
 .bd-head {
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 24px 18px;
+  padding: 22px 28px 16px;
   border-bottom: 1px solid var(--bd-line);
 }
 
 .bd-kicker {
-  font-family: 'Lexend', sans-serif;
+  font-family: "Lexend", sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: var(--bd-primary);
@@ -60,9 +73,9 @@
 
 .bd-title {
   margin: 8px 0 0;
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 32px;
-  line-height: 1.05;
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 31px;
+  line-height: 1.02;
   font-weight: 900;
   letter-spacing: -0.04em;
   text-transform: uppercase;
@@ -74,18 +87,18 @@
   margin: 10px 0 0;
   color: var(--bd-muted);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .bd-x {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   cursor: pointer;
-  flex: 0 0 42px;
+  flex: 0 0 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,7 +106,20 @@
 }
 
 .bd-x:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bd-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bd-modal.is-detail-mode .bd-body {
+  overflow: hidden;
+}
+
+.bd-modal.is-request-mode .bd-body {
+  overflow-y: auto;
 }
 
 .bd-top {
@@ -102,16 +128,16 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 18px 24px 0;
+  padding: 18px 28px 0;
 }
 
 .bd-status,
 .bd-timeChip {
-  min-height: 40px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
@@ -137,16 +163,11 @@
   border: 1px solid rgba(46, 204, 113, 0.28);
 }
 
-.bd-status.absent {
+.bd-status.absent,
+.bd-status.cancelled {
   background: rgba(255, 115, 81, 0.14);
   color: #ff9a84;
   border: 1px solid rgba(255, 115, 81, 0.22);
-}
-
-.bd-status.cancelled {
-  background: rgba(255, 115, 81, 0.12);
-  color: #ff9a84;
-  border: 1px solid rgba(255, 115, 81, 0.15);
 }
 
 .bd-timeChip {
@@ -155,20 +176,71 @@
   border: 1px solid var(--bd-line);
 }
 
-.bd-grid {
-  padding: 18px 24px 0;
+.bd-rescheduleBanner,
+.bd-successNotice {
+  margin: 18px 28px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--bd-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bd-rescheduleBanner--pending {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bd-rescheduleBanner--approved,
+.bd-successNotice {
+  background: rgba(214, 255, 0, 0.08);
+  border-color: rgba(214, 255, 0, 0.18);
+}
+
+.bd-rescheduleBanner--rejected {
+  background: rgba(255, 115, 81, 0.08);
+  border-color: rgba(255, 115, 81, 0.16);
+}
+
+.bd-rescheduleTitle,
+.bd-successTitle {
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bd-rescheduleText,
+.bd-successText {
+  margin-top: 6px;
+  color: var(--bd-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.bd-successNotice {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  color: #e8ff9f;
+}
+
+.bd-grid {
+  padding: 18px 28px 0;
+  display: grid;
   gap: 12px;
 }
 
+.bd-grid--compact {
+  grid-template-columns: 1fr;
+  padding-bottom: 18px;
+}
+
 .bd-row {
-  min-height: 62px;
+  min-height: 58px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--bd-line);
   border-radius: 18px;
   background: var(--bd-card-2);
@@ -185,6 +257,7 @@
 
 .bd-label svg {
   color: var(--bd-primary);
+  flex: 0 0 auto;
 }
 
 .bd-value {
@@ -194,43 +267,296 @@
   text-align: right;
 }
 
+.bd-requestPanel {
+  margin: 18px 28px 0;
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--bd-card-3);
+  border: 1px solid var(--bd-line);
+}
+
+.bd-requestPanel--standalone {
+  margin-bottom: 18px;
+}
+
+.bd-requestCurrent {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(214, 255, 0, 0.06);
+  border: 1px solid rgba(214, 255, 0, 0.16);
+}
+
+.bd-requestCurrentLabel {
+  margin-bottom: 6px;
+  color: var(--bd-primary);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.bd-requestCurrentValue {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.bd-pickerSection + .bd-pickerSection {
+  margin-top: 18px;
+}
+
+.bd-sectionLabel {
+  margin-bottom: 10px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bd-helperText {
+  margin-bottom: 10px;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.bd-chipGrid,
+.bd-optionGrid,
+.bd-slotGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.bd-chipGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bd-optionGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bd-slotGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bd-chip,
+.bd-optionCard,
+.bd-slotBtn {
+  border: 1px solid var(--bd-line-strong);
+  background: #0f0f0f;
+  color: #fff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.bd-chip {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bd-optionCard {
+  min-height: 72px;
+  padding: 14px;
+  border-radius: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bd-optionTitle {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.bd-optionSub {
+  color: var(--bd-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.bd-slotBtn {
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bd-chip:hover,
+.bd-optionCard:hover,
+.bd-slotBtn:hover {
+  border-color: rgba(214, 255, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.bd-chip.active,
+.bd-optionCard.active,
+.bd-slotBtn.active {
+  background: rgba(214, 255, 0, 0.12);
+  border-color: rgba(214, 255, 0, 0.4);
+  color: var(--bd-primary);
+}
+
+.bd-emptyState {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px dashed var(--bd-line-strong);
+  color: var(--bd-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.bd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.bd-field span {
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bd-field textarea {
+  width: 100%;
+  min-height: 92px;
+  border-radius: 14px;
+  border: 1px solid var(--bd-line-strong);
+  background: #0f0f0f;
+  color: #fff;
+  padding: 12px 14px;
+  outline: none;
+  resize: vertical;
+}
+
+.bd-inlineNotice,
+.bd-inlineError {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.bd-inlineNotice {
+  color: var(--bd-muted);
+}
+
+.bd-inlineError {
+  color: #ff9a84;
+}
+
 .bd-actions {
-  padding: 20px 24px 24px;
+  flex: 0 0 auto;
+  padding: 18px 28px 22px;
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--bd-line);
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.92) 0%, rgba(17, 17, 17, 1) 100%);
+}
+
+.bd-actions--spread {
+  justify-content: space-between;
 }
 
 .bd-btn {
-  min-width: 140px;
-  height: 46px;
+  min-width: 160px;
+  height: 52px;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--bd-primary);
-  color: #3d4a00;
+  color: #2d3500;
   font-size: 13px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   cursor: pointer;
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, opacity 0.2s ease, background 0.2s ease;
 }
 
 .bd-btn:hover {
   transform: translateY(-2px);
 }
 
-@media (max-width: 640px) {
+.bd-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+.bd-btn--ghost {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.bd-btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.bd-btn--disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
   .bd-backdrop {
     padding: 12px;
   }
 
-  .bd-modal {
-    max-height: calc(100vh - 24px);
+  .bd-modal,
+  .bd-modal.is-detail-mode,
+  .bd-modal.is-request-mode {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
     border-radius: 22px;
   }
 
+  .bd-head {
+    padding: 18px 18px 14px;
+  }
+
+  .bd-top,
+  .bd-grid,
+  .bd-requestPanel,
+  .bd-rescheduleBanner,
+  .bd-successNotice,
+  .bd-actions {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .bd-top {
+    padding: 16px 18px 0;
+  }
+
+  .bd-grid {
+    padding: 16px 18px 0;
+  }
+
+  .bd-requestPanel {
+    margin: 16px 18px 0;
+    padding: 16px;
+  }
+
+  .bd-rescheduleBanner,
+  .bd-successNotice {
+    margin: 16px 18px 0;
+  }
+
+  .bd-actions {
+    padding: 16px 18px 18px;
+    flex-direction: column;
+  }
+
   .bd-title {
-    font-size: 26px;
+    font-size: 25px;
   }
 
   .bd-row {
@@ -244,5 +570,28 @@
 
   .bd-btn {
     width: 100%;
+    min-width: 100%;
+  }
+
+  .bd-chipGrid,
+  .bd-optionGrid,
+  .bd-slotGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .bd-chipGrid,
+  .bd-optionGrid,
+  .bd-slotGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bd-title {
+    font-size: 22px;
+  }
+
+  .bd-sub {
+    font-size: 13px;
   }
 }

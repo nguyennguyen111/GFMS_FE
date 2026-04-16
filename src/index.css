@@ -11,6 +11,8 @@
   --font-body: "Be Vietnam Pro", sans-serif;
   --font-label: "Lexend", sans-serif;
   --header-h: 80px;
+  --site-max-width: min(100vw, 1440px);
+  --site-padding-inline: 24px;
 }
 
 * {
@@ -64,9 +66,9 @@ img {
 
 .site-container {
   width: 100%;
-  max-width: 1280px;
+  max-width: var(--site-max-width);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--site-padding-inline);
 }
 
 ::selection {

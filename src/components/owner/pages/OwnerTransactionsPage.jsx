@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import ownerTransactionService from "../../../services/ownerTransactionService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import "./OwnerTransactionsPage.css";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusLabel = {
   pending: "Chờ thanh toán",
@@ -14,7 +16,7 @@ const statusLabel = {
 const typeLabel = {
   package_purchase: "Mua gói",
   package_renewal: "Gia hạn gói",
-  booking_payment: "Thanh toán PT",
+  booking_payment: "Thanh toán huấn luyện viên",
 };
 
 const formatMoney = (value) => {
@@ -30,6 +32,7 @@ const formatDate = (value) => {
 };
 
 const OwnerTransactionsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [transactions, setTransactions] = useState([]);
   const [gyms, setGyms] = useState([]);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -42,6 +45,10 @@ const OwnerTransactionsPage = () => {
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, gymId: selectedGymId ? String(selectedGymId) : "" }));
+  }, [selectedGymId]);
 
   const loadGyms = useCallback(async () => {
     try {
@@ -58,6 +65,7 @@ const OwnerTransactionsPage = () => {
       setLoading(true);
       const params = {
         ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
         page,
         limit: pagination.limit,
       };
@@ -76,6 +84,16 @@ const OwnerTransactionsPage = () => {
     loadGyms();
     loadTransactions(1);
   }, [loadGyms, loadTransactions]);
+
+  const refreshTransactions = useCallback(async () => {
+    await loadTransactions(pagination.page || 1);
+  }, [loadTransactions, pagination.page]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: refreshTransactions,
+    events: ["notification:new"],
+    notificationTypes: ["package_purchase"],
+  });
 
   const handleSearch = () => {
     loadTransactions(1);
@@ -96,7 +114,9 @@ const OwnerTransactionsPage = () => {
       <div className="page-header">
         <div>
           <h1 className="page-title">Giao dịch mua gói</h1>
-          <div className="page-subtitle">Theo dõi giao dịch học viên mua gói tập tại các phòng gym của bạn</div>
+          <div className="page-subtitle">
+            Theo dõi giao dịch học viên mua gói tập tại {selectedGymName || "các phòng gym của bạn"}
+          </div>
         </div>
         <div className="page-summary">
           Tổng: <strong>{pagination.total || 0}</strong> giao dịch
@@ -116,8 +136,9 @@ const OwnerTransactionsPage = () => {
           value={filters.gymId}
           onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
           className="filter-select"
+          disabled={Boolean(selectedGymId)}
         >
-          <option value="">Tất cả phòng gym</option>
+          <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng gym"}</option>
           {gyms.map((gym) => (
             <option key={gym.id} value={gym.id}>
               {gym.name}

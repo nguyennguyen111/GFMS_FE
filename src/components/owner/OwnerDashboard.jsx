@@ -1,17 +1,19 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import "../member/member-pages.css";
 import "./OwnerDashboard.css";
+import "./OwnerThemeOverrides.css";
+import Header from "../header/Header";
 
 import OwnerOverviewPage from "./pages/OwnerOverviewPage";
 import OwnerPackagesPage from "./pages/OwnerPackagesPage";
-import OwnerPoliciesPage from "./pages/OwnerPoliciesPage";
 import OwnerMaintenancePage from "./pages/OwnerMaintenancePage";
 import OwnerEquipmentPage from "./pages/OwnerEquipmentPage";
 import OwnerInventoryPage from "./pages/OwnerInventoryPage";
-import OwnerTransferPage from "./pages/OwnerTransferPage";
-import OwnerQuotationsPage from "./pages/OwnerQuotationsPage";
 import OwnerPurchaseOrdersPage from "./pages/OwnerPurchaseOrdersPage";
 import OwnerReceiptsPage from "./pages/OwnerReceiptsPage";
+import OwnerPurchaseRequestsPage from "./pages/OwnerPurchaseRequestsPage";
+import OwnerProcurementPaymentsPage from "./pages/OwnerProcurementPaymentsPage";
 import OwnerFranchiseRequestsPage from "./pages/OwnerFranchiseRequestsPage";
 import OwnerTrainerSharePage from "./pages/OwnerTrainerSharePage";
 import OwnerMembersPage from "./pages/OwnerMembersPage";
@@ -20,11 +22,32 @@ import OwnerGymsPage from "./pages/OwnerGymsPage";
 import OwnerTransactionsPage from "./pages/OwnerTransactionsPage";
 import OwnerCommissionsPage from "./pages/OwnerCommissionsPage";
 import OwnerWithdrawalsPage from "./pages/OwnerWithdrawalsPage";
+import OwnerReviewsPage from "./pages/OwnerReviewsPage";
+import OwnerNotificationsPage from "./pages/OwnerNotificationsPage";
 import PlaceholderPage from "../admin/pages/PlaceholderPage";
+import { logoutUser } from "../../services/authService";
+import useSelectedGym from "../../hooks/useSelectedGym";
+import { showAppToast } from "../../utils/appToast";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const { selectedGymName } = useSelectedGym();
+
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message) => {
+      showAppToast({
+        type: "info",
+        title: "Thông báo",
+        message: String(message || ""),
+      });
+    };
+
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
@@ -32,88 +55,67 @@ export default function OwnerDashboard() {
   })();
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    navigate("/login");
+    logoutUser().finally(() => navigate("/login"));
   };
 
   const sections = useMemo(() => ([
     {
       title: "Tổng quan",
       items: [
-        { label: "Thống kê", to: "/owner/overview", key: "overview", icon: "📊" },
+        { label: "Thống kê", to: "/owner/overview", key: "overview", },
       ],
     },
     {
       title: "Kinh doanh",
       items: [
-        { label: "Phòng tập ", to: "/owner/gyms", key: "gyms", icon: "🏟️" },
-        { label: "Gói tập", to: "/owner/packages", key: "packages", icon: "🎫" },
-        { label: "Hội viên", to: "/owner/members", key: "members", icon: "👥" },
-        { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings", icon: "🗓️" },
-        { label: "Đặt lịch / Chia sẻ Huấn luyện viên", to: "/owner/trainers", key: "trainers", icon: "🏋️" },
-        { label: "Đánh giá", to: "/owner/reviews", key: "reviews", icon: "⭐" },
+        { label: "Phòng tập ", to: "/owner/gyms", key: "gyms",  },
+        { label: "Gói tập", to: "/owner/packages", key: "packages",  },
+        { label: "Hội viên", to: "/owner/members", key: "members",  },
+        { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings",  },
+        { label: "Xem lịch", to: "/owner/trainer-bookings", key: "trainer-bookings",  },
+        { label: "Chia sẻ huấn luyện viên", to: "/owner/trainers", key: "trainers",  },
+        { label: "Đánh giá", to: "/owner/reviews", key: "reviews", },
       ],
     },
     {
       title: "Tài chính",
       items: [
-        { label: "Giao dịch", to: "/owner/transactions", key: "transactions", icon: "💳" },
-        { label: "Hoa hồng", to: "/owner/commissions", key: "commissions", icon: "🧾" },
-        { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals", icon: "🏦" },
+        { label: "Giao dịch", to: "/owner/transactions", key: "transactions", },
+        { label: "Doanh thu từ huấn luyện viên", to: "/owner/commissions", key: "commissions",  },
+        { label: "Duyệt yêu cầu rút tiền", to: "/owner/withdrawals", key: "withdrawals",  },
       ],
     },
     {
       title: "Kho & Thiết bị",
       items: [
-        { label: "Thiết bị", to: "/owner/equipment", key: "equipment", icon: "🧰" },
-        { label: "Tồn kho", to: "/owner/inventory", key: "inventory", icon: "📦" },
-        { label: "Chuyển kho", to: "/owner/transfers", key: "transfers", icon: "🚚" },
-        { label: "Bảo trì", to: "/owner/maintenance", key: "maintenance", icon: "🛠️" },
+        { label: "Thiết bị", to: "/owner/equipment", key: "equipment",  },
+        { label: "Tồn kho", to: "/owner/inventory", key: "inventory",  },
+        { label: "Bảo trì", to: "/owner/maintenance", key: "maintenance",  },
       ],
     },
     {
       title: "Mua hàng",
       items: [
-        { label: "Mua thiết bị", to: "/owner/quotations", key: "quotations", icon: "📝" },
-        { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", icon: "🧷" },
-        { label: "Nhập kho", to: "/owner/receipts", key: "receipts", icon: "📥" },
-      ],
-    },
-    {
-      title: "Giao tiếp",
-      items: [
-        { label: "Tin nhắn", to: "/owner/messages", key: "messages", icon: "💬" },
-        { label: "Thông báo", to: "/owner/notifications", key: "notifications", icon: "🔔" },
+        { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests",  },
+        { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", },
+        { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", },
+        { label: "Thanh toán thiết bị", to: "/owner/procurement-payments", key: "procurement-payments",  },
       ],
     },
     {
       title: "Hệ thống",
       items: [
-        { label: "Chính sách", to: "/owner/policies", key: "policies", icon: "📜" },
-        { label: "Yêu cầu nhượng quyền", to: "/owner/franchise-requests", key: "franchise", icon: "🤝" },
-        { label: "Cài đặt", to: "/owner/settings", key: "settings", icon: "⚙️" },
+        { label: "Yêu cầu nhượng quyền", to: "/owner/franchise-requests", key: "franchise",  },
       ],
     },
   ]), []);
 
   return (
-    <div className="od2-layout">
+    <>
+    <Header />
+    <div className="od2-layout owner-app">
       <aside className={`od2-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="od2-brand">
-          <div className="od2-logo">
-            <div className="od2-mark">G</div>
-            {!collapsed && (
-              <div className="od2-brandText">
-                <div className="od2-title">GFMS</div>
-                <div className="od2-sub">Owner Console</div>
-              </div>
-            )}
-          </div>
-
-          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
-            {collapsed ? "»" : "«"}
-          </button>
         </div>
 
         <div className="od2-profile">
@@ -124,6 +126,9 @@ export default function OwnerDashboard() {
               <div className="od2-email">{user?.email || ""}</div>
             </div>
           )}
+          <button className="od2-iconBtn" onClick={() => setCollapsed(v => !v)} title="Thu gọn/mở rộng">
+            {collapsed ? "»" : "«"}
+          </button>
         </div>
 
         <nav className="od2-nav">
@@ -131,15 +136,21 @@ export default function OwnerDashboard() {
             <div key={sec.title} className="od2-section">
               {!collapsed && <div className="od2-secTitle">{sec.title}</div>}
               {sec.items.map((item) => (
+                (() => {
+                  const fallbackGlyph = String(item.label || "").trim().charAt(0).toUpperCase();
+                  const navIcon = item.icon || (collapsed ? fallbackGlyph : null);
+                  return (
                 <NavLink
                   key={item.key}
                   to={item.to}
                   className={({ isActive }) => `od2-item ${isActive ? "is-active" : ""}`}
                 >
-                  <span className="od2-ico" aria-hidden>{item.icon}</span>
+                  {navIcon ? <span className="od2-ico" aria-hidden>{navIcon}</span> : null}
                   {!collapsed && <span className="od2-label">{item.label}</span>}
                   {!collapsed && <span className="od2-pillDot" />}
                 </NavLink>
+                  );
+                })()
               ))}
             </div>
           ))}
@@ -149,27 +160,16 @@ export default function OwnerDashboard() {
           <button className="od2-ghostBtn" onClick={handleLogout}>
             {!collapsed ? "Đăng xuất" : "⎋"}
           </button>
-          {!collapsed && <div className="od2-footHint">v1 • Owner</div>}
+          
         </div>
       </aside>
 
       <main className="od2-main">
-        <header className="od2-topbar">
-          <div className="od2-topLeft">
-            <div className="od2-h1">Owner Dashboard</div>
-            <div className="od2-h2">Vận hành • Gói tập • Booking • Tài chính • Kho</div>
-          </div>
-
-          <div className="od2-topRight">
-            <div className="od2-search">
-              <span className="od2-searchIco">⌕</span>
-              <input placeholder="Tìm nhanh: member, booking, gói tập..." />
-            </div>
-            <button className="od2-notiBtn" title="Thông báo">🔔</button>
-          </div>
-        </header>
-
         <div className="od2-content">
+          <div className="od2-branchBanner">
+            <span className="od2-branchBanner__label">Chi nhánh đang quản lý</span>
+            <strong>{selectedGymName || "Tất cả chi nhánh"}</strong>
+          </div>
           <Routes>
             <Route path="/" element={<Navigate to="/owner/overview" replace />} />
             <Route path="/overview" element={<OwnerOverviewPage />} />
@@ -179,8 +179,9 @@ export default function OwnerDashboard() {
             <Route path="/packages" element={<OwnerPackagesPage />} />
             <Route path="/members" element={<OwnerMembersPage />} />
             <Route path="/bookings" element={<OwnerBookingsPage />} />
-            <Route path="/trainers" element={<OwnerTrainerSharePage />} />
-            <Route path="/reviews" element={<PlaceholderPage title="Đánh giá (review)" />} />
+            <Route path="/trainer-bookings" element={<OwnerTrainerSharePage pageMode="bookings" />} />
+            <Route path="/trainers" element={<OwnerTrainerSharePage pageMode="shares" />} />
+            <Route path="/reviews" element={<OwnerReviewsPage />} />
 
             {/* Finance */}
             <Route path="/transactions" element={<OwnerTransactionsPage />} />
@@ -190,27 +191,27 @@ export default function OwnerDashboard() {
             {/* Inventory & Equipment */}
             <Route path="/equipment" element={<OwnerEquipmentPage />} />
             <Route path="/inventory" element={<OwnerInventoryPage />} />
-            <Route path="/transfers" element={<OwnerTransferPage />} />
+            <Route path="/transfers" element={<Navigate to="/owner/equipment" replace />} />
             <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
             {/* Purchasing */}
-            <Route path="/quotations" element={<OwnerQuotationsPage />} />
+            <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
+            <Route path="/quotations" element={<Navigate to="/owner/purchase-requests" replace />} />
             <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
             <Route path="/receipts" element={<OwnerReceiptsPage />} />
+            <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />
 
             {/* Communication */}
-            <Route path="/messages" element={<PlaceholderPage title="Tin nhắn (message)" />} />
-            <Route path="/notifications" element={<PlaceholderPage title="Thông báo (notification)" />} />
+            <Route path="/notifications" element={<OwnerNotificationsPage />} />
 
             {/* System */}
-            <Route path="/policies" element={<OwnerPoliciesPage title="Chính sách (policy)" />} />
             <Route path="/franchise-requests" element={<OwnerFranchiseRequestsPage />} />
-            <Route path="/settings" element={<PlaceholderPage title="Cài đặt" />} />
 
             <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />
           </Routes>
         </div>
       </main>
     </div>
+    </>
   );
 }

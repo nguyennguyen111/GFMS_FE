@@ -36,8 +36,8 @@
 
 .search-button {
   padding: 10px 16px;
-  background: linear-gradient(90deg, rgba(255, 138, 0, 0.28), rgba(255, 176, 0, 0.16));
-  border: 1px solid rgba(255, 138, 0, 0.35);
+  background: linear-gradient(90deg, rgba(184, 220, 0, 0.28), rgba(255, 176, 0, 0.16));
+  border: 1px solid rgba(184, 220, 0, 0.35);
   color: #eef2ff;
   border-radius: 14px;
   cursor: pointer;
@@ -56,9 +56,9 @@
   margin-bottom: 12px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(0, 180, 255, 0.15);
-  border: 1px solid rgba(0, 180, 255, 0.3);
-  color: #00b4ff;
+  background: rgba(0, 186, 255, 0.15);
+  border: 1px solid rgba(0, 186, 255, 0.32);
+  color: #00baff;
   cursor: pointer;
 }
 
@@ -97,7 +97,7 @@
 }
 
 .queue-card:hover {
-  border-color: rgba(0, 180, 255, 0.35);
+  border-color: rgba(214, 255, 0, 0.38);
   transform: translateY(-2px);
 }
 
@@ -116,7 +116,7 @@
 .queue-amount {
   font-size: 16px;
   font-weight: 800;
-  color: #00ffaa;
+  color: #00e3a6;
   margin-bottom: 4px;
 }
 
@@ -189,7 +189,7 @@
 .withdrawals-table th {
   padding: 12px;
   text-align: left;
-  background: rgba(255, 138, 0, 0.08);
+  background: rgba(184, 220, 0, 0.08);
   color: rgba(238, 242, 255, 0.8);
   font-weight: 700;
   font-size: 11px;
@@ -221,7 +221,7 @@
 
 .tx-amount {
   font-weight: 700;
-  color: #00ffaa;
+  color: #00e3a6;
 }
 
 .tx-badge {
@@ -240,8 +240,8 @@
 }
 
 .tx-badge-completed {
-  background: rgba(0, 255, 170, 0.2);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.2);
+  color: #00e3a6;
 }
 
 .tx-badge-rejected {
@@ -260,9 +260,9 @@
 }
 
 .btn-approve {
-  background: rgba(0, 255, 170, 0.2);
-  border-color: rgba(0, 255, 170, 0.35);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.2);
+  border-color: rgba(0, 227, 166, 0.35);
+  color: #00e3a6;
 }
 
 .btn-reject {

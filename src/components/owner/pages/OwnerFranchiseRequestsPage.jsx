@@ -1,12 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import "../../admin/pages/FranchiseRequestsPage.css";
 import "./OwnerFranchiseRequestsPage.css";
+import { useSearchParams } from "react-router-dom";
 import {
   ownerGetMyFranchiseRequests,
+  ownerGetFranchiseRequestDetail,
   ownerCreateFranchiseRequest,
   ownerUpdateFranchiseRequest,
-  ownerDeleteFranchiseRequest,
+  ownerDownloadFranchiseContractPdf,
 } from "../../../services/ownerFranchiseService";
+import { franchiseSigningHref } from "../../../utils/franchiseSigning";
+import { FRANCHISE_CONTRACT_STATUS_LABEL as CONTRACT_LABEL } from "../../../utils/franchiseContractLabels";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 
+function contractStepIndex(status) {
+  const s = String(status || "not_sent");
+  const map = { not_sent: 0, sent: 1, viewed: 2, signed: 3, completed: 4 };
+  if (s === "void") return -1;
+  return map[s] ?? 0;
+}
+
+/** Cùng UI stepper compact như bảng admin */
+function OwnerContractStepper({ status }) {
+  const idx = contractStepIndex(status);
+  const steps = ["Nháp", "Đã gửi", "Đã xem", "Đã ký", "Hoàn tất"];
+
+  if (String(status) === "void") {
+    return <div className="fr-stepperVoid">Đã vô hiệu</div>;
+  }
+
+  return (
+    <div
+      className="fr-stepper fr-stepper--compact"
+      title={`Trạng thái hợp đồng: ${String(status || "-")}`}
+    >
+      {steps.map((label, i) => (
+        <div key={label} className={`fr-step ${i <= idx ? "active" : ""}`}>
+          <span className="fr-dot" />
+          <span className="fr-stepLabel">{label}</span>
+          {i < steps.length - 1 ? <span className={`fr-line ${i < idx ? "active" : ""}`} /> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
 const STATUS_LABELS = {
   pending: { label: "Chờ duyệt", color: "warning" },
   approved: { label: "Đã duyệt", color: "success" },
@@ -42,6 +80,8 @@ const INITIAL_FORM = {
 };
 
 export default function OwnerFranchiseRequestsPage() {
+  const [searchParams] = useSearchParams();
+  const openedRequestRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -51,13 +91,21 @@ export default function OwnerFranchiseRequestsPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailRequest, setDetailRequest] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
+  const [submitting, setSubmitting] = useState(false);
 
   const [filters, setFilters] = useState({ q: "", status: "" });
   const [currentPage, setCurrentPage] = useState(1);
+  const [actionMenuId, setActionMenuId] = useState(null);
+  const [menuRect, setMenuRect] = useState(null);
+
+  const activeMenuReq = actionMenuId != null ? requests.find((r) => r.id === actionMenuId) : null;
 
   // Load danh sách
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -71,12 +119,182 @@ export default function OwnerFranchiseRequestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters]);
 
   useEffect(() => {
     loadRequests();
-    // eslint-disable-next-line
-  }, [currentPage]);
+  }, [loadRequests, currentPage]);
+
+  const loadRequestDetail = useCallback(async (requestId) => {
+    if (!requestId) return;
+
+    try {
+      setDetailLoading(true);
+      setError("");
+      const res = await ownerGetFranchiseRequestDetail(requestId);
+      setDetailRequest(res.data?.data || null);
+      setShowDetailModal(true);
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể tải chi tiết yêu cầu");
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const requestId = searchParams.get("requestId");
+
+    if (!requestId) {
+      openedRequestRef.current = null;
+      return;
+    }
+
+    if (openedRequestRef.current === requestId) {
+      return;
+    }
+
+    openedRequestRef.current = requestId;
+    loadRequestDetail(requestId);
+  }, [loadRequestDetail, searchParams]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadRequests();
+      if (detailRequest?.id) {
+        await loadRequestDetail(detailRequest.id);
+      }
+    },
+    events: ["notification:new", "franchise:changed"],
+    notificationTypes: ["franchise"],
+  });
+
+  const closeActionMenu = () => {
+    setActionMenuId(null);
+    setMenuRect(null);
+  };
+
+  useLayoutEffect(() => {
+    if (actionMenuId == null) {
+      setMenuRect(null);
+      return undefined;
+    }
+    const update = () => {
+      const el = document.querySelector(`[data-ofr-menu-anchor="${actionMenuId}"]`);
+      if (!el) {
+        setMenuRect(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const width = Math.min(340, Math.max(280, 300));
+      const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
+      const top = r.bottom + 8;
+      setMenuRect({ top, left, width });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [actionMenuId]);
+
+  useEffect(() => {
+    if (actionMenuId === null) return undefined;
+    const onDoc = (e) => {
+      if (e.target.closest?.("[data-ofr-menu-anchor]")) return;
+      if (e.target.closest?.(".ofr-dropdown--portal")) return;
+      closeActionMenu();
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") closeActionMenu();
+    };
+    document.addEventListener("click", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [actionMenuId]);
+
+  function openFranchiseSigningLink(url) {
+    const href = franchiseSigningHref(url);
+    if (!href) return;
+    window.open(href, "_blank", "noopener,noreferrer");
+    closeActionMenu();
+  }
+
+  async function downloadContractPdf(id, type) {
+    setError("");
+    setSuccess("");
+    try {
+      const res = await ownerDownloadFranchiseContractPdf(id, type);
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FranchiseContract_${id}_${type}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      closeActionMenu();
+      setSuccess("Đã tải xuống PDF.");
+    } catch (e) {
+      let msg = e?.response?.data?.message || e?.message || "Tải xuống thất bại";
+      const data = e?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const t = await data.text();
+          const j = JSON.parse(t);
+          if (j.message) msg = j.message;
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      setError(msg);
+      closeActionMenu();
+    }
+  }
+
+  async function copySigningLink(url) {
+    if (!url) return;
+    const href = franchiseSigningHref(url);
+    try {
+      await navigator.clipboard.writeText(href);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = href;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setError("");
+    setSuccess("Đã sao chép liên kết ký vào clipboard.");
+    closeActionMenu();
+  }
+
+  async function refreshContractStatus(requestId) {
+    if (!requestId) return;
+    setError("");
+    setSuccess("");
+    try {
+      const res = await ownerGetFranchiseRequestDetail(requestId);
+      const fresh = res?.data?.data || res?.data;
+      if (fresh?.id) {
+        setRequests((prev) => prev.map((item) => (item.id === fresh.id ? { ...item, ...fresh } : item)));
+        setSuccess(`Đã làm mới trạng thái hợp đồng #${requestId}.`);
+      } else {
+        await loadRequests();
+        setSuccess(`Đã làm mới trạng thái hợp đồng #${requestId}.`);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Không thể làm mới trạng thái hợp đồng");
+    } finally {
+      closeActionMenu();
+    }
+  }
 
   // Mở modal tạo mới
   const handleCreate = () => {
@@ -85,8 +303,30 @@ export default function OwnerFranchiseRequestsPage() {
     setShowModal(true);
   };
 
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setDetailRequest(null);
+  };
+
+  const getDecisionMessage = useCallback((req) => {
+    if (!req) return "—";
+    const rawReason = req.rejectionReason || req.reviewNotes || "";
+    if (req.status === "approved") {
+      return rawReason?.trim()
+        ? `Yêu cầu nhượng quyền #${req.id} đã được duyệt. Ghi chú admin: ${rawReason.trim()}`
+        : `Yêu cầu nhượng quyền #${req.id} đã được duyệt. Bước tiếp theo: ký hợp đồng nhượng quyền.`;
+    }
+    if (req.status === "rejected") {
+      return rawReason?.trim()
+        ? `Yêu cầu nhượng quyền #${req.id} bị từ chối. Lý do: ${rawReason.trim()}`
+        : `Yêu cầu nhượng quyền #${req.id} bị từ chối.`;
+    }
+    return "—";
+  }, []);
+
   // Mở modal sửa
   const handleEdit = (req) => {
+    closeActionMenu();
     setEditing(req);
     setForm({
       businessName: req.businessName || "",
@@ -103,8 +343,10 @@ export default function OwnerFranchiseRequestsPage() {
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     setSuccess("");
+    setSubmitting(true);
 
     try {
       if (editing) {
@@ -116,27 +358,13 @@ export default function OwnerFranchiseRequestsPage() {
       }
 
       setShowModal(false);
-      loadRequests();
+      await loadRequests();
     } catch (err) {
       setError(err.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  // Xóa request
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa yêu cầu này?")) return;
-
-    try {
-      setError("");
-      setSuccess("");
-      await ownerDeleteFranchiseRequest(id);
-      setSuccess("Đã xóa yêu cầu");
-      loadRequests();
-    } catch (err) {
-      setError(err.response?.data?.message || "Không thể xóa");
-    }
-  };
-
   // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return "—";
@@ -192,6 +420,7 @@ export default function OwnerFranchiseRequestsPage() {
         <div className="ofr-empty">Chưa có yêu cầu nào</div>
       ) : (
         <>
+          <div className="ofr-tableWrap">
           <table className="ofr-table">
             <thead>
               <tr>
@@ -201,13 +430,18 @@ export default function OwnerFranchiseRequestsPage() {
                 <th>Người liên hệ</th>
                 <th>Số vốn dự kiến</th>
                 <th>Trạng thái</th>
+                <th>Hợp đồng</th>
                 <th>Ngày tạo</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {requests.map((req) => (
-                <tr key={req.id}>
+                <tr
+                  key={req.id}
+                  className={detailRequest?.id === req.id ? "ofr-row ofr-row--active" : "ofr-row"}
+                  onClick={() => loadRequestDetail(req.id)}
+                >
                   <td>{req.id}</td>
                   <td>{req.businessName}</td>
                   <td>{req.location}</td>
@@ -220,37 +454,182 @@ export default function OwnerFranchiseRequestsPage() {
                   <td>
                     <StatusBadge status={req.status} />
                   </td>
+                  <td>
+                    <div className="fr-contractCol">
+                      <div className="fr-contractTop">
+                        <span
+                          className={`fr-pill fr-pill-contract ${
+                            req.contractStatus === "signed" || req.contractStatus === "completed"
+                              ? "fr-pill-signed"
+                              : ""
+                          }`}
+                        >
+                          {CONTRACT_LABEL[req.contractStatus] || req.contractStatus || "—"}
+                        </span>
+                        <span className={`fr-linkBadge ${req.contractUrl ? "" : "fr-linkBadge-off"}`}>
+                          {req.contractUrl ? "Đã có liên kết" : "Chưa có liên kết"}
+                        </span>
+                      </div>
+                      <OwnerContractStepper status={req.contractStatus} />
+                      {req.status === "approved" && (req.contractStatus === "sent" || req.contractStatus === "viewed") ? (
+                        <div className="fr-muted">Đang chờ chủ phòng ký…</div>
+                      ) : null}
+                    </div>
+                  </td>
                   <td>{formatDate(req.createdAt)}</td>
                   <td>
-                    <div className="ofr-actions">
+                    <div className="ofr-actions ofr-actions--enterprise">
                       {req.status === "pending" && (
                         <>
                           <button
                             className="ofr-btn ofr-btn--sm ofr-btn--secondary"
-                            onClick={() => handleEdit(req)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(req);
+                            }}
                           >
                             Sửa
-                          </button>
-                          <button
-                            className="ofr-btn ofr-btn--sm ofr-btn--danger"
-                            onClick={() => handleDelete(req.id)}
-                          >
-                            Xóa
                           </button>
                         </>
                       )}
                       {req.status === "approved" && (
-                        <span className="ofr-text--success">✓ Đã được duyệt</span>
+                        <span className="ofr-rowTag ofr-rowTag--ok" title="Yêu cầu đã được admin duyệt">
+                          Đã duyệt
+                        </span>
                       )}
                       {req.status === "rejected" && (
-                        <span className="ofr-text--danger">✗ Đã từ chối</span>
+                        <span className="ofr-rowTag ofr-rowTag--no" title="Yêu cầu không được chấp nhận">
+                          Từ chối
+                        </span>
                       )}
+
+                      <div
+                        className={`ofr-menuWrap${actionMenuId === req.id ? " ofr-menuWrap--open" : ""}`}
+                        data-ofr-menu-anchor={req.id}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="ofr-btn ofr-btn--sm ofr-btn--secondary ofr-menuTrigger"
+                          aria-expanded={actionMenuId === req.id}
+                          aria-haspopup="menu"
+                          onClick={() => setActionMenuId((cur) => (cur === req.id ? null : req.id))}
+                        >
+                          Thao tác ▾
+                        </button>
+                      </div>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
+
+          {activeMenuReq != null &&
+            menuRect != null &&
+            createPortal(
+              <div
+                className="ofr-dropdown ofr-dropdown--portal"
+                style={{
+                  position: "fixed",
+                  top: menuRect.top,
+                  left: menuRect.left,
+                  width: menuRect.width,
+                }}
+                role="menu"
+              >
+                {activeMenuReq.status === "pending" ? (
+                  <>
+                    <div className="ofr-dropHeading">Yêu cầu</div>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      onClick={() => handleEdit(activeMenuReq)}
+                    >
+                      Sửa yêu cầu
+                    </button>
+                  </>
+                ) : null}
+
+                {activeMenuReq.status === "approved" ? (
+                  <>
+                    <div className="ofr-dropHeading">Tệp PDF</div>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      onClick={() => downloadContractPdf(activeMenuReq.id, "original")}
+                    >
+                      Tải PDF gốc
+                    </button>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      disabled={!(activeMenuReq.contractStatus === "signed" || activeMenuReq.contractStatus === "completed")}
+                      onClick={() => downloadContractPdf(activeMenuReq.id, "owner_signed")}
+                    >
+                      Tải PDF đã ký (chủ phòng)
+                    </button>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      disabled={activeMenuReq.contractStatus !== "completed"}
+                      onClick={() => downloadContractPdf(activeMenuReq.id, "final")}
+                    >
+                      Tải PDF bản chính thức
+                    </button>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      disabled={activeMenuReq.contractStatus !== "completed"}
+                      onClick={() => downloadContractPdf(activeMenuReq.id, "certificate")}
+                    >
+                      Tải chứng nhận
+                    </button>
+                  </>
+                ) : null}
+
+                <div className="ofr-dropHeading">Liên kết &amp; ký</div>
+                {activeMenuReq.contractUrl ? (
+                  <>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      onClick={() => openFranchiseSigningLink(activeMenuReq.contractUrl)}
+                    >
+                      Mở liên kết ký
+                    </button>
+                    <button
+                      type="button"
+                      className="ofr-dropItem"
+                      role="menuitem"
+                      onClick={() => copySigningLink(activeMenuReq.contractUrl)}
+                    >
+                      Sao chép liên kết ký
+                    </button>
+                  </>
+                ) : (
+                  <div className="ofr-dropMuted">
+                    Chưa có liên kết ký. Sau khi admin duyệt và gửi lời mời, liên kết sẽ xuất hiện tại đây.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="ofr-dropItem"
+                  role="menuitem"
+                  onClick={() => refreshContractStatus(activeMenuReq.id)}
+                >
+                  Làm mới trạng thái
+                </button>
+              </div>,
+              document.body
+            )}
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
@@ -275,6 +654,106 @@ export default function OwnerFranchiseRequestsPage() {
             </div>
           )}
         </>
+      )}
+
+      {showDetailModal && (
+        <div className="ofr-modal">
+          <div className="ofr-modal__backdrop" onClick={handleCloseDetail} />
+          <div className="ofr-modal__content ofr-modal__content--detail">
+            <div className="ofr-modal__header">
+              <h2>Chi tiết yêu cầu nhượng quyền</h2>
+              <button className="ofr-modal__close" onClick={handleCloseDetail}>
+                ×
+              </button>
+            </div>
+
+            <div className="ofr-detail">
+              {detailLoading ? (
+                <div className="ofr-loading ofr-loading--modal">Đang tải chi tiết...</div>
+              ) : detailRequest ? (
+                <>
+                  <div className="ofr-detail__grid">
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Mã yêu cầu</span>
+                      <span className="ofr-detail__value">#{detailRequest.id}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Trạng thái</span>
+                      <span className="ofr-detail__value"><StatusBadge status={detailRequest.status} /></span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Tên doanh nghiệp</span>
+                      <span className="ofr-detail__value">{detailRequest.businessName || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Địa điểm</span>
+                      <span className="ofr-detail__value">{detailRequest.location || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Người liên hệ</span>
+                      <span className="ofr-detail__value">{detailRequest.contactPerson || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Số điện thoại</span>
+                      <span className="ofr-detail__value">{detailRequest.contactPhone || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Email</span>
+                      <span className="ofr-detail__value">{detailRequest.contactEmail || "—"}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Số vốn dự kiến</span>
+                      <span className="ofr-detail__value">{formatCurrency(detailRequest.investmentAmount)}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Ngày tạo</span>
+                      <span className="ofr-detail__value">{formatDate(detailRequest.createdAt)}</span>
+                    </div>
+                    <div className="ofr-detail__item">
+                      <span className="ofr-detail__label">Người xử lý</span>
+                      <span className="ofr-detail__value">{detailRequest.reviewer?.username || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="ofr-detail__section">
+                    <div className="ofr-detail__label">Kế hoạch kinh doanh</div>
+                    <div className="ofr-detail__panel">{detailRequest.businessPlan || "Chưa có mô tả."}</div>
+                  </div>
+
+                  {(detailRequest.status === "approved" || detailRequest.status === "rejected") ? (
+                    <div className="ofr-detail__section">
+                      <div className="ofr-detail__label">Phản hồi từ admin</div>
+                      <div className="ofr-detail__panel">
+                        <div><strong>Lý do / ghi chú:</strong> {detailRequest.rejectionReason || detailRequest.reviewNotes || "—"}</div>
+                        <div style={{ marginTop: 8 }}><strong>Tin nhắn đã gửi:</strong> {getDecisionMessage(detailRequest)}</div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="ofr-form__actions ofr-form__actions--detail">
+                    {detailRequest.status === "pending" && (
+                      <button
+                        type="button"
+                        className="ofr-btn ofr-btn--secondary"
+                        onClick={() => {
+                          handleCloseDetail();
+                          handleEdit(detailRequest);
+                        }}
+                      >
+                        Sửa yêu cầu
+                      </button>
+                    )}
+                    <button type="button" className="ofr-btn ofr-btn--primary" onClick={handleCloseDetail}>
+                      Đóng
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="ofr-empty ofr-empty--modal">Không có dữ liệu chi tiết</div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal Create/Edit */}
@@ -368,8 +847,8 @@ export default function OwnerFranchiseRequestsPage() {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="ofr-btn ofr-btn--primary">
-                  {editing ? "Cập nhật" : "Tạo mới"}
+                <button type="submit" className="ofr-btn ofr-btn--primary" disabled={submitting}>
+                  {submitting ? (editing ? "Đang cập nhật..." : "Đang tạo...") : (editing ? "Cập nhật" : "Tạo mới")}
                 </button>
               </div>
             </form>

@@ -46,7 +46,7 @@
   font-size: 20px;
   font-weight: 800;
   margin: 6px 0;
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
 }
 
 .ptw-notice {
@@ -103,7 +103,7 @@
 }
 
 .ptw-money {
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
   font-weight: 700;
 }
 
@@ -124,7 +124,7 @@
 
 .ptw-badge-completed {
   background: rgba(0, 255, 170, 0.2);
-  color: #00ffaa;
+  color: var(--m-gold, #FFB100);
 }
 
 .ptw-badge-rejected {

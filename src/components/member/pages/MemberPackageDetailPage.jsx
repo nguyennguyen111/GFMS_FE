@@ -108,7 +108,14 @@ export default function MemberPackageDetailPage() {
         </div>
 
         <div className="mpd2-heroActions">
-          
+          {data.reviewEligible ? (
+            <button
+              className="mpd2-btn secondary"
+              onClick={() => navigate(`/member/reviews?type=package&activationId=${data.id}`)}
+            >
+              <span>Đánh giá gói</span>
+            </button>
+          ) : null}
 
           <button
             className="mpd2-btn primary"
@@ -292,7 +299,7 @@ export default function MemberPackageDetailPage() {
                   </div>
                   <div className="mpd2-materialBody">
                     <div className="mpd2-materialTitle">
-                      {m.materialKind === "demo_video" ? "Video demo" : "Kế hoạch tập"}{" "}
+                      {m.materialKind === "demo_video" ? "Video hướng dẫn" : "Kế hoạch tập luyện"}{" "}
                       {m.title ? `· ${m.title}` : ""}
                     </div>
                     <div className="mpd2-materialMeta">

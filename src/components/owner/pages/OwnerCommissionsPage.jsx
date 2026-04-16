@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
   ownerGetCommissions,
-  ownerExportCommissions,
   ownerPreviewClosePayrollPeriod,
   ownerPreviewPayByTrainer,
   ownerClosePayrollPeriod,
@@ -16,7 +15,9 @@ import {
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import OwnerConfirmDialog from "../OwnerConfirmDialog";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import "./OwnerCommissionsPage.css";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusLabel = {
   pending: "Chờ chốt kỳ",
@@ -51,6 +52,7 @@ const toDateString = (date) => {
 };
 
 const OwnerCommissionsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [commissions, setCommissions] = useState([]);
@@ -92,6 +94,14 @@ const OwnerCommissionsPage = () => {
   const [dialog, setDialog] = useState(null);
   const [dialogBusy, setDialogBusy] = useState(false);
 
+  useEffect(() => {
+    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
+    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPeriodForm((prev) => ({ ...prev, gymId: scopedGymId }));
+    setPayByTrainerForm((prev) => ({ ...prev, gymId: scopedGymId, trainerId: selectedGymId ? "" : prev.trainerId }));
+    setRateForm((prev) => ({ ...prev, gymId: scopedGymId }));
+  }, [selectedGymId]);
+
   const closeDialog = () => {
     if (!dialogBusy) setDialog(null);
   };
@@ -124,15 +134,29 @@ const OwnerCommissionsPage = () => {
   const loadCommissions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await ownerGetCommissions(filters);
-      setCommissions(Array.isArray(response.data?.data) ? response.data.data : []);
+      const activeFilters = {
+        ...filters,
+        gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
+      };
+      const response = await ownerGetCommissions(activeFilters);
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      setCommissions(
+        selectedGymId
+          ? rows.filter((item) => String(item?.gymId || item?.Gym?.id || item?.gym?.id || "") === String(selectedGymId))
+          : rows
+      );
     } catch (error) {
       console.error("Lỗi khi tải hoa hồng:", error);
       setCommissions([]);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, selectedGymId]);
+
+  const filteredPeriods = useMemo(() => {
+    if (!selectedGymId) return periods;
+    return periods.filter((period) => String(period?.gymId || period?.Gym?.id || "") === String(selectedGymId));
+  }, [periods, selectedGymId]);
 
   const loadPeriods = useCallback(async () => {
     try {
@@ -144,12 +168,37 @@ const OwnerCommissionsPage = () => {
     }
   }, []);
 
+  const loadRateForGym = useCallback(async (gymId) => {
+    if (!gymId) return;
+    try {
+      const response = await ownerGetGymCommissionRate(gymId);
+      const ownerRate = Number(response.data?.data?.ownerRate ?? 0.15);
+      setRateForm((prev) => ({
+        ...prev,
+        gymId: prev.gymId || String(gymId),
+        ownerRate: String(Math.round(ownerRate * 100)),
+      }));
+    } catch (error) {
+      console.error("Lỗi khi tải tỷ lệ hoa hồng:", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadGyms();
     loadTrainers();
     loadCommissions();
     loadPeriods();
   }, [loadGyms, loadTrainers, loadCommissions, loadPeriods]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await Promise.all([loadCommissions(), loadPeriods()]);
+      if (rateForm.gymId) {
+        await loadRateForGym(rateForm.gymId);
+      }
+    },
+    events: ["commission:changed"],
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -238,7 +287,7 @@ const OwnerCommissionsPage = () => {
           showAlert(
             "success",
             "Hoàn tất",
-            `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho PT.`
+            `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho huấn luyện viên.`
           );
           break;
         }
@@ -259,7 +308,7 @@ const OwnerCommissionsPage = () => {
 
   const handleClosePeriod = async () => {
     if (!periodForm.gymId || !periodForm.startDate || !periodForm.endDate) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym và thời gian kỳ lương.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập và thời gian kỳ lương.");
       return;
     }
     try {
@@ -279,7 +328,7 @@ const OwnerCommissionsPage = () => {
 
       const trainerBreakdown = (prev.trainers || []).map((t) => ({
         trainerId: t.trainerId,
-        username: t.username || `PT #${t.trainerId}`,
+        username: t.username || `Huấn luyện viên #${t.trainerId}`,
         email: t.email || "",
         sessions: t.sessions,
         amountLabel: formatMoney(t.amount),
@@ -328,7 +377,7 @@ const OwnerCommissionsPage = () => {
   const handlePayByTrainer = async () => {
     const { gymId, trainerId, fromDate, toDate } = payByTrainerForm;
     if (!gymId || !trainerId || !fromDate || !toDate) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym, PT và khoảng thời gian.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập, huấn luyện viên và khoảng thời gian.");
       return;
     }
     try {
@@ -348,15 +397,15 @@ const OwnerCommissionsPage = () => {
 
       const trainer = trainers.find((t) => Number(t.id) === Number(trainerId));
       const gym = gyms.find((g) => Number(g.id) === Number(gymId));
-      const username = trainer?.User?.username || `PT #${trainerId}`;
+      const username = trainer?.User?.username || `Huấn luyện viên #${trainerId}`;
       const email = trainer?.User?.email || "";
 
       setDialog({
         kind: "confirm",
         tone: "warning",
-        title: "Xác nhận chi trả theo PT",
+        title: "Xác nhận chi trả theo huấn luyện viên",
         message:
-          "Các buổi «Chờ chốt kỳ» trong khoảng ngày đã chọn sẽ chuyển sang «Đã chi trả» và được ghi nhận vào số dư khả dụng của PT. Vui lòng kiểm tra đúng người nhận trước khi xác nhận.",
+          "Các buổi «Chờ chốt kỳ» trong khoảng ngày đã chọn sẽ chuyển sang «Đã chi trả» và được ghi nhận vào số dư khả dụng của huấn luyện viên. Vui lòng kiểm tra đúng người nhận trước khi xác nhận.",
         meta: {
           gymName: gym?.name || "",
           periodLabel: `${formatDate(fromDate)} — ${formatDate(toDate)}`,
@@ -367,7 +416,7 @@ const OwnerCommissionsPage = () => {
           {
             trainerId: Number(trainerId),
             username,
-            idLabel: `Mã PT: #${trainerId}`,
+            idLabel: `Mã huấn luyện viên: #${trainerId}`,
             email,
             sessions: totalSessions,
             amountLabel: formatMoney(totalAmount),
@@ -380,24 +429,22 @@ const OwnerCommissionsPage = () => {
         action: "payTrainer",
       });
     } catch (error) {
-      console.error("Lỗi khi chi trả theo PT:", error);
+      console.error("Lỗi khi chi trả theo huấn luyện viên:", error);
       showAlert(
         "error",
         "Lỗi",
-        error.response?.data?.message || "Không thể chi trả theo PT."
+        error.response?.data?.message || "Không thể chi trả theo huấn luyện viên."
       );
     }
   };
 
   const handleLoadRate = async () => {
     if (!rateForm.gymId) {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng gym.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập.");
       return;
     }
     try {
-      const response = await ownerGetGymCommissionRate(rateForm.gymId);
-      const ownerRate = Number(response.data?.data?.ownerRate ?? 0.15);
-      setRateForm({ ...rateForm, ownerRate: String(Math.round(ownerRate * 100)) });
+      await loadRateForGym(rateForm.gymId);
     } catch (error) {
       console.error("Lỗi khi tải tỷ lệ hoa hồng:", error);
       showAlert(
@@ -410,7 +457,7 @@ const OwnerCommissionsPage = () => {
 
   const handleSaveRate = async () => {
     if (!rateForm.gymId || rateForm.ownerRate === "") {
-      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn gym và nhập % hoa hồng owner.");
+      showAlert("warning", "Thiếu thông tin", "Vui lòng chọn phòng tập và nhập % hoa hồng owner.");
       return;
     }
     const ownerRate = Number(rateForm.ownerRate) / 100;
@@ -420,7 +467,7 @@ const OwnerCommissionsPage = () => {
     }
     try {
       await ownerSetGymCommissionRate({ gymId: Number(rateForm.gymId), ownerRate });
-      showAlert("success", "Đã lưu", "Đã cập nhật tỷ lệ hoa hồng theo gym.");
+      showAlert("success", "Đã lưu", "Đã cập nhật tỷ lệ hoa hồng theo phòng tập.");
     } catch (error) {
       console.error("Lỗi khi cập nhật tỷ lệ hoa hồng:", error);
       showAlert(
@@ -428,43 +475,6 @@ const OwnerCommissionsPage = () => {
         "Lỗi",
         error.response?.data?.message || "Không thể cập nhật tỷ lệ."
       );
-    }
-  };
-
-  const downloadFile = (blob, filename) => {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleExport = async (format) => {
-    try {
-      const response = await ownerExportCommissions({ ...filters, format });
-      const contentType = response.headers?.["content-type"] || "";
-      const extension = format === "pdf" ? "pdf" : "xlsx";
-      const filename = `commissions.${extension}`;
-      downloadFile(new Blob([response.data], { type: contentType }), filename);
-    } catch (error) {
-      console.error("Lỗi khi xuất file:", error);
-      let message = "Không thể xuất file";
-      const response = error.response;
-      if (response?.data instanceof Blob) {
-        try {
-          const text = await response.data.text();
-          const parsed = JSON.parse(text);
-          message = parsed?.message || parsed?.EM || message;
-        } catch {
-          message = "Không thể xuất file";
-        }
-      } else {
-        message = response?.data?.message || response?.data?.EM || message;
-      }
-      showAlert("error", "Không xuất được file", message);
     }
   };
 
@@ -482,19 +492,21 @@ const OwnerCommissionsPage = () => {
     <div className="owner-commissions-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Chi trả lương huấn luyện viên</h1>
+          <h1 className="page-title">Doanh thu từ huấn luyện viên</h1>
+          {selectedGymName ? <div className="page-subtitle">Chi nhánh đang quản lý: {selectedGymName}</div> : null}
         </div>
       </div>
 
       <div className="commissions-header">
-        <div className="section-title">Hoa hồng theo buổi hoàn thành</div>
+        <div className="section-title">Doanh thu theo buổi từ huấn luyện viên</div>
         <div className="commissions-filters">
           <select
             className="filter-select"
             value={filters.gymId}
             onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
-            <option value="">Tất cả gym</option>
+            <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả gym"}</option>
             {gyms.map((gym) => (
               <option key={gym.id} value={gym.id}>
                 {gym.name}
@@ -530,9 +542,6 @@ const OwnerCommissionsPage = () => {
           <button className="search-button" onClick={loadCommissions}>
             Lọc
           </button>
-          <button className="search-button" onClick={() => handleExport("xlsx")}>
-            Xuất Excel
-          </button>
         </div>
       </div>
 
@@ -545,7 +554,7 @@ const OwnerCommissionsPage = () => {
               <th>Phòng gym</th>
               <th>Gói tập</th>
               <th>Giá trị/buổi</th>
-              <th>Hoa hồng PT</th>
+              <th>Hoa hồng Huấn luyện viên</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
@@ -598,8 +607,8 @@ const OwnerCommissionsPage = () => {
             </tr>
           </thead>
           <tbody>
-            {periods.length > 0 ? (
-              periods.map((period) => (
+            {filteredPeriods.length > 0 ? (
+              filteredPeriods.map((period) => (
                 <tr key={period.id} className="period-row">
                   <td onClick={() => handleOpenPeriod(period)}>
                     {formatDate(period.startDate)} - {formatDate(period.endDate)}
@@ -634,7 +643,7 @@ const OwnerCommissionsPage = () => {
         </table>
       </div>
 
-      <div className="owner-section-heading">Thao tác chốt kỳ & chi trả tiền cho PT</div>
+      <div className="owner-section-heading">Thao tác chốt kỳ & chi trả tiền cho Huấn luyện viên</div>
       <div className="owner-pay-tools">
       <div className="period-card">
         <div className="period-card-title">Chốt bảng lương kỳ</div>
@@ -643,6 +652,7 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={periodForm.gymId}
             onChange={(e) => setPeriodForm({ ...periodForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
@@ -691,12 +701,13 @@ const OwnerCommissionsPage = () => {
       </div>
 
       <div className="period-card">
-        <div className="period-card-title">Chi trả theo từng PT</div>
+        <div className="period-card-title">Chi trả theo từng Huấn luyện viên</div>
         <div className="period-form">
           <select
             className="filter-select"
             value={payByTrainerForm.gymId}
             onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
@@ -710,12 +721,12 @@ const OwnerCommissionsPage = () => {
             value={payByTrainerForm.trainerId}
             onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, trainerId: e.target.value })}
           >
-            <option value="">Chọn PT</option>
+            <option value="">Chọn Huấn luyện viên</option>
             {trainers
               .filter((t) => !payByTrainerForm.gymId || Number(t.gymId) === Number(payByTrainerForm.gymId))
               .map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.User?.username || `PT #${t.id}`}
+                  {t.User?.username || `Huấn luyện viên #${t.id}`}
                 </option>
               ))}
           </select>
@@ -736,7 +747,7 @@ const OwnerCommissionsPage = () => {
             showPopperArrow={false}
           />
           <button className="search-button" onClick={handlePayByTrainer}>
-            Chi trả PT
+            Chi trả Huấn luyện viên
           </button>
         </div>
         <div className="period-preview">
@@ -752,7 +763,7 @@ const OwnerCommissionsPage = () => {
       </div>
       </div>
 
-      <div className="owner-section-heading">Cài đặt — Tỷ lệ hoa hồng theo gym</div>
+      <div className="owner-section-heading">Cài đặt — Tỷ lệ chia sẻ theo gym</div>
       <div className="period-card">
         <div className="period-card-title">Tỷ lệ hoa hồng theo gym</div>
         <div className="period-form">
@@ -760,6 +771,7 @@ const OwnerCommissionsPage = () => {
             className="filter-select"
             value={rateForm.gymId}
             onChange={(e) => setRateForm({ ...rateForm, gymId: e.target.value })}
+            disabled={Boolean(selectedGymId)}
           >
             <option value="">Chọn phòng gym</option>
             {gyms.map((gym) => (
@@ -768,12 +780,12 @@ const OwnerCommissionsPage = () => {
               </option>
             ))}
           </select>
-          <div className="owner-rate-field" title="Phần trăm thuộc về chủ gym (0–100%)">
+          <div className="owner-rate-field" title="Phần trăm thuộc về chủ phòng tập (0–100%)">
             <input
               type="number"
               className="owner-rate-input"
               placeholder="vd: 15"
-              aria-label="Tỷ lệ hoa hồng chủ gym, phần trăm"
+              aria-label="Tỷ lệ hoa hồng chủ phòng tập, phần trăm"
               value={rateForm.ownerRate}
               onChange={(e) => setRateForm({ ...rateForm, ownerRate: e.target.value })}
               min="0"
@@ -810,7 +822,7 @@ const OwnerCommissionsPage = () => {
             <div className="tx-modal-body">
               <div className="period-summary">
                 <div><strong>Kỳ:</strong> {formatDate(selectedPeriod.startDate)} - {formatDate(selectedPeriod.endDate)}</div>
-                <div><strong>Gym:</strong> {selectedPeriod.Gym?.name || "N/A"}</div>
+                <div><strong>Phòng tập:</strong> {selectedPeriod.Gym?.name || "N/A"}</div>
                 <div><strong>Tổng buổi:</strong> {selectedPeriod.totalSessions || 0}</div>
                 <div><strong>Tổng tiền:</strong> {formatMoney(selectedPeriod.totalAmount)}</div>
               </div>

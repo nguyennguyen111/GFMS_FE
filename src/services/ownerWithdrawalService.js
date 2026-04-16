@@ -13,3 +13,6 @@ export const ownerApproveWithdrawal = (id, body = {}) =>
 
 export const ownerRejectWithdrawal = (id, reason) =>
   axios.post(`${API_URL}/${id}/reject`, { reason });
+
+export const ownerAutoApproveWithdrawals = (body = {}) =>
+  axios.post(`${API_URL}/auto-approve`, body);

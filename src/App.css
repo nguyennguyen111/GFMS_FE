@@ -24,3 +24,26 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+:root {
+  --compact-scale: 0.8;
+  --compact-width: calc(100% / var(--compact-scale));
+  --compact-height: calc(100vh / var(--compact-scale));
+}
+
+.site--compact,
+.auth-compact {
+  width: var(--compact-width);
+  min-height: var(--compact-height);
+  transform: scale(var(--compact-scale));
+  transform-origin: top left;
+}
+
+.auth-compact {
+  min-height: var(--compact-height);
+}
+
+body:has(.site--compact),
+body:has(.auth-compact) {
+  overflow-x: hidden;
+}

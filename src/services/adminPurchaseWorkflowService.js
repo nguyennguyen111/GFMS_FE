@@ -1,6 +1,22 @@
 import axios from "../setup/axios";
 
 const adminPurchaseWorkflowService = {
+  /* ================= PURCHASE REQUESTS ================= */
+  getPurchaseRequests: (params) => axios.get("/api/admin/inventory/purchase-requests", { params }),
+  getEquipmentSalesTransactions: (params) => axios.get("/api/admin/inventory/purchase-transactions", { params }),
+
+  getPurchaseRequestDetail: (id) => axios.get(`/api/admin/inventory/purchase-requests/${id}`),
+
+  rejectPurchaseRequest: (id, body) =>
+    axios.patch(`/api/admin/inventory/purchase-requests/${id}/reject`, body),
+  approvePurchaseRequest: (id) =>
+    axios.patch(`/api/admin/inventory/purchase-requests/${id}/approve`),
+  confirmPurchaseRequestPaymentAndShip: (id) =>
+    axios.patch(`/api/admin/inventory/purchase-requests/${id}/confirm-payment-and-ship`),
+
+  convertPurchaseRequestToQuotation: (id, body) =>
+    axios.post(`/api/admin/inventory/purchase-requests/${id}/convert-to-quotation`, body || {}),
+
   /* ================= QUOTATIONS ================= */
   getQuotations: (params) => axios.get("/api/admin/inventory/quotations", { params }),
 

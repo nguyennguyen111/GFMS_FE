@@ -1,4 +1,3 @@
-/* Định dạng cho danh sách huấn luyện viên */
 .trainer-list {
   list-style-type: none;
   padding: 0;
@@ -6,27 +5,29 @@
 }
 
 .trainer-item {
-  background-color: var(--darkGrey);
+  background-color: rgba(255, 255, 255, 0.06);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: 14px;
   margin-bottom: 15px;
-  transition: background-color 0.3s;
+  border: 1px solid var(--m-border, rgba(255,255,255,.12));
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .trainer-item:hover {
-  background-color: var(--orange);  /* Khi hover sẽ chuyển sang màu cam */
+  background-color: rgba(255, 177, 0, 0.1);
+  border-color: rgba(255, 177, 0, 0.35);
 }
 
 .trainer-info {
-  color: white;
+  color: var(--m-text, rgba(255,255,255,.92));
   font-size: 1.2rem;
 }
 
 .trainer-info h3 {
-  color: var(--orange);  /* Màu cam cho tên huấn luyện viên */
+  color: var(--m-gold, #FFB100);
   font-size: 1.5rem;
 }
 
 .trainer-info p {
-  color: var(--lightgray);  /* Màu xám sáng cho chuyên môn */
+  color: var(--m-muted, rgba(255,255,255,.68));
 }

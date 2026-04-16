@@ -1,239 +1,306 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ImagePlus, MapPin, Mic, Paperclip, Search, SendHorizonal, Square } from "lucide-react";
 import "./MemberMessagesPage.css";
 import "../member-pages.css";
+import { getEligibleConversations } from "../../../services/memberMessageService";
+import { uploadChatAsset } from "../../../services/chatUploadService";
+import useConversationSocket from "../../../hooks/useConversationSocket";
+import { decodeChatPayload, encodeChatPayload, previewTextFromPayload } from "../../../utils/chatPayload";
+import { showAppToast } from "../../../utils/appToast";
+import { connectSocket } from "../../../services/socketClient";
 
-const conversations = [
-  {
-    id: 1,
-    name: "MINH QUÂN (PT)",
-    message: "Lịch tập ngày mai lúc 6:00 sáng vẫn như cũ nhé!",
-    time: "VỪA XONG",
-    active: true,
-    online: true,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuC_Lic_w5DinhrDUcwowj7bKfSQYf8LQ5O2ui1jt9jGp71_syMpYv9AW1fwOEfTAqzbJFfuYhSg4MgIfnr6XSBgPnA30if48m-AHVzpiT5OYJ9-cIXDhCIcpK0bxlQdXc_zW1kD9ErgrUIJ11asfx85RroZSIFq2bA5D3XtnwX_xWAQHw0_LedcMiDvv0PoGq3yHGe6TqWBWHEj1pUpAPt09hZLSaT3Q4QxXU3JsYjAjBOh7aGUI-Ra-1kIxuXi3KDw6g8m9lcW7z4",
-  },
-  {
-    id: 2,
-    name: "TRUNG TÂM HỖ TRỢ",
-    message: "Yêu cầu gia hạn thẻ của bạn đã được xử lý.",
-    time: "10 PHÚT TRƯỚC",
-    active: false,
-    online: false,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBVCUiv7_sd-lEIlWNNzmN47WgqE3xX_hxIucWHf058QHKodcqM_mvIbZoBz0JLTWxlW3oy3Z0Hb3OmrdZCJKYrqdYMbFGVCYl0BKxLd94jYVdYrSopm-5AJ6XmrRyq-u49vXprnoxKgPPzXGEdIoAoVoEZmt8xsR5zLJqVYBHgtX8jGC7D6CrJXIy_EtsFppC_KOt0NhYoHyDUKyF0Mx1zYpEanFX4CFQ8N4lX9C1MqcxOz1AGeJhI1ODU8xjnZRiHeh7mrhPk6o8",
-  },
-  {
-    id: 3,
-    name: "HUYỀN TRANG (NUTRITION)",
-    message: "Gửi bạn thực đơn ăn kiêng cho tuần sau...",
-    time: "2 GIỜ TRƯỚC",
-    active: false,
-    online: false,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAuw06C490Ae9ZwcaMSE0VwmNIXfvrHRLfXsmBH6JFNC23wuqY4Mp1OsooGwH7AMfokdLSGopciLGTxQ1SZqYhbv2KlUnSGevS4MJTmc9XVIDXED7jBgyAU1k7yNVIG0CRLPv5JHJNyDZ1-MzycpRF1Ynchf6LKPN5Lf7jwp1tMrvHgEhU5tZ4eMQoP86LlceQSEmsDiHRhAJ3RWO_hkJZ6lA4WRpXvLFdFNR-MpT8_K1WBsd9nVy6v4mp6UPkIYC9LLYBIZg7IG98",
-  },
-  {
-    id: 4,
-    name: "CỘNG ĐỒNG KINETIC",
-    message: "Sự kiện Heavy Lifters sẽ bắt đầu vào Chủ Nhật.",
-    time: "4 GIỜ TRƯỚC",
-    active: false,
-    online: false,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBwZGralxJYnvz4tMMiHR4iFDy1VkJFWH185s3ETvarFdG__-sztl2pT49ueW1SH4HBf0jOC2sZ-xvvIewrqkdgCYr8bT-9_jVews8H8SG0FX4-cce4NCqGFT8Zj0sTJUiQL-RSHPuCsXklaNBcwRxJSehDhQgT4y8lC3V-CO2ecz6jWfXD85Oa3Ynrs-yaCXeNxiFlN7sVZEfOktmYhBRZNexeecuOqYEUAO2tcSkIxpwS2u2FRW8krKcXvYP9WEPRP2vBcJqebyM",
-  },
-];
+const PLACEHOLDER = "https://placehold.co/96x96/101317/D6FF00?text=GFMS";
 
-const messages = [
-  {
-    id: 1,
-    text: "Chào bạn! Tôi đã nhận được chỉ số InBody mới nhất của bạn. Các chỉ số về cơ bắp đang tăng trưởng rất tốt.",
-    time: "08:45 AM",
-    sent: false,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCic_U6N6rubH_lIm6Am5-Gf0TyCXcJI5bGIyyAubqmR6R1xDQljLF5zkBelYdUoKfVcUHwFkk1Dn5x3LRewMN_wsYhf8DS3Z3ar-JdFgf_ZfxMsy6qidmEO7hl0AII6A95Bgu7toTSZRukOGoy0s7izkjqb6hnh56MDuxSkzyqUI-e_lW5qCpbeuVwrrz9h6fEbi_u9vPmkjDqslOQrHjP6U3CabjeUPcQaZpEoecSZezEl7Dpl8Ibv6tM7v0C3qAwKxazvNTDLPY",
-  },
-  {
-    id: 2,
-    text: "Cảm ơn anh! Tôi thấy cơ bắp săn chắc hơn rõ rệt. Ngày mai chúng ta tập trung vào bài tập vai chứ?",
-    time: "09:12 AM",
-    sent: true,
-  },
-  {
-    id: 3,
-    text: "Đúng rồi, chúng ta sẽ tập trung vào vai và cơ lưng trên. Đây là giáo án chi tiết cho ngày mai, bạn xem qua trước nhé.",
-    time: "09:15 AM",
-    sent: false,
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAjItABikPWn0R0i-1crXNIKse8CouCrg2LdmCnNAdpfAkHUY91qjLT5toy4eFq6KEw3DCZVVxpasOWxNZn2ZdVHgR0CUdr5emStXoF90iQo-YQZ2dp8bVgt9BZ6uMJPIJ6u-h-aOJgA-TjUoSrfkT_sK22UTBV_GkGg6cnOo2PbKMabPIfV1vUg9GsiA8ZFCOu87rB0r_j69xoGI5YbLTF879RM35gDJzlrhUxHshYEUpFCehvbMmOr_H-UhGrLORXVNjo9TXSKAs",
-    attachment: {
-      name: "TRAINING_PLAN_V2.PDF",
-      preview:
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuCbd8NNCXh9bHPgV1gzK6sYcopRHR3kUBi4Wh3OwsCi03vz0v2kK6PkdwfSjToiR1OWu2OSiwvOKaQjhO06MjBum_F6Yt_Y4Y5gifvg7zftkjh7DZNqy6BclIOzpQQQT51T3gT5F3DV1O7IB2_LCObiyxyGpq19jnPpkBZJvwaYCt49mXJFMIwDVlv2K9S8tzW3m2DFAfCQQFx4GzUeDO-tD-ZCu19FGC0Z8XxpB_Rm_eA2NRLVMQOIIr2wj3XRS2YRf6Km_0mn6Wk",
-    },
-  },
-  {
-    id: 4,
-    text: "Lịch tập ngày mai lúc 6:00 sáng vẫn như cũ nhé!",
-    time: "09:30 AM",
-    sent: true,
-  },
-];
+function isUsableAvatarUrl(v) {
+  if (v == null || typeof v !== "string") return false;
+  const s = v.trim();
+  if (!s || /default-avatar/i.test(s)) return false;
+  return /^https?:\/\//i.test(s);
+}
+
+function pickPtAvatarForMember(trainerAvatar, senderAvatar) {
+  if (isUsableAvatarUrl(trainerAvatar)) return trainerAvatar.trim();
+  if (isUsableAvatarUrl(senderAvatar)) return String(senderAvatar).trim();
+  const t = trainerAvatar && String(trainerAvatar).trim();
+  if (t) return t;
+  return PLACEHOLDER;
+}
+
+function fmtTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+}
+
+function MessageContent({ msg }) {
+  const payload = decodeChatPayload(msg.content);
+  if (payload.type === "image") {
+    return <a className="mm2-asset-image" href={payload.url} target="_blank" rel="noreferrer"><img src={payload.url} alt={payload.fileName || "image"} /></a>;
+  }
+  if (payload.type === "file") {
+    return <a className="mm2-asset-file" href={payload.url} target="_blank" rel="noreferrer"><strong>{payload.fileName || "Tệp đính kèm"}</strong><span>{payload.text || "Mở tệp"}</span></a>;
+  }
+  if (payload.type === "audio") {
+    return <div className="mm2-asset-audio"><audio controls src={payload.url} /></div>;
+  }
+  if (payload.type === "location") {
+    const href = `https://www.google.com/maps?q=${payload.lat},${payload.lng}`;
+    return <a className="mm2-asset-file" href={href} target="_blank" rel="noreferrer"><strong>Vị trí được chia sẻ</strong><span>{payload.text || `${payload.lat}, ${payload.lng}`}</span></a>;
+  }
+  return <div className="mm2-bubble-text">{payload.text || msg.content}</div>;
+}
 
 export default function MemberMessagesPage() {
+  const [conversations, setConversations] = useState([]);
+  const [activePeerUserId, setActivePeerUserId] = useState(null);
+  const [draft, setDraft] = useState("");
+  const [query, setQuery] = useState("");
+  const [loadingList, setLoadingList] = useState(true);
+  const [error, setError] = useState("");
+  const [pendingAsset, setPendingAsset] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const recorderRef = useRef(null);
+  const mediaRef = useRef(null);
+  const endRef = useRef(null);
+  const fileRef = useRef(null);
+  const imageRef = useRef(null);
+  const typingTimerRef = useRef(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await getEligibleConversations();
+        if (!mounted) return;
+        const normalized = Array.isArray(data) ? data : [];
+        setConversations(normalized);
+        if (normalized.length && !activePeerUserId) setActivePeerUserId(normalized[0].trainerUserId);
+      } catch (e) {
+        if (mounted) setError(e?.response?.data?.message || e.message || "Không tải được danh sách hội thoại.");
+      } finally {
+        if (mounted) setLoadingList(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const onFocus = async () => {
+      try {
+        const data = await getEligibleConversations();
+        const normalized = Array.isArray(data) ? data : [];
+        setConversations(normalized);
+        if (normalized.length && !activePeerUserId) setActivePeerUserId(normalized[0].trainerUserId);
+      } catch {}
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [activePeerUserId]);
+
+  const filteredConversations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((item) => [item.trainerName, item.lastMessage, item.packageName, item.gymName].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)));
+  }, [conversations, query]);
+
+  const activeConversation = useMemo(() => conversations.find((item) => Number(item.trainerUserId) === Number(activePeerUserId)) || null, [conversations, activePeerUserId]);
+  const { messages, loading, sendMessage, emitTyping, peerTyping } = useConversationSocket({ peerUserId: activeConversation?.trainerUserId, conversationKey: activeConversation?.conversationKey });
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, activePeerUserId, peerTyping]);
+
+  const updateConversationPreview = (text) => {
+    if (!activeConversation) return;
+    setConversations((prev) => prev
+      .map((item) => Number(item.trainerUserId) === Number(activeConversation.trainerUserId) ? { ...item, lastMessage: text, lastMessageAt: new Date().toISOString() } : item)
+      .sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)));
+  };
+
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const onNewMessage = (payload) => {
+      const senderId = Number(payload?.senderId || 0);
+      const receiverId = Number(payload?.receiverId || 0);
+      const previewText = previewTextFromPayload(decodeChatPayload(payload?.content || "")) || "Tin nhắn mới";
+
+      setConversations((prev) => {
+        const matched = prev.find((item) => Number(item.trainerUserId) === senderId || Number(item.trainerUserId) === receiverId);
+        if (!matched) return prev;
+
+        const trainerUserId = Number(matched.trainerUserId);
+        const next = prev.map((item) => {
+          if (Number(item.trainerUserId) !== trainerUserId) return item;
+          const isIncoming = senderId === trainerUserId;
+          const isActive = Number(activePeerUserId) === trainerUserId;
+          return {
+            ...item,
+            lastMessage: previewText,
+            lastMessageAt: payload?.createdAt || new Date().toISOString(),
+            unreadCount: isIncoming && !isActive ? Number(item.unreadCount || 0) + 1 : 0,
+          };
+        });
+        return next.sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+      });
+    };
+
+    const onRead = (payload) => {
+      const peerUserId = Number(payload?.peerUserId || 0);
+      if (!peerUserId) return;
+      setConversations((prev) => prev.map((item) => Number(item.trainerUserId) === peerUserId ? { ...item, unreadCount: 0 } : item));
+    };
+
+    socket.on("message:new", onNewMessage);
+    socket.on("message:read", onRead);
+
+    return () => {
+      socket.off("message:new", onNewMessage);
+      socket.off("message:read", onRead);
+    };
+  }, [activeConversation?.trainerUserId, activePeerUserId]);
+
+  const handleSelectConversation = (trainerUserId) => {
+    setActivePeerUserId(trainerUserId);
+    setConversations((prev) => prev.map((item) => Number(item.trainerUserId) === Number(trainerUserId) ? { ...item, unreadCount: 0 } : item));
+  };
+
+  const handleDraftChange = (value) => {
+    setDraft(value);
+    emitTyping(Boolean(value.trim()));
+    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = window.setTimeout(() => emitTyping(false), 900);
+  };
+
+  const handleFilePicked = (file, typeHint = "file") => {
+    if (!file) return;
+    const kind = typeHint === "image" ? "image" : (file.type?.startsWith("image/") ? "image" : "file");
+    const preview = kind === "image" ? URL.createObjectURL(file) : null;
+    setError("");
+    setPendingAsset({ file, kind, preview, fileName: file.name, text: kind === "image" ? "[Ảnh]" : `[File] ${file.name}` });
+  };
+
+  const uploadAndSendAsset = async () => {
+    if (!pendingAsset || !activeConversation) return;
+    const json = await uploadChatAsset(pendingAsset.file, pendingAsset.kind);
+    const content = encodeChatPayload({ type: pendingAsset.kind, url: json.url, fileName: pendingAsset.fileName, text: pendingAsset.text, mimeType: pendingAsset.file.type, __gfmsChat: true });
+    await sendMessage(content);
+    updateConversationPreview(pendingAsset.text);
+    if (pendingAsset.preview) URL.revokeObjectURL(pendingAsset.preview);
+    setPendingAsset(null);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!activeConversation) return;
+    if (pendingAsset) {
+      try { await uploadAndSendAsset(); } catch (err) { setError(err?.response?.data?.message || err.message || "Không gửi được tệp đính kèm."); }
+      return;
+    }
+    const text = draft.trim();
+    if (!text) return;
+    if (text.length > 1000) return setError("Tin nhắn tối đa 1000 ký tự.");
+    try {
+      const content = encodeChatPayload({ type: "text", text });
+      await sendMessage(content);
+      setDraft("");
+      emitTyping(false);
+      updateConversationPreview(text);
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Gửi tin nhắn thất bại.");
+    }
+  };
+
+  const handleShareLocation = () => {
+    if (!navigator.geolocation || !activeConversation) return setError("Trình duyệt chưa hỗ trợ chia sẻ vị trí.");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const payload = { type: "location", lat: pos.coords.latitude, lng: pos.coords.longitude, text: "Nhấn để mở Google Maps" };
+        await sendMessage(encodeChatPayload(payload));
+        updateConversationPreview("[Vị trí]");
+      } catch (err) { setError(err?.message || "Không gửi được vị trí."); }
+    }, () => setError("Bạn chưa cấp quyền vị trí."), { enableHighAccuracy: true, timeout: 10000 });
+  };
+
+  const toggleRecord = async () => {
+    if (recording) {
+      recorderRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRef.current = stream;
+      const chunks = [];
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (e) => e.data?.size && chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || "audio/webm" });
+        setPendingAsset({ file, kind: "audio", preview: null, fileName: file.name, text: "[Ghi âm]" });
+        mediaRef.current?.getTracks?.().forEach((t) => t.stop());
+      };
+      recorder.start();
+      setRecording(true);
+    } catch {
+      showAppToast({ type: "error", title: "Micro", message: "Bạn chưa cấp quyền micro." });
+    }
+  };
+
   return (
-    <div className="mh-wrap mm-page">
-      <div className="mh-head mm-page-head">
-        <div className="mm-head-left">
-          <span className="mm-sub-label">Trung tâm liên lạc</span>
-          <h2 className="mh-title mm-title">Tin nhắn</h2>
-          <div className="mh-sub mm-desc">
-            Trao đổi với huấn luyện viên, bộ phận hỗ trợ và hệ thống GFMS.
+    <div className="mh-wrap mm2-page">
+      <div className="mh-head mm2-head"><div><span className="mm2-kicker">Trung tâm liên lạc</span><h2 className="mh-title mm2-title">Tin nhắn với PT</h2></div></div>
+      {error ? <div className="m-error">{error}</div> : null}
+      <div className="mm2-shell">
+        <aside className="mm2-sidebar m-card">
+          <div className="mm2-sidebar-top">
+            <div><h3 className="mm2-panel-title">Hội thoại</h3><p className="mm2-panel-sub">Chọn PT để xem và trả lời nhanh.</p></div>
+            <label className="mm2-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm PT..." autoComplete="off" /></label>
           </div>
-        </div>
-      </div>
-
-      <div className="mm-layout">
-        <aside className="mm-sidebar m-card">
-          <div className="mm-sidebar-header">
-            <h3 className="mm-sidebar-title">Hội thoại</h3>
-
-            <div className="mm-search-box">
-              <span className="material-symbols-outlined mm-search-icon">search</span>
-              <input
-                type="text"
-                className="mm-search-input"
-                placeholder="TÌM KIẾM HỘI THOẠI..."
-              />
-            </div>
-
-            <div className="mm-filter-tabs">
-              <button className="mm-tab active">TẤT CẢ</button>
-              <button className="mm-tab">HUẤN LUYỆN VIÊN</button>
-              <button className="mm-tab">HỖ TRỢ</button>
-            </div>
-          </div>
-
-          <div className="mm-conversation-list">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`mm-conversation-item ${conv.active ? "active" : ""}`}
-              >
-                <div className="mm-avatar-container">
-                  <img src={conv.avatar} alt={conv.name} className="mm-avatar" />
-                  {conv.online && <div className="mm-online-indicator" />}
-                </div>
-
-                <div className="mm-conversation-content">
-                  <div className="mm-conversation-header">
-                    <h4 className="mm-conversation-name">{conv.name}</h4>
-                    <span className={`mm-conversation-time ${conv.active ? "active" : ""}`}>
-                      {conv.time}
-                    </span>
-                  </div>
-                  <p className="mm-conversation-message">{conv.message}</p>
-                </div>
-              </div>
-            ))}
+          <div className="mm2-list">
+            {loadingList ? <div className="m-empty">Đang tải danh sách hội thoại...</div> : null}
+            {!loadingList && !filteredConversations.length ? <div className="m-empty">Bạn chưa có PT nào đủ điều kiện để chat.</div> : null}
+            {filteredConversations.map((item) => {
+              const isActive = Number(activePeerUserId) === Number(item.trainerUserId);
+              return <button type="button" key={item.conversationKey || item.trainerUserId} className={`mm2-row ${isActive ? "active" : ""}`} onClick={() => handleSelectConversation(item.trainerUserId)}>
+                <img className="mm2-avatar" src={pickPtAvatarForMember(item.trainerAvatar, null)} alt={item.trainerName || "PT"} />
+                <div className="mm2-row-body"><div className="mm2-row-head"><strong>{item.trainerName || "PT"}</strong><span>{fmtTime(item.lastMessageAt)}</span></div><p>{previewTextFromPayload(item.lastMessage) || item.packageName || "Sẵn sàng hỗ trợ bạn."}</p></div>
+                {item.unreadCount > 0 ? <span className="mm2-unread">{item.unreadCount}</span> : null}
+              </button>;
+            })}
           </div>
         </aside>
 
-        <section className="mm-chat m-card">
-          <header className="mm-chat-header">
-            <div className="mm-chat-user">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCijMVjvJJOVgazf-3p3-ajh1wHozc4ZVeoOxMeYvVl3h7oujMeJU2RYP-jjM95Lrtq8ng6pAmVfEUKZWEIUj6zfzWSBw8b0JkdzA2TvgRFjg8sA53W-G4fjtBgOIGcjOife8vX3Ue9DvjLyZuPmrDT7WgZ9QrCYdFUPKEvJcyMWjDf9QyFJKx9RTM4EQAzeYzzXKEGGxyQ_M9nFZU3yQaEVa-ZJBcR5DMf8Tu_tbIG52rDXZFK9OMIbQ9VC4gaYOlJE0Csaem5Zgo"
-                alt="PT"
-                className="mm-chat-avatar"
-              />
-              <div>
-                <h3 className="mm-chat-name">MINH QUÂN (PT)</h3>
-                <div className="mm-chat-status">
-                  <span className="mm-status-dot" />
-                  <span className="mm-status-text">ĐANG TRỰC TUYẾN</span>
-                </div>
+        <section className="mm2-chat m-card">
+          {!activeConversation ? <div className="mm2-empty">Chọn một hội thoại để bắt đầu nhắn tin.</div> : <>
+            <header className="mm2-chat-head"><div className="mm2-chat-user"><img className="mm2-avatar large" src={pickPtAvatarForMember(activeConversation.trainerAvatar, null)} alt={activeConversation.trainerName || "PT"} /><div><h3>{activeConversation.trainerName}</h3><p>{activeConversation.packageName ? `Gói: ${activeConversation.packageName}` : "Kênh liên lạc realtime với PT"}</p></div></div></header>
+            <div className="mm2-messages">
+              {loading ? <div className="m-empty">Đang tải hội thoại...</div> : null}
+              {!loading && !messages.length ? <div className="m-empty">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.</div> : null}
+              {messages.map((msg) => {
+                const mine = Number(msg.senderId) !== Number(activeConversation.trainerUserId);
+                return <div key={msg.id} className={`mm2-bubble-row ${mine ? "mine" : "theirs"}`}>
+                  {!mine ? <img className="mm2-msg-avatar" src={pickPtAvatarForMember(activeConversation.trainerAvatar, msg.sender?.avatar)} alt={msg.sender?.username || activeConversation.trainerName || "PT"} /> : null}
+                  <div className="mm2-bubble-wrap"><div className="mm2-bubble"><MessageContent msg={msg} /></div><div className="mm2-meta">{fmtTime(msg.createdAt)} {mine ? (msg.isRead ? "• Đã xem" : "• Đã gửi") : ""}</div></div>
+                </div>;
+              })}
+              {peerTyping ? <div className="mm2-typing">PT đang nhập...</div> : null}
+              <div ref={endRef} />
+            </div>
+            {pendingAsset ? <div className="mm2-pending">{pendingAsset.preview ? <img src={pendingAsset.preview} alt="preview" /> : null}<div><strong>{pendingAsset.fileName}</strong><span>{pendingAsset.kind === "audio" ? "Ghi âm sẵn sàng gửi" : pendingAsset.kind === "image" ? "Ảnh sẵn sàng gửi" : "Tệp sẵn sàng gửi"}</span></div><button type="button" onClick={() => setPendingAsset(null)}>Huỷ</button></div> : null}
+            <form className="mm2-compose" onSubmit={submit}>
+              <div className="mm2-tools">
+                <button type="button" className="mm2-tool" onClick={() => imageRef.current?.click()}><ImagePlus size={16} /></button>
+                <button type="button" className="mm2-tool" onClick={() => fileRef.current?.click()}><Paperclip size={16} /></button>
+                <button type="button" className={`mm2-tool ${recording ? "recording" : ""}`} onClick={toggleRecord}>{recording ? <Square size={15} /> : <Mic size={16} />}</button>
+                <button type="button" className="mm2-tool" onClick={handleShareLocation}><MapPin size={16} /></button>
+                <input ref={imageRef} hidden type="file" accept="image/*" onChange={(e) => handleFilePicked(e.target.files?.[0], "image")} />
+                <input ref={fileRef} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,audio/*" onChange={(e) => handleFilePicked(e.target.files?.[0], "file")} />
               </div>
-            </div>
-
-            <div className="mm-chat-actions">
-              <button className="mm-action-btn">
-                <span className="material-symbols-outlined">call</span>
-              </button>
-              <button className="mm-action-btn">
-                <span className="material-symbols-outlined">videocam</span>
-              </button>
-              <button className="mm-action-btn">
-                <span className="material-symbols-outlined">info</span>
-              </button>
-            </div>
-          </header>
-
-          <div className="mm-message-stream">
-            <div className="mm-date-divider">
-              <span className="mm-date-label">HÔM NAY</span>
-            </div>
-
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`mm-message-wrapper ${msg.sent ? "sent" : "received"}`}
-              >
-                {!msg.sent && msg.avatar && (
-                  <img src={msg.avatar} alt="avatar" className="mm-msg-avatar" />
-                )}
-
-                <div className="mm-message-content">
-                  <div className="mm-bubble">
-                    <p>{msg.text}</p>
-                  </div>
-
-                  {msg.attachment && (
-                    <div className="mm-attachment">
-                      <div className="mm-attachment-preview">
-                        <img src={msg.attachment.preview} alt={msg.attachment.name} />
-                        <div className="mm-attachment-overlay">
-                          <span className="material-symbols-outlined">description</span>
-                          <span className="mm-filename">{msg.attachment.name}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mm-meta">
-                    <span className="mm-meta-time">{msg.time}</span>
-                    {msg.sent && (
-                      <span className="material-symbols-outlined mm-status-icon">
-                        done_all
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mm-input-area">
-            <div className="mm-input-container">
-              <button className="mm-tool-btn">
-                <span className="material-symbols-outlined">attach_file</span>
-              </button>
-              <button className="mm-tool-btn">
-                <span className="material-symbols-outlined">image</span>
-              </button>
-
-              <input
-                type="text"
-                className="mm-chat-input"
-                placeholder="NHẬP TIN NHẮN CỦA BẠN TẠI ĐÂY..."
-              />
-
-              <button className="mm-send-btn">
-                <span className="material-symbols-outlined">send</span>
-              </button>
-            </div>
-          </div>
+              <input className="mm2-input" value={draft} onChange={(e) => handleDraftChange(e.target.value)} placeholder={pendingAsset ? "Nhấn gửi để chuyển tệp đính kèm..." : "Nhập nội dung cho PT..."} autoComplete="off" />
+              <button className="mm2-send" type="submit" disabled={!draft.trim() && !pendingAsset} aria-label="Gửi tin nhắn"><SendHorizonal size={18} /></button>
+            </form>
+          </>}
         </section>
       </div>
     </div>

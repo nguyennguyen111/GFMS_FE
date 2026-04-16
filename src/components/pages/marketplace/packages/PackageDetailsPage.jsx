@@ -72,6 +72,10 @@ export default function PackageDetailsPage() {
               {pkg.sessions} buổi • {pkg.durationDays} ngày • {pkg.type || "basic"}
             </div>
 
+            <div className="pkd-sub" style={{ marginTop: 6 }}>
+              Gói PT dùng chung cho tất cả huấn luyện viên trong gym
+            </div>
+
             <div className="pkd-heroStats">
               <span className="pkd-pill">
                 Giá <b>{fmtMoney(pkg.price)}</b>

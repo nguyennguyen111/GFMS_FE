@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./OwnerMaintenancePage.css";
 import {
   ownerGetMaintenances,
@@ -7,16 +7,31 @@ import {
   ownerCancelMaintenance,
 } from "../../../services/ownerMaintenanceService";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
-import { ownerGetEquipments } from "../../../services/ownerEquipmentService";
+import { ownerGetEquipments, ownerGetEquipmentDetail } from "../../../services/ownerEquipmentService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
+import { showAppConfirm } from "../../../utils/appDialog";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
-  { value: "pending", label: "Pending" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_progress", label: "In progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "assigned", label: "Đã phân công" },
+  { value: "in_progress", label: "Đang xử lý" },
+  { value: "completed", label: "Hoàn thành" },
+  { value: "cancelled", label: "Đã hủy" },
 ];
+
+const formatMaintenanceStatus = (status) => {
+  const statusMap = {
+    pending: "Chờ duyệt",
+    assigned: "Đã phân công",
+    in_progress: "Đang xử lý",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+    approve: "Đã duyệt",
+  };
+  return statusMap[String(status || "").toLowerCase()] || status || "-";
+};
 
 const money = (v) => {
   const n = Number(v || 0);
@@ -24,6 +39,7 @@ const money = (v) => {
 };
 
 export default function OwnerMaintenancePage() {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
 
@@ -37,23 +53,29 @@ export default function OwnerMaintenancePage() {
 
   const [myGyms, setMyGyms] = useState([]);
   const [equipmentList, setEquipmentList] = useState([]);
+  const [equipmentUnits, setEquipmentUnits] = useState([]);
+  const [unitSearchTerm, setUnitSearchTerm] = useState("");
 
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
 
   // Fetch gyms for owner
-  const fetchMyGyms = async () => {
+  const fetchMyGyms = useCallback(async () => {
     try {
       const res = await ownerGetMyGyms();
       setMyGyms(res.data.data || []);
     } catch (e) {
       console.error("Failed to fetch gyms:", e.message);
     }
-  };
+  }, []);
 
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     try {
-      const res = await ownerGetMaintenances({ ...filters, page, limit });
-      const data = res?.data?.data ?? res?.data?.rows ?? [];
+      const activeGymId = selectedGymId ? String(selectedGymId) : String(filters.gymId || "");
+      const res = await ownerGetMaintenances({ ...filters, gymId: activeGymId || undefined, page, limit });
+      const rawData = res?.data?.data ?? res?.data?.rows ?? [];
+      const data = activeGymId
+        ? rawData.filter((row) => String(row?.gymId || row?.Gym?.id || row?.gym?.id || "") === activeGymId)
+        : rawData;
       const metaFrom = res?.data?.meta;
 
       setRows(data);
@@ -61,41 +83,56 @@ export default function OwnerMaintenancePage() {
         metaFrom || {
           page,
           limit,
-          totalItems: res?.data?.count || data.length,
+          totalItems: data.length,
           totalPages: metaFrom?.totalPages || 1,
         }
       );
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
+  }, [filters, limit, page, selectedGymId]);
 
-  const fetchDetail = async (id) => {
+  const fetchDetail = useCallback(async (id) => {
     try {
       const res = await ownerGetMaintenanceDetail(id);
       setDetail(res.data.data || res.data);
     } catch (e) {
       alert(e?.response?.data?.message || e.message);
     }
-  };
-
-  useEffect(() => {
-    fetchMyGyms();
   }, []);
 
   useEffect(() => {
+    fetchMyGyms();
+  }, [fetchMyGyms]);
+
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, gymId: selectedGymId ? String(selectedGymId) : "" }));
+    setPage(1);
+  }, [selectedGymId]);
+
+  useEffect(() => {
     fetchList();
-    // eslint-disable-next-line
-  }, [page]);
+  }, [fetchList, page]);
 
   useEffect(() => {
     if (selectedId) fetchDetail(selectedId);
-    // eslint-disable-next-line
-  }, [selectedId]);
+  }, [fetchDetail, selectedId]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchList();
+      if (selectedId) {
+        await fetchDetail(selectedId);
+      }
+    },
+    events: ["notification:new", "maintenance:changed"],
+    notificationTypes: ["maintenance"],
+  });
 
   const fetchEquipmentByGym = async (gymId) => {
     if (!gymId) {
       setEquipmentList([]);
+      setEquipmentUnits([]);
       return;
     }
     try {
@@ -107,16 +144,44 @@ export default function OwnerMaintenancePage() {
     }
   };
 
+  const fetchEquipmentUnits = async (equipmentId, gymId) => {
+    if (!equipmentId || !gymId) {
+      setEquipmentUnits([]);
+      return;
+    }
+    try {
+      const res = await ownerGetEquipmentDetail(equipmentId, { gymId });
+      const units = Array.isArray(res?.data?.data?.units) ? res.data.data.units : [];
+      setEquipmentUnits(
+        units.filter(
+          (unit) => Number(unit.gymId) === Number(gymId) && unit.status === "active" && !unit.transferId
+        )
+      );
+    } catch (e) {
+      console.error("Failed to fetch equipment units:", e.message);
+      setEquipmentUnits([]);
+    }
+  };
+
   const openCreateModal = () => {
     setModal({ 
       open: true, 
       type: "create", 
-      payload: { gymId: "", equipmentId: "", issueDescription: "" } 
+      payload: { gymId: selectedGymId ? String(selectedGymId) : "", equipmentId: "", equipmentUnitId: "", issueDescription: "" } 
     });
     setEquipmentList([]);
+    setEquipmentUnits([]);
+    setUnitSearchTerm("");
+    if (selectedGymId) {
+      fetchEquipmentByGym(selectedGymId);
+    }
   };
 
-  const closeModal = () => setModal({ open: false, type: "", payload: {} });
+  const closeModal = () => {
+    setModal({ open: false, type: "", payload: {} });
+    setEquipmentUnits([]);
+    setUnitSearchTerm("");
+  };
 
   const canCancel = useMemo(() => detail?.status === "pending", [detail]);
 
@@ -126,6 +191,7 @@ export default function OwnerMaintenancePage() {
       const payload = {
         gymId: Number(modal.payload.gymId),
         equipmentId: Number(modal.payload.equipmentId),
+        equipmentUnitId: modal.payload.equipmentUnitId ? Number(modal.payload.equipmentUnitId) : null,
         issueDescription: modal.payload.issueDescription || "",
       };
       await ownerCreateMaintenance(payload);
@@ -140,7 +206,13 @@ export default function OwnerMaintenancePage() {
   };
 
   const doCancel = async () => {
-    if (!window.confirm("Hủy yêu cầu bảo trì này?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận hủy",
+      message: "Hủy yêu cầu bảo trì này?",
+      confirmText: "Xác nhận",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     try {
       await ownerCancelMaintenance(selectedId);
       setSelectedId(null);
@@ -156,7 +228,7 @@ export default function OwnerMaintenancePage() {
       <div className="oma-head">
         <div>
           <div className="oma-title">Bảo trì / Sửa chữa</div>
-          <div className="oma-sub">Tạo yêu cầu bảo trì thiết bị của gym</div>
+          <div className="oma-sub">{selectedGymName ? `Đang quản lý bảo trì của chi nhánh ${selectedGymName}` : "Tạo yêu cầu bảo trì thiết bị của gym"}</div>
         </div>
         <button className="btn-primary" onClick={openCreateModal}>
           + Tạo mới
@@ -165,7 +237,7 @@ export default function OwnerMaintenancePage() {
 
       <div className="oma-filters">
         <div className="oma-field">
-          <label>Status</label>
+          <label>Trạng thái</label>
           <select
             value={filters.status}
             onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}
@@ -179,16 +251,23 @@ export default function OwnerMaintenancePage() {
         </div>
 
         <div className="oma-field">
-          <label>GymId</label>
-          <input
+          <label>Phòng tập</label>
+          <select
             value={filters.gymId}
             onChange={(e) => setFilters((s) => ({ ...s, gymId: e.target.value }))}
-            placeholder="VD: 1"
-          />
+            disabled={Boolean(selectedGymId)}
+          >
+            {!selectedGymId && <option value="">Tất cả phòng tập</option>}
+            {myGyms.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="oma-field oma-field--grow">
-          <label>Search</label>
+          <label>Tìm kiếm</label>
           <input
             value={filters.q}
             onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
@@ -203,7 +282,7 @@ export default function OwnerMaintenancePage() {
             fetchList();
           }}
         >
-          Tìm Kiếm 
+          Tìm kiếm
         </button>
       </div>
 
@@ -221,9 +300,9 @@ export default function OwnerMaintenancePage() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Status</th>
-                  <th>Gym</th>
-                  <th>Equipment</th>
+                  <th>Trạng thái</th>
+                  <th>Phòng tập</th>
+                  <th>Thiết bị</th>
                   <th>Ngày tạo</th>
                 </tr>
               </thead>
@@ -239,10 +318,10 @@ export default function OwnerMaintenancePage() {
                   >
                     <td>#{r.id}</td>
                     <td>
-                      <span className={`oma-pill oma-pill--${r.status}`}>{r.status}</span>
+                      <span className={`oma-pill oma-pill--${r.status}`}>{formatMaintenanceStatus(r.status)}</span>
                     </td>
-                    <td>{r.gymId ?? "-"}</td>
-                    <td>{r.equipmentId ?? "-"}</td>
+                    <td>{r.Gym?.name || r.gym?.name || r.gymId || "-"}</td>
+                    <td>{r.Equipment?.name || r.equipment?.name || r.equipmentId || "-"}</td>
                     <td>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "-"}</td>
                   </tr>
                 ))}
@@ -257,19 +336,23 @@ export default function OwnerMaintenancePage() {
             </table>
           </div>
 
-          <div className="oma-paging">
-            <button className="oma-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              ←
-            </button>
-            <div className="oma-paging__text">
-              Page <b>{meta.page}</b> / {meta.totalPages}
-            </div>
+          <div className="pagination">
             <button
-              className="oma-btn"
-              disabled={page >= meta.totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              disabled={meta.page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="pagination-btn"
             >
-              →
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {meta.page || 1} / {meta.totalPages || 1}
+            </span>
+            <button
+              disabled={(meta.page || 1) >= (meta.totalPages || 1)}
+              onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+              className="pagination-btn"
+            >
+              Sau
             </button>
           </div>
         </div>
@@ -291,18 +374,23 @@ export default function OwnerMaintenancePage() {
                 <div className="detail-row">
                   <span className="detail-label">Trạng thái:</span>
                   <span className="detail-value">
-                    <span className={`oma-pill oma-pill--${detail.status}`}>{detail.status}</span>
+                    <span className={`oma-pill oma-pill--${detail.status}`}>{formatMaintenanceStatus(detail.status)}</span>
                   </span>
                 </div>
 
                 <div className="detail-row">
-                  <span className="detail-label">Gym:</span>
+                  <span className="detail-label">Phòng tập:</span>
                   <span className="detail-value">{detail.Gym?.name || detail.gym?.name || "—"}</span>
                 </div>
 
                 <div className="detail-row">
                   <span className="detail-label">Thiết bị:</span>
                   <span className="detail-value">{detail.Equipment?.name || detail.equipment?.name || "—"}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Mã đơn vị:</span>
+                  <span className="detail-value">{detail.equipmentUnit?.assetCode || "—"}</span>
                 </div>
 
                 <div className="detail-row">
@@ -382,13 +470,15 @@ export default function OwnerMaintenancePage() {
                     value={modal.payload.gymId}
                     onChange={(e) => {
                       const newGymId = e.target.value;
-                      setModal((m) => ({ ...m, payload: { ...m.payload, gymId: newGymId, equipmentId: "" } }));
+                      setModal((m) => ({ ...m, payload: { ...m.payload, gymId: newGymId, equipmentId: "", equipmentUnitId: "" } }));
+                      setUnitSearchTerm("");
                       fetchEquipmentByGym(newGymId);
                     }}
                     required
                     className="form-select"
+                    disabled={Boolean(selectedGymId)}
                   >
-                    <option value="">-- Chọn gym --</option>
+                    {!selectedGymId && <option value="">-- Chọn gym --</option>}
                     {myGyms.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}
@@ -401,7 +491,12 @@ export default function OwnerMaintenancePage() {
                   <label>Thiết bị *</label>
                   <select
                     value={modal.payload.equipmentId}
-                    onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, equipmentId: e.target.value } }))}
+                    onChange={(e) => {
+                      const nextEquipmentId = e.target.value;
+                      setModal((m) => ({ ...m, payload: { ...m.payload, equipmentId: nextEquipmentId, equipmentUnitId: "" } }));
+                      setUnitSearchTerm("");
+                      fetchEquipmentUnits(nextEquipmentId, modal.payload.gymId);
+                    }}
                     required
                     className="form-select"
                   >
@@ -412,6 +507,59 @@ export default function OwnerMaintenancePage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Đơn vị thiết bị cụ thể *</label>
+                  <input
+                    type="text"
+                    value={unitSearchTerm}
+                    onChange={(e) => setUnitSearchTerm(e.target.value)}
+                    placeholder="Tìm theo asset code..."
+                    className="form-input"
+                    disabled={!modal.payload.equipmentId}
+                  />
+                  <div className={`oma-unit-list ${!modal.payload.equipmentId ? "is-disabled" : ""}`}>
+                    {equipmentUnits
+                      .filter((unit) => {
+                        const keyword = String(unitSearchTerm || "").trim().toLowerCase();
+                        return !keyword || String(unit.assetCode || "").toLowerCase().includes(keyword);
+                      })
+                      .map((unit) => {
+                        const selected = Number(modal.payload.equipmentUnitId) === Number(unit.id);
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            className={`oma-unit-option ${selected ? "is-selected" : ""}`}
+                            onClick={() => setModal((m) => ({ ...m, payload: { ...m.payload, equipmentUnitId: String(unit.id) } }))}
+                          >
+                            <span className="oma-unit-option__radio">{selected ? "◉" : "○"}</span>
+                            <span>{unit.assetCode}</span>
+                            <span className="oma-unit-option__meta">
+                              {unit.usageStatus === "in_use" ? "Đang sử dụng" : "Trong kho"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    {modal.payload.equipmentId && equipmentUnits.filter((unit) => {
+                      const keyword = String(unitSearchTerm || "").trim().toLowerCase();
+                      return !keyword || String(unit.assetCode || "").toLowerCase().includes(keyword);
+                    }).length === 0 ? (
+                      <div className="oma-unit-empty">Không có thiết bị phù hợp</div>
+                    ) : null}
+                  </div>
+                  <div className="oma-unit-meta">
+                    <span className="oma-unit-meta__count">Có thể chọn: {equipmentUnits.length} thiết bị</span>
+                    <span className="oma-unit-meta__hint">Có thể chọn thiết bị trong kho hoặc đang sử dụng</span>
+                  </div>
+                  {modal.payload.equipmentUnitId && (
+                    <div className="oma-unit-selected">
+                      <span className="oma-unit-chip">
+                        {equipmentUnits.find((unit) => Number(unit.id) === Number(modal.payload.equipmentUnitId))?.assetCode || modal.payload.equipmentUnitId}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

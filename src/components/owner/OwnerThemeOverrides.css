@@ -1,0 +1,709 @@
+.owner-app .od2-content {
+	--owner-bg-soft: rgba(255, 255, 255, 0.06);
+	--owner-bg-soft-2: rgba(255, 255, 255, 0.08);
+	--owner-bg-dark: rgba(0, 0, 0, 0.22);
+	--owner-stroke: rgba(255, 255, 255, 0.14);
+	--owner-text: rgba(255, 255, 255, 0.92);
+	--owner-muted: rgba(255, 255, 255, 0.68);
+	--owner-accent: #d6ff00;
+	--owner-accent-2: #b8dc00;
+	--owner-cyan: #00baff;
+	--owner-ok: #00e3a6;
+	--owner-danger: #ff6565;
+	--owner-radius-sm: 12px;
+	--owner-radius-md: 16px;
+	--owner-radius-lg: 20px;
+}
+
+.owner-app .od2-content [class$="-page"],
+.owner-app .od2-content [class*="-page "],
+.owner-app .od2-content .op-wrap,
+.owner-app .od2-content .op2-wrap,
+.owner-app .od2-content .ov-wrap,
+.owner-app .od2-content .ofr-page,
+.owner-app .od2-content .ots-page,
+.owner-app .od2-content .oeq-page,
+.owner-app .od2-content .oinv-page,
+.owner-app .od2-content .oma-page,
+.owner-app .od2-content .otrf-page,
+.owner-app .od2-content .oq-page,
+.owner-app .od2-content .opo-page,
+.owner-app .od2-content .or-page {
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content .page-title,
+.owner-app .od2-content .op-title,
+.owner-app .od2-content .op2-title,
+.owner-app .od2-content .ov-panelTitle,
+.owner-app .od2-content .ofr-title,
+.owner-app .od2-content .ots-title,
+.owner-app .od2-content .queue-title,
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title,
+.owner-app .od2-content [class$="-head"] h2 {
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content .page-subtitle,
+.owner-app .od2-content .op-sub,
+.owner-app .od2-content .op2-sub,
+.owner-app .od2-content .ov-hint,
+.owner-app .od2-content [class$="-head"] p {
+	color: var(--owner-muted) !important;
+}
+
+/* Hide subtitle text lines under page headers only */
+.owner-app .od2-content .page-subtitle,
+.owner-app .od2-content .op-sub,
+.owner-app .od2-content .op2-sub,
+.owner-app .od2-content .oma-sub,
+.owner-app .od2-content .ots-subtitle,
+.owner-app .od2-content .ots-availability-panel__subtitle,
+.owner-app .od2-content .oeq-head p,
+.owner-app .od2-content .oinv-head p,
+.owner-app .od2-content .otrf-head p,
+.owner-app .od2-content .owner-purchase-subtitle,
+.owner-app .od2-content .mh-sub.mn-desc {
+	display: none !important;
+}
+
+.owner-app .od2-content .page-header,
+.owner-app .od2-content .op-head,
+.owner-app .od2-content .op2-head,
+.owner-app .od2-content .ov-panel,
+.owner-app .od2-content .ov-card,
+.owner-app .od2-content .owner-flow-card,
+.owner-app .od2-content .queue-card,
+.owner-app .od2-content .gym-card,
+.owner-app .od2-content .period-card,
+.owner-app .od2-content [class*="table-wrap"],
+.owner-app .od2-content [class*="table-wrapper"],
+.owner-app .od2-content [class*="filters"],
+.owner-app .od2-content [class*="toolbar"],
+.owner-app .od2-content [class*="container"],
+.owner-app .od2-content [class*="modal-content"] {
+	background: rgba(255, 255, 255, 0.07) !important;
+	border: 1px solid var(--owner-stroke) !important;
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+}
+
+.owner-app .od2-content input:not([type="checkbox"]):not([type="radio"]),
+.owner-app .od2-content select,
+.owner-app .od2-content textarea,
+.owner-app .od2-content .search-input,
+.owner-app .od2-content .filter-select,
+.owner-app .od2-content .op-input,
+.owner-app .od2-content .op-select,
+.owner-app .od2-content .op-textarea,
+.owner-app .od2-content .owner-rate-input {
+	background: rgba(0, 0, 0, 0.22) !important;
+	background: var(--owner-bg-dark) !important;
+	border: 1px solid rgba(255, 255, 255, 0.2) !important;
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content input:not([type="checkbox"]):not([type="radio"]):focus,
+.owner-app .od2-content select:focus,
+.owner-app .od2-content textarea:focus,
+.owner-app .od2-content .search-input:focus,
+.owner-app .od2-content .filter-select:focus,
+.owner-app .od2-content .owner-rate-input:focus {
+	border-color: rgba(214, 255, 0, 0.45) !important;
+	box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.12) !important;
+	outline: none;
+}
+
+.owner-app .od2-content button:not(.ofr-dropItem),
+.owner-app .od2-content .op-btn,
+.owner-app .od2-content .op2-btn,
+.owner-app .od2-content .ofr-btn,
+.owner-app .od2-content .ots-btn,
+.owner-app .od2-content .btn-primary,
+.owner-app .od2-content .search-button,
+.owner-app .od2-content .btn-add,
+.owner-app .od2-content .oq-btn-create {
+	border: 1px solid rgba(214, 255, 0, 0.4) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.25), rgba(184, 220, 0, 0.15)) !important;
+	color: var(--owner-text) !important;
+	border-radius: var(--owner-radius-sm) !important;
+}
+
+.owner-app .od2-content button:not(.ofr-dropItem):hover,
+.owner-app .od2-content .op-btn:hover,
+.owner-app .od2-content .op2-btn:hover,
+.owner-app .od2-content .ofr-btn:hover,
+.owner-app .od2-content .ots-btn:hover,
+.owner-app .od2-content .btn-primary:hover,
+.owner-app .od2-content .search-button:hover,
+.owner-app .od2-content .btn-add:hover,
+.owner-app .od2-content .oq-btn-create:hover {
+	filter: saturate(1.08);
+	transform: translateY(-1px);
+}
+
+.owner-app .od2-content .op-btn--primary,
+.owner-app .od2-content .ofr-btn--primary,
+.owner-app .od2-content .ots-btn--primary,
+.owner-app .od2-content .btn-approve,
+.owner-app .od2-content .btn-add {
+	border-color: rgba(214, 255, 0, 0.45) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.26), rgba(184, 220, 0, 0.16)) !important;
+}
+
+.owner-app .od2-content .op-btn--ok,
+.owner-app .od2-content .ots-text--success,
+.owner-app .od2-content [class*="status-approved"],
+.owner-app .od2-content [class*="badge-approved"],
+.owner-app .od2-content [class*="badge-completed"],
+.owner-app .od2-content [class*="badge-success"] {
+	color: var(--owner-ok) !important;
+}
+
+.owner-app .od2-content .op-btn--warn,
+.owner-app .od2-content .op-btn--deactivate,
+.owner-app .od2-content .ofr-btn--danger,
+.owner-app .od2-content .btn-reject,
+.owner-app .od2-content [class*="status-rejected"],
+.owner-app .od2-content [class*="badge-rejected"],
+.owner-app .od2-content [class*="badge-danger"] {
+	color: var(--owner-danger) !important;
+}
+
+.owner-app .od2-content table,
+.owner-app .od2-content .op-table,
+.owner-app .od2-content .transactions-table,
+.owner-app .od2-content .members-table,
+.owner-app .od2-content .bookings-table,
+.owner-app .od2-content .oeq-table,
+.owner-app .od2-content .oinv-table,
+.owner-app .od2-content .oq-table,
+.owner-app .od2-content .opo-table,
+.owner-app .od2-content .or-table,
+.owner-app .od2-content .otrf-table,
+.owner-app .od2-content .approval-table {
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content table thead,
+.owner-app .od2-content table th,
+.owner-app .od2-content .op-table th,
+.owner-app .od2-content .transactions-table th,
+.owner-app .od2-content .members-table th,
+.owner-app .od2-content .bookings-table th {
+	background: rgba(214, 255, 0, 0.1) !important;
+	border-color: rgba(255, 255, 255, 0.1) !important;
+	color: rgba(255, 255, 255, 0.84) !important;
+}
+
+.owner-app .od2-content table td,
+.owner-app .od2-content .op-table td,
+.owner-app .od2-content .transactions-table td,
+.owner-app .od2-content .members-table td,
+.owner-app .od2-content .bookings-table td {
+	border-color: rgba(255, 255, 255, 0.08) !important;
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content tbody tr:hover,
+.owner-app .od2-content .op-table tbody tr:hover,
+.owner-app .od2-content .transactions-table tbody tr:hover,
+.owner-app .od2-content .members-table tbody tr:hover,
+.owner-app .od2-content .bookings-table tbody tr:hover {
+	background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.owner-app .od2-content [class*="badge"],
+.owner-app .od2-content .status-badge,
+.owner-app .od2-content .op-badge,
+.owner-app .od2-content .ofr-badge,
+.owner-app .od2-content .otrf-badge,
+.owner-app .od2-content .oq-badge,
+.owner-app .od2-content .opo-badge,
+.owner-app .od2-content .or-badge {
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.16) !important;
+	background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.owner-app .od2-content [class*="status-pending"],
+.owner-app .od2-content [class*="badge-pending"],
+.owner-app .od2-content [class*="badge-warning"] {
+	color: var(--owner-accent) !important;
+}
+
+/* Unified owner modal rhythm */
+.owner-app .od2-content .tx-modal-content,
+.owner-app .od2-content .withdrawals-modal-content,
+.owner-app .od2-content .otrf-detail,
+.owner-app .od2-content .ots-modal__content,
+.owner-app .od2-content .ofr-modal__content,
+.owner-app .od2-content .op-modal__panel,
+.owner-app .od2-content .op2-modal,
+.owner-app .od2-content .ov-modal,
+.owner-app .od2-content .owner-request-approval .table-container {
+	border-radius: var(--owner-radius-lg) !important;
+	border: 1px solid var(--owner-stroke) !important;
+	background: rgba(18, 26, 42, 0.94) !important;
+	box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48) !important;
+}
+
+.owner-app .od2-content .tx-modal-header,
+.owner-app .od2-content .withdrawals-modal-header,
+.owner-app .od2-content .ots-modal__header,
+.owner-app .od2-content .ofr-modal__header,
+.owner-app .od2-content .op-modal__head,
+.owner-app .od2-content .op2-modal__head,
+.owner-app .od2-content .ov-modalHead {
+	padding: 16px 18px !important;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.owner-app .od2-content .tx-modal-header h2,
+.owner-app .od2-content .withdrawals-modal-header h2,
+.owner-app .od2-content .ots-modal__header h2,
+.owner-app .od2-content .ofr-modal__title,
+.owner-app .od2-content .op-modal__title,
+.owner-app .od2-content .op2-modal__title,
+.owner-app .od2-content .ov-modalTitle {
+	font-size: 17px !important;
+	font-weight: 900 !important;
+	letter-spacing: 0.01em;
+	color: var(--owner-text) !important;
+}
+
+.owner-app .od2-content .tx-modal-body,
+.owner-app .od2-content .withdrawals-modal-body,
+.owner-app .od2-content .ots-form,
+.owner-app .od2-content .ofr-modal__body,
+.owner-app .od2-content .op-modal__body,
+.owner-app .od2-content .op2-modal__body,
+.owner-app .od2-content .ov-modalBody {
+	padding: 16px 18px !important;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--owner-text);
+}
+
+.owner-app .od2-content .tx-modal-close,
+.owner-app .od2-content .withdrawals-modal-header button,
+.owner-app .od2-content .ots-modal__close,
+.owner-app .od2-content .op-x,
+.owner-app .od2-content .ocd-close {
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.88);
+}
+
+/* Final palette cleanup for long page-level styles */
+.owner-app .od2-content .status-active,
+.owner-app .od2-content .btn-submit,
+.owner-app .od2-content .tx-badge-completed,
+.owner-app .od2-content .status-confirmed,
+.owner-app .od2-content .status-approved,
+.owner-app .od2-content .oq-badge-approved,
+.owner-app .od2-content .opo-badge-approved,
+.owner-app .od2-content .or-badge-approved,
+.owner-app .od2-content .otrf-badge-completed,
+.owner-app .od2-content .otrf-btn-approve,
+.owner-app .od2-content .btn-pay {
+	color: var(--owner-ok) !important;
+	border-color: rgba(0, 227, 166, 0.34) !important;
+	background: rgba(0, 227, 166, 0.18) !important;
+}
+
+.owner-app .od2-content .btn-submit:hover,
+.owner-app .od2-content .otrf-btn-approve:hover {
+	background: rgba(0, 227, 166, 0.26) !important;
+}
+
+.owner-app .od2-content .btn-close-modal,
+.owner-app .od2-content .stat-value,
+.owner-app .od2-content .tx-type,
+.owner-app .od2-content .otrf-badge-approved,
+.owner-app .od2-content .otrf-btn-complete,
+.owner-app .od2-content .oq-btn-create,
+.owner-app .od2-content .oq-btn-submit,
+.owner-app .od2-content .oq-btn-add-item,
+.owner-app .od2-content .oq-form-group select:focus,
+.owner-app .od2-content .oq-form-group textarea:focus,
+.owner-app .od2-content .oq-item-row select:focus,
+.owner-app .od2-content .oq-item-row input:focus,
+.owner-app .od2-content .ots-radio-label input[type="radio"],
+.owner-app .od2-content .ots-weekday-checkbox input[type="checkbox"],
+.owner-app .od2-content .ots-calendar-day--today,
+.owner-app .od2-content .ots-bulk-count,
+.owner-app .od2-content .ots-filter-input:focus,
+.owner-app .od2-content .ots-filter-select:focus,
+.owner-app .od2-content .ots-stat-card--primary,
+.owner-app .od2-content .renew-note::before {
+	color: var(--owner-cyan) !important;
+	border-color: rgba(0, 186, 255, 0.42) !important;
+}
+
+.owner-app .od2-content .oq-btn-create,
+.owner-app .od2-content .oq-btn-submit,
+.owner-app .od2-content .btn-close-modal,
+.owner-app .od2-content .otrf-btn-complete {
+	background: linear-gradient(135deg, rgba(0, 186, 255, 0.3), rgba(0, 128, 255, 0.18)) !important;
+}
+
+.owner-app .od2-content .oq-btn-add-item,
+.owner-app .od2-content .otrf-btn-add-item,
+.owner-app .od2-content .btn-add-item {
+	background: rgba(214, 255, 0, 0.12) !important;
+	border-color: rgba(214, 255, 0, 0.38) !important;
+	color: var(--owner-accent) !important;
+}
+
+.owner-app .od2-content .oq-btn-add-item:hover,
+.owner-app .od2-content .btn-add-item:hover {
+	background: rgba(214, 255, 0, 0.18) !important;
+}
+
+.owner-app .od2-content .modal-header,
+.owner-app .od2-content .otrf-table th,
+.owner-app .od2-content .detail-table th,
+.owner-app .od2-content .schedule-bookings-table thead,
+.owner-app .od2-content .renew-note,
+.owner-app .od2-content .owner-request-approval .approval-table thead {
+	background: rgba(214, 255, 0, 0.1) !important;
+}
+
+.owner-app .od2-content .modal-header::before,
+.owner-app .od2-content .form-label::before,
+.owner-app .od2-content .info-card::before,
+.owner-app .od2-content .gym-card::before {
+	background: linear-gradient(90deg, #b8dc00, #d6ff00, #00baff) !important;
+}
+
+.owner-app .od2-content .modal-title,
+.owner-app .od2-content .page-title,
+.owner-app .od2-content .ots-title,
+.owner-app .od2-content .op2-title,
+.owner-app .od2-content .ofr-title,
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title,
+.owner-app .od2-content .owner-request-approval .od2-h1 {
+	background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 52%, #b8dc00 100%) !important;
+	-webkit-background-clip: text !important;
+	background-clip: text !important;
+	-webkit-text-fill-color: transparent !important;
+	color: transparent !important;
+}
+
+.owner-app .od2-content .oeq-head h2,
+.owner-app .od2-content .oinv-head h2,
+.owner-app .od2-content .otrf-head h2,
+.owner-app .od2-content .oma-title {
+	font-size: 32px !important;
+	line-height: 1.18 !important;
+	font-weight: 900 !important;
+	letter-spacing: -0.01em !important;
+	margin: 0 !important;
+}
+
+.owner-app .od2-content .info-card.highlight,
+.owner-app .od2-content .renew-note,
+.owner-app .od2-content .modal-header {
+	border-color: rgba(214, 255, 0, 0.3) !important;
+}
+
+.owner-app .od2-content .info-card.highlight {
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.14), rgba(184, 220, 0, 0.1)) !important;
+	box-shadow: 0 4px 12px rgba(214, 255, 0, 0.14) !important;
+}
+
+.owner-app .od2-content .info-card.highlight::before {
+	background: linear-gradient(180deg, #d6ff00, #b8dc00) !important;
+}
+
+.owner-app .od2-content .ots-select--sm:hover,
+.owner-app .od2-content .ots-select--sm:focus,
+.owner-app .od2-content .ots-input:focus,
+.owner-app .od2-content .ots-select:focus,
+.owner-app .od2-content .ots-textarea:focus,
+.owner-app .od2-content .edit-field:focus-within {
+	border-color: rgba(214, 255, 0, 0.45) !important;
+	box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.12) !important;
+}
+
+.owner-app .od2-content .status-badge,
+.owner-app .od2-content .tx-badge,
+.owner-app .od2-content .oq-badge,
+.owner-app .od2-content .opo-badge,
+.owner-app .od2-content .or-badge,
+.owner-app .od2-content .otrf-badge {
+	border-radius: 999px !important;
+}
+
+/* Keep purchase pages aligned with Members layout: no outer container frame */
+.owner-app .od2-content .oq-container,
+.owner-app .od2-content .opo-container,
+.owner-app .od2-content .or-container {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	padding: 0 !important;
+}
+
+/* Remove outer frame in warehouse pages, keep table card only (same feel as Members page) */
+.owner-app .od2-content .otrf-container,
+.owner-app .od2-content .oma-card {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	padding: 0 !important;
+}
+
+/* Keep gym action buttons from being overridden by generic btn rules */
+.owner-app .od2-content .owner-gyms-page .gym-actions .btn-view,
+.owner-app .od2-content .owner-gyms-page .gym-actions .btn-edit {
+	color: #eef2ff !important;
+	border: 1px solid rgba(214, 255, 0, 0.4) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.25) 0%, rgba(184, 220, 0, 0.15) 100%) !important;
+}
+
+.owner-app .od2-content .owner-gyms-page .gym-actions .btn-view:hover,
+.owner-app .od2-content .owner-gyms-page .gym-actions .btn-edit:hover {
+	border-color: rgba(214, 255, 0, 0.6) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.35) 0%, rgba(184, 220, 0, 0.25) 100%) !important;
+}
+
+/* Trainer list: không dùng style nút global; tránh chữ "Sửa" bị co / màu lệch */
+.owner-app .od2-content .owner-bookings-page .trainer-actions {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	flex-wrap: nowrap !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions button {
+	flex: 0 0 auto !important;
+	flex-shrink: 0 !important;
+	min-width: 72px !important;
+	padding: 8px 12px !important;
+	min-height: 34px !important;
+	border-radius: 12px !important;
+	font-size: 13px !important;
+	font-weight: 700 !important;
+	white-space: nowrap !important;
+	filter: none !important;
+	transform: none !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-detail {
+	background: rgba(0, 227, 166, 0.18) !important;
+	border: 1px solid rgba(0, 227, 166, 0.32) !important;
+	color: #00e3a6 !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-detail:hover {
+	background: rgba(0, 227, 166, 0.28) !important;
+	transform: translateY(-2px) !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-edit {
+	background: rgba(214, 255, 0, 0.18) !important;
+	border: 1px solid rgba(214, 255, 0, 0.34) !important;
+	color: #eef2ff !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-edit:hover {
+	background: rgba(214, 255, 0, 0.28) !important;
+	transform: translateY(-2px) !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-deactivate {
+	background: rgba(255, 165, 0, 0.18) !important;
+	border: 1px solid rgba(255, 165, 0, 0.3) !important;
+	color: #ffa500 !important;
+	min-width: 120px !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-actions .btn-deactivate:hover:not(:disabled) {
+	background: rgba(255, 165, 0, 0.28) !important;
+	transform: translateY(-2px) !important;
+}
+
+/* Owner Bookings page: lock tab/search/pagination buttons against global button overrides */
+.owner-app .od2-content .owner-bookings-page .trainer-tab-btn {
+	border: 1px solid rgba(214, 255, 0, 0.34) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.16), rgba(184, 220, 0, 0.1)) !important;
+	color: rgba(238, 242, 255, 0.9) !important;
+	border-radius: 14px !important;
+	font-weight: 700 !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-tab-btn:hover {
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.24), rgba(184, 220, 0, 0.14)) !important;
+	color: #eef2ff !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .trainer-tab-btn.is-active {
+	border-color: rgba(214, 255, 0, 0.58) !important;
+	background: linear-gradient(135deg, rgba(214, 255, 0, 0.3), rgba(184, 220, 0, 0.2)) !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .search-button,
+.owner-app .od2-content .owner-bookings-page .btn-add,
+.owner-app .od2-content .owner-bookings-page .pagination-btn {
+	border: 1px solid rgba(214, 255, 0, 0.35) !important;
+	background: linear-gradient(90deg, rgba(214, 255, 0, 0.28), rgba(184, 220, 0, 0.16)) !important;
+	color: #eef2ff !important;
+	border-radius: 14px !important;
+	font-weight: 700 !important;
+}
+
+.owner-app .od2-content .owner-bookings-page .search-button:hover,
+.owner-app .od2-content .owner-bookings-page .btn-add:hover,
+.owner-app .od2-content .owner-bookings-page .pagination-btn:hover:not(:disabled) {
+	background: linear-gradient(90deg, rgba(214, 255, 0, 0.35), rgba(184, 220, 0, 0.2)) !important;
+	transform: translateY(-2px) !important;
+}
+
+/* ===============================
+   Owner unified layout (all pages)
+   =============================== */
+.owner-app .od2-content > * {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.owner-app .od2-content [class*="table-container"],
+.owner-app .od2-content [class*="table-wrapper"],
+.owner-app .od2-content [class*="table-wrap"] {
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(180deg, rgba(15, 18, 24, 0.98), rgba(12, 15, 21, 0.97)) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36) !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.owner-app .od2-content [class*="-page"],
+.owner-app .od2-content [class*="container"],
+.owner-app .od2-content [class*="panel"],
+.owner-app .od2-content [class*="grid"],
+.owner-app .od2-content [class*="layout"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.owner-app .od2-content img,
+.owner-app .od2-content video,
+.owner-app .od2-content canvas,
+.owner-app .od2-content svg {
+  max-width: 100%;
+}
+
+.owner-app .od2-content table thead tr {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.owner-app .od2-content table thead th {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+}
+
+.owner-app .od2-content table tbody tr {
+  background: transparent !important;
+  transition: background-color 0.16s ease;
+}
+
+.owner-app .od2-content table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.owner-app .od2-content table tbody td {
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.owner-app .od2-content [class*="status-badge"],
+.owner-app .od2-content [class*="badge"] {
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+}
+
+.owner-app .od2-content [class*="status-active"],
+.owner-app .od2-content [class*="badge-active"],
+.owner-app .od2-content [class*="status-approved"],
+.owner-app .od2-content [class*="badge-approved"] {
+  color: #d6ff00 !important;
+  border-color: rgba(214, 255, 0, 0.3) !important;
+  background: rgba(214, 255, 0, 0.1) !important;
+}
+
+.owner-app .od2-content [class*="status-inactive"],
+.owner-app .od2-content [class*="badge-rejected"],
+.owner-app .od2-content [class*="status-rejected"],
+.owner-app .od2-content [class*="status-cancelled"] {
+  color: #ff7b5a !important;
+  border-color: rgba(255, 123, 90, 0.3) !important;
+  background: rgba(255, 123, 90, 0.12) !important;
+}
+
+.owner-app .od2-content [class*="pagination"],
+.owner-app .od2-content .pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.owner-app .od2-content [class*="pagination"] button,
+.owner-app .od2-content .pagination-controls button,
+.owner-app .od2-content .obp-pagination-btn,
+.owner-app .od2-content .pagination-btn {
+  min-width: 32px !important;
+  height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.owner-app .od2-content [class*="pagination"] button.active,
+.owner-app .od2-content .pagination-controls button.active,
+.owner-app .od2-content .obp-pagination-btn.active,
+.owner-app .od2-content .pagination-btn.active {
+  border-color: rgba(214, 255, 0, 0.52) !important;
+  background: linear-gradient(180deg, rgba(214, 255, 0, 0.34), rgba(184, 220, 0, 0.26)) !important;
+  color: #1f2a00 !important;
+}
+
+.owner-app .od2-content [class*="pagination"] button:disabled,
+.owner-app .od2-content .pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

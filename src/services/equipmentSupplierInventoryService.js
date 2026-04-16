@@ -23,6 +23,9 @@ export const updateEquipment = (id, payload) =>
 export const discontinueEquipment = (id) =>
   axios.patch(`${API_BASE}/equipments/${id}/discontinue`).then((r) => r.data);
 
+export const deleteEquipment = (id) =>
+  axios.delete(`${API_BASE}/equipments/${id}`).then((r) => r.data);
+
 // ===== EQUIPMENT IMAGES (NEW) =====
 
 // ✅ lấy danh sách ảnh theo equipmentId
@@ -88,6 +91,3 @@ export const createReceipt = (payload) =>
 export const createExport = (payload) =>
   axios.post(`${API_BASE}/exports`, payload).then((r) => r.data);
 
-// ===== INVENTORY LOGS =====
-export const getInventoryLogs = (params) =>
-  axios.get(`${API_BASE}/inventory-logs`, { params }).then((r) => r.data);

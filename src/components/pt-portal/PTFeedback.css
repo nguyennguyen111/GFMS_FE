@@ -12,7 +12,7 @@
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 900;
-  color: #fff;
+  color: var(--m-gold, #FFB100);
 }
 
 .ptp-sub {
@@ -158,10 +158,10 @@
 }
 
 .ptp-btn--primary {
-  background: #ff8a00;
-  border-color: #ff8a00;
-  color: #111;
-  font-weight: 700;
+  border-color: rgba(255, 177, 0, 0.55);
+  background: linear-gradient(135deg, rgba(255, 177, 0, 0.28), rgba(255, 138, 0, 0.18));
+  color: rgba(255, 255, 255, 0.96);
+  font-weight: 800;
 }
 
 .ptp-btn--small {
@@ -195,8 +195,8 @@
 .pt-feedback-reply-box {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid rgba(244, 137, 21, 0.22);
-  background: rgba(244, 137, 21, 0.06);
+  border: 1px solid rgba(255, 177, 0, 0.25);
+  background: rgba(255, 177, 0, 0.08);
 }
 
 .pt-feedback-reply-time {

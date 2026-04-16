@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ownerGetMyGyms, ownerUpdateGym, ownerUploadGymImage } from "../../../services/ownerGymService";
+import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
+import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerGymsPage.css";
 
+const sortGymsByStatus = (gyms = []) =>
+  [...gyms].sort((a, b) => {
+    const aActive = a.status?.toLowerCase() === "active" ? 0 : 1;
+    const bActive = b.status?.toLowerCase() === "active" ? 0 : 1;
+    return aActive - bActive;
+  });
+
 const OwnerGymsPage = () => {
+  const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [page, setPage] = useState(1);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const pageSize = 4;
   const [selectedGym, setSelectedGym] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [editGym, setEditGym] = useState({
     id: "",
     name: "",
@@ -23,30 +33,47 @@ const OwnerGymsPage = () => {
   });
 
   useEffect(() => {
-    loadGyms();
-  }, []);
-
-  useEffect(() => {
     setPage(1);
   }, [gyms.length]);
 
-  const loadGyms = async () => {
+  useEffect(() => {
+    setFeaturedIndex(0);
+  }, [selectedGymId, gyms.length]);
+
+  const syncGymState = useCallback((nextGyms) => {
+    const scopedGyms = selectedGymId
+      ? nextGyms.filter((gym) => Number(gym.id) === Number(selectedGymId))
+      : nextGyms;
+    const sortedGyms = sortGymsByStatus(scopedGyms);
+    setGyms(sortedGyms);
+    setSelectedGym((prev) => {
+      if (!prev?.id) return prev;
+      return sortedGyms.find((gym) => Number(gym.id) === Number(prev.id)) || prev;
+    });
+  }, [selectedGymId]);
+
+  const loadGyms = useCallback(async () => {
     try {
       const response = await ownerGetMyGyms();
       const gymsData = Array.isArray(response.data?.data) ? response.data.data : [];
-      
-      const sortedGyms = gymsData.sort((a, b) => {
-        const aActive = a.status?.toLowerCase() === 'active' ? 0 : 1;
-        const bActive = b.status?.toLowerCase() === 'active' ? 0 : 1;
-        return aActive - bActive;
-      });
-      
-      setGyms(sortedGyms);
+
+      syncGymState(gymsData);
     } catch (error) {
-      console.error("Lỗi khi load danh sách gym:", error);
+      console.error("Lỗi khi load danh sách phòng tập:", error);
       setGyms([]);
     }
-  };
+  }, [syncGymState]);
+
+  useEffect(() => {
+    loadGyms();
+  }, [loadGyms]);
+
+  useOwnerRealtimeRefresh({
+    onRefresh: async () => {
+      await loadGyms();
+    },
+    events: ["gym:changed"],
+  });
 
   const handleViewDetail = useCallback((gym) => {
     setSelectedGym(gym);
@@ -99,20 +126,32 @@ const OwnerGymsPage = () => {
       if (emailValue) payload.email = emailValue;
       if (descriptionValue) payload.description = descriptionValue;
       
-      await ownerUpdateGym(editGym.id, payload);
+      const response = await ownerUpdateGym(editGym.id, payload);
+      const updatedGym = response.data?.data;
       handleCloseEditModal();
+
+      if (updatedGym?.id) {
+        setGyms((prev) => {
+          const nextGyms = prev.map((gym) =>
+            Number(gym.id) === Number(updatedGym.id) ? { ...gym, ...updatedGym } : gym
+          );
+          const sortedGyms = sortGymsByStatus(nextGyms);
+          setSelectedGym((prevSelected) => {
+            if (!prevSelected?.id) return prevSelected;
+            return sortedGyms.find((gym) => Number(gym.id) === Number(prevSelected.id)) || prevSelected;
+          });
+          return sortedGyms;
+        });
+      } else {
+        await loadGyms();
+      }
       
-      // Force complete refresh
-      setRefreshKey(prev => prev + 1);
-      setGyms([]);
-      await loadGyms();
-      
-      alert("Cập nhật gym thành công!");
+      alert("Cập nhật phòng tập thành công!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật gym:", error);
-      alert(error.response?.data?.message || error.message || "Có lỗi xảy ra khi cập nhật gym");
+      console.error("Lỗi khi cập nhật phòng tập:", error);
+      alert(error.response?.data?.message || error.message || "Có lỗi xảy ra khi cập nhật phòng tập");
     }
-  }, [editGym, handleCloseEditModal]);
+  }, [editGym, handleCloseEditModal, loadGyms]);
 
   const getStatusBadge = (status) => {
     const normalizedStatus = status?.toLowerCase();
@@ -203,7 +242,7 @@ const OwnerGymsPage = () => {
         return { ...prev, images: nextImages, avatarIndex: nextAvatarIndex };
       });
     } catch (e) {
-      console.error("Upload ảnh gym thất bại:", e);
+      console.error("Upload ảnh phòng tập thất bại:", e);
       const errorMsg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Upload ảnh thất bại";
       alert(errorMsg);
     } finally {
@@ -228,116 +267,112 @@ const OwnerGymsPage = () => {
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const visibleGyms = gyms.slice(startIndex, startIndex + pageSize);
+  const featuredGym = selectedGymId
+    ? (gyms[0] || null)
+    : (gyms[Math.min(featuredIndex, Math.max(0, gyms.length - 1))] || gyms[0] || null);
+  const canSlideFeatured = !selectedGymId && gyms.length > 1;
+  const totalMembers = gyms.reduce((sum, gym) => sum + Number(gym?.totalMembers || 0), 0);
+  const totalTrainers = gyms.reduce((sum, gym) => sum + Number(gym?.totalTrainers || 0), 0);
+  const totalPackages = gyms.reduce((sum, gym) => sum + Number(gym?.totalPackages || 0), 0);
+  const activeGyms = gyms.filter((gym) => String(gym?.status || "").toLowerCase() === "active").length;
 
   return (
     <div className="owner-gyms-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Quản lý Gym của tôi</h1>
-          <p className="page-subtitle">Xem và quản lý thông tin các phòng gym</p>
+          <h1 className="page-title">Quản lý Phòng tập của tôi</h1>
+          <p className="page-subtitle">
+            {selectedGymName ? `Đang quản lý chi nhánh ${selectedGymName}` : "Xem và quản lý thông tin các phòng tập"}
+          </p>
         </div>
       </div>
 
-      <div className="gyms-grid">
-        {gyms.length === 0 ? (
+      {featuredGym ? (
+        <section className="og-hero">
+          <div className="og-hero__bg">
+            {getGymImage(featuredGym) ? (
+              <img src={getGymImage(featuredGym)} alt={featuredGym.name} className="og-hero__image" />
+            ) : null}
+          </div>
+          <div className="og-hero__overlay" />
+          <div className="og-hero__content">
+            <div className="og-hero__status">
+              <span className="og-hero__status-dot" />
+              {String(featuredGym?.status || "").toLowerCase() === "active" ? "Đang hoạt động" : "Tạm ngưng"}
+            </div>
+            <h2 className="og-hero__title">{featuredGym.name}</h2>
+            <div className="og-hero__meta">
+              <div><strong>Địa chỉ:</strong> {featuredGym.address || "Chưa cập nhật"}</div>
+              <div><strong>Điện thoại:</strong> {featuredGym.phone || "Chưa cập nhật"}</div>
+              <div><strong>Email:</strong> {featuredGym.email || "Chưa cập nhật"}</div>
+            </div>
+            <div className="og-hero__actions">
+              <button onClick={() => handleViewDetail(featuredGym)} className="btn-view">Chi tiết</button>
+              <button onClick={() => handleOpenEditModal(featuredGym)} className="btn-edit">Chỉnh sửa</button>
+            </div>
+            {canSlideFeatured ? (
+              <div className="og-hero__switcher">
+                <button
+                  type="button"
+                  className="og-hero__switch-btn"
+                  onClick={() => setFeaturedIndex((prev) => (prev - 1 + gyms.length) % gyms.length)}
+                >
+                  ←
+                </button>
+                <span className="og-hero__switch-label">
+                  Chi nhánh {featuredIndex + 1}/{gyms.length}
+                </span>
+                <button
+                  type="button"
+                  className="og-hero__switch-btn"
+                  onClick={() => setFeaturedIndex((prev) => (prev + 1) % gyms.length)}
+                >
+                  →
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="og-metrics">
+        <article className="og-metric-card">
+          <h4>Tổng hội viên</h4>
+          <div className="og-metric-value">{totalMembers}</div>
+          <p>Toàn hệ thống phòng tập của bạn</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Huấn luyện viên hoạt động</h4>
+          <div className="og-metric-value">{totalTrainers}</div>
+          <p>Đang phục vụ tại các chi nhánh</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Gói tập đang mở</h4>
+          <div className="og-metric-value">{totalPackages}</div>
+          <p>Gói tập có thể bán/đăng ký</p>
+        </article>
+        <article className="og-metric-card">
+          <h4>Chi nhánh hoạt động</h4>
+          <div className="og-metric-value">{activeGyms}/{gyms.length || 0}</div>
+          <p>Trạng thái tổng quan hệ thống</p>
+        </article>
+      </section>
+
+      {gyms.length === 0 ? (
+        <div className="gyms-grid">
           <div className="no-gyms">
             <div className="no-gyms-icon">🏋️</div>
-            <p>Bạn chưa có gym nào</p>
+            <p>{selectedGymName ? `Không tìm thấy chi nhánh ${selectedGymName}` : "Bạn chưa có phòng tập nào"}</p>
           </div>
-        ) : (
-          visibleGyms.map((gym) => (
-            <div key={`${gym.id}-${refreshKey}-${gym.updatedAt || gym.createdAt}`} className="gym-card">
-              <div className="gym-image-container">
-                {getGymImage(gym) ? (
-                  <img 
-                    src={getGymImage(gym)} 
-                    alt={gym.name} 
-                    className="gym-image"
-                    key={`img-${gym.id}-${refreshKey}-${gym.updatedAt || Date.now()}`}
-                  />
-                ) : (
-                  <div className="gym-image-placeholder">
-                    <span className="gym-placeholder-icon">🏋️‍♂️</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="gym-card-header">
-                <h3 className="gym-name">{gym.name}</h3>
-                {getStatusBadge(gym.status)}
-              </div>
-              
-              <div className="gym-info">
-                <div className="info-item">
-                  <span className="info-icon">📍</span>
-                  <span className="info-text">{gym.address || "Chưa có địa chỉ"}</span>
-                </div>
-                
-                <div className="info-item">
-                  <span className="info-icon">📞</span>
-                  <span className="info-text">{gym.phone || "Chưa có số điện thoại"}</span>
-                </div>
-                
-                <div className="info-item">
-                  <span className="info-icon">✉️</span>
-                  <span className="info-text">{gym.email || "Chưa có email"}</span>
-                </div>
-              </div>
-
-              <div className="gym-stats">
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalMembers || 0}</div>
-                  <div className="stat-label">Hội viên</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalTrainers || 0}</div>
-                  <div className="stat-label">Trainer</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{gym.totalPackages || 0}</div>
-                  <div className="stat-label">Gói tập</div>
-                </div>
-              </div>
-
-              <div className="gym-actions">
-                <button onClick={() => handleViewDetail(gym)} className="btn-view">
-                  👁️ Chi tiết
-                </button>
-                <button onClick={() => handleOpenEditModal(gym)} className="btn-edit">
-                  ✏️ Chỉnh sửa
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {gyms.length > pageSize && (
-        <div className="pagination">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          >
-            Trước
-          </button>
-          <span>
-            Trang {currentPage} / {totalPages}
-          </span>
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-          >
-            Sau
-          </button>
         </div>
-      )}
+      ) : null}
 
       {/* Modal Chi tiết */}
       {showDetailModal && selectedGym && (
         <div className="modal-overlay" onClick={handleCloseDetailModal}>
           <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Chi tiết Gym</h2>
+              <h2 className="modal-title">Chi tiết Phòng tập</h2>
               <button className="modal-close" onClick={handleCloseDetailModal}>
                 ×
               </button>
@@ -345,7 +380,7 @@ const OwnerGymsPage = () => {
             <div className="modal-body">
               <div className="gym-detail-info">
                 <div className="info-card">
-                  <div className="info-label">Tên Gym:</div>
+                  <div className="info-label">Tên Phòng tập:</div>
                   <div className="info-value">{selectedGym.name}</div>
                 </div>
 
@@ -395,7 +430,7 @@ const OwnerGymsPage = () => {
                 }} 
                 className="btn-submit"
               >
-                ✏️ Chỉnh sửa
+                Chỉnh sửa
               </button>
             </div>
           </div>
@@ -407,7 +442,7 @@ const OwnerGymsPage = () => {
         <div className="modal-overlay" onClick={handleCloseEditModal}>
           <div className="modal-content modal-edit" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Chỉnh sửa thông tin Gym</h2>
+              <h2 className="modal-title">Chỉnh sửa thông tin Phòng tập</h2>
               <button className="modal-close" onClick={handleCloseEditModal}>
                 ×
               </button>
@@ -415,14 +450,14 @@ const OwnerGymsPage = () => {
             <div className="modal-body">
               <form onSubmit={handleUpdateGym} className="modal-form">
                 <div className="form-group">
-                  <label className="form-label">Tên Gym *</label>
+                  <label className="form-label">Tên Phòng tập *</label>
                   <input
                     type="text"
                     value={editGym.name}
                     onChange={(e) => setEditGym({ ...editGym, name: e.target.value })}
                     required
                     className="form-input"
-                    placeholder="Nhập tên gym"
+                    placeholder="Nhập tên phòng tập"
                   />
                 </div>
 
@@ -469,7 +504,7 @@ const OwnerGymsPage = () => {
                     onChange={(e) => setEditGym({ ...editGym, description: e.target.value })}
                     className="form-textarea"
                     rows="4"
-                    placeholder="Mô tả về gym..."
+                    placeholder="Mô tả về phòng tập..."
                   />
                 </div>
 
@@ -528,7 +563,7 @@ const OwnerGymsPage = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="gym-upload__empty">📷 Chưa có ảnh nào. Hãy chọn ảnh để hiển thị phòng gym của bạn!</div>
+                      <div className="gym-upload__empty">📷 Chưa có ảnh nào. Hãy chọn ảnh để hiển thị phòng tập của bạn!</div>
                     )}
                   </div>
                 </div>

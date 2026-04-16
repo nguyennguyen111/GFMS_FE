@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(4, 8, 18, 0.72);
+  background: rgba(5, 10, 18, 0.76);
   backdrop-filter: blur(10px);
   animation: ocd-fade-in 0.2s ease-out;
 }
@@ -24,12 +24,12 @@
   width: 100%;
   max-width: 480px;
   border-radius: 22px;
-  background: linear-gradient(155deg, rgba(22, 30, 48, 0.98) 0%, rgba(12, 18, 30, 0.99) 100%);
-  border: 1px solid rgba(255, 200, 120, 0.22);
+  background: linear-gradient(155deg, rgba(20, 28, 44, 0.98) 0%, rgba(9, 15, 27, 0.99) 100%);
+  border: 1px solid rgba(214, 255, 0, 0.26);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.06) inset,
     0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 80px rgba(255, 160, 60, 0.08);
+    0 0 84px rgba(184, 220, 0, 0.1);
   overflow: hidden;
   animation: ocd-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -46,11 +46,11 @@
 }
 
 .ocd-panel--success {
-  border-color: rgba(0, 255, 170, 0.28);
+  border-color: rgba(0, 227, 166, 0.3);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.06) inset,
     0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 72px rgba(0, 255, 170, 0.07);
+    0 0 72px rgba(0, 227, 166, 0.09);
 }
 
 .ocd-panel--error {
@@ -80,15 +80,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 176, 0, 0.12);
-  border: 1px solid rgba(255, 176, 0, 0.22);
-  color: #ffc24a;
+  background: rgba(214, 255, 0, 0.14);
+  border: 1px solid rgba(214, 255, 0, 0.28);
+  color: #ffd37e;
 }
 
 .ocd-panel--success .ocd-iconWrap {
-  background: rgba(0, 255, 170, 0.1);
-  border-color: rgba(0, 255, 170, 0.25);
-  color: #00ffaa;
+  background: rgba(0, 227, 166, 0.12);
+  border-color: rgba(0, 227, 166, 0.28);
+  color: #57ffd0;
 }
 
 .ocd-panel--error .ocd-iconWrap {
@@ -111,8 +111,8 @@
 
 .ocd-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 900;
   letter-spacing: 0.02em;
   color: #f1f5ff;
   line-height: 1.3;
@@ -139,13 +139,13 @@
 }
 
 .ocd-body {
-  padding: 14px 22px 20px;
+  padding: 16px 22px 20px;
 }
 
 .ocd-message {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.65;
   color: rgba(238, 242, 255, 0.72);
 }
 
@@ -189,7 +189,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: rgba(255, 200, 120, 0.88);
+  color: rgba(214, 255, 0, 0.9);
   margin-bottom: 8px;
 }
 
@@ -233,7 +233,7 @@
 .ocd-trainer-id {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 200, 130, 0.85);
+  color: rgba(214, 255, 0, 0.85);
   letter-spacing: 0.02em;
 }
 
@@ -255,7 +255,7 @@
 
 .ocd-trainer-amt {
   font-weight: 800;
-  color: #00ffaa;
+  color: #00e3a6;
   font-size: 13px;
 }
 
@@ -286,7 +286,7 @@
 .ocd-stat-value {
   font-size: 16px;
   font-weight: 800;
-  color: #00ffaa;
+  color: #00e3a6;
   letter-spacing: 0.02em;
 }
 
@@ -294,7 +294,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 0 22px 22px;
+  padding: 4px 22px 22px;
   flex-wrap: wrap;
 }
 
@@ -326,15 +326,15 @@
 }
 
 .ocd-btn--primary {
-  background: linear-gradient(135deg, rgba(255, 160, 60, 0.35), rgba(255, 200, 100, 0.2));
-  border-color: rgba(255, 176, 0, 0.45);
-  color: #fff7ec;
-  box-shadow: 0 4px 20px rgba(255, 150, 40, 0.15);
+  background: linear-gradient(135deg, rgba(0, 186, 255, 0.3), rgba(0, 128, 255, 0.18));
+  border-color: rgba(0, 186, 255, 0.45);
+  color: #ecf8ff;
+  box-shadow: 0 4px 20px rgba(0, 168, 255, 0.18);
 }
 
 .ocd-btn--primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(255, 150, 40, 0.22);
+  box-shadow: 0 6px 24px rgba(0, 168, 255, 0.24);
 }
 
 .ocd-btn--danger {
@@ -344,8 +344,8 @@
 }
 
 .ocd-btn--success {
-  background: linear-gradient(135deg, rgba(0, 220, 150, 0.35), rgba(0, 180, 130, 0.2));
-  border-color: rgba(0, 255, 170, 0.4);
+  background: linear-gradient(135deg, rgba(0, 227, 166, 0.34), rgba(0, 186, 138, 0.2));
+  border-color: rgba(0, 227, 166, 0.42);
   color: #ecfff8;
 }
 

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import "./InventoryPage.css";
+import axios from "../../../setup/axios";
 
 import {
   getStocks,
+  getEquipments,
 } from "../../../services/equipmentSupplierInventoryService";
 
 
@@ -11,16 +13,54 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
+  const absUrl = (u) => (u ? (u.startsWith("http") ? u : `${API_HOST}${u}`) : "");
 
   const fetchAll = async () => {
     setLoading(true);
     setErr("");
     try {
-      const res = await getStocks({ q: search || undefined });
-      const data = res?.data?.data ?? res?.data ?? [];
-      setItems(Array.isArray(data) ? data : data.items ?? []);
+      const [stockRes, eqRes] = await Promise.all([
+        getStocks({ q: search || undefined }),
+        getEquipments({ page: 1, limit: 500, q: search || undefined, status: "all" }),
+      ]);
+      const data = stockRes?.data?.data ?? stockRes?.data ?? [];
+      const rows = Array.isArray(data) ? data : data.items ?? [];
+      const eqData = eqRes?.data?.data ?? eqRes?.data ?? [];
+      const eqRows = Array.isArray(eqData) ? eqData : eqData.items ?? [];
+      const equipmentById = new Map(eqRows.map((e) => [Number(e.id), e]));
+      const grouped = Object.values(
+        rows.reduce((acc, row) => {
+          const equipmentId = Number(row.equipmentId || row.equipment?.id || 0);
+          const key = equipmentId || `code:${row.equipmentCode || row.equipment?.code || row.id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              key,
+              equipmentId,
+              equipmentName: row.equipment?.name || row.equipmentName || "-",
+              equipmentCode: row.equipment?.code || row.equipmentCode || "-",
+              primaryImageUrl: null,
+              description: "",
+              equipmentStatus: "active",
+              quantity: 0,
+            };
+          }
+          acc[key].quantity += Number(row.quantity || 0);
+          return acc;
+        }, {})
+      );
+      const merged = grouped.map((row) => {
+        const eq = equipmentById.get(Number(row.equipmentId));
+        return {
+          ...row,
+          primaryImageUrl: eq?.primaryImageUrl || null,
+          description: eq?.description || "",
+          equipmentStatus: eq?.status || "active",
+        };
+      });
+      setItems(merged);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message || "Load failed");
+      setErr(e?.response?.data?.message || e.message || "Tải dữ liệu thất bại");
     } finally {
       setLoading(false);
     }
@@ -34,7 +74,7 @@ export default function InventoryPage() {
   return (
     <div className="inv-page">
       <div className="inv-header">
-        <h2>Tồn kho</h2>
+        <h2>Kho thiết bị</h2>
       </div>
 
       <div className="inv-filters">
@@ -57,34 +97,34 @@ export default function InventoryPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Gym</th>
+              <th>Ảnh</th>
               <th>Thiết bị</th>
-              <th>Mã</th>
-              <th>Quantity</th>
-              <th>Available</th>
-              <th>Reserved</th>
-              <th>Damaged</th>
-              <th>Maintenance</th>
-              <th>Min</th>
-              <th>Reorder</th>
+              <th>Số lượng</th>
+              <th>Mô tả</th>
+              <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td className="empty" colSpan={10}>Không có dữ liệu</td></tr>
+              <tr><td className="empty" colSpan={5}>Không có dữ liệu</td></tr>
             ) : (
               items.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.gym?.name || r.gymName || r.gymId}</td>
-                  <td>{r.equipment?.name || r.equipmentName || "-"}</td>
-                  <td>{r.equipment?.code || r.equipmentCode || "-"}</td>
+                <tr key={r.key}>
+                  <td>
+                    {r.primaryImageUrl ? (
+                      <img className="inv-thumb" src={absUrl(r.primaryImageUrl)} alt={r.equipmentName || "equipment"} />
+                    ) : (
+                      <div className="inv-thumb inv-thumb--placeholder">No image</div>
+                    )}
+                  </td>
+                  <td>{r.equipmentName || "-"}</td>
                   <td>{r.quantity ?? 0}</td>
-                  <td>{r.availableQuantity ?? 0}</td>
-                  <td>{r.reservedQuantity ?? 0}</td>
-                  <td>{r.damagedQuantity ?? 0}</td>
-                  <td>{r.maintenanceQuantity ?? 0}</td>
-                  <td>{r.minStockLevel ?? "-"}</td>
-                  <td>{r.reorderPoint ?? "-"}</td>
+                  <td className="inv-desc">{r.description || "-"}</td>
+                  <td>
+                    <span className={`inv-badge ${String(r.equipmentStatus) === "active" ? "active" : "inactive"}`}>
+                      {String(r.equipmentStatus) === "active" ? "Đang hoạt động" : "Ngừng sử dụng"}
+                    </span>
+                  </td>
                 </tr>
               ))
             )}
