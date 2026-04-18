@@ -297,6 +297,15 @@
   white-space: nowrap;
 }
 
+/* Đã đối soát: chữ «Đã thanh toán», gạch chéo màu xanh lá */
+.ptWeek__block.is-shared .mini-status .mini-status--paidAck {
+  color: #bbf7d0 !important;
+  text-decoration: line-through !important;
+  text-decoration-color: #22c55e !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 2px;
+}
+
 /* Attendance Status Colors */
 .ptWeek__block.is-pending {
   background: rgba(52, 152, 219, 0.15) !important;

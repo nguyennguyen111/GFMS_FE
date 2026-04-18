@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ownerGetMyGyms, ownerUpdateGym, ownerUploadGymImage } from "../../../services/ownerGymService";
+import { ownerUpdateGym, ownerUploadGymImage } from "../../../services/ownerGymService";
+import {
+  getOwnerGymsListCached,
+  invalidateOwnerGymsListCache,
+} from "../../../utils/ownerGymsListCache";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerGymsPage.css";
@@ -54,9 +58,7 @@ const OwnerGymsPage = () => {
 
   const loadGyms = useCallback(async () => {
     try {
-      const response = await ownerGetMyGyms();
-      const gymsData = Array.isArray(response.data?.data) ? response.data.data : [];
-
+      const gymsData = await getOwnerGymsListCached();
       syncGymState(gymsData);
     } catch (error) {
       console.error("Lỗi khi load danh sách phòng tập:", error);
@@ -70,6 +72,7 @@ const OwnerGymsPage = () => {
 
   useOwnerRealtimeRefresh({
     onRefresh: async () => {
+      invalidateOwnerGymsListCache();
       await loadGyms();
     },
     events: ["gym:changed"],
@@ -128,6 +131,7 @@ const OwnerGymsPage = () => {
       
       const response = await ownerUpdateGym(editGym.id, payload);
       const updatedGym = response.data?.data;
+      invalidateOwnerGymsListCache();
       handleCloseEditModal();
 
       if (updatedGym?.id) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ownerMemberService from "../../../services/ownerMemberService";
-import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import { getOwnerGymsListCached } from "../../../utils/ownerGymsListCache";
 import "./OwnerMembersPage.css";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
@@ -66,10 +66,10 @@ const OwnerMembersPage = () => {
   }, [notify, selectedGymId]);
 
   useEffect(() => {
-    loadGyms();
-    loadMembers();
+    Promise.all([loadGyms(), loadMembers(1)]);
+    // Chỉ reload khi đổi chi nhánh — không gắn filters để tránh gọi API mỗi lần gõ ô lọc
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedGymId]);
 
   useEffect(() => {
     if (!showCreateModal || !userPickerOpen) return;
@@ -82,15 +82,15 @@ const OwnerMembersPage = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [showCreateModal, userPickerOpen]);
 
-  const loadGyms = async () => {
+  const loadGyms = useCallback(async () => {
     try {
-      const response = await ownerGetMyGyms();
-      setGyms(Array.isArray(response.data?.data) ? response.data.data : []);
+      const list = await getOwnerGymsListCached();
+      setGyms(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error("Lỗi khi load danh sách phòng gym:", error);
       setGyms([]);
     }
-  };
+  }, []);
 
   const loadMembers = useCallback(async (page = 1) => {
     try {
