@@ -17,7 +17,7 @@ export const ownerRejectTrainerShare = (id, reason) =>
   axios.post(`/api/owner/trainer-shares/${id}/reject`, { reason });
 
 // Lấy chi tiết một trainer share
-export const ownerGetTrainerShareDetail = (id) => 
+export const ownerGetTrainerShareDetail = (id) =>
   axios.get(`/api/owner/trainer-shares/${id}`);
 
 // Tạo trainer share request mới
@@ -31,3 +31,15 @@ export const ownerUpdateTrainerShare = (id, data) =>
 // Xóa trainer share (chỉ khi waiting_acceptance)
 export const ownerDeleteTrainerShare = (id) => 
   axios.delete(`/api/owner/trainer-shares/${id}`);
+
+/** Owner mượn: nhập/sửa giá buổi (phiếu đã approved, chưa gửi CK / chưa trả) */
+export const ownerUpdateTrainerShareSessionPrice = (id, body) =>
+  axios.put(`/api/owner/trainer-shares/${id}/session-price`, body);
+
+/** Owner mượn: xác nhận đã chuyển khoản (body tuỳ chọn: { imageUrls: string[] }) */
+export const ownerConfirmTrainerSharePayment = (id, body) =>
+  axios.post(`/api/owner/trainer-shares/${id}/payment-confirm`, body || {});
+
+/** Owner mượn: phản hồi khiếu nại PT + URL ảnh chứng từ CK */
+export const ownerRespondTrainerSharePaymentDispute = (id, body) =>
+  axios.post(`/api/owner/trainer-shares/${id}/payment-dispute-response`, body);
