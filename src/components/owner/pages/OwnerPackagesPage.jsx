@@ -8,7 +8,7 @@ import {
   ownerUpdatePackage,
   ownerTogglePackage,
 } from "../../../services/ownerPackageService";
-import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import { getOwnerGymsListCached } from "../../../utils/ownerGymsListCache";
 import ownerTrainerService from "../../../services/ownerTrainerService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
@@ -120,8 +120,8 @@ export default function OwnerPackagesPage() {
 
   const loadGyms = useCallback(async () => {
     try {
-      const response = await ownerGetMyGyms();
-      setGyms(Array.isArray(response.data?.data) ? response.data.data : []);
+      const list = await getOwnerGymsListCached();
+      setGyms(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error("Lỗi khi load danh sách phòng gym:", error);
       setGyms([]);
@@ -170,8 +170,14 @@ export default function OwnerPackagesPage() {
   };
 
   useEffect(() => {
-    fetchData();
-    loadGyms();
+    let cancelled = false;
+    (async () => {
+      await Promise.all([fetchData(), loadGyms()]);
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchData, loadGyms]);
 
   useEffect(() => {
