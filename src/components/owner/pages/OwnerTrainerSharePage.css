@@ -222,6 +222,13 @@
 }
 
 /* Table */
+.ots-table-dateCell__time {
+  font-size: 0.85em;
+  color: #64748b;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
 .ots-table {
   width: 100%;
   border-collapse: collapse;
@@ -315,6 +322,35 @@
   background: rgba(0, 186, 255, .12);
   border-color: rgba(0, 186, 255, .26);
   color: #00baff;
+}
+
+/* Trạng thái TT: gạch chéo «Đã thanh toán» khi PT đã xác nhận hết tranh chấp */
+.ots-paymentLabel--strikeResolved {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  opacity: 0.88;
+}
+
+/* Trạng thái + nút (gộp cột, tránh trùng chữ với badge) */
+.ots-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 220px;
+}
+
+.ots-status-cell .ots-actions {
+  flex-wrap: wrap;
+}
+
+.ots-status-cell__note {
+  font-size: 0.82em;
+  color: #64748b;
+  font-style: italic;
+  line-height: 1.35;
+  max-width: 100%;
 }
 
 /* Actions */
@@ -593,6 +629,157 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Chi tiết phiếu chia sẻ HV — không phụ thuộc CSS trang Bookings/Members */
+.ots-share-detail-modal .detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ots-share-detail-modal .detail-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 36%) 1fr;
+  gap: 8px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 13px;
+  align-items: start;
+}
+
+.ots-share-detail-modal .detail-row:last-child {
+  border-bottom: none;
+}
+
+.ots-share-detail-modal .detail-row--full {
+  grid-column: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.ots-share-detail-modal .detail-label {
+  color: rgba(226, 232, 240, 0.58);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ots-share-detail-modal .detail-value {
+  color: #f1f5f9;
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.ots-share-paymentCard {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.ots-share-paymentCard .detail-row {
+  border-bottom-color: rgba(148, 163, 184, 0.1);
+}
+
+.ots-share-paymentCard .detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.ots-share-paymentCard__title {
+  font-weight: 700;
+  margin-bottom: 0.65rem;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.ots-share-borrowerReply {
+  margin-top: 0.75rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.ots-share-borrowerReply__title {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #bfdbfe;
+  font-size: 0.92rem;
+}
+
+.ots-share-detail-hint {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(226, 232, 240, 0.75);
+}
+
+.ots-share-disputeNoteFromPt {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.ots-share-disputeNoteFromPt--resolved {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.28);
+  opacity: 0.92;
+}
+
+.ots-share-ptAckResolved {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.ots-share-ptAckResolved__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.25);
+  color: #86efac;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.ots-share-ptAckResolved__title {
+  font-weight: 700;
+  color: #ecfdf5;
+  font-size: 0.92rem;
+  margin-bottom: 0.25rem;
+}
+
+.ots-share-ptAckResolved__time {
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.75);
+  margin-bottom: 0.35rem;
+}
+
+.ots-share-ptAckResolved__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: rgba(226, 232, 240, 0.8);
 }
 
 .ots-booking-detail-body {
@@ -1743,9 +1930,26 @@
 
 .ots-slot-pill--busy {
   justify-content: space-between;
+  align-items: flex-start;
   color: rgba(255, 237, 213, 0.98);
   background: rgba(245, 158, 11, 0.16);
   border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.ots-slot-pill__busyCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+  max-width: min(100%, 200px);
+}
+
+.ots-slot-pill__paidTag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .ots-slot-pill--interactive {

@@ -1,7 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
-import { getPTAttendanceSchedule, ptCheckIn, ptCheckOut, ptResetAttendance, ptRequestBusySlot } from "../../services/ptAttendanceService";
+import {
+  getPTAttendanceSchedule,
+  ptCheckIn,
+  ptCheckOut,
+  ptResetAttendance,
+  ptRequestBusySlot,
+  ptSendSharePaymentInstruction,
+  ptSubmitSharePaymentDispute,
+  ptAcknowledgeSharePaymentResponse,
+} from "../../services/ptAttendanceService";
 import "./PTSchedule.css";
 import PTAttendanceModal, { PT_ATTENDANCE_LOCK_MSG } from "./PTAttendanceModal";
 import NiceModal from "../common/NiceModal";
@@ -153,12 +162,47 @@ const PTSchedule = () => {
 
   const openAttendance = async (dateObj, slot) => {
     const ymd = toYMD(dateObj);
-    setAttOpen(true);
-    setAttLoading(true);
+    const slotKey = String(slot.start || "").slice(0, 5);
     const rows = attCache[ymd] || [];
-    const found = rows.find((b) => String(b.startTime || "").slice(0, 5) === String(slot.start || "").slice(0, 5));
-    setAttBooking(found || null);
-    setAttLoading(false);
+    const cached = rows.find((b) => String(b.startTime || "").slice(0, 5) === slotKey);
+
+    setAttOpen(true);
+    if (cached) {
+      setAttBooking(cached);
+      setAttLoading(false);
+    } else {
+      setAttBooking(null);
+      setAttLoading(true);
+    }
+
+    try {
+      const res = await getPTAttendanceSchedule({ date: ymd });
+      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+      const found = (res?.rows || []).find(
+        (b) => String(b.startTime || "").slice(0, 5) === slotKey,
+      );
+      setAttBooking(found || null);
+    } catch {
+      if (!cached) {
+        const found = rows.find((b) => String(b.startTime || "").slice(0, 5) === slotKey);
+        setAttBooking(found || null);
+      }
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const refreshAttBooking = async () => {
+    if (!attBooking?.id) return;
+    const ymd = toYMD(new Date(attBooking.bookingDate));
+    try {
+      const res = await getPTAttendanceSchedule({ date: ymd });
+      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+      const next = res?.rows?.find((b) => b.id === attBooking.id);
+      if (next) setAttBooking(next);
+    } catch (_e) {
+      /* ignore */
+    }
   };
 
   const updateStatus = async (status) => {
@@ -209,6 +253,98 @@ const PTSchedule = () => {
         e?.message ||
         "Không thể hoàn tác điểm danh.";
       setNoticeModal({ title: "Không thể hoàn tác", message: msg, tone: "danger" });
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const sendSharePaymentFromModal = async ({ bankName, bankAccountNumber, accountHolderName }) => {
+    if (!attBooking?.id) return false;
+    setAttLoading(true);
+    try {
+      await ptSendSharePaymentInstruction(attBooking.id, {
+        bankName,
+        bankAccountNumber,
+        accountHolderName,
+      });
+      setNoticeModal({
+        title: "Đã gửi",
+        message:
+          "Đã gửi tên ngân hàng và STK cho chủ phòng mượn. Họ sẽ chuyển khoản theo giá buổi đã thỏa thuận.",
+        tone: "success",
+      });
+      await refreshAttBooking();
+      return true;
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không gửi được.";
+      setNoticeModal({ title: "Không gửi được", message: msg, tone: "danger" });
+      return false;
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const ackSharePaymentFromModal = async () => {
+    if (!attBooking?.id) return false;
+    setAttLoading(true);
+    try {
+      await ptAcknowledgeSharePaymentResponse(attBooking.id);
+      setNoticeModal({
+        title: "Đã xác nhận",
+        message: "Bạn đã xác nhận nhận tiền / đồng ý phản hồi chủ phòng.",
+        tone: "success",
+      });
+      await refreshAttBooking();
+      return true;
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không xác nhận được.";
+      setNoticeModal({ title: "Không xác nhận được", message: msg, tone: "danger" });
+      return false;
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
+  const submitShareDisputeFromModal = async ({ note }) => {
+    if (!attBooking?.id) return false;
+    const t = String(note || "").trim();
+    if (t.length < 8) {
+      setNoticeModal({
+        title: "Thiếu nội dung",
+        message: "Vui lòng nhập nội dung khiếu nại ít nhất 8 ký tự.",
+        tone: "danger",
+      });
+      return false;
+    }
+    setAttLoading(true);
+    try {
+      await ptSubmitSharePaymentDispute(attBooking.id, { note: t });
+      setNoticeModal({
+        title: "Đã gửi",
+        message: "Chủ phòng mượn đã nhận khiếu nại.",
+        tone: "success",
+      });
+      await refreshAttBooking();
+      return true;
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.DT ||
+        e?.response?.data?.EM ||
+        e?.message ||
+        "Không gửi được khiếu nại.";
+      setNoticeModal({ title: "Không gửi được", message: msg, tone: "danger" });
+      return false;
     } finally {
       setAttLoading(false);
     }
@@ -375,8 +511,30 @@ const PTSchedule = () => {
                           {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession) }}>
                             👤 {booking.Member?.User?.username || "Học viên"}
                             {(attendanceStatus || isBusyRequested || isSharedSession) && (
-                              <div className="mini-status">
-                                  {isSharedSession ? '↔ Lịch chia sẻ' : isBusyRequested ? '⚠ PT báo bận' : attendanceStatus === 'present' ? '✓ Có mặt' : attendanceStatus === 'absent' ? '✗ Vắng mặt' : ''}
+                              <div
+                                className="mini-status"
+                                title={
+                                  isSharedSession &&
+                                  booking?.sharePayment?.sharePaymentPtAcknowledgedAt
+                                    ? "PT đã xác nhận — hết tranh chấp thanh toán"
+                                    : undefined
+                                }
+                              >
+                                {isSharedSession ? (
+                                  booking?.sharePayment?.sharePaymentPtAcknowledgedAt ? (
+                                    <span className="mini-status--paidAck">Đã thanh toán</span>
+                                  ) : (
+                                    "↔ Lịch chia sẻ"
+                                  )
+                                ) : isBusyRequested ? (
+                                  "⚠ PT báo bận"
+                                ) : attendanceStatus === "present" ? (
+                                  "✓ Có mặt"
+                                ) : attendanceStatus === "absent" ? (
+                                  "✗ Vắng mặt"
+                                ) : (
+                                  ""
+                                )}
                               </div>
                             )}
                           </div>}
@@ -432,6 +590,10 @@ const PTSchedule = () => {
         onComplete={completeStatus}
         onReset={resetStatus}
         onRequestBusySlot={requestBusySlot}
+        onSendSharePayment={sendSharePaymentFromModal}
+        onSubmitShareDispute={submitShareDisputeFromModal}
+        onAckSharePayment={ackSharePaymentFromModal}
+        refresh={refreshAttBooking}
       />
 
       <NiceModal

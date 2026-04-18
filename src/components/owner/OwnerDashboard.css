@@ -335,6 +335,12 @@
   overflow-x: hidden;
 }
 
+.od2-suspenseFallback{
+  padding: 24px 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 @media (max-width: 980px){
   .od2-search input{ width: 180px; }
 }

@@ -51,3 +51,33 @@ export const ptRequestBusySlot = async ({ bookingId, reason }) => {
   const res = await axios.post(`${BASE}/attendance/request-busy-slot`, { bookingId, reason }, ptConfig());
   return res.data;
 };
+
+/** PT gửi NH + STK cho owner chi nhánh mượn (sau khi buổi trainer_share đã hoàn thành) */
+export const ptSendSharePaymentInstruction = async (bookingId, body) => {
+  const res = await axios.post(
+    `${BASE}/bookings/${bookingId}/share-payment-instruction`,
+    body,
+    ptConfig(),
+  );
+  return res.data;
+};
+
+/** PT khiếu nại chưa nhận được tiền (sau khi đã gửi STK, đang chờ CK) */
+export const ptSubmitSharePaymentDispute = async (bookingId, body) => {
+  const res = await axios.post(
+    `${BASE}/bookings/${bookingId}/share-payment-dispute`,
+    body,
+    ptConfig(),
+  );
+  return res.data;
+};
+
+/** PT xác nhận đã nhận tiền / đồng ý phản hồi chủ phòng (sau phản hồi + ảnh CK) */
+export const ptAcknowledgeSharePaymentResponse = async (bookingId) => {
+  const res = await axios.post(
+    `${BASE}/bookings/${bookingId}/share-payment-ack`,
+    {},
+    ptConfig(),
+  );
+  return res.data;
+};

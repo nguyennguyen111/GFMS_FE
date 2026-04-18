@@ -43,6 +43,18 @@ const extractErrorMessage = (error, fallback = "Không thể duyệt yêu cầu 
   return picked ? String(picked).trim() : fallback;
 };
 
+/** Ổn định tham chiếu — tránh đăng ký socket lặp không cần thiết */
+const OWNER_BOOKINGS_MANAGEMENT_EVENTS = Object.freeze([
+  "booking:status-changed",
+  "trainer_share:changed",
+  "notification:new",
+]);
+const OWNER_BOOKINGS_MANAGEMENT_NOTIF_TYPES = Object.freeze([
+  "trainer_share",
+  "booking_update",
+  "trainer_request",
+]);
+
 const OwnerBookingsPage = () => {
   const navigate = useNavigate();
   const { selectedGymId, selectedGymName } = useSelectedGym();
@@ -521,6 +533,16 @@ const OwnerBookingsPage = () => {
     },
     events: ["notification:new", "request:changed"],
     notificationTypes: ["trainer_request"],
+  });
+
+  useOwnerRealtimeRefresh({
+    enabled: activeTab === "management",
+    onRefresh: async () => {
+      await loadGyms();
+      await loadTrainers(pagination.page || 1);
+    },
+    events: OWNER_BOOKINGS_MANAGEMENT_EVENTS,
+    notificationTypes: OWNER_BOOKINGS_MANAGEMENT_NOTIF_TYPES,
   });
 
   const handleApprove = async (requestId, options = {}, requestRow = null) => {
