@@ -150,12 +150,6 @@ export default function MemberPackageDetailPage() {
           <div className="mpd2-statValue">{left}</div>
           <div className="mpd2-statSub">Sessions left</div>
         </div>
-
-        <div className="mpd2-statCard">
-          <div className="mpd2-label">Validity</div>
-          <div className="mpd2-statValue small">{fmtDate(data.expiryDate)}</div>
-          <div className="mpd2-statSub">Expiry date</div>
-        </div>
       </section>
 
       <section className="mpd2-detailGrid">
