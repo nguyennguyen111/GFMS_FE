@@ -156,8 +156,8 @@ export default function MemberMyPackagesPage() {
               {status === "active"
                 ? "Subscription"
                 : status === "pending"
-                ? "Payment Pending"
-                : "Package History"}
+                  ? "Payment Pending"
+                  : "Package History"}
             </div>
 
             <div className="mp3-name">{x.Package?.name || "—"}</div>
@@ -168,8 +168,8 @@ export default function MemberMyPackagesPage() {
             {status === "active"
               ? "ACTIVE"
               : status === "pending"
-              ? "PENDING"
-              : "USED UP"}
+                ? "PENDING"
+                : "USED UP"}
           </span>
         </div>
 
@@ -190,16 +190,6 @@ export default function MemberMyPackagesPage() {
         <div className="mp3-metaGrid">
           <div className="mp3-metaItem">
             <span className="mp3-metaIcon">
-              <CalendarDays size={14} />
-            </span>
-            <div>
-              <div className="mp3-metaLabel">Expiry date</div>
-              <div className="mp3-metaValue">{fmtDate(x.expiryDate)}</div>
-            </div>
-          </div>
-
-          <div className="mp3-metaItem">
-            <span className="mp3-metaIcon">
               <CreditCard size={14} />
             </span>
             <div>
@@ -214,29 +204,29 @@ export default function MemberMyPackagesPage() {
             <div className="mp3-pendingNote">Đang chờ hoàn tất thanh toán</div>
           ) : (
             <div className="mp3-footActions">
-            {x.__reviewEligible ? (
+              {x.__reviewEligible ? (
+                <button
+                  type="button"
+                  className="mp3-detailBtn ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/member/reviews?type=package&activationId=${x.id}`);
+                  }}
+                >
+                  <span>Đánh giá</span>
+                </button>
+              ) : null}
               <button
                 type="button"
-                className="mp3-detailBtn ghost"
+                className="mp3-detailBtn"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/member/reviews?type=package&activationId=${x.id}`);
+                  navigate(`/member/my-packages/${x.id}`);
                 }}
               >
-                <span>Đánh giá</span>
+                <span>View details</span>
+                <ArrowRight size={16} />
               </button>
-            ) : null}
-            <button
-              type="button"
-              className="mp3-detailBtn"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/member/my-packages/${x.id}`);
-              }}
-            >
-              <span>View details</span>
-              <ArrowRight size={16} />
-            </button>
             </div>
           )}
         </div>

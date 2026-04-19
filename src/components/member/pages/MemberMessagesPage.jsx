@@ -273,7 +273,7 @@ export default function MemberMessagesPage() {
 
         <section className="mm2-chat m-card">
           {!activeConversation ? <div className="mm2-empty">Chọn một hội thoại để bắt đầu nhắn tin.</div> : <>
-            <header className="mm2-chat-head"><div className="mm2-chat-user"><img className="mm2-avatar large" src={pickPtAvatarForMember(activeConversation.trainerAvatar, null)} alt={activeConversation.trainerName || "PT"} /><div><h3>{activeConversation.trainerName}</h3><p>{activeConversation.packageName ? `Gói: ${activeConversation.packageName}` : "Kênh liên lạc realtime với PT"}</p></div></div></header>
+            <header className="mm2-chat-head"><div className="mm2-chat-user"><img className="mm2-avatar large" src={pickPtAvatarForMember(activeConversation.trainerAvatar, null)} alt={activeConversation.trainerName || "PT"} /><div><h3>{activeConversation.trainerName}</h3><p>{activeConversation.packageName ? `Gói: ${activeConversation.packageName}` : "Kênh liên lạc với PT"}</p></div></div></header>
             <div className="mm2-messages">
               {loading ? <div className="m-empty">Đang tải hội thoại...</div> : null}
               {!loading && !messages.length ? <div className="m-empty">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.</div> : null}

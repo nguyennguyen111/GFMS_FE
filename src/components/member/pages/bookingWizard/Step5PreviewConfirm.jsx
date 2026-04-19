@@ -8,6 +8,7 @@ import {
   Dumbbell,
   MapPin,
   UserRound,
+  Lock,
 } from "lucide-react";
 import {
   memberConfirmFixedPlan,
@@ -27,15 +28,42 @@ const DOW_LABEL = {
   6: "T7",
 };
 
-function Chip({ active, disabled, onClick, children }) {
+const DEFAULT_TIME_SLOTS = [
+  { start: "08:00", end: "09:00" },
+  { start: "09:00", end: "10:00" },
+  { start: "10:00", end: "11:00" },
+  { start: "11:00", end: "12:00" },
+  { start: "12:00", end: "13:00" },
+  { start: "13:00", end: "14:00" },
+  { start: "14:00", end: "15:00" },
+  { start: "15:00", end: "16:00" },
+  { start: "16:00", end: "17:00" },
+  { start: "17:00", end: "18:00" },
+  { start: "18:00", end: "19:00" },
+  { start: "19:00", end: "20:00" },
+  { start: "20:00", end: "21:00" },
+  { start: "21:00", end: "22:00" },
+  { start: "22:00", end: "23:00" },
+];
+
+function Chip({ active, disabled, note, onClick, children }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`bw-chip ${active ? "isActive" : ""} ${disabled ? "isDisabled" : ""}`}
+      title={disabled ? note || "Khung giờ này hiện không khả dụng" : ""}
+      className={[
+        "bw-chip",
+        active ? "isActive" : "",
+        disabled ? "isDisabled" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      {children}
+      {disabled ? <Lock size={13} /> : <Clock3 size={14} />}
+      <span>{children}</span>
+      {disabled && note ? <small className="bw-chipNote">{note}</small> : null}
     </button>
   );
 }
@@ -81,6 +109,52 @@ function buildPreviewSessions({ startDate, pattern = [], totalSessions = 0, slot
   }
 
   return out;
+}
+
+function normalizeSlotAvailability(rawSlot = {}) {
+  const unavailable =
+    rawSlot?.isAvailable === false ||
+    rawSlot?.available === false ||
+    rawSlot?.disabled === true ||
+    rawSlot?.status === "busy" ||
+    rawSlot?.status === "unavailable" ||
+    rawSlot?.status === "occupied";
+
+  return {
+    ...rawSlot,
+    start: rawSlot?.start || "",
+    end: rawSlot?.end || "",
+    disabled: unavailable,
+    note:
+      rawSlot?.note ||
+      rawSlot?.reason ||
+      rawSlot?.message ||
+      (unavailable ? "PT bận / không thể nhận lịch này" : ""),
+  };
+}
+
+function mergeSlots(slotCatalog = [], apiSlots = []) {
+  const catalog =
+    Array.isArray(slotCatalog) && slotCatalog.length ? slotCatalog : DEFAULT_TIME_SLOTS;
+
+  const byKey = new Map(
+    (apiSlots || []).map((s) => {
+      const normalized = normalizeSlotAvailability(s);
+      return [`${normalized.start}-${normalized.end}`, normalized];
+    })
+  );
+
+  return catalog.map((base) => {
+    const key = `${base.start}-${base.end}`;
+    const matched = byKey.get(key);
+
+    if (matched) return matched;
+
+    return {
+      ...base,
+      disabled: true,
+    };
+  });
 }
 
 export default function Step5PreviewConfirm({
@@ -139,10 +213,10 @@ export default function Step5PreviewConfirm({
         const data = res?.data?.data || null;
         setOptions(data);
 
-        const firstSlot =
-          Array.isArray(data?.slots) && data.slots.length ? data.slots[0] : null;
+        const mergedSlots = mergeSlots(data?.slotCatalog, data?.slots);
+        const firstAvailableSlot = mergedSlots.find((s) => !s.disabled) || null;
 
-        setSlot(firstSlot || null);
+        setSlot(firstAvailableSlot);
       } catch (e) {
         if (!active) return;
 
@@ -160,7 +234,7 @@ export default function Step5PreviewConfirm({
     return () => {
       active = false;
     };
-  }, [pkg?.id, trainer?.id, startDate, patternKey]);
+  }, [pkg?.id, trainer?.id, startDate, patternKey, pattern]);
 
   const preview = useMemo(() => {
     return buildPreviewSessions({
@@ -172,7 +246,10 @@ export default function Step5PreviewConfirm({
   }, [startDate, pattern, totalSessions, slot]);
 
   const duplicateWarning = options?.warning || null;
-  const slots = Array.isArray(options?.slots) ? options.slots : [];
+
+  const slots = useMemo(() => {
+    return mergeSlots(options?.slotCatalog, options?.slots);
+  }, [options]);
 
   const canSubmit = !!(
     pkg?.id &&
@@ -181,6 +258,7 @@ export default function Step5PreviewConfirm({
     patternKey &&
     slot?.start &&
     slot?.end &&
+    !slot?.disabled &&
     preview.length > 0 &&
     (!duplicateWarning?.hasActiveSamePackage || confirmDuplicate)
   );
@@ -322,27 +400,45 @@ export default function Step5PreviewConfirm({
             Chọn khung giờ hợp lệ
           </div>
 
-          <div className="bw-chipRow" style={{ marginTop: 10 }}>
+          <div className="bw-chipRow bw-chipRowSlots" style={{ marginTop: 10 }}>
             {slots.map((s) => {
               const active = slot?.start === s.start && slot?.end === s.end;
+              const disabled = !!s.disabled;
+
               return (
                 <Chip
                   key={`${s.start}-${s.end}`}
                   active={active}
-                  onClick={() => setSlot(s)}
+                  disabled={disabled}
+                  note={s.note}
+                  onClick={() => {
+                    if (!disabled) setSlot(s);
+                  }}
                 >
-                  <Clock3 size={14} />
-                  <span>{s.start}–{s.end}</span>
+                  {s.start}–{s.end}
                 </Chip>
               );
             })}
 
             {!slots.length && (
               <div className="bw-alert bw-alertWarn">
-                Không có khung giờ nào hợp lệ cho toàn bộ lịch cố định này. Hãy quay lại chọn ngày bắt đầu hoặc pattern khác.
+                Không có dữ liệu khung giờ để hiển thị. Hãy quay lại chọn ngày bắt đầu hoặc pattern khác.
               </div>
             )}
           </div>
+
+          {!!slots.length && (
+            <div className="bw-slotLegend">
+              <span className="bw-slotLegendItem">
+                <span className="bw-slotLegendDot bw-slotLegendDot--available" />
+                Có thể chọn
+              </span>
+              <span className="bw-slotLegendItem">
+                <span className="bw-slotLegendDot bw-slotLegendDot--busy" />
+                PT bận / không khả dụng
+              </span>
+            </div>
+          )}
         </>
       )}
 
@@ -393,7 +489,7 @@ export default function Step5PreviewConfirm({
         </div>
       </div>
 
-      {!!slot && !!preview.length && (
+      {!!slot && !slot.disabled && !!preview.length && (
         <>
           <div className="bw-blockTitle">Lịch dự kiến</div>
 

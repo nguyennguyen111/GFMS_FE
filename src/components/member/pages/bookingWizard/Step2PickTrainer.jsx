@@ -54,10 +54,6 @@ export default function Step2PickTrainer({ trainers = [], value, onPick, onBack,
                 </div>
 
                 <div className="bw-featureRow">
-                  <span className="bw-featurePill">
-                    <Dumbbell size={14} />
-                    {t.totalSessions || 0} buổi
-                  </span>
                   <span className="bw-featurePill bw-featurePill--soft">
                     Chuyên môn: {t.specialization || "PT"}
                   </span>

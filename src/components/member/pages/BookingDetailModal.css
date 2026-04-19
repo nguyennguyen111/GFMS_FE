@@ -595,3 +595,70 @@
     font-size: 13px;
   }
 }
+.bd-slotLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bd-slotLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bd-slotLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 10px;
+}
+
+.bd-slotLegendDot--available {
+  background: var(--bd-primary);
+  box-shadow: 0 0 10px rgba(214, 255, 0, 0.24);
+}
+
+.bd-slotLegendDot--busy {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.bd-slotBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  text-align: left;
+}
+
+.bd-slotBtnMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bd-slotBtnSub {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.bd-slotBtn.is-disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: none;
+  box-shadow: none;
+}
+
+.bd-slotBtn.is-disabled:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.08);
+}
