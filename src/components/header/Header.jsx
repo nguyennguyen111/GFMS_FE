@@ -26,12 +26,14 @@ import useTrainerMessageUnread from "../../hooks/useTrainerMessageUnread";
 import { getCurrentUser } from "../../utils/auth";
 import { ownerGetMyGyms } from "../../services/ownerGymService";
 import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
+import MemberHeaderNotifications from "./MemberHeaderNotifications";
 import { getAccessToken } from "../../utils/auth";
 import { logoutUser } from "../../services/authService";
 
-
 const prettifyDisplayName = (user) => {
-  const raw = String(user?.displayName || user?.username || user?.email || "Tài khoản").trim();
+  const raw = String(
+    user?.displayName || user?.username || user?.email || "Tài khoản"
+  ).trim();
   if (!raw) return "Tài khoản";
   const local = raw.includes("@") ? raw.split("@")[0] : raw;
   const normalized = local.replace(/[._]+/g, " ").replace(/\s+/g, " ").trim();
@@ -89,11 +91,26 @@ export default function Header() {
   const [ownerGyms, setOwnerGyms] = useState([]);
 
   void authTick;
-  const { token, username, avatar, isMember, isLoggedInNonMember, portalPath, groupId, isPT } =
-    readAuth();
+  const {
+    token,
+    username,
+    avatar,
+    isMember,
+    isLoggedInNonMember,
+    portalPath,
+    groupId,
+    isPT,
+  } = readAuth();
+
   const isOwner = groupId === 2;
-  const notificationPath = isMember ? "/member/notifications" : isOwner ? "/owner/notifications" : null;
-  const { selectedGymId, selectedGymName, setSelectedGym, clearSelectedGym } = useSelectedGym();
+  const notificationPath = isMember
+    ? "/member/notifications"
+    : isOwner
+    ? "/owner/notifications"
+    : null;
+
+  const { selectedGymId, selectedGymName, setSelectedGym, clearSelectedGym } =
+    useSelectedGym();
 
   const notifications = useRealtimeNotifications({ enabled: isMember });
   const trainerNotifications = useTrainerNotifications();
@@ -230,22 +247,6 @@ export default function Header() {
     </NavLink>
   );
 
-  const SimpleNotificationButton = () => (
-    <button
-      type="button"
-      className="header-icon-btn"
-      aria-label="Thông báo"
-      onClick={() => {
-        if (notificationPath) go(notificationPath);
-      }}
-    >
-      <Bell size={18} />
-      {notifications.unreadCount > 0 ? (
-        <span className="header-noti-dot" />
-      ) : null}
-    </button>
-  );
-
   const PTNotificationButton = () => (
     <button
       type="button"
@@ -341,7 +342,9 @@ export default function Header() {
         <span className="profile-btn__stack">
           <span>{username}</span>
           {isOwner ? (
-            <span className="profile-btn__sub">{selectedGymName || "Tất cả chi nhánh"}</span>
+            <span className="profile-btn__sub">
+              {selectedGymName || "Tất cả chi nhánh"}
+            </span>
           ) : null}
         </span>
         <ChevronDown size={16} className="profile-caret" />
@@ -359,11 +362,15 @@ export default function Header() {
           {isOwner ? (
             <>
               {portalPath ? <div className="dropdown-divider" /> : null}
-              <div className="profile-dropdown-sectionTitle">Quản lý chi nhánh</div>
+              <div className="profile-dropdown-sectionTitle">
+                Quản lý chi nhánh
+              </div>
               <button
                 onClick={() => handleSelectOwnerGym(null)}
                 type="button"
-                className={`profile-dropdown-branch ${!selectedGymId ? "is-active" : ""}`}
+                className={`profile-dropdown-branch ${
+                  !selectedGymId ? "is-active" : ""
+                }`}
               >
                 <span className="profile-dropdown-branch__label">
                   <Building2 size={16} />
@@ -376,13 +383,17 @@ export default function Header() {
                   key={gym.id}
                   onClick={() => handleSelectOwnerGym(gym)}
                   type="button"
-                  className={`profile-dropdown-branch ${Number(selectedGymId) === Number(gym.id) ? "is-active" : ""}`}
+                  className={`profile-dropdown-branch ${
+                    Number(selectedGymId) === Number(gym.id) ? "is-active" : ""
+                  }`}
                 >
                   <span className="profile-dropdown-branch__label">
                     <Building2 size={16} />
                     <span>{gym.name}</span>
                   </span>
-                  {Number(selectedGymId) === Number(gym.id) ? <Check size={15} /> : null}
+                  {Number(selectedGymId) === Number(gym.id) ? (
+                    <Check size={15} />
+                  ) : null}
                 </button>
               ))}
             </>
@@ -537,14 +548,21 @@ export default function Header() {
               </button>
             )}
 
-            {isOwner && notificationPath ? <OwnerHeaderNotifications onNavigate={go} /> : null}
-            {!isOwner && isMember && notificationPath ? <SimpleNotificationButton /> : null}
+            {isOwner && notificationPath ? (
+              <OwnerHeaderNotifications onNavigate={go} />
+            ) : null}
+
+            {!isOwner && isMember && notificationPath ? (
+              <MemberHeaderNotifications onNavigate={go} />
+            ) : null}
+
             {isPT ? (
               <>
                 <PTNotificationButton />
                 <PTMessageButton />
               </>
             ) : null}
+
             {isMember && <MemberDropdown />}
             {isLoggedInNonMember && <StaffAccountDropdown />}
 
