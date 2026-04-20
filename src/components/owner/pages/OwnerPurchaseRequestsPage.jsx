@@ -5,7 +5,6 @@ import {
   ownerGetSuppliers,
   ownerCreatePurchaseRequest,
   ownerGetPurchaseRequests,
-  ownerGetPurchaseRequestDetail,
   ownerCreatePurchaseRequestPayOSLink,
   ownerConfirmReceivePurchaseRequest,
 } from "../../../services/ownerPurchaseService";
@@ -121,30 +120,16 @@ export default function OwnerPurchaseRequestsPage() {
       const list = Array.isArray(data) ? data : [];
       const meta = res?.data?.meta || {};
 
-      const detailResults = await Promise.allSettled(
-        list.map((item) => ownerGetPurchaseRequestDetail(item.id))
-      );
-
-      const detailById = new Map();
-      detailResults.forEach((result) => {
-        const detail = result.status === "fulfilled" ? (result.value?.data?.data ?? result.value?.data) : null;
-        if (detail?.id) detailById.set(detail.id, detail);
-      });
-
       const extractReasonCode = (noteText) =>
         /reason:([a-z_]+)/i.exec(String(noteText || ""))?.[1]?.toLowerCase() || null;
 
       const normalized = list.map((row) => {
-        const detail = detailById.get(row.id);
-        const firstItem = detail?.items?.[0];
-        const reasonFromNote = extractReasonCode(detail?.notes) || extractReasonCode(row?.notes);
+        const reasonFromNote = extractReasonCode(row?.notes);
 
         return {
           ...row,
-          equipment: row.equipment || firstItem?.equipment || null,
-          quantity: row.quantity ?? firstItem?.quantity ?? null,
-          reasonCode: reasonFromNote || null,
-          fulfillmentPlan: detail?.fulfillmentPlan || row?.fulfillmentPlan || null,
+          reasonCode: String(row?.reason || "").trim().toLowerCase() || reasonFromNote || null,
+          fulfillmentPlan: row?.fulfillmentPlan || null,
         };
       });
 
