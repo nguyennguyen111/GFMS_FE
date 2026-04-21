@@ -1,374 +1,250 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import axios from "../../../setup/axios";
 import adminPurchaseWorkflowService from "../../../services/adminPurchaseWorkflowService";
 import { connectSocket } from "../../../services/socketClient";
+import "./PurchaseWorkflowPage.css";
 
-const money = (v) => Number(v || 0).toLocaleString("vi-VN") + " đ";
-const statusLabel = (s) =>
-  ({
-    submitted: "Chờ duyệt",
-    approved_waiting_payment: "Đã duyệt, chờ thanh toán",
-    paid_waiting_admin_confirm: "Đã thanh toán, chờ admin xác nhận",
-    shipping: "Đang chuyển thiết bị",
-    completed: "Hoàn tất",
-    rejected: "Đã từ chối",
-  }[s] || s);
+const statusLabel = (status) => ({
+  submitted: "Chờ admin duyệt",
+  approved_waiting_deposit: "Đã duyệt, chờ owner cọc 30%",
+  paid_waiting_admin_confirm: "Owner đã cọc, chờ admin bàn giao",
+  shipping: "Admin đang giao combo",
+  delivered_waiting_final_payment: "Owner đã nhận, chờ thanh toán 70%",
+  completed: "Hoàn tất",
+  rejected: "Bị từ chối",
+}[status] || status || "-");
+
+const money = (v) => Number(v || 0).toLocaleString("vi-VN");
+const formatDate = (value) => value ? new Date(value).toLocaleString("vi-VN") : "-";
 
 export default function PurchaseWorkflowPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [q, setQ] = useState("");
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
-  const [rejecting, setRejecting] = useState(null);
-  const [historyRows, setHistoryRows] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyQ, setHistoryQ] = useState("");
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyMeta, setHistoryMeta] = useState({ page: 1, limit: 10, total: 0 });
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailRow, setDetailRow] = useState(null);
+  const [rejectMap, setRejectMap] = useState({});
 
-  const fetchList = useCallback(async () => {
+  const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
+  const absUrl = (value) => (value ? (String(value).startsWith("http") || String(value).startsWith("data:") ? String(value) : `${API_HOST}${value}`) : "");
+
+  const summary = useMemo(() => rows.reduce((acc, row) => {
+    acc.total += 1;
+    acc[row.status] = (acc[row.status] || 0) + 1;
+    return acc;
+  }, { total: 0 }), [rows]);
+
+  const loadRows = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const res = await adminPurchaseWorkflowService.getPurchaseRequests({
-        q: q.trim() || undefined,
-        status: status === "all" ? undefined : status,
-        page,
-        limit: meta.limit || 10,
-      });
+      const res = await adminPurchaseWorkflowService.getPurchaseRequests({ q: query, status });
       setRows(res?.data?.data || []);
-      setMeta(res?.data?.meta || { page: 1, limit: 10, total: 0 });
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      setError(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  }, [meta.limit, page, q, status]);
+  }, [query, status]);
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
-
-  const fetchHistory = useCallback(async () => {
-    setHistoryLoading(true);
-    try {
-      const res = await adminPurchaseWorkflowService.getEquipmentSalesTransactions({
-        q: historyQ.trim() || undefined,
-        page: historyPage,
-        limit: historyMeta.limit || 10,
-      });
-      setHistoryRows(res?.data?.data || []);
-      setHistoryMeta(res?.data?.meta || { page: 1, limit: 10, total: 0 });
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message);
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [historyMeta.limit, historyPage, historyQ]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useEffect(() => { loadRows(); }, [loadRows]);
 
   useEffect(() => {
     const socket = connectSocket();
-    const onNotification = () => {
-      fetchList();
-      fetchHistory();
+    const onPurchaseFlowChanged = (payload = {}) => {
+      const relatedType = String(payload?.relatedType || payload?.type || "").toLowerCase();
+      const notificationType = String(payload?.notificationType || payload?.type || "").toLowerCase();
+      if (["purchaserequest", "purchase_request"].includes(relatedType) || ["purchase_request", "payment"].includes(notificationType)) {
+        loadRows();
+      }
     };
-    socket.on("notification:new", onNotification);
-    const timer = setInterval(() => {
-      fetchList();
-      fetchHistory();
-    }, 10000);
-    return () => {
-      clearInterval(timer);
-      socket.off("notification:new", onNotification);
-    };
-  }, [fetchHistory, fetchList]);
 
-  const approveRequest = async (row) => {
-    if (!window.confirm(`Duyệt yêu cầu ${row.code}?`)) return;
+    socket.on("notification:new", onPurchaseFlowChanged);
+    return () => socket.off("notification:new", onPurchaseFlowChanged);
+  }, [loadRows]);
+
+  useEffect(() => {
+    if (!rows.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = Number(params.get("highlight") || 0);
+    if (!highlightId) return;
+    if (!rows.some((item) => Number(item.id) === highlightId)) return;
+    window.requestAnimationFrame(() => {
+      const el = document.getElementById(`admin-purchase-request-${highlightId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [rows]);
+
+  const approve = async (id) => {
     try {
-      await adminPurchaseWorkflowService.approvePurchaseRequest(row.id);
-      await fetchList();
+      await adminPurchaseWorkflowService.approvePurchaseRequest(id);
+      loadRows();
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Không thể duyệt yêu cầu.");
+      setError(e?.response?.data?.message || e.message);
     }
   };
 
-  const rejectRequest = async (row) => {
-    const reason = window.prompt("Nhập lý do từ chối:");
-    if (!reason) return;
-    setRejecting(row.id);
+  const reject = async (id) => {
     try {
-      await adminPurchaseWorkflowService.rejectPurchaseRequest(row.id, { rejectionReason: reason });
-      await fetchList();
-    } finally {
-      setRejecting(null);
+      await adminPurchaseWorkflowService.rejectPurchaseRequest(id, { rejectionReason: rejectMap[id] || "Admin từ chối yêu cầu mua combo" });
+      setRejectMap((prev) => ({ ...prev, [id]: "" }));
+      loadRows();
+    } catch (e) {
+      setError(e?.response?.data?.message || e.message);
     }
   };
 
-  const confirmPaymentAndShip = async (row) => {
-    if (!window.confirm(`Xác nhận đã nhận tiền và chuyển thiết bị cho ${row.code}?`)) return;
+  const ship = async (id) => {
     try {
-      await adminPurchaseWorkflowService.confirmPurchaseRequestPaymentAndShip(row.id);
-      await fetchList();
-      await fetchHistory();
-      alert(`Đã xác nhận nhận tiền và chuyển thiết bị cho ${row.code}.`);
+      await adminPurchaseWorkflowService.confirmPurchaseRequestPaymentAndShip(id);
+      loadRows();
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Không thể xác nhận chuyển hàng.");
-    }
-  };
-
-  const openRequestDetail = async (row) => {
-    setDetailOpen(true);
-    setDetailLoading(true);
-    setDetailRow(null);
-    try {
-      const res = await adminPurchaseWorkflowService.getPurchaseRequestDetail(row.id);
-      const detail = res?.data?.data || res?.data || null;
-      setDetailRow(detail);
-    } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Không tải được chi tiết yêu cầu.");
-      setDetailOpen(false);
-    } finally {
-      setDetailLoading(false);
+      setError(e?.response?.data?.message || e.message);
     }
   };
 
   return (
-    <div>
-      <div style={{ fontSize: 26, fontWeight: 900, marginBottom: 12 }}>Yêu cầu bán thiết bị</div>
+    <div className="purchase-admin-page">
+      <section className="purchase-admin-hero">
+        <div>
+          <div className="purchase-admin-kicker">Admin workflow</div>
+          <h2>Yêu cầu bán combo</h2>
+          <p>
+            Admin theo dõi trọn luồng combo: owner gửi yêu cầu → admin duyệt → owner cọc 30% → admin giao combo
+            → owner xác nhận nhận → owner thanh toán 70% còn lại.
+          </p>
+        </div>
+        <div className="purchase-admin-stats">
+          <div className="purchase-admin-stat"><span>Tổng request</span><strong>{summary.total || 0}</strong></div>
+          <div className="purchase-admin-stat"><span>Chờ duyệt</span><strong>{summary.submitted || 0}</strong></div>
+          <div className="purchase-admin-stat"><span>Chờ bàn giao</span><strong>{summary.paid_waiting_admin_confirm || 0}</strong></div>
+          <div className="purchase-admin-stat purchase-admin-stat--accent"><span>Hoàn tất</span><strong>{summary.completed || 0}</strong></div>
+        </div>
+      </section>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo mã/ghi chú..." style={input} />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} style={select}>
+      <section className="purchase-admin-toolbar">
+        <input
+          className="purchase-admin-input"
+          placeholder="Tìm theo mã request, combo, gym, owner..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select className="purchase-admin-input" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
           <option value="submitted">submitted</option>
-          <option value="approved_waiting_payment">approved_waiting_payment</option>
+          <option value="approved_waiting_deposit">approved_waiting_deposit</option>
           <option value="paid_waiting_admin_confirm">paid_waiting_admin_confirm</option>
           <option value="shipping">shipping</option>
+          <option value="delivered_waiting_final_payment">delivered_waiting_final_payment</option>
           <option value="completed">completed</option>
           <option value="rejected">rejected</option>
         </select>
-        <button className="ad-btn" onClick={() => { setPage(1); fetchList(); }} disabled={loading}>
-          {loading ? "Đang tải..." : "Tải lại"}
-        </button>
-      </div>
+        <button className="purchase-admin-btn" onClick={loadRows}>Tìm</button>
+      </section>
 
-      <div style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead style={{ background: "rgba(255,255,255,0.04)" }}>
-            <tr>
-              <th style={th}>Mã yêu cầu</th>
-              <th style={th}>Gym</th>
-              <th style={th}>Thiết bị</th>
-              <th style={th}>SL</th>
-              <th style={th}>Đơn giá</th>
-              <th style={th}>Thành tiền</th>
-              <th style={th}>Trạng thái</th>
-              <th style={thRight}>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td style={td}><b>{r.code}</b></td>
-                <td style={td}>{r.gym?.name || "-"}</td>
-                <td style={td}>{r.equipment?.name || "-"}</td>
-                <td style={td}>{Number(r.quantity || 0)}</td>
-                <td style={td}>{money(r.expectedUnitPrice)}</td>
-                <td style={td}>{money(Number(r.quantity || 0) * Number(r.expectedUnitPrice || 0))}</td>
-                <td style={td}>{statusLabel(r.status)}</td>
-                <td style={tdRight}>
-                  <button className="ad-btn" onClick={() => openRequestDetail(r)}>Chi tiết</button>{" "}
-                  <button className="ad-btn" onClick={() => approveRequest(r)} disabled={r.status !== "submitted"}>Duyệt</button>{" "}
-                  <button className="ad-btn" onClick={() => rejectRequest(r)} disabled={r.status !== "submitted" || rejecting === r.id}>
-                    {rejecting === r.id ? "Đang xử lý..." : "Từ chối"}
-                  </button>{" "}
-                  <button
-                    className="ad-btn"
-                    onClick={() => confirmPaymentAndShip(r)}
-                    disabled={r.status !== "paid_waiting_admin_confirm"}
-                  >
-                    Xác nhận tiền & chuyển hàng
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!rows.length && (
-              <tr>
-                <td style={{ ...td, opacity: 0.7 }} colSpan={8}>
-                  Không có dữ liệu.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {error ? <div className="purchase-admin-alert">{error}</div> : null}
+      {loading ? <div className="purchase-admin-empty">Đang tải yêu cầu...</div> : null}
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, opacity: 0.8 }}>
-        <div>Page {meta.page} • Total: {meta.total}</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="ad-btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>← Prev</button>
-          <button className="ad-btn" onClick={() => setPage((p) => p + 1)} disabled={rows.length < (meta.limit || 10)}>Next →</button>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 24, fontSize: 22, fontWeight: 800 }}>Lịch sử giao dịch bán thiết bị</div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "10px 0 12px" }}>
-        <input
-          value={historyQ}
-          onChange={(e) => setHistoryQ(e.target.value)}
-          placeholder="Tìm theo owner, thiết bị, gym, mã GD, mã yêu cầu..."
-          style={input}
-        />
-        <button className="ad-btn" onClick={() => { setHistoryPage(1); fetchHistory(); }} disabled={historyLoading}>
-          {historyLoading ? "Đang tải..." : "Tìm kiếm"}
-        </button>
-      </div>
-
-      <div style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead style={{ background: "rgba(255,255,255,0.04)" }}>
-            <tr>
-              <th style={th}>Mã GD</th>
-              <th style={th}>Mã yêu cầu</th>
-              <th style={th}>Owner</th>
-              <th style={th}>Gym</th>
-              <th style={th}>Thiết bị</th>
-              <th style={th}>Số lượng</th>
-              <th style={th}>Số tiền</th>
-              <th style={th}>Trạng thái</th>
-              <th style={th}>Ngày giao dịch</th>
-            </tr>
-          </thead>
-          <tbody>
-            {historyRows.map((r) => (
-              <tr key={r.id}>
-                <td style={td}><b>{r.transactionCode || "-"}</b></td>
-                <td style={td}>{r.purchaseRequestCode || "-"}</td>
-                <td style={td}>{r.owner || "-"}</td>
-                <td style={td}>{r.gymName || "-"}</td>
-                <td style={td}>{r.equipmentName || "-"}</td>
-                <td style={td}>{Number(r.quantity || 0)}</td>
-                <td style={td}>{money(r.amount)}</td>
-                <td style={td}>{r.paymentStatus === "completed" ? "Đã ghi nhận" : "Đang xử lý"}</td>
-                <td style={td}>{r.transactionDate ? new Date(r.transactionDate).toLocaleString("vi-VN") : "-"}</td>
-              </tr>
-            ))}
-            {!historyRows.length && (
-              <tr>
-                <td style={{ ...td, opacity: 0.7 }} colSpan={9}>
-                  Không có lịch sử giao dịch.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, opacity: 0.8 }}>
-        <div>Page {historyMeta.page} • Total: {historyMeta.total}</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="ad-btn" onClick={() => setHistoryPage((p) => Math.max(1, p - 1))} disabled={historyPage <= 1}>← Prev</button>
-          <button className="ad-btn" onClick={() => setHistoryPage((p) => p + 1)} disabled={historyRows.length < (historyMeta.limit || 10)}>Next →</button>
-        </div>
-      </div>
-
-      {detailOpen
-        ? createPortal(
-            <div style={modalBackdrop} onMouseDown={() => setDetailOpen(false)}>
-              <div style={modalCard} onMouseDown={(e) => e.stopPropagation()}>
-                <div style={modalHead}>
-                  <div style={{ fontSize: 18, fontWeight: 800 }}>Chi tiết yêu cầu bán thiết bị</div>
-                  <button className="ad-btn" onClick={() => setDetailOpen(false)}>Đóng</button>
+      <div className="purchase-admin-list">
+        {rows.map((row) => {
+          const thumbnailUrl = absUrl(row.combo?.thumbnail);
+          return (
+            <article id={`admin-purchase-request-${row.id}`} key={row.id} className="purchase-admin-card">
+              <div className="purchase-admin-card__hero">
+                <div className="purchase-admin-card__media">
+                  {thumbnailUrl ? <img src={thumbnailUrl} alt={row.combo?.name || row.code} /> : <span>{(row.combo?.name || row.code || "C").slice(0, 1).toUpperCase()}</span>}
                 </div>
-
-                {detailLoading ? (
-                  <div style={{ opacity: 0.8 }}>Đang tải chi tiết...</div>
-                ) : (
-                  <div style={detailGrid}>
-                    <div><b>Mã yêu cầu:</b> {detailRow?.code || "-"}</div>
-                    <div><b>Trạng thái:</b> {statusLabel(detailRow?.status)}</div>
-                    <div><b>Gym:</b> {detailRow?.gym?.name || "-"}</div>
-                    <div><b>Thiết bị:</b> {detailRow?.equipment?.name || "-"}</div>
-                    <div><b>Số lượng:</b> {Number(detailRow?.quantity || 0)}</div>
-                    <div><b>Đơn giá:</b> {money(detailRow?.expectedUnitPrice || 0)}</div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <b>Owner mua thiết bị:</b>{" "}
-                      {detailRow?.requester?.username || detailRow?.requester?.email || "Không có thông tin"}
+                <div className="purchase-admin-card__content">
+                  <div className="purchase-admin-card__top">
+                    <div>
+                      <div className="purchase-admin-card__code">{row.code}</div>
+                      <div className="purchase-admin-card__meta">{row.combo?.name || "-"} · {row.gym?.name || "-"}</div>
                     </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <b>Email owner:</b> {detailRow?.requester?.email || "-"}
-                    </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <b>Ghi chú:</b> {detailRow?.notes || "-"}
+                    <div className="purchase-admin-card__statusWrap">
+                      <span className={`purchase-admin-badge status-${row.status}`}>{statusLabel(row.status)}</span>
+                      <strong>{money(row.totalAmount || row.payableAmount)}đ</strong>
                     </div>
                   </div>
-                )}
+
+                  <div className="purchase-admin-grid">
+                    <div className="purchase-admin-infoBlock">
+                      <h4>Thông tin owner</h4>
+                      <div className="purchase-admin-kv"><span>Owner</span><b>{row.requester?.username || row.requester?.email || "-"}</b></div>
+                      <div className="purchase-admin-kv"><span>Liên hệ</span><b>{row.contactName || row.contactPhone || row.contactEmail || "-"}</b></div>
+                      <div className="purchase-admin-kv"><span>Supplier</span><b>{row.combo?.supplier?.name || "-"}</b></div>
+                    </div>
+
+                    <div className="purchase-admin-infoBlock">
+                      <h4>Thanh toán</h4>
+                      <div className="purchase-admin-kv"><span>Tổng giá combo</span><b>{money(row.totalAmount || row.payableAmount)}đ</b></div>
+                      <div className="purchase-admin-kv"><span>Cọc 30%</span><b>{money(row.depositAmount)}đ</b></div>
+                      <div className="purchase-admin-kv"><span>Còn lại 70%</span><b>{money(row.finalAmount || row.remainingAmount)}đ</b></div>
+                    </div>
+
+                    <div className="purchase-admin-infoBlock">
+                      <h4>Mốc thời gian</h4>
+                      <div className="purchase-admin-kv"><span>Duyệt lúc</span><b>{formatDate(row.approvedAt)}</b></div>
+                      <div className="purchase-admin-kv"><span>Giao lúc</span><b>{formatDate(row.shippingAt)}</b></div>
+                      <div className="purchase-admin-kv"><span>Hoàn tất</span><b>{formatDate(row.completedAt)}</b></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>,
-            document.body
-          )
-        : null}
+
+              <div className="purchase-admin-note">{row.note || "Không có ghi chú từ owner."}</div>
+
+              <div className="purchase-admin-equipmentList">
+                {(row.combo?.items || []).map((item, index) => {
+                  const equipment = item.equipment || {};
+                  const imageUrl = absUrl(equipment.primaryImageUrl || equipment?.images?.[0]?.url || "");
+                  return (
+                    <div key={item.id || `${item.equipmentId}-${index}`} className="purchase-admin-equipmentRow">
+                      <div className="purchase-admin-equipmentRow__media">
+                        {imageUrl ? <img src={imageUrl} alt={equipment.name || `Thiết bị ${index + 1}`} /> : <span>{(equipment.name || "T").slice(0, 1).toUpperCase()}</span>}
+                      </div>
+                      <div className="purchase-admin-equipmentRow__body">
+                        <div className="purchase-admin-equipmentRow__top">
+                          <strong>{equipment.name || `#${item.equipmentId}`}</strong>
+                          <span>x {item.quantity}</span>
+                        </div>
+                        <div className="purchase-admin-equipmentRow__meta">
+                          <span>{equipment.code || "-"}</span>
+                          {equipment.category?.name ? <span>{equipment.category.name}</span> : null}
+                          {equipment.supplier?.name ? <span>{equipment.supplier.name}</span> : null}
+                        </div>
+                        <div className="purchase-admin-equipmentRow__desc">{equipment.description || item.note || "Thiết bị snapshot theo combo tại thời điểm request."}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!row.combo?.items?.length ? <div className="purchase-admin-empty">Combo này chưa có item hiển thị.</div> : null}
+              </div>
+
+              <div className="purchase-admin-actions">
+                <button className="purchase-admin-btn purchase-admin-btn--accent" disabled={row.status !== "submitted"} onClick={() => approve(row.id)}>
+                  Duyệt request
+                </button>
+                <div className="purchase-admin-rejectBox">
+                  <input
+                    className="purchase-admin-input"
+                    placeholder="Lý do từ chối"
+                    value={rejectMap[row.id] || ""}
+                    onChange={(e) => setRejectMap((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                  />
+                  <button className="purchase-admin-btn purchase-admin-btn--ghost" disabled={row.status !== "submitted"} onClick={() => reject(row.id)}>
+                    Từ chối
+                  </button>
+                </div>
+                <button className="purchase-admin-btn" disabled={row.status !== "paid_waiting_admin_confirm"} onClick={() => ship(row.id)}>
+                  Xác nhận giao / shipping
+                </button>
+                {row.status === "rejected" ? <div className="purchase-admin-rejectReason">Lý do: {row.rejectReason || row.adminRejectionNote || "-"}</div> : null}
+              </div>
+            </article>
+          );
+        })}
+        {!rows.length && !loading ? <div className="purchase-admin-empty">Không có yêu cầu nào.</div> : null}
+      </div>
     </div>
   );
 }
-
-const th = { textAlign: "left", padding: "12px 12px", fontSize: 12, opacity: 0.85 };
-const thRight = { ...th, textAlign: "right" };
-const td = { padding: "12px 12px", borderTop: "1px solid rgba(255,255,255,0.08)", verticalAlign: "top" };
-const tdRight = { ...td, textAlign: "right", whiteSpace: "nowrap" };
-const modalBackdrop = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,.62)",
-  display: "grid",
-  placeItems: "center",
-  zIndex: 1000,
-  padding: 16,
-};
-const modalCard = {
-  width: 720,
-  maxWidth: "96vw",
-  borderRadius: 18,
-  border: "1px solid rgba(255,255,255,.14)",
-  background: "rgba(12,18,28,.95)",
-  padding: 16,
-  color: "#eef2ff",
-};
-const modalHead = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 12,
-};
-const detailGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 10,
-  lineHeight: 1.5,
-};
-const input = {
-  width: "100%",
-  maxWidth: 420,
-  padding: "10px 12px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.14)",
-  background: "rgba(255,255,255,0.06)",
-  color: "#eef2ff",
-};
-const select = {
-  width: 260,
-  padding: "10px 12px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.14)",
-  background: "rgba(255,255,255,0.06)",
-  color: "#eef2ff",
-};

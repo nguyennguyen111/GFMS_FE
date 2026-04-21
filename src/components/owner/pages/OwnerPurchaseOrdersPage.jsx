@@ -6,7 +6,7 @@ import useSelectedGym from "../../../hooks/useSelectedGym";
 
 const statusBadge = (status) => ({
   submitted: "Chờ admin duyệt",
-  approved_waiting_payment: "Đã duyệt, chờ thanh toán",
+  approved_waiting_deposit: "Đã duyệt, chờ cọc 30%",
   paid_waiting_admin_confirm: "Đã thanh toán, chờ admin xác nhận",
   shipping: "Đang chuyển thiết bị",
   completed: "Hoàn tất",
@@ -40,7 +40,7 @@ export default function OwnerPurchaseOrdersPage() {
       });
       const raw = res?.data?.data ?? [];
       const flowRows = (Array.isArray(raw) ? raw : []).filter((r) =>
-        ["approved_waiting_payment", "paid_waiting_admin_confirm", "shipping", "completed"].includes(String(r.status || ""))
+        ["approved_waiting_deposit", "paid_waiting_admin_confirm", "shipping", "completed"].includes(String(r.status || ""))
       );
       setOrders(flowRows);
       setMeta(res?.data?.meta ?? { page, limit: 10, totalItems: 0, totalPages: 1 });
@@ -103,7 +103,7 @@ export default function OwnerPurchaseOrdersPage() {
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="approved_waiting_payment">Đã duyệt, chờ thanh toán</option>
+              <option value="approved_waiting_deposit">Đã duyệt, chờ cọc 30%</option>
               <option value="paid_waiting_admin_confirm">Đã thanh toán, chờ admin</option>
               <option value="shipping">Đang chuyển thiết bị</option>
               <option value="completed">Hoàn tất</option>
