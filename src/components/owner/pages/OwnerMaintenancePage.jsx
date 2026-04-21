@@ -15,6 +15,7 @@ import { showAppConfirm } from "../../../utils/appDialog";
 const statusOptions = [
   { value: "", label: "Tất cả" },
   { value: "pending", label: "Chờ duyệt" },
+  { value: "approve", label: "Đã duyệt" },
   { value: "assigned", label: "Đã phân công" },
   { value: "in_progress", label: "Đang xử lý" },
   { value: "completed", label: "Hoàn thành" },
@@ -36,6 +37,28 @@ const formatMaintenanceStatus = (status) => {
 const money = (v) => {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN");
+};
+
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "—");
+
+const getMaintenanceCode = (value) => {
+  const id = Number(value || 0);
+  return id ? `MT-${String(id).padStart(6, "0")}` : "—";
+};
+
+const getEtaText = (row) => {
+  if (!row?.targetCompletionDate) return "Chưa có ETA";
+
+  const dateText = formatDateTime(row.targetCompletionDate);
+  const end = new Date(row.targetCompletionDate).getTime();
+  const now = Date.now();
+  const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+
+  if (row?.status === "completed") return `${dateText} · Đã hoàn tất`;
+  if (row?.status === "cancelled") return `${dateText} · Đã đóng`;
+  if (diffDays > 0) return `${dateText} · Còn ${diffDays} ngày`;
+  if (diffDays === 0) return `${dateText} · Đến hạn hôm nay`;
+  return `${dateText} · Quá hạn ${Math.abs(diffDays)} ngày`;
 };
 
 export default function OwnerMaintenancePage() {
@@ -230,7 +253,7 @@ export default function OwnerMaintenancePage() {
           <div className="oma-title">Bảo trì / Sửa chữa</div>
           <div className="oma-sub">{selectedGymName ? `Đang quản lý bảo trì của chi nhánh ${selectedGymName}` : "Tạo yêu cầu bảo trì thiết bị của gym"}</div>
         </div>
-        <button className="btn-primary" onClick={openCreateModal}>
+        <button className="oma-btn oma-btn--primary" onClick={openCreateModal}>
           + Tạo mới
         </button>
       </div>
@@ -299,10 +322,11 @@ export default function OwnerMaintenancePage() {
             <table className="oma-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>Mã</th>
                   <th>Trạng thái</th>
                   <th>Phòng tập</th>
                   <th>Thiết bị</th>
+                  <th>Trạng thái thời hạn</th>
                   <th>Ngày tạo</th>
                 </tr>
               </thead>
@@ -316,18 +340,19 @@ export default function OwnerMaintenancePage() {
                     }}
                     style={{ cursor: 'pointer' }}
                   >
-                    <td>#{r.id}</td>
+                    <td>{getMaintenanceCode(r.id)}</td>
                     <td>
                       <span className={`oma-pill oma-pill--${r.status}`}>{formatMaintenanceStatus(r.status)}</span>
                     </td>
                     <td>{r.Gym?.name || r.gym?.name || r.gymId || "-"}</td>
                     <td>{r.Equipment?.name || r.equipment?.name || r.equipmentId || "-"}</td>
-                    <td>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "-"}</td>
+                    <td>{getEtaText(r)}</td>
+                    <td>{formatDateTime(r.createdAt)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="oma-empty">
+                    <td colSpan={6} className="oma-empty">
                       Không có dữ liệu
                     </td>
                   </tr>
@@ -336,21 +361,21 @@ export default function OwnerMaintenancePage() {
             </table>
           </div>
 
-          <div className="pagination">
+          <div className="oma-paging">
             <button
               disabled={meta.page === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="pagination-btn"
+              className="oma-btn"
             >
               Trước
             </button>
-            <span className="pagination-info">
+            <span className="oma-paging__text">
               Trang {meta.page || 1} / {meta.totalPages || 1}
             </span>
             <button
               disabled={(meta.page || 1) >= (meta.totalPages || 1)}
               onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
-              className="pagination-btn"
+              className="oma-btn"
             >
               Sau
             </button>
@@ -360,17 +385,22 @@ export default function OwnerMaintenancePage() {
 
       {/* Detail Modal */}
       {showDetailModal && detail && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal-content modal-detail" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Chi tiết yêu cầu bảo trì #{detail.id}</h2>
-              <button className="modal-close" onClick={() => setShowDetailModal(false)}>
+        <div className="oma-modal__backdrop" onClick={() => setShowDetailModal(false)}>
+          <div className="oma-modal oma-modal--detail" onClick={(e) => e.stopPropagation()}>
+            <div className="oma-modal__head">
+              <h2 className="oma-modal__title">Chi tiết yêu cầu bảo trì #{detail.id}</h2>
+              <button className="oma-btn oma-btn--ghost" onClick={() => setShowDetailModal(false)}>
                 ×
               </button>
             </div>
             
-            <div className="modal-body">
+            <div className="oma-modal__body">
               <div className="detail-grid">
+                <div className="detail-row">
+                  <span className="detail-label">Mã yêu cầu:</span>
+                  <span className="detail-value">{getMaintenanceCode(detail.id)}</span>
+                </div>
+
                 <div className="detail-row">
                   <span className="detail-label">Trạng thái:</span>
                   <span className="detail-value">
@@ -396,15 +426,25 @@ export default function OwnerMaintenancePage() {
                 <div className="detail-row">
                   <span className="detail-label">Ngày tạo:</span>
                   <span className="detail-value">
-                    {detail.createdAt ? new Date(detail.createdAt).toLocaleString("vi-VN") : "—"}
+                    {formatDateTime(detail.createdAt)}
                   </span>
                 </div>
 
                 <div className="detail-row">
-                  <span className="detail-label">Ngày duyệt:</span>
+                  <span className="detail-label">Lịch dự kiến kiểm tra:</span>
                   <span className="detail-value">
-                    {detail.scheduledDate ? new Date(detail.scheduledDate).toLocaleString("vi-VN") : "—"}
+                    {formatDateTime(detail.scheduledDate)}
                   </span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Hạn hoàn tất dự kiến:</span>
+                  <span className="detail-value">{formatDateTime(detail.targetCompletionDate)}</span>
+                </div>
+
+                <div className="detail-row">
+                  <span className="detail-label">Trạng thái thời hạn:</span>
+                  <span className="detail-value">{getEtaText(detail)}</span>
                 </div>
 
                 <div className="detail-row">
@@ -431,19 +471,19 @@ export default function OwnerMaintenancePage() {
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="oma-modal__actions">
               {canCancel && (
                 <button
                   onClick={() => {
                     setShowDetailModal(false);
                     doCancel();
                   }}
-                  className="btn-danger"
+                  className="oma-btn oma-btn--danger"
                 >
                   ✗ Hủy yêu cầu
                 </button>
               )}
-              <button onClick={() => setShowDetailModal(false)} className="btn-cancel">
+              <button onClick={() => setShowDetailModal(false)} className="oma-btn">
                 Đóng
               </button>
             </div>
@@ -453,18 +493,19 @@ export default function OwnerMaintenancePage() {
 
       {/* Create Modal */}
       {modal.open && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content modal-create" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Tạo yêu cầu bảo trì</h2>
-              <button className="modal-close" onClick={closeModal}>
+        <div className="oma-modal__backdrop" onClick={closeModal}>
+          <div className="oma-modal oma-modal--create" onClick={(e) => e.stopPropagation()}>
+            <div className="oma-modal__head">
+              <h2 className="oma-modal__title">Tạo yêu cầu bảo trì</h2>
+              <button className="oma-btn oma-btn--ghost" onClick={closeModal}>
                 ×
               </button>
             </div>
 
-            <div className="modal-body">
-              <form onSubmit={(e) => { e.preventDefault(); doCreate(); }} className="modal-form">
-                <div className="form-group">
+            <div className="oma-modal__body">
+              <div className="oma-info-banner">Sau khi tạo yêu cầu, hệ thống sẽ tự động gửi thông báo cho admin và hiển thị ETA dự kiến hoàn tất cho owner.</div>
+              <form onSubmit={(e) => { e.preventDefault(); doCreate(); }} className="oma-form">
+                <div className="oma-field">
                   <label>Gym *</label>
                   <select
                     value={modal.payload.gymId}
@@ -475,7 +516,7 @@ export default function OwnerMaintenancePage() {
                       fetchEquipmentByGym(newGymId);
                     }}
                     required
-                    className="form-select"
+                    className="oma-select"
                     disabled={Boolean(selectedGymId)}
                   >
                     {!selectedGymId && <option value="">-- Chọn gym --</option>}
@@ -487,7 +528,7 @@ export default function OwnerMaintenancePage() {
                   </select>
                 </div>
 
-                <div className="form-group">
+                <div className="oma-field">
                   <label>Thiết bị *</label>
                   <select
                     value={modal.payload.equipmentId}
@@ -498,7 +539,7 @@ export default function OwnerMaintenancePage() {
                       fetchEquipmentUnits(nextEquipmentId, modal.payload.gymId);
                     }}
                     required
-                    className="form-select"
+                    className="oma-select"
                   >
                     <option value="">-- Chọn thiết bị --</option>
                     {equipmentList.map((eq) => (
@@ -509,14 +550,14 @@ export default function OwnerMaintenancePage() {
                   </select>
                 </div>
 
-                <div className="form-group">
+                <div className="oma-field">
                   <label>Đơn vị thiết bị cụ thể *</label>
                   <input
                     type="text"
                     value={unitSearchTerm}
                     onChange={(e) => setUnitSearchTerm(e.target.value)}
                     placeholder="Tìm theo asset code..."
-                    className="form-input"
+                    className="oma-input"
                     disabled={!modal.payload.equipmentId}
                   />
                   <div className={`oma-unit-list ${!modal.payload.equipmentId ? "is-disabled" : ""}`}>
@@ -562,23 +603,23 @@ export default function OwnerMaintenancePage() {
                   )}
                 </div>
 
-                <div className="form-group">
+                <div className="oma-field">
                   <label>Mô tả vấn đề *</label>
                   <textarea
                     value={modal.payload.issueDescription}
                     onChange={(e) => setModal((m) => ({ ...m, payload: { ...m.payload, issueDescription: e.target.value } }))}
                     placeholder="Mô tả chi tiết vấn đề cần bảo trì..."
                     required
-                    className="form-textarea"
+                    className="oma-textarea"
                     rows={4}
                   />
                 </div>
 
-                <div className="form-actions">
-                  <button type="button" onClick={closeModal} className="btn-cancel">
+                <div className="oma-modal__actions">
+                  <button type="button" onClick={closeModal} className="oma-btn">
                     Hủy
                   </button>
-                  <button type="submit" className="btn-submit">
+                  <button type="submit" className="oma-btn oma-btn--primary">
                     ✓ Tạo yêu cầu
                   </button>
                 </div>

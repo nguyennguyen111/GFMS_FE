@@ -1,90 +1,39 @@
-.dh-title { margin: 0; font-size: 22px; font-weight: 1000; letter-spacing: 0.02em; }
-.dh-sub { color: rgba(238,242,255,0.70); margin-top: 6px; }
-
-.dh-grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 12px;
-}
-
-.dh-card {
-  grid-column: span 4;
-  border-radius: 18px;
-  padding: 14px;
-
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
-  position: relative;
-  overflow: hidden;
-}
-
-.dh-card::before {
-  content: "";
-  position: absolute;
-  inset: -40px;
-  background: radial-gradient(250px 140px at 15% 20%, rgba(255,138,0,0.18), transparent 60%);
-  pointer-events: none;
-}
-
-.dh-card__label { opacity: 0.82; font-size: 13px; position: relative; z-index: 1; }
-.dh-card__value { font-size: 24px; font-weight: 1000; margin-top: 8px; position: relative; z-index: 1; }
-.dh-card__note { margin-top: 10px; font-size: 12px; opacity: 0.65; position: relative; z-index: 1; }
-
-.dh-panel {
-  margin-top: 14px;
-  border-radius: 18px;
-  padding: 14px;
-
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 14px 40px rgba(0,0,0,0.30);
-}
-.dh-panel__title { font-weight: 1000; margin-bottom: 10px; }
-
-.dh-panel__grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 12px;
-}
-.dh-mini {
-  grid-column: span 6;
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  position: relative;
-  overflow: hidden;
-}
-.dh-mini::before {
-  content: "";
-  position: absolute;
-  inset: -40px;
-  background: radial-gradient(240px 120px at 20% 20%, rgba(255,176,0,0.14), transparent 60%);
-  pointer-events: none;
-}
-.dh-mini__t { font-weight: 900; position: relative; z-index: 1; }
-.dh-mini__d { margin-top: 6px; color: rgba(238,242,255,0.70); font-size: 13px; position: relative; z-index: 1; }
-
-@media (max-width: 900px) {
-  .dh-card { grid-column: span 12; }
-  .dh-mini { grid-column: span 12; }
-}
-
 .dh-wrap {
   padding: 16px;
-  background: #0c121c;
   min-height: 100vh;
   color: #eef2ff;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+}
+
+.dh-wrap--combo {
+  background: transparent;
 }
 
 .dh-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dh-eyebrow {
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  margin-bottom: 10px;
+}
+
+.dh-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 1000;
+}
+
+.dh-sub {
+  margin-top: 8px;
+  color: rgba(238, 242, 255, 0.74);
+  max-width: 820px;
 }
 
 .dh-actions {
@@ -92,44 +41,267 @@
   gap: 10px;
 }
 
-.dh-btn {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+.dh-btn,
+.dh-link {
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
   color: #eef2ff;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 14px;
   cursor: pointer;
   font-weight: 900;
-  font-size: 12px;
-  transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
-.dh-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-}
-
-.dh-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.dh-link {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #facc15;
 }
 
 .dh-alert {
-  margin-top: 12px;
+  margin-bottom: 12px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 70, 70, 0.35);
   background: rgba(255, 70, 70, 0.10);
   border-radius: 14px;
-  color: rgba(255, 220, 220, 0.95);
 }
 
-.dh-foot {
-  margin-top: 14px;
+.dh-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dh-kpi,
+.dh-panel {
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.28);
+  position: relative;
+  overflow: hidden;
+}
+
+.dh-kpi::before,
+.dh-panel::before {
+  content: "";
+  position: absolute;
+  inset: -50px;
+  background: radial-gradient(240px 120px at 18% 20%, rgba(255,138,0,0.12), transparent 60%);
+  pointer-events: none;
+}
+
+.dh-kpi__label,
+.dh-panel__hint {
+  position: relative;
+  z-index: 1;
+  color: rgba(238, 242, 255, 0.78);
+}
+
+.dh-kpi__value {
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
+  font-size: 42px;
+  font-weight: 1000;
+}
+
+.dh-kpi__note {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(238, 242, 255, 0.62);
+}
+
+.dh-main-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dh-panel__head {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.dh-foot__muted {
+.dh-panel__head--stack {
+  align-items: flex-start;
+}
+
+.dh-panel__title {
+  font-size: 18px;
+  font-weight: 1000;
+  position: relative;
+  z-index: 1;
+}
+
+.dh-request-list {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+}
+
+.dh-request-card {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: #eef2ff;
+  cursor: pointer;
+}
+
+.dh-request-card__code {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.dh-request-card__meta {
+  margin-top: 6px;
+  color: rgba(238, 242, 255, 0.72);
+}
+
+.dh-request-card__right {
+  text-align: right;
+}
+
+.dh-request-card__amount {
+  margin-top: 10px;
+  color: #fbbf24;
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.dh-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
   font-size: 12px;
-  color: rgba(238, 242, 255, 0.65);
+  font-weight: 900;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+}
+
+.dh-status--completed {
+  color: #bbf7d0;
+  border-color: rgba(34,197,94,0.35);
+  background: rgba(34,197,94,0.12);
+}
+
+.dh-status--submitted,
+.dh-status--approved_waiting_deposit,
+.dh-status--delivered_waiting_final_payment,
+.dh-status--shipping,
+.dh-status--paid_waiting_admin_confirm {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.dh-status--rejected {
+  color: #fecaca;
+  border-color: rgba(239,68,68,0.35);
+  background: rgba(239,68,68,0.12);
+}
+
+.dh-chart {
+  position: relative;
+  z-index: 1;
+  min-height: 250px;
+  display: grid;
+  grid-template-columns: repeat(30, minmax(8px, 1fr));
+  gap: 6px;
+  align-items: end;
+}
+
+.dh-chart__col {
+  height: 190px;
+  display: flex;
+  align-items: end;
+}
+
+.dh-chart__bar {
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg,#facc15,#f59e0b);
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.22);
+}
+
+.dh-chart-total {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.dh-table-wrap {
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+}
+
+.dh-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dh-table th,
+.dh-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap;
+}
+
+.dh-table th {
+  color: rgba(238, 242, 255, 0.72);
+  font-size: 13px;
+}
+
+.dh-table__empty,
+.dh-empty {
+  text-align: center;
+  color: rgba(238, 242, 255, 0.68);
+  padding: 20px;
+}
+
+@media (max-width: 1100px) {
+  .dh-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dh-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .dh-head,
+  .dh-request-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dh-request-card__right {
+    text-align: left;
+  }
 }
