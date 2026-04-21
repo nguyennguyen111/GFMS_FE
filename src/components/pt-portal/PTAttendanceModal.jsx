@@ -42,6 +42,7 @@ export default function PTAttendanceModal({
   open,
   booking,
   loading,
+  actionPending = false,
   error,
   onClose,
   onCheckIn,
@@ -73,9 +74,10 @@ export default function PTAttendanceModal({
   const comm = String(booking?.commissionStatus || "").toLowerCase();
   const commissionLocked = comm === "calculated" || comm === "paid";
   const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
+  const interactionDisabled = loading || actionPending;
 
   const handleAction = async (type) => {
-    if (commissionLocked) return;
+    if (commissionLocked || interactionDisabled) return;
     try {
       if (type === "present") {
         await onCheckIn({ status: "present" });
@@ -437,19 +439,20 @@ export default function PTAttendanceModal({
                       <button
                         type="button"
                         className="ptAttModal__btn ptAttModal__btn--present"
-                        disabled={loading}
+                        disabled={interactionDisabled}
                         onClick={async () => {
                           await onComplete({ status: "present" });
                           setIsEditing(false);
                           if (refresh) await refresh();
                         }}
                       >
-                        {loading ? "..." : "✓ Hoàn thành buổi tập"}
+                        ✓ Hoàn thành buổi tập
                       </button>
                     ) : null}
                     <button
                       type="button"
                       className="ptAttModal__btn ptAttModal__btn--edit"
+                      disabled={interactionDisabled}
                       onClick={() => setIsEditing(true)}
                     >
                       ✎ Chỉnh sửa điểm danh
@@ -460,24 +463,24 @@ export default function PTAttendanceModal({
                     <button
                       type="button"
                       className="ptAttModal__btn ptAttModal__btn--present"
-                      disabled={loading}
+                      disabled={interactionDisabled}
                       onClick={() => handleAction("present")}
                     >
-                      {loading ? "..." : "✓ Có mặt"}
+                      ✓ Có mặt
                     </button>
                     <button
                       type="button"
                       className="ptAttModal__btn ptAttModal__btn--absent"
-                      disabled={loading}
+                      disabled={interactionDisabled}
                       onClick={() => handleAction("absent")}
                     >
-                      {loading ? "..." : "✗ Vắng mặt"}
+                      ✗ Vắng mặt
                     </button>
                     {ta && (
                       <button
                         type="button"
                         className="ptAttModal__btn ptAttModal__btn--reset"
-                        disabled={loading}
+                        disabled={interactionDisabled}
                         onClick={async () => {
                           if (!onReset) return;
                           await onReset();
@@ -485,17 +488,17 @@ export default function PTAttendanceModal({
                           if (refresh) await refresh();
                         }}
                       >
-                        {loading ? "..." : "↺ Chưa điểm danh"}
+                        ↺ Chưa điểm danh
                       </button>
                     )}
                     {booking && onRequestBusySlot && !isSharedSession ? (
                       <button
                         type="button"
                         className="ptAttModal__btn ptAttModal__btn--edit ptAttModal__btn--busy"
-                        disabled={loading}
+                        disabled={interactionDisabled}
                         onClick={onRequestBusySlot}
                       >
-                        {loading ? "..." : "📨 Báo bận khung giờ này"}
+                        📨 Báo bận khung giờ này
                       </button>
                     ) : null}
                   </>
