@@ -30,11 +30,12 @@ export default function OwnerConfirmDialog({ open, state, busy, onClose, onConfi
 
   const isConfirm = state.kind === "confirm";
   const tone = state.tone || "neutral";
+  const isCompactConfirm = isConfirm && ["payTrainer", "closePeriod", "payPeriod"].includes(String(state.action || ""));
 
   return (
     <div className="ocd-overlay" role="presentation" onClick={busy ? undefined : onClose}>
       <div
-        className={panelClass(tone)}
+        className={`${panelClass(tone)}${isCompactConfirm ? " ocd-panel--compact" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="ocd-title"
