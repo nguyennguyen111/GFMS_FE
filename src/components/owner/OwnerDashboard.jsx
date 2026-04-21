@@ -96,7 +96,7 @@ export default function OwnerDashboard() {
     {
       title: "Mua hàng",
       items: [
-        { label: "Yêu cầu mua thiết bị", to: "/owner/purchase-requests", key: "purchase-requests",  },
+        { label: "Yêu cầu mua combo", to: "/owner/purchase-requests", key: "purchase-requests",  },
         { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", },
         { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", },
         { label: "Thanh toán thiết bị", to: "/owner/procurement-payments", key: "procurement-payments",  },
