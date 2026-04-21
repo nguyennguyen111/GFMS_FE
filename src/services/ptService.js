@@ -1,6 +1,7 @@
 import axios from "../setup/axios"; // instance baseURL=http://localhost:8080
 
 const BASE = "/api/pt";
+const PT_REVIEW_TIMEOUT_MS = 120000;
 
 // ✅ match leader axios: interceptor chỉ đọc access_Token
 const getToken = () => {
@@ -24,6 +25,12 @@ const ptConfig = () => {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   };
 };
+
+const ptReviewConfig = (params) => ({
+  ...ptConfig(),
+  ...(params ? { params } : {}),
+  timeout: PT_REVIEW_TIMEOUT_MS,
+});
 
 // 1) Danh sách PT
 export const getPTs = async () => {
@@ -226,12 +233,16 @@ export const deletePTActivationMaterial = async (id) => {
 
 // 17) Reviews (UC-TR-011 + UC-TR-012)
 export const getMyPTReviews = async (params = {}) => {
-  const res = await axios.get(`${BASE}/me/reviews`, { ...ptConfig(), params });
+  const res = await axios.get(`${BASE}/me/reviews`, ptReviewConfig(params));
   return res.data;
 };
 
 export const replyPTReview = async (reviewId, reply) => {
-  const res = await axios.post(`${BASE}/reviews/${reviewId}/reply`, { reply }, ptConfig());
+  const res = await axios.post(
+    `${BASE}/reviews/${reviewId}/reply`,
+    { reply },
+    ptReviewConfig()
+  );
   return res.data;
 };
 
