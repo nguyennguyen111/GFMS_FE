@@ -19,7 +19,7 @@ const statusLabel = {
 };
 const phaseLabel = { full: "Thanh toán toàn bộ" };
 const requestStatusLabel = {
-  approved_waiting_payment: "Đã duyệt, chờ thanh toán",
+  approved_waiting_deposit: "Đã duyệt, chờ cọc 30%",
 };
 
 export default function OwnerProcurementPaymentsPage() {
@@ -38,7 +38,7 @@ export default function OwnerProcurementPaymentsPage() {
     try {
       const [paymentsRes, payableRes] = await Promise.all([
         ownerGetProcurementPayments({ page: nextPage, limit: 10 }),
-        ownerGetPurchaseRequests({ page: 1, limit: 100, status: "approved_waiting_payment" }),
+        ownerGetPurchaseRequests({ page: 1, limit: 100, status: "approved_waiting_deposit" }),
       ]);
       const data = paymentsRes?.data?.data ?? [];
       const payable = payableRes?.data?.data ?? [];
