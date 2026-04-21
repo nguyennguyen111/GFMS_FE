@@ -7,6 +7,7 @@ import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 
 import EquipmentPage from "./pages/EquipmentPage";
+import EquipmentCatalogPage from "./pages/EquipmentCatalogPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
 import GymsPage from "./pages/GymsPage";
@@ -33,11 +34,11 @@ export default function AdminDashboard() {
       { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
       { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
-      { section: "Thiết bị & Kho" },
-      { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
+      { section: "Thiết bị & Combo" },
+      { label: "Thiết bị", to: "/admin/devices", key: "devices" },
+      { label: "Combo thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
-      { label: "Yêu cầu bán thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
-      { label: "Kho thiết bị", to: "/admin/stocks", key: "stocks" },
+      { label: "Yêu cầu bán combo", to: "/admin/purchase-workflow", key: "purchase-workflow" },
 
       { section: "Thiết bị & Kỹ thuật" },
       { label: "Bảo trì thiết bị", to: "/admin/maintenance", key: "maintenance" },
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
             <Route path="/gyms" element={<GymsPage title="Quản lý phòng gym" />} />
             <Route path="/franchises" element={<FranchiseRequestsPage />} />
 
+            <Route path="/devices" element={<EquipmentCatalogPage />} />
             <Route path="/equipment" element={<EquipmentPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/purchase-workflow" element={<PurchaseWorkflowPage />} />
