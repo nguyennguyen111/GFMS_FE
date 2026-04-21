@@ -4,6 +4,18 @@ import "./PTFeedback.css";
 
 const stars = (n) => "★".repeat(Number(n || 0)) + "☆".repeat(5 - Number(n || 0));
 const MAX_REPLY_LENGTH = 1000;
+const REQUEST_TIMEOUT_MESSAGE =
+  "Hệ thống đang xử lý phản hồi lâu hơn bình thường. Vui lòng thử lại sau ít giây.";
+
+const getFeedbackErrorMessage = (error, fallback) => {
+  const message = error?.response?.data?.message || error?.message || "";
+  const isTimeout =
+    error?.code === "ECONNABORTED" ||
+    /timeout/i.test(String(message));
+
+  if (isTimeout) return REQUEST_TIMEOUT_MESSAGE;
+  return message || fallback;
+};
 
 const PTFeedback = () => {
   const [reviews, setReviews] = useState([]);
@@ -13,17 +25,17 @@ const PTFeedback = () => {
   const [replyDraft, setReplyDraft] = useState({});
   const [savingId, setSavingId] = useState(null);
 
-  const fetchReviews = async () => {
+  const fetchReviews = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError("");
       const params = ratingFilter ? { rating: ratingFilter } : {};
       const res = await getMyPTReviews(params);
       setReviews(Array.isArray(res?.data) ? res.data : []);
     } catch (e) {
-      setError(e?.response?.data?.message || "Không tải được danh sách đánh giá.");
+      setError(getFeedbackErrorMessage(e, "Không tải được danh sách đánh giá."));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -46,11 +58,17 @@ const PTFeedback = () => {
     }
     try {
       setSavingId(reviewId);
-      await replyPTReview(reviewId, text);
+      const response = await replyPTReview(reviewId, text);
+      const repliedAt = response?.data?.repliedAt || new Date().toISOString();
+      setReviews((prev) =>
+        prev.map((item) =>
+          item.id === reviewId ? { ...item, trainerReply: text, repliedAt } : item
+        )
+      );
       setReplyDraft((prev) => ({ ...prev, [reviewId]: "" }));
-      await fetchReviews();
+      fetchReviews({ silent: true });
     } catch (e) {
-      setError(e?.response?.data?.message || "Gửi phản hồi thất bại.");
+      setError(getFeedbackErrorMessage(e, "Gửi phản hồi thất bại."));
     } finally {
       setSavingId(null);
     }

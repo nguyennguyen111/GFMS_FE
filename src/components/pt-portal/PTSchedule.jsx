@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
 import {
   getPTAttendanceSchedule,
+  invalidatePTAttendanceScheduleCache,
   ptCheckIn,
   ptCheckOut,
   ptResetAttendance,
@@ -58,6 +59,30 @@ const toYMD = (d) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const getRequestErrorMessage = (error, fallback) => {
+  const status = error?.response?.status;
+  const message =
+    error?.response?.data?.message ||
+    error?.response?.data?.DT ||
+    error?.response?.data?.EM ||
+    error?.message ||
+    "";
+
+  const isTimeout =
+    error?.code === "ECONNABORTED" ||
+    /timeout/i.test(String(message));
+
+  if (isTimeout) {
+    return "Hệ thống đang xử lý lâu hơn bình thường. Vui lòng thử lại sau ít giây.";
+  }
+
+  if (status === 504) {
+    return "Máy chủ phản hồi chậm. Vui lòng thử lại.";
+  }
+
+  return message || fallback;
+};
+
 const PTSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -70,6 +95,7 @@ const PTSchedule = () => {
 
   const [attOpen, setAttOpen] = useState(false);
   const [attLoading, setAttLoading] = useState(false);
+  const [attActionPending, setAttActionPending] = useState(false);
   const [attBooking, setAttBooking] = useState(null);
   const [attCache, setAttCache] = useState({});
   const [attendanceBlockModal, setAttendanceBlockModal] = useState(null);
@@ -77,6 +103,7 @@ const PTSchedule = () => {
   const [busyReasonModalOpen, setBusyReasonModalOpen] = useState(false);
   const [busyReason, setBusyReason] = useState("");
   const [busyReasonError, setBusyReasonError] = useState("");
+  const fetchedDateRef = useRef(new Set());
 
   const START_HOUR = 5;
   const END_HOUR = 23;
@@ -116,6 +143,33 @@ const PTSchedule = () => {
     }).finally(() => setLoading(false));
   }, [ptId]);
 
+  const applyBookingPatchToCache = (ymd, bookingId, patch = {}) => {
+    if (!ymd || !bookingId) return;
+    setAttCache((prev) => {
+      const rows = Array.isArray(prev?.[ymd]) ? prev[ymd] : [];
+      if (!rows.length) return prev;
+      let changed = false;
+      const nextRows = rows.map((row) => {
+        if (row.id !== bookingId) return row;
+        changed = true;
+        return { ...row, ...patch };
+      });
+      return changed ? { ...prev, [ymd]: nextRows } : prev;
+    });
+  };
+
+  const refreshAttBookingInBackground = (bookingId, ymd, options = {}) => {
+    if (!bookingId || !ymd) return;
+    getPTAttendanceSchedule({ date: ymd }, options)
+      .then((res) => {
+        const rows = res?.rows || [];
+        setAttCache((prev) => ({ ...prev, [ymd]: rows }));
+        const next = rows.find((b) => b.id === bookingId);
+        if (next) setAttBooking(next);
+      })
+      .catch(() => {});
+  };
+
   const weekDays = useMemo(() => {
     const base = new Date();
     base.setDate(base.getDate() + weekOffset * 7);
@@ -140,20 +194,49 @@ const PTSchedule = () => {
 
   const todayYmd = toYMD(new Date());
   const todayAttendanceRows = attCache[todayYmd] || [];
+  const weekMetrics = useMemo(() => {
+    let totalSlots = 0;
+    let bookedSlots = 0;
+    let busySlots = 0;
+    const clients = new Set();
+
+    weekDays.forEach((d) => {
+      const ymd = toYMD(d.date);
+      const rows = attCache[ymd] || [];
+      const slots = d.slots || [];
+      totalSlots += slots.length;
+
+      slots.forEach((slot) => {
+        const booking = rows.find(
+          (b) => String(b.startTime || "").slice(0, 5) === String(slot.start || "").slice(0, 5)
+        );
+        if (!booking) return;
+        bookedSlots += 1;
+        if (booking.busyRequested) busySlots += 1;
+        if (booking.memberId) clients.add(booking.memberId);
+      });
+    });
+
+    const freeSlots = Math.max(totalSlots - bookedSlots, 0);
+    const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+    return { totalSlots, bookedSlots, busySlots, freeSlots, occupancyRate, clients: clients.size };
+  }, [weekDays, attCache]);
 
   useEffect(() => {
     weekDays.forEach((d) => {
       const ymd = toYMD(d.date);
-      if (!attCache[ymd]) {
-        getPTAttendanceSchedule({ date: ymd })
-          .then((res) => setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] })))
-          .catch(() => {});
-      }
+      if (fetchedDateRef.current.has(ymd)) return;
+      fetchedDateRef.current.add(ymd);
+      getPTAttendanceSchedule({ date: ymd })
+        .then((res) => setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] })))
+        .catch(() => {});
     });
-  }, [weekDays, attCache]);
+  }, [weekDays]);
 
   useEffect(() => {
     if (!ptId) return;
+    fetchedDateRef.current.clear();
+    setAttCache({});
     const ymd = toYMD(new Date());
     getPTAttendanceSchedule({ date: ymd })
       .then((res) => setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] })))
@@ -170,43 +253,40 @@ const PTSchedule = () => {
     if (cached) {
       setAttBooking(cached);
       setAttLoading(false);
+      refreshAttBookingInBackground(cached.id, ymd, { force: false });
+      return;
     } else {
       setAttBooking(null);
       setAttLoading(true);
     }
 
     try {
-      const res = await getPTAttendanceSchedule({ date: ymd });
+      const res = await getPTAttendanceSchedule({ date: ymd }, { force: false });
       setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
       const found = (res?.rows || []).find(
         (b) => String(b.startTime || "").slice(0, 5) === slotKey,
       );
       setAttBooking(found || null);
     } catch {
-      if (!cached) {
-        const found = rows.find((b) => String(b.startTime || "").slice(0, 5) === slotKey);
-        setAttBooking(found || null);
-      }
+      const found = rows.find((b) => String(b.startTime || "").slice(0, 5) === slotKey);
+      setAttBooking(found || null);
     } finally {
       setAttLoading(false);
     }
   };
 
-  const refreshAttBooking = async () => {
+  const refreshAttBooking = () => {
     if (!attBooking?.id) return;
     const ymd = toYMD(new Date(attBooking.bookingDate));
-    try {
-      const res = await getPTAttendanceSchedule({ date: ymd });
-      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
-      const next = res?.rows?.find((b) => b.id === attBooking.id);
-      if (next) setAttBooking(next);
-    } catch (_e) {
-      /* ignore */
-    }
+    refreshAttBookingInBackground(attBooking.id, ymd, { force: false });
   };
 
   const updateStatus = async (status) => {
-    if (!attBooking?.id) return;
+    if (!attBooking?.id || attActionPending) return;
+    const targetBooking = attBooking;
+    const ymd = toYMD(new Date(targetBooking.bookingDate));
+    const previousBookingStatus = targetBooking.status;
+    const previousAttendance = targetBooking.trainerAttendance || null;
     const s = String(status || "").toLowerCase();
     if (s !== "present" && s !== "absent") {
       setAttendanceBlockModal("Chỉ có thể điểm danh: có mặt hoặc vắng mặt.");
@@ -217,35 +297,103 @@ const PTSchedule = () => {
       setAttendanceBlockModal("Buổi đã hủy, không thể điểm danh.");
       return;
     }
-    setAttLoading(true);
+    setAttBooking((prev) =>
+      prev && prev.id === targetBooking.id
+        ? {
+            ...prev,
+            status: "in_progress",
+            trainerAttendance: {
+              ...(prev?.trainerAttendance || {}),
+              status: s,
+            },
+          }
+        : prev
+    );
+    applyBookingPatchToCache(ymd, targetBooking.id, {
+      status: "in_progress",
+      trainerAttendance: {
+        ...(targetBooking?.trainerAttendance || {}),
+        status: s,
+      },
+    });
+    setAttActionPending(true);
     try {
-      await ptCheckIn({ bookingId: attBooking.id, method: "manual", status: s });
-      const ymd = toYMD(new Date(attBooking.bookingDate));
-      const res = await getPTAttendanceSchedule({ date: ymd });
-      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
-      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+      const result = await ptCheckIn({ bookingId: targetBooking.id, method: "manual", status: s });
+      const nextBookingStatus = result?.booking?.status || "in_progress";
+      const nextAttendance = result?.attendance || {
+        ...(targetBooking?.trainerAttendance || {}),
+        status: s,
+      };
+
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: nextBookingStatus, trainerAttendance: nextAttendance }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: nextBookingStatus,
+        trainerAttendance: nextAttendance,
+      });
+      invalidatePTAttendanceScheduleCache(ymd);
     } catch (e) {
-      const data = e?.response?.data;
-      const msg = data?.DT || data?.message || data?.EM || e?.message || "";
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: previousBookingStatus, trainerAttendance: previousAttendance }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: previousBookingStatus,
+        trainerAttendance: previousAttendance,
+      });
+      const msg = getRequestErrorMessage(e, "Không thể cập nhật điểm danh. Vui lòng thử lại.");
       const locked = /chốt kỳ|chi trả|đã chi trả|payroll/i.test(String(msg));
       setAttendanceBlockModal(
-        locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể cập nhật điểm danh. Vui lòng thử lại."
+        locked ? PT_ATTENDANCE_LOCK_MSG : msg
       );
     } finally {
-      setAttLoading(false);
+      setAttActionPending(false);
     }
   };
 
   const resetStatus = async () => {
-    if (!attBooking) return;
-    setAttLoading(true);
+    if (!attBooking || attActionPending) return;
+    const targetBooking = attBooking;
+    const ymd = toYMD(new Date(targetBooking.bookingDate));
+    const previousBookingStatus = targetBooking.status;
+    const previousAttendance = targetBooking.trainerAttendance || null;
+    setAttBooking((prev) =>
+      prev && prev.id === targetBooking.id
+        ? { ...prev, status: "confirmed", trainerAttendance: null }
+        : prev
+    );
+    applyBookingPatchToCache(ymd, targetBooking.id, {
+      status: "confirmed",
+      trainerAttendance: null,
+    });
+    setAttActionPending(true);
     try {
-      await ptResetAttendance({ bookingId: attBooking.id });
-      const ymd = toYMD(new Date(attBooking.bookingDate));
-      const res = await getPTAttendanceSchedule({ date: ymd });
-      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
-      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+      const result = await ptResetAttendance({ bookingId: targetBooking.id });
+      const nextBookingStatus = result?.booking?.status || "confirmed";
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: nextBookingStatus, trainerAttendance: null }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: nextBookingStatus,
+        trainerAttendance: null,
+      });
+      invalidatePTAttendanceScheduleCache(ymd);
     } catch (e) {
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: previousBookingStatus, trainerAttendance: previousAttendance }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: previousBookingStatus,
+        trainerAttendance: previousAttendance,
+      });
       const msg =
         e?.response?.data?.message ||
         e?.response?.data?.DT ||
@@ -254,7 +402,7 @@ const PTSchedule = () => {
         "Không thể hoàn tác điểm danh.";
       setNoticeModal({ title: "Không thể hoàn tác", message: msg, tone: "danger" });
     } finally {
-      setAttLoading(false);
+      setAttActionPending(false);
     }
   };
 
@@ -273,7 +421,7 @@ const PTSchedule = () => {
           "Đã gửi tên ngân hàng và STK cho chủ phòng mượn. Họ sẽ chuyển khoản theo giá buổi đã thỏa thuận.",
         tone: "success",
       });
-      await refreshAttBooking();
+      refreshAttBooking();
       return true;
     } catch (e) {
       const msg =
@@ -299,7 +447,7 @@ const PTSchedule = () => {
         message: "Bạn đã xác nhận nhận tiền / đồng ý phản hồi chủ phòng.",
         tone: "success",
       });
-      await refreshAttBooking();
+      refreshAttBooking();
       return true;
     } catch (e) {
       const msg =
@@ -334,7 +482,7 @@ const PTSchedule = () => {
         message: "Chủ phòng mượn đã nhận khiếu nại.",
         tone: "success",
       });
-      await refreshAttBooking();
+      refreshAttBooking();
       return true;
     } catch (e) {
       const msg =
@@ -351,23 +499,65 @@ const PTSchedule = () => {
   };
 
   const completeStatus = async () => {
-    if (!attBooking) return;
-    setAttLoading(true);
+    if (!attBooking || attActionPending) return;
+    const targetBooking = attBooking;
+    const ymd = toYMD(new Date(targetBooking.bookingDate));
+    const previousBookingStatus = targetBooking.status;
+    const previousAttendance = targetBooking.trainerAttendance || null;
+    setAttBooking((prev) =>
+      prev && prev.id === targetBooking.id
+        ? {
+            ...prev,
+            status: "completed",
+            trainerAttendance: {
+              ...(prev?.trainerAttendance || {}),
+              status: "present",
+            },
+          }
+        : prev
+    );
+    applyBookingPatchToCache(ymd, targetBooking.id, {
+      status: "completed",
+      trainerAttendance: {
+        ...(targetBooking?.trainerAttendance || {}),
+        status: "present",
+      },
+    });
+    setAttActionPending(true);
     try {
-      await ptCheckOut({ bookingId: attBooking.id, status: "present" });
-      const ymd = toYMD(new Date(attBooking.bookingDate));
-      const res = await getPTAttendanceSchedule({ date: ymd });
-      setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
-      setAttBooking(res?.rows.find((b) => b.id === attBooking.id));
+      const result = await ptCheckOut({ bookingId: targetBooking.id, status: "present" });
+      const nextBookingStatus = result?.booking?.status || "completed";
+      const nextAttendance = result?.attendance || {
+        ...(targetBooking?.trainerAttendance || {}),
+        status: "present",
+      };
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: nextBookingStatus, trainerAttendance: nextAttendance }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: nextBookingStatus,
+        trainerAttendance: nextAttendance,
+      });
+      invalidatePTAttendanceScheduleCache(ymd);
     } catch (e) {
-      const data = e?.response?.data;
-      const msg = data?.DT || data?.message || data?.EM || e?.message || "";
+      setAttBooking((prev) =>
+        prev && prev.id === targetBooking.id
+          ? { ...prev, status: previousBookingStatus, trainerAttendance: previousAttendance }
+          : prev
+      );
+      applyBookingPatchToCache(ymd, targetBooking.id, {
+        status: previousBookingStatus,
+        trainerAttendance: previousAttendance,
+      });
+      const msg = getRequestErrorMessage(e, "Không thể hoàn thành buổi tập. Vui lòng thử lại.");
       const locked = /chốt kỳ|chi trả|điểm danh|không thể thay đổi/i.test(String(msg));
       setAttendanceBlockModal(
-        locked ? PT_ATTENDANCE_LOCK_MSG : msg || "Không thể hoàn thành buổi tập. Vui lòng thử lại."
+        locked ? PT_ATTENDANCE_LOCK_MSG : msg
       );
     } finally {
-      setAttLoading(false);
+      setAttActionPending(false);
     }
   };
 
@@ -425,13 +615,32 @@ const PTSchedule = () => {
         </div>
       </div>
 
+      <div className="ptSchedule__kpiWrap">
+        <div className="ptSchedule__kpiCard">
+          <div className="ptSchedule__kpiLabel">Tổng lịch hẹn tuần</div>
+          <div className="ptSchedule__kpiValue">{weekMetrics.bookedSlots}</div>
+        </div>
+        <div className="ptSchedule__kpiCard">
+          <div className="ptSchedule__kpiLabel">Khách hàng</div>
+          <div className="ptSchedule__kpiValue">{weekMetrics.clients}</div>
+        </div>
+        <div className="ptSchedule__kpiCard">
+          <div className="ptSchedule__kpiLabel">Giờ rảnh</div>
+          <div className="ptSchedule__kpiValue">{weekMetrics.freeSlots}</div>
+        </div>
+        <div className="ptSchedule__kpiCard">
+          <div className="ptSchedule__kpiLabel">Tỷ lệ kín lịch</div>
+          <div className="ptSchedule__kpiValue">{weekMetrics.occupancyRate}%</div>
+        </div>
+      </div>
+
       <div className="ptSchedule__controlWrapper">
         <div className="ptSchedule__tabs">
-          <button className={`ptTab ${activeTab==="week"?"active":""}`} onClick={()=>setActiveTab("week")}>Tuần (lịch)</button>
+          <button className={`ptTab ${activeTab==="week"?"active":""}`} onClick={()=>setActiveTab("week")}>Tuần</button>
           <button className={`ptTab ${activeTab==="today"?"active":""}`} onClick={()=>setActiveTab("today")}>Hôm nay</button>
 
           <div className="ptMonthPick">
-            <span className="ptMonthLabel">Tháng:</span>
+            <span className="ptMonthLabel">Tháng</span>
             <select value={pickMonth} onChange={(e)=>{const m=+e.target.value; setPickMonth(m); jumpToMonth(m,pickYear);}} className="ptMonthSelect">
               {Array.from({length:12}).map((_,i)=><option key={i} value={i+1}>{`Tháng ${i+1}`}</option>)}
             </select>
@@ -442,9 +651,9 @@ const PTSchedule = () => {
         </div>
 
         {activeTab==="week" && <div className="ptWeekBar">
-          <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(v=>v-1)}>← Tuần trước</button>
+          <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(v=>v-1)}>←</button>
           <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(0)}>Hôm nay</button>
-          <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(v=>v+1)}>Tuần sau →</button>
+          <button className="ptBtn ptBtn--ghost" onClick={()=>setWeekOffset(v=>v+1)}>→</button>
           <span className="week-range">{formatDate(weekDays[0].date)} - {formatDate(weekDays[6].date)}</span>
         </div>}
       </div>
@@ -580,10 +789,26 @@ const PTSchedule = () => {
         )}
       </div>
 
+      <div className="ptSchedule__legend">
+        <span className="ptLegendItem">
+          <span className="ptLegendDot ptLegendDot--booked" />
+          Đã đặt lịch
+        </span>
+        <span className="ptLegendItem">
+          <span className="ptLegendDot ptLegendDot--busy" />
+          PT bận
+        </span>
+        <span className="ptLegendItem">
+          <span className="ptLegendDot ptLegendDot--free" />
+          Lịch rảnh
+        </span>
+      </div>
+
       <PTAttendanceModal
         open={attOpen}
         booking={attBooking}
         loading={attLoading}
+        actionPending={attActionPending}
         onClose={() => setAttOpen(false)}
         onCheckIn={() => updateStatus("present")}
         onCheckOut={() => updateStatus("absent")}
