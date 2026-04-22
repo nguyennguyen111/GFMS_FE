@@ -73,9 +73,14 @@ export default function PTAttendanceModal({
   const comm = String(booking?.commissionStatus || "").toLowerCase();
   const commissionLocked = comm === "calculated" || comm === "paid";
   const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
+  const sp = booking?.sharePayment;
+  // sharePaymentStatus có thể nằm trong sharePayment (được attach) hoặc trực tiếp trên booking (orphan bookings)
+  const sharePaymentStatus = sp?.sharePaymentStatus || booking?.sharePaymentStatus;
+  const sharePaymentPaidLocked = isSharedSession && sharePaymentStatus === "paid";
+  const attendanceLocked = commissionLocked || sharePaymentPaidLocked;
 
   const handleAction = async (type) => {
-    if (commissionLocked) return;
+    if (attendanceLocked) return;
     try {
       if (type === "present") {
         await onCheckIn({ status: "present" });
@@ -144,7 +149,7 @@ export default function PTAttendanceModal({
             {isSharedSession &&
             isCompleted &&
             onSendSharePayment &&
-            !commissionLocked && (
+            !attendanceLocked && (
               <div className="ptAttModal__sharePay">
                 <div className="ptAttModal__sharePayCard">
                   <div className="ptAttModal__sharePayCardHead">
@@ -415,10 +420,14 @@ export default function PTAttendanceModal({
               </div>
             )}
 
-            {commissionLocked ? (
+            {attendanceLocked ? (
               <div className="ptAttModal__lockPanel">
-                <div className="ptAttModal__lockTitle">Đã chi trả / đã chốt kỳ</div>
-                <p className="ptAttModal__lockText">{PT_ATTENDANCE_LOCK_MSG}</p>
+                <div className="ptAttModal__lockTitle">Đã chốt thanh toán</div>
+                <p className="ptAttModal__lockText">
+                  {sharePaymentPaidLocked
+                    ? "Buổi tập này đã hoàn tất thanh toán mượn PT. Không thể điểm danh hay chỉnh sửa."
+                    : PT_ATTENDANCE_LOCK_MSG}
+                </p>
                 <button type="button" className="ptAttModal__lockBtn" onClick={onClose}>
                   Đã hiểu
                 </button>

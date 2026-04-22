@@ -4312,11 +4312,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         {formatVnd(selectedShare.sessionPrice)}
                       </span>
                     </div>
-                    {(() => {
-                      const ps = selectedShare.sharePaymentStatus || "none";
-                      if (ps === "awaiting_transfer" || ps === "paid" || ps === "disputed")
-                        return null;
-                      return (
+                    {selectedShare.sharePaymentStatus === "none" && (
+                      <>
                         <div
                           className="detail-row detail-row--full"
                           style={{
@@ -4326,8 +4323,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                           }}
                         >
                           <span className="detail-label">
-                            Nhập / sửa giá buổi (VNĐ) — cần có trước khi đối tác
-                            gửi STK:
+                            Nhập / sửa giá buổi (VNĐ):
                           </span>
                           <div
                             style={{
@@ -4358,8 +4354,106 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             </button>
                           </div>
                         </div>
-                      );
-                    })()}
+                        {selectedShare.lenderBankName ? (
+                          <div
+                            className="detail-row detail-row--full"
+                            style={{
+                              flexDirection: "column",
+                              alignItems: "stretch",
+                              gap: "0.5rem",
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            <span className="detail-label">
+                              Tài khoản nhận (bên cho mượn đã gửi):
+                            </span>
+                            <div className="detail-row">
+                              <span className="detail-label">Ngân hàng:</span>
+                              <span className="detail-value">
+                                {selectedShare.lenderBankName || "—"}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Số TK:</span>
+                              <span className="detail-value">
+                                {selectedShare.lenderBankAccountNumber || "—"}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">Chủ TK:</span>
+                              <span className="detail-value">
+                                {selectedShare.lenderAccountHolderName || "—"}
+                              </span>
+                            </div>
+                            <span className="detail-label" style={{ display: "block", marginBottom: "0.25rem", marginTop: "0.5rem" }}>
+                              Ảnh chứng từ CK (tuỳ chọn, tối đa 8):
+                            </span>
+                            {confirmPaymentFiles.length > 0 && (
+                              <ul style={{ margin: "0 0 0.5rem", paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
+                                {confirmPaymentFiles.map((f, i) => (
+                                  <li key={`${f.name}-${i}`}>
+                                    {f.name}{" "}
+                                    <button
+                                      type="button"
+                                      className="btn-cancel"
+                                      style={{ marginLeft: 6, padding: "2px 8px", fontSize: "0.75rem" }}
+                                      onClick={() =>
+                                        setConfirmPaymentFiles((prev) =>
+                                          prev.filter((_, j) => j !== i),
+                                        )
+                                      }
+                                    >
+                                      Bỏ
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              multiple
+                              disabled={paymentActionLoading}
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                setConfirmPaymentFiles((prev) => {
+                                  const room = Math.max(0, 8 - prev.length);
+                                  return [...prev, ...files.slice(0, room)];
+                                });
+                                e.target.value = "";
+                              }}
+                              style={{ marginBottom: "0.65rem", fontSize: "0.82rem" }}
+                            />
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              disabled={paymentActionLoading}
+                              onClick={handleDetailConfirmPayment}
+                              style={{ marginTop: "0.5rem", alignSelf: "flex-start" }}
+                            >
+                              {paymentActionLoading
+                                ? "Đang xác nhận…"
+                                : "Xác nhận đã chuyển khoản"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="detail-row detail-row--full"
+                            style={{
+                              padding: "0.65rem 0.75rem",
+                              borderRadius: "8px",
+                              background: "rgba(59, 130, 246, 0.1)",
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            <span className="detail-label">
+                              Bạn đã nhập giá buổi. Khi bên cho mượn gửi STK, bạn sẽ thấy thông tin tài khoản để chuyển tiền.
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
 
                     {(selectedShare.sharePaymentStatus === "awaiting_transfer" ||
                       selectedShare.sharePaymentStatus === "disputed") && (
@@ -4391,7 +4485,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                           )}
                         <div className="detail-row detail-row--full">
                           <span className="detail-label">
-                            Tài khoản nhận (PT đã gửi):
+                            Tài khoản nhận (bên cho mượn đã gửi):
                           </span>
                         </div>
                         <div className="detail-row">
@@ -4412,71 +4506,30 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             {selectedShare.lenderAccountHolderName || "—"}
                           </span>
                         </div>
-                        <div className="detail-row detail-row--full">
-                          <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
-                            Ảnh chứng từ chuyển khoản (tuỳ chọn, tối đa 8)
+                        <div
+                          className="detail-row detail-row--full"
+                          style={{
+                            padding: "0.65rem 0.75rem",
+                            borderRadius: "8px",
+                            background: "rgba(34, 197, 94, 0.1)",
+                            border: "1px solid rgba(34, 197, 94, 0.3)",
+                            marginTop: "0.5rem",
+                          }}
+                        >
+                          <span className="detail-label">
+                            Bạn đã xác nhận chuyển khoản. Đang chờ PT xác nhận đã nhận tiền.
                           </span>
-                          {confirmPaymentFiles.length > 0 && (
-                            <ul
-                              style={{
-                                margin: "0 0 0.5rem",
-                                paddingLeft: "1.1rem",
-                                fontSize: "0.82rem",
-                              }}
-                            >
-                              {confirmPaymentFiles.map((f, i) => (
-                                <li key={`${f.name}-${i}`}>
-                                  {f.name}{" "}
-                                  <button
-                                    type="button"
-                                    className="btn-cancel"
-                                    style={{
-                                      marginLeft: 6,
-                                      padding: "2px 8px",
-                                      fontSize: "0.75rem",
-                                    }}
-                                    onClick={() =>
-                                      setConfirmPaymentFiles((prev) =>
-                                        prev.filter((_, j) => j !== i),
-                                      )
-                                    }
-                                  >
-                                    Bỏ
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
+                          {selectedShare.paymentMarkedPaidAt && (
+                            <span className="detail-value">
+                              Lúc: {new Date(selectedShare.paymentMarkedPaidAt).toLocaleString("vi-VN")}
+                            </span>
                           )}
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/jpg,image/webp"
-                            multiple
-                            disabled={paymentActionLoading}
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              setConfirmPaymentFiles((prev) => {
-                                const room = Math.max(0, 8 - prev.length);
-                                return [...prev, ...files.slice(0, room)];
-                              });
-                              e.target.value = "";
-                            }}
-                            style={{ marginBottom: "0.65rem", fontSize: "0.82rem" }}
-                          />
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            disabled={paymentActionLoading}
-                            onClick={handleDetailConfirmPayment}
-                          >
-                            {paymentActionLoading
-                              ? "Đang xác nhận…"
-                              : "Xác nhận đã chuyển khoản"}
-                          </button>
                         </div>
                       </>
                     )}
 
-                    {selectedShare.sharePaymentStatus === "paid" &&
+                    {(selectedShare.sharePaymentStatus === "awaiting_transfer" ||
+                      selectedShare.sharePaymentStatus === "paid") &&
                       selectedShare.paymentMarkedPaidAt && (
                         <div className="detail-row">
                           <span className="detail-label">Đã xác nhận CK:</span>
@@ -4488,9 +4541,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         </div>
                       )}
 
-                    {selectedShare.sharePaymentStatus === "paid" &&
-                      parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls).length >
-                        0 && (
+                    {(selectedShare.sharePaymentStatus === "awaiting_transfer" ||
+                      selectedShare.sharePaymentStatus === "paid") &&
+                      parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls).length > 0 && (
                         <div className="detail-row detail-row--full">
                           <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
                             Ảnh chứng từ CK
@@ -4522,7 +4575,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         </div>
                       )}
 
-                    {selectedShare.sharePaymentStatus === "paid" &&
+                    {(selectedShare.sharePaymentStatus === "awaiting_transfer" ||
+                      selectedShare.sharePaymentStatus === "paid") &&
                       selectedShare.sharePaymentDisputeNote && (
                         <div
                           className={`detail-row detail-row--full ots-share-disputeNoteFromPt${
