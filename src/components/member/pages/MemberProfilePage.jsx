@@ -965,8 +965,12 @@ export default function MemberProfilePage() {
               <div className="mprof-membershipBody">
                 <div className="mprof-membershipMain">
                   <div className="mprof-membershipPlan">
-                    {user?.membershipCard?.planMonths
-                      ? `GÓI ${user.membershipCard.planMonths} THÁNG`
+                    {(Number(user?.membershipCard?.remainingMonths || 0) > 0 || user?.membershipCard?.planMonths)
+                      ? `GÓI ${
+                          Number(user?.membershipCard?.remainingMonths || 0) > 0
+                            ? Number(user.membershipCard.remainingMonths)
+                            : Number(user?.membershipCard?.planMonths || 0)
+                        } THÁNG`
                       : "CHƯA KÍCH HOẠT"}
                   </div>
                   <div className="mprof-membershipHint">{membershipCardOverview.detailText}</div>
@@ -1029,7 +1033,11 @@ export default function MemberProfilePage() {
                   label="THẺ THÀNH VIÊN"
                   value={
                     user?.membershipCard
-                      ? `${user.membershipCard.planMonths} THÁNG (HẾT HẠN ${formatDate(user.membershipCard.endDate)})`
+                      ? `${
+                          Number(user?.membershipCard?.remainingMonths || 0) > 0
+                            ? Number(user.membershipCard.remainingMonths)
+                            : Number(user?.membershipCard?.planMonths || 0)
+                        } THÁNG (HẾT HẠN ${formatDate(user.membershipCard.endDate)})`
                       : "CHƯA ĐĂNG KÝ"
                   }
                 />
