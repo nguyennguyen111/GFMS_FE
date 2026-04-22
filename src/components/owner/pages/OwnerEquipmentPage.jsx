@@ -5,6 +5,10 @@ import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
 
+const API_HOST = process.env.REACT_APP_API_URL || "http://localhost:8080";
+const absUrl = (value) => (value ? (String(value).startsWith("http") || String(value).startsWith("data:") ? String(value) : `${API_HOST}${value}`) : "");
+const getEquipmentImage = (item) => absUrl(item?.primaryImageUrl || item?.thumbnail || item?.images?.[0]?.url || "");
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -316,14 +320,20 @@ export default function OwnerEquipmentPage() {
     }
   }, [detail?.id, fetchList, handleOpenDetail, selectedUnitIds, visibleUnits]);
 
+  const detailImageUrl = getEquipmentImage(detail);
+  const detailCategoryLabel = translateEquipmentCategoryName(
+    detail?.category?.name || detail?.EquipmentCategory?.name,
+    detail?.category?.code || detail?.EquipmentCategory?.code
+  ) || "-";
+
   return (
     <div className="oeq-page">
       <div className="oeq-head">
         <h2>Thiết bị</h2>
         <p>
           {selectedGymName
-            ? `Đang quản lý thiết bị của chi nhánh ${selectedGymName}. Chỉ hiển thị các loại thiết bị đang được đưa ra sử dụng tại chi nhánh này.`
-            : "Chỉ hiển thị các loại thiết bị đang được đưa ra sử dụng theo từng gym. Bấm vào từng dòng để xem số lượng cùng loại trong gym đó và từng thiết bị cụ thể."}
+            ? `Đang theo dõi danh mục thiết bị tại ${selectedGymName}. Dữ liệu đồng bộ ảnh, trạng thái vận hành và số lượng thực tế theo từng dòng thiết bị.`
+            : "Danh mục thiết bị owner được đồng bộ từ kho thiết bị admin. Bấm vào từng dòng để xem ảnh, thông tin chuẩn và lịch sử vận hành của từng máy."}
         </p>
       </div>
 
@@ -344,8 +354,7 @@ export default function OwnerEquipmentPage() {
         <table className="oeq-table">
           <thead>
             <tr>
-              <th>Tên</th>
-              <th>Mã</th>
+              <th>Thiết bị</th>
               <th>Phòng tập</th>
               <th>Danh mục</th>
               <th>Tổng</th>
@@ -360,12 +369,24 @@ export default function OwnerEquipmentPage() {
               const maintenanceQuantity = Number(r.unitSummary?.maintenanceQuantity ?? 0);
               const totalQuantity = Number(r.stock?.quantity ?? 0);
               const availableQuantity = Number(r.unitSummary?.inStockQuantity ?? r.stock?.availableQuantity ?? 0);
+              const imageUrl = getEquipmentImage(r);
+              const categoryLabel = translateEquipmentCategoryName(r.EquipmentCategory?.name, r.EquipmentCategory?.code) || "-";
               return (
                 <tr key={r.stockId || `${r.Gym?.id}-${r.id}`} onClick={() => handleOpenDetail(r)} className="oeq-row">
-                  <td><strong>{r.name}</strong></td>
-                  <td>{r.code}</td>
+                  <td>
+                    <div className="oeq-product">
+                      <div className="oeq-product__media">
+                        {imageUrl ? <img src={imageUrl} alt={r.name} /> : <span>{(r.name || "T").slice(0, 1).toUpperCase()}</span>}
+                      </div>
+                      <div className="oeq-product__content">
+                        <strong>{r.name}</strong>
+                        <span>{r.code || "Chưa có mã"}</span>
+                        <small>{r.description || categoryLabel}</small>
+                      </div>
+                    </div>
+                  </td>
                   <td>{r.Gym?.name || "-"}</td>
-                  <td>{translateEquipmentCategoryName(r.EquipmentCategory?.name, r.EquipmentCategory?.code) || "-"}</td>
+                  <td>{categoryLabel}</td>
                   <td>{totalQuantity}</td>
                   <td>{inUseQuantity}</td>
                   <td>{maintenanceQuantity}</td>
@@ -375,7 +396,7 @@ export default function OwnerEquipmentPage() {
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={8} className="oeq-empty">
+                <td colSpan={7} className="oeq-empty">
                   Không có dữ liệu
                 </td>
               </tr>
@@ -397,35 +418,31 @@ export default function OwnerEquipmentPage() {
       </div>
 
       {detailOpen && (
-        <div className="modal-overlay" onClick={closeDetail}>
-          <div className="modal-content oeq-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Chi tiết thiết bị {detail?.name ? `- ${detail.name}` : ""}{detail?.selectedGym?.name ? ` (${detail.selectedGym.name})` : ""}</h2>
-              <button className="modal-close" onClick={closeDetail}>×</button>
+        <div className="oeq-modal-overlay" onClick={closeDetail}>
+          <div className="oeq-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="oeq-modal-header">
+              <h2 className="oeq-modal-title">Chi tiết thiết bị {detail?.name ? `- ${detail.name}` : ""}{detail?.selectedGym?.name ? ` (${detail.selectedGym.name})` : ""}</h2>
+              <button className="oeq-modal-close" onClick={closeDetail} type="button" aria-label="Đóng">×</button>
             </div>
 
-            <div className="modal-body oeq-modal-body">
+            <div className="oeq-modal-body">
               {detailLoading || !detail ? (
                 <div className="oeq-loading">Đang tải chi tiết...</div>
               ) : (
                 <>
-                  <div className="oeq-detail-grid">
-                    <div className="oeq-detail-card">
-                      <div className="oeq-detail-label">Mã thiết bị</div>
-                      <div className="oeq-detail-value">{detail.code || "-"}</div>
+                  <div className="oeq-detail-hero">
+                    <div className="oeq-detail-hero__media">
+                      {detailImageUrl ? <img src={detailImageUrl} alt={detail?.name || "Thiết bị"} /> : <span>{(detail?.name || "T").slice(0, 1).toUpperCase()}</span>}
                     </div>
-                    <div className="oeq-detail-card">
-                      <div className="oeq-detail-label">Danh mục</div>
-                      <div className="oeq-detail-value">
-                        {translateEquipmentCategoryName(
-                          detail.category?.name || detail.EquipmentCategory?.name,
-                          detail.category?.code || detail.EquipmentCategory?.code
-                        ) || "-"}
+                    <div className="oeq-detail-hero__content">
+                      <div className="oeq-detail-hero__eyebrow">Chi tiết thiết bị owner</div>
+                      <h3>{detail?.name || "Thiết bị"}</h3>
+                      <p>{detail?.description || "Thiết bị này được đồng bộ trực tiếp từ danh mục thiết bị admin để owner theo dõi đúng ảnh, mã, loại thiết bị và tình trạng vận hành."}</p>
+                      <div className="oeq-detail-hero__chips">
+                        <span className="oeq-soft-chip">Mã: {detail?.code || "-"}</span>
+                        <span className="oeq-soft-chip">Danh mục: {detailCategoryLabel}</span>
+                        <span className="oeq-soft-chip">Gym: {detail?.selectedGym?.name || "-"}</span>
                       </div>
-                    </div>
-                    <div className="oeq-detail-card oeq-detail-card--full">
-                      <div className="oeq-detail-label">Mô tả</div>
-                      <div className="oeq-detail-value">{detail.description || "-"}</div>
                     </div>
                   </div>
 
@@ -437,6 +454,30 @@ export default function OwnerEquipmentPage() {
                     <div className="oeq-detail-card">
                       <div className="oeq-detail-label">Đang sử dụng</div>
                       <div className="oeq-detail-value">{detailUnitSummary.inUse}</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Trong kho</div>
+                      <div className="oeq-detail-value">{detailUnitSummary.inStock}</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Đang bảo trì</div>
+                      <div className="oeq-detail-value">{detailUnitSummary.maintenance}</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Thương hiệu</div>
+                      <div className="oeq-detail-value">{detail?.brand || "-"}</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Model</div>
+                      <div className="oeq-detail-value">{detail?.model || "-"}</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Đơn giá tham chiếu</div>
+                      <div className="oeq-detail-value">{Number(detail?.price || 0).toLocaleString("vi-VN")}đ</div>
+                    </div>
+                    <div className="oeq-detail-card">
+                      <div className="oeq-detail-label">Trạng thái danh mục</div>
+                      <div className="oeq-detail-value">{formatEquipmentStatus(detail?.status)}</div>
                     </div>
                   </div>
 

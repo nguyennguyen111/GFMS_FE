@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import { logoutUser } from "../../services/authService";
+import logo from "../../assets/logo.jpg";
+import logoWordmark from "../../assets/logo-wordmark.png";
 
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
@@ -59,9 +61,9 @@ export default function AdminDashboard() {
       <aside className={`ad-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="ad-brand">
           <div className="ad-brand__logo">
-            <div className="ad-brand__mark">F</div>
+            <img className="ad-brand__avatar" src={logo} alt="GFMS logo" />
             <div className="ad-brand__text">
-              <div className="ad-brand__name">THE FIT CLUB</div>
+              <img className="ad-brand__wordmark" src={logoWordmark} alt="GFMS" />
               <div className="ad-brand__sub">Bảng quản trị GFMS</div>
             </div>
           </div>

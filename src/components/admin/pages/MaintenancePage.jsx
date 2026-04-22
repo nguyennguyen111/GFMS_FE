@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useAdminRealtimeRefresh from "../../../hooks/useAdminRealtimeRefresh";
 import "./MaintenancePage.css";
 import {
   admGetMaintenances,
@@ -128,6 +129,15 @@ export default function MaintenancePage() {
     fetchGyms();
     // eslint-disable-next-line
   }, []);
+
+  useAdminRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchList();
+      if (selectedId) await fetchDetail(selectedId);
+    },
+    events: ["notification:new", "maintenance:changed"],
+    notificationTypes: ["admin_maintenance_request_submitted", "admin_maintenance_cancelled_by_owner"],
+  });
 
   useLayoutEffect(() => {
     const h = Number(searchParams.get("highlight"));
