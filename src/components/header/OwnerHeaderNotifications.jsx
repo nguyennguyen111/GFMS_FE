@@ -40,6 +40,9 @@ function getNotificationVisual(item) {
   if (["package_purchase", "transaction", "payment"].includes(type)) {
     return { Icon: CreditCard, label: "Thanh toán", tone: "payment" };
   }
+  if (type === "membership_card_purchase") {
+    return { Icon: CreditCard, label: "Thẻ thành viên", tone: "payment" };
+  }
   if (type === "quotation") {
     return { Icon: CreditCard, label: "Báo giá", tone: "payment" };
   }
