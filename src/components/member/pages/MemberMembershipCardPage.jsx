@@ -128,6 +128,12 @@ export default function MemberMembershipCardPage() {
   return (
     <div className="mmc-page">
       <div className="mmc-container">
+        <div className="mmc-top-actions">
+          <button type="button" className="mmc-back-btn" onClick={() => navigate(-1)}>
+            ← Quay lại
+          </button>
+        </div>
+
         <div className="mmc-header">
           <h2>Mua thẻ thành viên</h2>
           <p>Chọn thẻ 1/2/3 tháng để sử dụng dịch vụ phòng gym.</p>
@@ -135,7 +141,10 @@ export default function MemberMembershipCardPage() {
 
         {currentCard ? (
           <div className="mmc-current-card">
-            <strong>Thẻ hiện tại:</strong> {currentCard.planMonths} tháng - hết hạn{" "}
+            <strong>Thời hạn còn lại:</strong>{" "}
+            {(Number(currentCard.remainingMonths || 0) > 0
+              ? Number(currentCard.remainingMonths)
+              : Number(currentCard.planMonths || 0))} tháng - hết hạn{" "}
             {new Date(currentCard.endDate).toLocaleDateString("vi-VN")}
           </div>
         ) : (
