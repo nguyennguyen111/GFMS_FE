@@ -289,6 +289,42 @@
   line-height: 1.55;
 }
 
+.bw-membershipFlow {
+  border: 1px solid var(--bw-stroke);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bw-membershipFlowHead {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.bw-membershipFlow b {
+  font-size: 14px;
+  color: #fff;
+}
+
+.bw-membershipFlow p {
+  margin: 0;
+  color: var(--bw-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.bw-membershipFlow.is-ok {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.bw-membershipFlow.is-required {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .bw-label {
   font-size: 11px;
   text-transform: uppercase;

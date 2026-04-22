@@ -73,6 +73,7 @@ export const memberConfirmFixedPlan = ({
   startTime,
   paymentMethod,
   confirmDuplicate,
+  membershipCardPlanId,
 }) =>
   axios.post(`${API_PREFIX}/fixed-plan/confirm`, {
     packageId,
@@ -82,6 +83,7 @@ export const memberConfirmFixedPlan = ({
     startTime,
     paymentMethod,
     confirmDuplicate: !!confirmDuplicate,
+    membershipCardPlanId: Number(membershipCardPlanId || 0),
   });
 
 export const memberGetRescheduleOptions = (id, params) =>

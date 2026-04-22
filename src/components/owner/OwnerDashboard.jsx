@@ -10,6 +10,7 @@ import { showAppToast } from "../../utils/appToast";
 
 const OwnerOverviewPage = React.lazy(() => import("./pages/OwnerOverviewPage"));
 const OwnerPackagesPage = React.lazy(() => import("./pages/OwnerPackagesPage"));
+const OwnerMembershipCardPlansPage = React.lazy(() => import("./pages/OwnerMembershipCardPlansPage"));
 const OwnerMaintenancePage = React.lazy(() => import("./pages/OwnerMaintenancePage"));
 const OwnerEquipmentPage = React.lazy(() => import("./pages/OwnerEquipmentPage"));
 const OwnerInventoryPage = React.lazy(() => import("./pages/OwnerInventoryPage"));
@@ -70,6 +71,7 @@ export default function OwnerDashboard() {
       items: [
         { label: "Phòng tập ", to: "/owner/gyms", key: "gyms",  },
         { label: "Gói tập", to: "/owner/packages", key: "packages",  },
+        { label: "Thẻ thành viên", to: "/owner/membership-card-plans", key: "membership-card-plans" },
         { label: "Hội viên", to: "/owner/members", key: "members",  },
         { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings",  },
         { label: "Xem lịch", to: "/owner/trainer-bookings", key: "trainer-bookings",  },
@@ -178,6 +180,7 @@ export default function OwnerDashboard() {
               {/* Business */}
               <Route path="/gyms" element={<OwnerGymsPage />} />
               <Route path="/packages" element={<OwnerPackagesPage />} />
+              <Route path="/membership-card-plans" element={<OwnerMembershipCardPlansPage />} />
               <Route path="/members" element={<OwnerMembersPage />} />
               <Route path="/bookings" element={<OwnerBookingsPage />} />
               <Route path="/trainer-bookings" element={<OwnerTrainerSharePage pageMode="bookings" />} />
