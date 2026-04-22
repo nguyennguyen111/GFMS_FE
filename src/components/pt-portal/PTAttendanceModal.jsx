@@ -74,10 +74,11 @@ export default function PTAttendanceModal({
   const comm = String(booking?.commissionStatus || "").toLowerCase();
   const commissionLocked = comm === "calculated" || comm === "paid";
   const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
+  const ptAckAt = booking?.sharePayment?.sharePaymentPtAcknowledgedAt;
   const interactionDisabled = loading || actionPending;
 
   const handleAction = async (type) => {
-    if (commissionLocked || interactionDisabled) return;
+    if (interactionDisabled) return;
     try {
       if (type === "present") {
         await onCheckIn({ status: "present" });
@@ -417,13 +418,18 @@ export default function PTAttendanceModal({
               </div>
             )}
 
-            {commissionLocked ? (
+            {commissionLocked && (
               <div className="ptAttModal__lockPanel">
                 <div className="ptAttModal__lockTitle">Đã chi trả / đã chốt kỳ</div>
                 <p className="ptAttModal__lockText">{PT_ATTENDANCE_LOCK_MSG}</p>
-                <button type="button" className="ptAttModal__lockBtn" onClick={onClose}>
-                  Đã hiểu
-                </button>
+              </div>
+            )}
+
+            {(commissionLocked || (isSharedSession && ptAckAt)) ? (
+              <div className="ptAttModal__actions">
+                <span style={{ color: "#16a34a", fontWeight: 600, fontSize: "0.95rem" }}>
+                  ✓ Đã thanh toán và hoàn thành buổi học
+                </span>
               </div>
             ) : (
               <div
