@@ -2,11 +2,14 @@ import React, { useMemo, useState } from "react";
 import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 import { logoutUser } from "../../services/authService";
+import logo from "../../assets/logo.jpg";
+import logoWordmark from "../../assets/logo-wordmark.png";
 
 import DashboardHome from "./pages/DashboardHome";
 import UsersPage from "./pages/UsersPage";
 
 import EquipmentPage from "./pages/EquipmentPage";
+import EquipmentCatalogPage from "./pages/EquipmentCatalogPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import InventoryPage from "./pages/InventoryPage";
 import GymsPage from "./pages/GymsPage";
@@ -33,11 +36,11 @@ export default function AdminDashboard() {
       { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
       { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
 
-      { section: "Thiết bị & Kho" },
-      { label: "Thiết bị", to: "/admin/equipment", key: "equipment" },
+      { section: "Thiết bị & Combo" },
+      { label: "Thiết bị", to: "/admin/devices", key: "devices" },
+      { label: "Combo thiết bị", to: "/admin/equipment", key: "equipment" },
       { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
-      { label: "Yêu cầu bán thiết bị", to: "/admin/purchase-workflow", key: "purchase-workflow" },
-      { label: "Kho thiết bị", to: "/admin/stocks", key: "stocks" },
+      { label: "Yêu cầu bán combo", to: "/admin/purchase-workflow", key: "purchase-workflow" },
 
       { section: "Thiết bị & Kỹ thuật" },
       { label: "Bảo trì thiết bị", to: "/admin/maintenance", key: "maintenance" },
@@ -58,9 +61,9 @@ export default function AdminDashboard() {
       <aside className={`ad-sidebar ${collapsed ? "is-collapsed" : ""}`}>
         <div className="ad-brand">
           <div className="ad-brand__logo">
-            <div className="ad-brand__mark">F</div>
+            <img className="ad-brand__avatar" src={logo} alt="GFMS logo" />
             <div className="ad-brand__text">
-              <div className="ad-brand__name">THE FIT CLUB</div>
+              <img className="ad-brand__wordmark" src={logoWordmark} alt="GFMS" />
               <div className="ad-brand__sub">Bảng quản trị GFMS</div>
             </div>
           </div>
@@ -122,6 +125,7 @@ export default function AdminDashboard() {
             <Route path="/gyms" element={<GymsPage title="Quản lý phòng gym" />} />
             <Route path="/franchises" element={<FranchiseRequestsPage />} />
 
+            <Route path="/devices" element={<EquipmentCatalogPage />} />
             <Route path="/equipment" element={<EquipmentPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/purchase-workflow" element={<PurchaseWorkflowPage />} />

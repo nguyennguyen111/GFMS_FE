@@ -1,0 +1,295 @@
+.omcp-page {
+  color: #e5e7eb;
+}
+
+.omcp-head {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(214, 255, 0, 0.12) 0%, transparent 45%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 186, 255, 0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.omcp-title {
+  margin: 0 0 6px;
+  font-size: 30px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #e8ff9a 0%, #d6ff00 55%, #b8dc00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.omcp-page p {
+  margin: 0 0 14px;
+  color: #9ca3af;
+}
+
+.omcp-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.omcp-branch-label {
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.omcp-branch-select {
+  min-width: 260px;
+}
+
+.omcp-branch-current {
+  color: #93c5fd;
+  font-size: 13px;
+}
+
+.omcp-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.omcp-search {
+  flex: 1;
+}
+
+.omcp-statusFilter {
+  width: 220px;
+}
+
+.omcp-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.omcp-input {
+  border: 1px solid #374151;
+  background: #0f172a;
+  color: #f9fafb;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.omcp-tableWrap {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(15, 22, 33, 0.76), rgba(17, 27, 40, 0.76));
+}
+
+.omcp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.omcp-table thead th {
+  text-align: left;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.omcp-table tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: middle;
+}
+
+.omcp-thumb {
+  width: 74px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #0b1220;
+}
+
+.omcp-thumb--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.omcp-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.omcp-btn {
+  border: none;
+  border-radius: 10px;
+  background: #84cc16;
+  color: #111827;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.omcp-btn.ghost {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+.omcp-error {
+  color: #fca5a5;
+  margin-bottom: 10px;
+}
+
+.omcp-list {
+  display: grid;
+  gap: 10px;
+}
+
+.omcp-name {
+  font-weight: 700;
+}
+
+.omcp-meta {
+  color: #93c5fd;
+  margin-top: 2px;
+}
+
+.omcp-desc {
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+.omcp-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.omcp-status {
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.omcp-status.active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.omcp-status.inactive {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+}
+
+.omcp-empty {
+  color: #9ca3af;
+  text-align: center;
+}
+
+.omcp-modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 8, 23, 0.72);
+  display: grid;
+  place-items: center;
+  z-index: 1500;
+  padding: 20px;
+}
+
+.omcp-modal {
+  width: min(860px, 96vw);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 14, 28, 0.98));
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
+  padding: 14px;
+}
+
+.omcp-modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.omcp-modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.omcp-field {
+  display: grid;
+  gap: 6px;
+}
+
+.omcp-field label {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.omcp-field--full {
+  grid-column: 1 / -1;
+}
+
+.omcp-uploadRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+}
+
+.omcp-preview {
+  margin-top: 8px;
+  width: 220px;
+  max-width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.omcp-modalActions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.omcp-confirmModal {
+  width: min(520px, 96vw);
+}
+
+.omcp-confirmText {
+  margin: 10px 0;
+  color: #cbd5e1;
+}
+
+@media (max-width: 1200px) {
+  .omcp-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .omcp-modalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .omcp-toolbar {
+    flex-direction: column;
+  }
+
+  .omcp-statusFilter {
+    width: 100%;
+  }
+}

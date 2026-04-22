@@ -1,7 +1,13 @@
 :root {
-  --orange: #f48915;
-  --gray: #888;
-  --lightgray: #f2f2f2;
+  --orange: var(--m-gold, #d6ff00);
+  --gray: #8ea597;
+  --lightgray: #eaf6ee;
+  --pt-bg: #060b07;
+  --pt-bg-soft: #0d1812;
+  --pt-surface: #101f17;
+  --pt-border: rgba(214, 255, 0, 0.18);
+  --pt-border-soft: rgba(214, 255, 0, 0.1);
+  --pt-muted: #9ab3a0;
 }
 
 .ptSchedule {
@@ -10,32 +16,32 @@
   padding: 28px 0 48px;
   box-sizing: border-box;
   background:
-    radial-gradient(720px 300px at 18% 0%, rgba(214, 255, 0, 0.14), transparent 55%),
-    radial-gradient(720px 300px at 88% 10%, rgba(0, 180, 255, 0.10), transparent 58%),
-    linear-gradient(180deg, #0f1113 0%, #0f1113 40%, #0b0e10 100%);
+    radial-gradient(720px 320px at 16% -4%, rgba(214, 255, 0, 0.17), transparent 58%),
+    radial-gradient(680px 280px at 88% 6%, rgba(0, 186, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, #050905 0%, #070d08 42%, #040705 100%);
   color: var(--lightgray);
 }
 
 /* Header & Titles */
 .ptSchedule__header {
-  width: min(1100px, 92vw);
-  margin: 0 auto 14px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
+  width: min(1180px, 94vw);
+  margin: 0 auto 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 14px;
 }
 
 .ptSchedule__headText h1 {
   margin: 0;
-  color: var(--m-gold, #d6ff00);
-  font-size: 2.1rem;
-  letter-spacing: 0.2px;
+  color: #ecfff2;
+  font-size: clamp(1.9rem, 2.7vw, 2.5rem);
+  letter-spacing: 0.3px;
 }
 
 .ptSchedule__subtitle {
   margin: 0.35rem 0 0;
-  color: rgba(214, 255, 0, 0.72);
+  color: rgba(234, 246, 238, 0.72);
   font-weight: 700;
 }
 
@@ -48,9 +54,9 @@
 }
 
 .ptBtn {
-  background: linear-gradient(135deg, rgba(214, 255, 0, 0.26), rgba(184, 220, 0, 0.16));
-  border-color: rgba(214, 255, 0, 0.55);
-  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, rgba(214, 255, 0, 0.24), rgba(184, 220, 0, 0.14));
+  border-color: var(--pt-border);
+  color: #f7ffdf;
   font-weight: 900;
   padding: 0.65rem 1rem;
   border-radius: 12px;
@@ -64,15 +70,21 @@
   white-space: nowrap;
 }
 
+.ptBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(214, 255, 0, 0.36);
+  box-shadow: 0 8px 24px rgba(74, 92, 7, 0.35);
+}
+
 .ptBtn--ghost {
-  background: transparent;
+  background: rgba(7, 16, 11, 0.6);
   color: var(--lightgray);
-  border: 2px solid rgba(214, 255, 0, 0.35);
+  border: 1px solid var(--pt-border-soft);
 }
 
 /* Tabs & Filters */
 .ptSchedule__controlWrapper {
-  width: min(1100px, 92vw);
+  width: min(1180px, 94vw);
   margin: 0 auto 12px;
   display: flex;
   flex-direction: column;
@@ -83,61 +95,63 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 21, 16, 0.88);
+  border: 1px solid var(--pt-border-soft);
   padding: 10px;
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .ptTab {
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 11px;
   cursor: pointer;
   font-weight: 900;
-  color: var(--lightgray);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.18);
+  color: #bcd6c4;
+  border: 1px solid transparent;
+  background: rgba(6, 13, 9, 0.7);
   transition: 200ms;
 }
 
 .ptTab.active {
-  background: rgba(214, 255, 0, 0.14);
-  border-color: rgba(214, 255, 0, 0.35);
-  color: var(--m-gold, #d6ff00);
+  background: linear-gradient(180deg, rgba(214, 255, 0, 0.2), rgba(184, 220, 0, 0.24));
+  border-color: rgba(214, 255, 0, 0.38);
+  color: #f5ffd1;
 }
 
 .ptMonthPick {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 0;
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(214, 255, 0, 0.18);
+  background: transparent;
+  border: 0;
+  color: var(--pt-muted);
+  font-weight: 700;
 }
 
 .ptMonthSelect, 
 .ptYearSelect {
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: #1a1a1a;
-  color: white;
-  border: 1px solid #444;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(6, 14, 10, 0.85);
+  color: #ddfbe8;
+  border: 1px solid var(--pt-border-soft);
   font-weight: bold;
 }
 
 /* Card Container */
 .ptSchedule__card {
-  width: min(1100px, 92vw);
+  width: min(1180px, 94vw);
   margin: 0 auto;
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(12, 24, 17, 0.95), rgba(8, 17, 12, 0.92));
+  border: 1px solid var(--pt-border-soft);
   border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  padding: 14px;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
 }
 
 .ptSchedule__card::before {
@@ -147,7 +161,7 @@
   background:
     radial-gradient(720px 300px at 15% 0%, rgba(214, 255, 0, 0.18), transparent 55%),
     radial-gradient(720px 300px at 85% 10%, rgba(0, 180, 255, 0.12), transparent 58%);
-  opacity: 0.8;
+  opacity: 0.45;
   pointer-events: none;
   z-index: 0;
   transition: opacity 160ms ease;
@@ -161,15 +175,16 @@
 /* GRID VIEW - Layout */
 .ptWeek {
   display: flex;
-  gap: 0;
+  gap: 10px;
 }
 
 .ptWeek__timeCol {
-  width: 70px;
+  width: 66px;
+  flex-shrink: 0;
 }
 
 .ptWeek__timeSpacer {
-  height: 44px; /* Chiều cao khớp với Header ngày */
+  height: 58px;
 }
 
 .ptWeek__timeBody--dayRange {
@@ -208,17 +223,17 @@
 /* GRID VIEW - Main Calendar Area */
 .ptWeek__days {
   flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--pt-border-soft);
+  border-radius: 12px;
+  background: rgba(8, 16, 12, 0.65);
   overflow: hidden;
 }
 
 .ptWeek__daysHead {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(5, 12, 9, 0.62);
+  border-bottom: 1px solid var(--pt-border-soft);
 }
 
 .ptWeek__dayHead {
@@ -229,12 +244,12 @@
 
 .ptWeek__dayName {
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
 }
 
 .ptWeek__dayDate {
-  font-size: 0.7rem;
-  color: var(--gray);
+  font-size: 0.76rem;
+  color: var(--pt-muted);
 }
 
 .ptWeek__daysBody {
@@ -245,8 +260,8 @@
 
 .ptWeek__dayCol {
   position: relative;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  border-right: 1px solid rgba(214, 255, 0, 0.08);
+  background-image: linear-gradient(rgba(214, 255, 0, 0.08) 1px, transparent 1px);
   background-size: 100% 60px;
 }
 
@@ -255,8 +270,8 @@
   position: absolute;
   left: 2px;
   right: 2px;
-  border-radius: 4px;
-  padding: 3px 4px;
+  border-radius: 8px;
+  padding: 6px 7px;
   cursor: pointer;
   z-index: 10;
   box-sizing: border-box;
@@ -265,95 +280,122 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  background: rgba(244, 137, 21, 0.15) !important;
-  border: 1px solid rgba(244, 137, 21, 0.4) !important;
-  border-left: 3px solid var(--orange) !important;
+  /* Mặc định = slot rảnh (trung tính), KHÔNG trùng màu trạng thái điểm danh */
+  background: rgba(10, 22, 16, 0.72) !important;
+  border: 1px dashed rgba(214, 255, 0, 0.28) !important;
+  border-left: 2px solid rgba(214, 255, 0, 0.42) !important;
+  box-shadow: none;
 }
 
 .ptWeek__blockTime {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
-  color: var(--orange);
+  color: rgba(238, 242, 255, 0.62);
   line-height: 1.05;
 }
 
 .ptWeek__studentName {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--orange);
+  color: #d6ff00;
   line-height: 1.05;
 }
 
 /* Nội dung trạng thái điểm danh (✓ Có mặt / ✗ Vắng mặt) */
 .mini-status {
-  margin: 1px 0 0;
+  margin: 4px 0 0;
   padding: 0;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.05;
   font-weight: 800;
   white-space: nowrap;
 }
 
+/* Đã đối soát: chữ «Đã thanh toán», gạch chéo màu xanh lá */
+.ptWeek__block.is-shared .mini-status .mini-status--paidAck {
+  color: #bbf7d0 !important;
+  text-decoration: line-through !important;
+  text-decoration-color: #22c55e !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 2px;
+}
+
 /* Attendance Status Colors */
 .ptWeek__block.is-pending {
-  background: rgba(52, 152, 219, 0.15) !important;
-  border-color: #3498db66 !important;
-  border-left-color: #3498db !important;
+  background: rgba(69, 183, 255, 0.18) !important;
+  border-color: rgba(69, 183, 255, 0.38) !important;
+  border-left-color: #00b4ff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 .ptWeek__block.is-pending * {
-  color: #3498db !important;
+  color: #b9e9ff !important;
 }
 
 .ptWeek__block.is-present {
-  background: rgba(46, 204, 113, 0.15) !important;
-  border-color: #2ecc7166 !important;
-  border-left-color: #2ecc71 !important;
+  background: rgba(0, 255, 170, 0.18) !important;
+  border-color: rgba(0, 255, 170, 0.46) !important;
+  border-left-color: #00ffaa !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .ptWeek__block.is-present * {
-  color: #2ecc71 !important;
+  color: #c9fff0 !important;
 }
 
 .ptWeek__block.is-absent {
-  background: rgba(231, 76, 60, 0.15) !important;
-  border-color: #e74c3c66 !important;
-  border-left-color: #e74c3c !important;
+  background: rgba(255, 93, 93, 0.12) !important;
+  border-color: rgba(255, 93, 93, 0.38) !important;
+  border-left-color: #ff5d5d !important;
 }
 .ptWeek__block.is-absent * {
-  color: #ff5e4d !important;
+  color: #ffd1d1 !important;
 }
 
 .ptWeek__block.is-busy-requested {
-  background: rgba(245, 158, 11, 0.16) !important;
-  border-color: rgba(245, 158, 11, 0.46) !important;
-  border-left-color: #f59e0b !important;
+  background: rgba(255, 176, 0, 0.15) !important;
+  border-color: rgba(255, 176, 0, 0.4) !important;
+  border-left-color: #ffb000 !important;
 }
 .ptWeek__block.is-busy-requested * {
-  color: #fbbf24 !important;
+  color: #ffe2ad !important;
 }
 
 .ptWeek__block.is-shared {
-  background: rgba(139, 92, 246, 0.16) !important;
-  border-color: rgba(139, 92, 246, 0.5) !important;
-  border-left-color: #8b5cf6 !important;
+  background: rgba(89, 146, 255, 0.16) !important;
+  border-color: rgba(89, 146, 255, 0.45) !important;
+  border-left-color: #5992ff !important;
 }
 .ptWeek__block.is-shared * {
-  color: #c4b5fd !important;
+  color: #dce8ff !important;
+}
+
+/* Slot rảnh: giảm nhấn mạnh, tránh cảm giác "vỡ lưới/tách ô" khi scroll */
+.ptWeek__block:not(.is-pending):not(.is-present):not(.is-absent):not(.is-busy-requested):not(.is-shared) {
+  border-style: solid !important;
+  border-color: rgba(214, 255, 0, 0.2) !important;
+  background: rgba(9, 18, 13, 0.58) !important;
 }
 
 /* Weekly Bar & Table Fallsbacks */
 .ptWeekBar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 4px;
+  margin-top: 10px;
+  background: rgba(11, 21, 16, 0.85);
+  border: 1px solid var(--pt-border-soft);
+  border-radius: 14px;
+  padding: 8px;
 }
 
 .week-range {
   margin-left: auto;
-  font-weight: bold;
+  margin-right: auto;
+  font-weight: 800;
+  color: #e9fff1;
 }
 
 .ptTable {
@@ -364,8 +406,8 @@
 .ptTable th {
   text-align: left;
   padding: 12px;
-  color: var(--gray);
-  background: rgba(0, 0, 0, 0.2);
+  color: var(--pt-muted);
+  background: rgba(5, 12, 9, 0.62);
 }
 
 .ptTable td {
@@ -374,12 +416,13 @@
 }
 
 .ptPill {
-  background: var(--orange);
-  color: #000;
+  background: rgba(56, 215, 124, 0.24);
+  color: #dffceb;
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 0.8rem;
   font-weight: bold;
+  border: 1px solid rgba(56, 215, 124, 0.32);
 }
 
 .ptSchedule__busyReasonError {
@@ -389,8 +432,104 @@
   font-weight: 700;
 }
 
+.ptSchedule__kpiWrap {
+  width: min(1180px, 94vw);
+  margin: 0 auto 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ptSchedule__kpiCard {
+  background: linear-gradient(180deg, rgba(16, 30, 22, 0.95), rgba(10, 22, 16, 0.92));
+  border: 1px solid var(--pt-border-soft);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: inset 0 1px 0 rgba(160, 255, 196, 0.1), 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.ptSchedule__kpiLabel {
+  color: var(--pt-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.ptSchedule__kpiValue {
+  margin-top: 6px;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 900;
+  color: #f1fff6;
+}
+
+.ptSchedule__legend {
+  width: min(1180px, 94vw);
+  margin: 12px auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  color: var(--pt-muted);
+  font-weight: 700;
+}
+
+.ptLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.ptLegendDot--booked {
+  background: #2bd57a;
+}
+
+.ptLegendDot--busy {
+  background: #f7b84b;
+}
+
+.ptLegendDot--free {
+  background: transparent;
+  border: 1px dashed rgba(156, 190, 166, 0.7);
+}
+
+.ptSchedule__muted {
+  color: var(--pt-muted);
+}
+
 /* Responsive Mobile */
 @media (max-width: 860px) {
+  .ptSchedule__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ptSchedule__kpiWrap {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ptSchedule__tabs {
+    flex-wrap: wrap;
+  }
+
+  .ptMonthPick {
+    margin-left: 0;
+  }
+
+  .ptWeekBar {
+    flex-wrap: wrap;
+  }
+
+  .week-range {
+    width: 100%;
+    order: 4;
+    text-align: center;
+  }
+
   .ptWeek__timeCol {
     display: none;
   }
@@ -411,5 +550,11 @@
     top: auto !important;
     height: auto !important;
     margin-top: 4px;
+  }
+
+  .ptSchedule__legend {
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    justify-content: flex-start;
   }
 }

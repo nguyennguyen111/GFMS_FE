@@ -19,6 +19,11 @@ const matchesNotificationType = (payload, notificationTypes) => {
   return notificationTypes.includes(incomingType);
 };
 
+function sortedJoin(list) {
+  if (!Array.isArray(list) || !list.length) return "";
+  return [...list].map(String).sort().join("\u0001");
+}
+
 export default function useOwnerRealtimeRefresh({
   enabled = true,
   onRefresh,
@@ -28,6 +33,9 @@ export default function useOwnerRealtimeRefresh({
 }) {
   const refreshRef = useRef(onRefresh);
   const timerRef = useRef(null);
+
+  const eventsKey = sortedJoin(events);
+  const typesKey = sortedJoin(notificationTypes);
 
   useEffect(() => {
     refreshRef.current = onRefresh;
@@ -46,11 +54,13 @@ export default function useOwnerRealtimeRefresh({
     const handlers = {};
 
     const scheduleRefresh = () => {
+      console.log(`[trainer_share realtime] scheduling refresh in ${debounceMs}ms, enabled=${enabled}`);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
 
       timerRef.current = setTimeout(() => {
+        console.log(`[trainer_share realtime] executing refresh`);
         timerRef.current = null;
         Promise.resolve(refreshRef.current?.()).catch(() => {});
       }, debounceMs);
@@ -78,5 +88,5 @@ export default function useOwnerRealtimeRefresh({
         socket.off(eventName, handlers[eventName]);
       });
     };
-  }, [debounceMs, enabled, JSON.stringify(events), JSON.stringify(notificationTypes)]);
+  }, [debounceMs, enabled, eventsKey, typesKey]);
 }

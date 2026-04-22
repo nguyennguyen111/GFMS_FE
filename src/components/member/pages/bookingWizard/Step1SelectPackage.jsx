@@ -64,10 +64,6 @@ export default function Step1SelectPackage({ packages = [], value, onPick, onNex
                     <Layers3 size={14} />
                     {p.sessions} buổi
                   </span>
-                  <span className="bw-featurePill">
-                    <CalendarRange size={14} />
-                    {p.durationDays} ngày
-                  </span>
                 </div>
 
                 {active && <div className="bw-activeBar" />}

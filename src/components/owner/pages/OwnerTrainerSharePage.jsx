@@ -3,18 +3,22 @@ import "./OwnerTrainerSharePage.css";
 import {
   ownerGetMyTrainerShares,
   ownerGetReceivedTrainerShares,
+  ownerGetTrainerShareDetail,
   ownerAcceptTrainerShare,
   ownerRejectTrainerShare,
   ownerCreateTrainerShare,
   ownerUpdateTrainerShare,
   ownerDeleteTrainerShare,
+  ownerUpdateTrainerShareSessionPrice,
+  ownerConfirmTrainerSharePayment,
+  ownerRespondTrainerSharePaymentDispute,
 } from "../../../services/ownerTrainerShareService";
 import ownerBookingService from "../../../services/ownerBookingService";
-import { ownerGetMyGyms } from "../../../services/ownerGymService";
+import { ownerUploadGymImage } from "../../../services/ownerGymService";
+import { getOwnerGymsListCached } from "../../../utils/ownerGymsListCache";
 import ownerMemberService from "../../../services/ownerMemberService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
-import { getRequests as ownerGetRequests } from "../../../services/ownerRequestService";
-import { connectSocket } from "../../../services/socketClient";
+import { getRequests as ownerGetRequests, approveRequest } from "../../../services/ownerRequestService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import axios from "../../../setup/axios";
 import useSelectedGym from "../../../hooks/useSelectedGym";
@@ -23,6 +27,57 @@ import { showAppConfirm } from "../../../utils/appDialog";
 import { normalizeSingleImageSrc } from "../../../utils/image";
 import { specializationToVietnamese } from "../../../utils/specializationI18n";
 import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecializations";
+
+/** Đủ cho dropdown tạo phiếu / lịch — nhẹ hơn gọi 1000 bản ghi mỗi lần vào trang */
+const TRAINER_SHARE_LOOKUP_LIMIT = 400;
+
+const SHARE_PAYMENT_LABELS = {
+  none: "Chưa thanh toán",
+  awaiting_transfer: "Chờ Thanh toán",
+  disputed: "PT khiếu nại — chưa nhận tiền",
+  paid: "Đã thanh toán",
+};
+
+/** Gạch chéo «Đã thanh toán» khi PT đã xác nhận hết tranh chấp (sharePaymentPtAcknowledgedAt). */
+function renderSharePaymentStatusCell(share) {
+  const raw =
+    SHARE_PAYMENT_LABELS[share?.sharePaymentStatus || "none"] ||
+    share?.sharePaymentStatus ||
+    "—";
+  const strikeThroughPaid =
+    String(share?.sharePaymentStatus || "") === "paid" &&
+    share?.sharePaymentPtAcknowledgedAt;
+  if (!strikeThroughPaid) return raw;
+  return (
+    <span
+      className="ots-paymentLabel--strikeResolved"
+      title="PT đã xác nhận — hết tranh chấp thanh toán"
+    >
+      {raw}
+    </span>
+  );
+}
+
+function formatVnd(amount) {
+  if (amount === undefined || amount === null || amount === "") return "—";
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "—";
+  return `${n.toLocaleString("vi-VN")} đ`;
+}
+
+function parseTrainerShareProofUrls(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  if (typeof raw === "string") {
+    try {
+      const j = JSON.parse(raw);
+      return Array.isArray(j) ? j.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 const STATUS_LABELS = {
   // Trainer Share statuses
@@ -407,6 +462,8 @@ const INITIAL_FORM = {
   endTime: "",
   multipleDates: [],
   notes: "",
+  sessionPrice: "",
+  busySlotRequestId: null, // ID của yêu cầu báo bận gốc - để cập nhật trạng thái khi PT nhận
 };
 
 export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
@@ -436,6 +493,15 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     useState(null);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
+
+  const [detailSessionPriceInput, setDetailSessionPriceInput] = useState("");
+  const [savingDetailPrice, setSavingDetailPrice] = useState(false);
+  const [paymentActionLoading, setPaymentActionLoading] = useState(false);
+  const [confirmPaymentFiles, setConfirmPaymentFiles] = useState([]);
+  const [disputeResponseLoading, setDisputeResponseLoading] = useState(false);
+  const [borrowerResponseText, setBorrowerResponseText] = useState("");
+  const [borrowerProofUrls, setBorrowerProofUrls] = useState([]);
+  const [pendingProofFiles, setPendingProofFiles] = useState([]);
 
   const [shareTrainerSchedule, setShareTrainerSchedule] = useState([]);
   const [loadingShareSchedule, setLoadingShareSchedule] = useState(false);
@@ -472,6 +538,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     useState("");
   const [eligibleTrainers, setEligibleTrainers] = useState([]);
   const [loadingEligibleTrainers, setLoadingEligibleTrainers] = useState(false);
+  const [busyRequestIdToApprove, setBusyRequestIdToApprove] = useState(null);
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -519,6 +586,13 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     )
       ? borrowSpecRaw
       : "";
+    const fromBusyRequestId = String(searchParams.get("fromBusyRequestId") || "");
+    const busySlotRequestId = fromBusyRequestId ? Number(fromBusyRequestId) : null;
+
+    const busyReqId = searchParams.get("fromBusyRequestId");
+    if (busyReqId) {
+      setBusyRequestIdToApprove(String(busyReqId));
+    }
 
     setEditing(null);
     setActiveTab("shares");
@@ -534,9 +608,16 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       startTime,
       endTime,
       borrowSpecialization,
+      busySlotRequestId,
       note: prev.note || "",
     }));
   }, [isBookingsPage, searchParams, selectedGymId]);
+
+  // Wrapper để đóng modal và clear busyRequestIdToApprove
+  const closeModal = () => {
+    setBusyRequestIdToApprove(null);
+    setShowModal(false);
+  };
 
   const availableTrainers = React.useMemo(() => {
     if (!form.fromGymId) return [];
@@ -559,6 +640,54 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     // Fallback: nếu filter chi nhánh không khớp dữ liệu trả về, vẫn hiển thị toàn bộ để không bị trống toàn màn hình
     return filtered.length > 0 ? filtered : allOwnerTrainers;
   }, [allOwnerTrainers, availabilityFilters.gymId]);
+
+  const loadPeopleLookups = useCallback(async () => {
+    const [trainersRes, membersRes] = await Promise.all([
+      ownerTrainerService.getMyTrainers({
+        limit: TRAINER_SHARE_LOOKUP_LIMIT,
+        page: 1,
+      }),
+      ownerMemberService.getMyMembers({
+        limit: TRAINER_SHARE_LOOKUP_LIMIT,
+        page: 1,
+      }),
+    ]);
+    const trainerRows = trainersRes?.data || [];
+    const memberRows = membersRes?.data || [];
+    setAllOwnerTrainers(trainerRows);
+    setTrainers(trainerRows);
+    setMembers(memberRows);
+  }, []);
+
+  const loadLookups = useCallback(async () => {
+    setLoadingLookups(true);
+    try {
+      const [myGyms, allGymsRes] = await Promise.all([
+        getOwnerGymsListCached(),
+        axios.get("/api/owner/gyms/all"),
+      ]);
+      const allGyms = allGymsRes?.data?.data || [];
+
+      setGyms(allGyms);
+      setBookingGyms(myGyms);
+      setMyGymIds(myGyms.map((gym) => gym.id));
+      setAvailabilityFilters((prev) => ({
+        ...prev,
+        gymId: prev.gymId || String(myGyms?.[0]?.id || ""),
+      }));
+
+      if (isBookingsPage) {
+        await loadPeopleLookups();
+      } else {
+        setAllOwnerTrainers([]);
+        setTrainers([]);
+        setMembers([]);
+      }
+    } catch (err) {
+    } finally {
+      setLoadingLookups(false);
+    }
+  }, [isBookingsPage, loadPeopleLookups]);
 
   const visibleTrainerAvailability = trainerAvailability;
   const trainerAvailabilityTotalPages = Math.max(
@@ -993,7 +1122,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     } else {
       loadLookups();
     }
-  }, [form.fromGymId]);
+  }, [form.fromGymId, loadLookups]);
 
   useEffect(() => {
     const loadShareSchedule = async () => {
@@ -1209,35 +1338,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     loadingEligibleTrainers,
   ]);
 
-  const loadLookups = async () => {
-    setLoadingLookups(true);
-    try {
-      const [gymsRes, trainersRes, membersRes, allGymsRes] = await Promise.all([
-        ownerGetMyGyms(),
-        ownerTrainerService.getMyTrainers({ limit: 1000 }),
-        ownerMemberService.getMyMembers({ limit: 1000 }),
-        axios.get("/api/owner/gyms/all"),
-      ]);
-
-      const myGyms = gymsRes?.data?.data || [];
-      const allGyms = allGymsRes?.data?.data || [];
-
-      setGyms(allGyms);
-      setBookingGyms(myGyms);
-      setMyGymIds(myGyms.map((gym) => gym.id));
-      setAllOwnerTrainers(trainersRes?.data || []);
-      setTrainers(trainersRes?.data || []);
-      setMembers(membersRes?.data || []);
-      setAvailabilityFilters((prev) => ({
-        ...prev,
-        gymId: prev.gymId || String(myGyms?.[0]?.id || ""),
-      }));
-    } catch (err) {
-    } finally {
-      setLoadingLookups(false);
-    }
-  };
-
   const loadTrainerAvailability = useCallback(async () => {
     if (!isBookingsPage || activeTab !== "bookings") return;
     if (!availabilityFilters.date) {
@@ -1295,6 +1395,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                   hasBusyRequestMarker(item.notes),
                 memberName: item.Member?.User?.username || null,
                 toGymName: item.toGym?.name || null,
+                trainerShareId: item.trainerShareId ?? null,
+                sharePaymentStatus: item.sharePaymentStatus || null,
+                sharePaymentPtAcknowledgedAt:
+                  item.sharePaymentPtAcknowledgedAt || null,
               }))
               .filter((item) => item.startTime && item.endTime),
             availableRanges,
@@ -1572,35 +1676,166 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     }
   };
 
+  const handleDetailSaveSessionPrice = async () => {
+    if (!selectedShare?.id) return;
+    try {
+      setSavingDetailPrice(true);
+      setError("");
+      const res = await ownerUpdateTrainerShareSessionPrice(selectedShare.id, {
+        sessionPrice: detailSessionPriceInput,
+      });
+      setSuccess("Đã cập nhật giá buổi.");
+      const updated = res?.data?.data;
+      if (updated) setSelectedShare(updated);
+      loadShares(currentPage);
+    } catch (err) {
+      setError(err.response?.data?.message || "Không cập nhật được giá");
+    } finally {
+      setSavingDetailPrice(false);
+    }
+  };
+
+  const handleDetailConfirmPayment = async () => {
+    if (!selectedShare?.id) return;
+    if (confirmPaymentFiles.length > 8) {
+      setError("Tối đa 8 ảnh chứng từ.");
+      return;
+    }
+    try {
+      setPaymentActionLoading(true);
+      setError("");
+      const imageUrls = [];
+      for (const file of confirmPaymentFiles) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const up = await ownerUploadGymImage(fd);
+        const url = up?.data?.url;
+        if (url) imageUrls.push(url);
+      }
+      const res = await ownerConfirmTrainerSharePayment(selectedShare.id, {
+        imageUrls,
+      });
+      setSuccess("Đã xác nhận đã chuyển khoản.");
+      setConfirmPaymentFiles([]);
+      const updated = res?.data?.data;
+      if (updated) setSelectedShare(updated);
+      loadShares(currentPage);
+    } catch (err) {
+      setError(err.response?.data?.message || "Không xác nhận được");
+    } finally {
+      setPaymentActionLoading(false);
+    }
+  };
+
+  const handleBorrowerDisputeResponseSubmit = async () => {
+    if (!selectedShare?.id) return;
+    const note = borrowerResponseText.trim();
+    const maxTotal = 8;
+    const urls = [...borrowerProofUrls];
+    if (urls.length + pendingProofFiles.length > maxTotal) {
+      setError(`Chỉ tối đa ${maxTotal} ảnh.`);
+      return;
+    }
+    try {
+      setDisputeResponseLoading(true);
+      setError("");
+      for (const file of pendingProofFiles) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await ownerUploadGymImage(fd);
+        const url = res?.data?.url;
+        if (url) urls.push(url);
+      }
+      const res = await ownerRespondTrainerSharePaymentDispute(selectedShare.id, {
+        note: note || undefined,
+        imageUrls: urls,
+      });
+      setSuccess("Đã gửi phản hồi và ảnh cho PT.");
+      const updated = res?.data?.data;
+      if (updated) setSelectedShare(updated);
+      setPendingProofFiles([]);
+      loadShares(currentPage);
+    } catch (err) {
+      setError(err.response?.data?.message || "Không gửi được phản hồi");
+    } finally {
+      setDisputeResponseLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedShare) {
+      setDetailSessionPriceInput("");
+      return;
+    }
+    setDetailSessionPriceInput(
+      selectedShare.sessionPrice != null && selectedShare.sessionPrice !== ""
+        ? String(selectedShare.sessionPrice)
+        : "",
+    );
+  }, [selectedShare, selectedShare?.id, selectedShare?.sessionPrice]);
+
+  useEffect(() => {
+    if (!selectedShare?.id) {
+      setBorrowerResponseText("");
+      setBorrowerProofUrls([]);
+      setPendingProofFiles([]);
+      setConfirmPaymentFiles([]);
+      return;
+    }
+    setBorrowerResponseText(String(selectedShare.borrowerDisputeResponseNote || ""));
+    setBorrowerProofUrls(parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls));
+    setPendingProofFiles([]);
+    setConfirmPaymentFiles([]);
+  }, [
+    selectedShare?.id,
+    selectedShare?.borrowerDisputeResponseNote,
+    selectedShare?.paymentProofImageUrls,
+  ]);
+
+  /** Mở modal chi tiết: tải lại bản ghi đầy đủ (tranh chấp / form phản hồi không bị thiếu field so với list). */
+  useEffect(() => {
+    if (!showDetailModal || !selectedShare?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await ownerGetTrainerShareDetail(selectedShare.id);
+        const data = res?.data?.data;
+        if (!cancelled && data) setSelectedShare(data);
+      } catch {
+        /* giữ dữ liệu từ dòng bảng */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showDetailModal, selectedShare?.id]);
+
   useEffect(() => {
     loadLookups();
-  }, []);
+  }, [loadLookups]);
 
+  /** Trang phiếu mượn PT: chỉ tải danh sách PT + HV khi mở form tạo/sửa — tránh 2 API nặng mỗi lần vào trang */
   useEffect(() => {
-    loadTrainerAvailability();
-    loadMemberDailySchedule();
-  }, [loadMemberDailySchedule, loadTrainerAvailability]);
-
-  useEffect(() => {
-    if (!isBookingsPage) return undefined;
-
-    const socket = connectSocket();
-    const onBookingStatusChanged = () => {
-      if (activeTab !== "bookings") return;
-      loadTrainerAvailability();
-      loadMemberDailySchedule();
-    };
-
-    socket.on("booking:status-changed", onBookingStatusChanged);
-
+    if (!showModal || isBookingsPage) return;
+    if (allOwnerTrainers.length > 0 && members.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingLookups(true);
+      try {
+        await loadPeopleLookups();
+      } finally {
+        if (!cancelled) setLoadingLookups(false);
+      }
+    })();
     return () => {
-      socket.off("booking:status-changed", onBookingStatusChanged);
+      cancelled = true;
     };
   }, [
-    activeTab,
+    showModal,
     isBookingsPage,
-    loadMemberDailySchedule,
-    loadTrainerAvailability,
+    allOwnerTrainers.length,
+    members.length,
+    loadPeopleLookups,
   ]);
 
   const refreshTrainerShareData = useCallback(async () => {
@@ -1629,7 +1864,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     enabled:
       activeTab === "shares" || activeTab === "received" || isBookingsPage,
     onRefresh: refreshTrainerShareData,
-    events: ["notification:new", "trainer_share:changed"],
+    events: ["notification:new", "trainer_share:changed", "booking:status-changed"],
     notificationTypes: ["trainer_share", "booking_update"],
   });
 
@@ -1705,6 +1940,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       notes: share.notes || "",
       scheduleMode: "single",
       multipleDates: [],
+      sessionPrice:
+        share.sessionPrice != null && share.sessionPrice !== ""
+          ? String(share.sessionPrice)
+          : "",
     });
     setShowModal(true);
   };
@@ -1772,7 +2011,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
-    // Validate time conflict (chỉ ngày đang chọn; cùng logic lọc với chọn slot)
+// Validate time conflict (chỉ ngày đang chọn; cùng logic lọc với chọn slot)
     if (form.startDate) {
       const bookings = bookingsByDate.get(form.startDate) || [];
       const st = normalizeTimeValue(form.startTime);
@@ -1805,6 +2044,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           notes: form.notes || "",
           shareType: DEFAULT_SHARE_TYPE,
           commissionSplit: DEFAULT_COMMISSION_SPLIT,
+          sessionPrice: Number(String(form.sessionPrice || "").replace(/,/g, "")),
         };
 
         sharePayload.startDate = form.startDate;
@@ -1825,9 +2065,22 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           shareType: DEFAULT_SHARE_TYPE,
           commissionSplit: DEFAULT_COMMISSION_SPLIT,
           borrowSpecialization: String(effectiveBorrowSpecialization || "").trim(),
+          sessionPrice: Number(String(form.sessionPrice || "").replace(/,/g, "")),
         };
         await ownerCreateTrainerShare(sharePayload);
         setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
+
+        // Nếu tạo từ luồng báo bận PT, cần approve request báo bận
+        if (busyRequestIdToApprove) {
+          try {
+            await approveRequest(busyRequestIdToApprove, "Đã duyệt yêu cầu báo bận và chuyển sang luồng mượn huấn luyện viên.", {
+              assignmentMode: "borrow_only",
+            });
+            setBusyRequestIdToApprove(null);
+          } catch (approveErr) {
+            console.warn("Không thể tự động duyệt request báo bận:", approveErr);
+          }
+        }
       }
 
       setShowModal(false);
@@ -1863,6 +2116,28 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("vi-VN");
   };
+
+  /** Một ngày nếu trùng; hai ngày nếu khác. useArrow: bảng nhận dùng → */
+  const formatShareTableDateLine = (share, useArrow) => {
+    if (!share?.startDate) return "Không giới hạn";
+    const startLabel = formatDate(share.startDate);
+    const endLabel = formatDate(share.endDate || share.startDate);
+    if (startLabel === endLabel) return startLabel;
+    const sep = useArrow ? " → " : " - ";
+    return `${startLabel}${sep}${endLabel}`;
+  };
+
+  /** Giờ buổi (dòng phụ dưới ngày) */
+  const shareTableTimeSubline = (share) => {
+    const st = share?.startTime;
+    const et = share?.endTime;
+    if (!st || !et) return null;
+    const s = String(st).trim().slice(0, 5);
+    const e = String(et).trim().slice(0, 5);
+    if (s === "00:00" && e === "00:00") return null;
+    return `${s} - ${e}`;
+  };
+
   const isUsableAvatar = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return false;
@@ -1886,7 +2161,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   };
 
   const pageTitle = isBookingsPage
-    ? "Lịch rảnh huấn luyện viên"
+    ? "Lịch dạy huấn luyện viên"
     : "Chia sẻ huấn luyện viên";
   const pageSubtitle = isBookingsPage
     ? `Xem khung giờ làm việc và khung giờ còn trống của huấn luyện viên${selectedGymName ? ` tại ${selectedGymName}` : " theo chi nhánh"}`
@@ -2003,8 +2278,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     <th>Từ Gym</th>
                     <th>Đến Gym</th>
                     <th>Thời gian</th>
+                    <th>Giá buổi</th>
+                    <th>Thanh toán</th>
                     <th>Trạng thái</th>
-                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2024,37 +2300,28 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       <td>{share.fromGym?.name || "—"}</td>
                       <td>{share.toGym?.name || "—"}</td>
                       <td>
-                        <div>
-                          <div>
-                            {share.startDate
-                              ? `${formatDate(share.startDate)} - ${formatDate(share.endDate || share.startDate)}`
-                              : "Không giới hạn"}
-                          </div>
-                          {share.startTime &&
-                            share.endTime &&
-                            share.startTime !== "00:00:00" &&
-                            share.endTime !== "00:00:00" && (
-                              <div
-                                style={{
-                                  fontSize: "0.85em",
-                                  color: "#64748b",
-                                  marginTop: "0.25rem",
-                                }}
-                              >
-                                {share.startTime.substring(0, 5)} -{" "}
-                                {share.endTime.substring(0, 5)}
-                              </div>
-                            )}
+                        <div className="ots-table-dateCell">
+                          <div>{formatShareTableDateLine(share, false)}</div>
+                          {(() => {
+                            const t = shareTableTimeSubline(share);
+                            return t ? (
+                              <div className="ots-table-dateCell__time">{t}</div>
+                            ) : null;
+                          })()}
                         </div>
                       </td>
-                      <td>
-                        <StatusBadge status={share.status} />
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {formatVnd(share.sessionPrice)}
+                      </td>
+                      <td style={{ fontSize: "0.88rem", maxWidth: "8rem" }}>
+                        {renderSharePaymentStatusCell(share)}
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
-                        <div className="ots-actions">
+                        <div className="ots-status-cell">
+                          <StatusBadge status={share.status} />
                           {(share.status === "waiting_acceptance" ||
                             share.status === "pending_trainer") && (
-                            <>
+                            <div className="ots-actions">
                               <button
                                 className="ots-btn ots-btn--sm ots-btn--secondary"
                                 onClick={() => handleEdit(share)}
@@ -2067,45 +2334,15 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                               >
                                 Xóa
                               </button>
-                            </>
-                          )}
-                          {share.status === "approved" && (
-                            <span className="ots-text--success">
-                              {" "}
-                              Đã chấp nhận
-                            </span>
-                          )}
-                          {share.status === "rejected" && (
-                            <span className="ots-text--danger">
-                              {" "}
-                              Bị từ chối
-                            </span>
-                          )}
-                          {share.status === "rejected_by_partner" && (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "0.25rem",
-                              }}
-                            >
-                              <span className="ots-text--danger">
-                                {" "}
-                                Đối tác từ chối
-                              </span>
-                              {share.notes && (
-                                <span
-                                  style={{
-                                    fontSize: "0.85em",
-                                    color: "#64748b",
-                                    fontStyle: "italic",
-                                  }}
-                                >
-                                  {share.notes}
-                                </span>
-                              )}
                             </div>
                           )}
+                          {share.status === "rejected_by_partner" && share.notes ? (
+                            <span
+                              className="ots-status-cell__note"
+                            >
+                              {share.notes}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -2245,8 +2482,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     <th>Từ Gym</th>
                     <th>Đến Gym</th>
                     <th>Thời gian</th>
+                    <th>Giá buổi</th>
+                    <th>TT</th>
                     <th>Trạng thái</th>
-                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2262,109 +2500,109 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       </td>
                       <td>{share.ToGym?.name || `Gym #${share.toGymId}`}</td>
                       <td>
-                        <div>
-                          <div>
-                            {share.startDate
-                              ? `${formatDate(share.startDate)} → ${formatDate(share.endDate || share.startDate)}`
-                              : "Không giới hạn"}
-                          </div>
-                          {share.startTime &&
-                            share.endTime &&
-                            share.startTime !== "00:00:00" &&
-                            share.endTime !== "00:00:00" && (
-                              <div
-                                style={{
-                                  fontSize: "0.85em",
-                                  color: "#64748b",
-                                  marginTop: "0.25rem",
-                                }}
-                              >
-                                {share.startTime.substring(0, 5)} -{" "}
-                                {share.endTime.substring(0, 5)}
-                              </div>
-                            )}
+                        <div className="ots-table-dateCell">
+                          <div>{formatShareTableDateLine(share, true)}</div>
+                          {(() => {
+                            const t = shareTableTimeSubline(share);
+                            return t ? (
+                              <div className="ots-table-dateCell__time">{t}</div>
+                            ) : null;
+                          })()}
                         </div>
                       </td>
-                      <td>
-                        <span
-                          className={`ots-badge ${
-                            share.status === "waiting_acceptance" ||
-                            share.status === "pending_trainer"
-                              ? "ots-badge--warning"
-                              : share.status === "approved"
-                                ? "ots-badge--success"
-                                : share.status === "rejected_by_partner"
-                                  ? "ots-badge--danger"
-                                  : "ots-badge--danger"
-                          }`}
-                        >
-                          {STATUS_LABELS[share.status]?.label || share.status}
-                        </span>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {formatVnd(share.sessionPrice)}
+                      </td>
+                      <td style={{ fontSize: "0.85rem", maxWidth: "6.5rem" }}>
+                        {renderSharePaymentStatusCell(share)}
                       </td>
                       <td>
-                        <div className="ots-actions">
-                          {share.status === "waiting_acceptance" && (
-                            <>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--info"
-                                onClick={() => handleViewTrainerSchedule(share)}
-                                title="Xem lịch huấn luyện viên"
-                              >
-                                Lịch
-                              </button>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--success"
-                                onClick={() =>
-                                  handleAcceptShare(share.id, share)
-                                }
-                                title="Chấp nhận"
-                              >
-                                Chấp nhận
-                              </button>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--danger"
-                                onClick={() => handleRejectShare(share.id)}
-                                title="Từ chối"
-                              >
-                                Từ chối
-                              </button>
-                            </>
-                          )}
-                          {share.status === "pending_trainer" && (
-                            <>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--info"
-                                onClick={() => handleViewTrainerSchedule(share)}
-                                title="Xem lịch huấn luyện viên"
-                              >
-                                Lịch
-                              </button>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--danger"
-                                onClick={() => handleRejectShare(share.id)}
-                                title="Từ chối"
-                              >
-                                Từ chối
-                              </button>
-                            </>
-                          )}
-                          {share.status === "approved" && (
-                            <>
-                              <button
-                                className="ots-btn ots-btn--sm ots-btn--info"
-                                onClick={() => handleViewTrainerSchedule(share)}
-                                title="Xem lịch huấn luyện viên"
-                              >
-                                Lịch
-                              </button>
-                              <span className="ots-text--success">
-                                {" "}
-                                Có thể sử dụng
-                              </span>
-                            </>
-                          )}
-                          {share.status === "rejected_by_partner" && (
-                            <span className="ots-text--danger"> Từ chối</span>
+                        <div className="ots-status-cell">
+                          <span
+                            className={`ots-badge ${
+                              share.status === "waiting_acceptance" ||
+                              share.status === "pending_trainer"
+                                ? "ots-badge--warning"
+                                : share.status === "approved"
+                                  ? "ots-badge--success"
+                                  : share.status === "rejected_by_partner"
+                                    ? "ots-badge--danger"
+                                    : "ots-badge--danger"
+                            }`}
+                          >
+                            {STATUS_LABELS[share.status]?.label || share.status}
+                          </span>
+                          {(share.status === "waiting_acceptance" ||
+                            share.status === "pending_trainer" ||
+                            share.status === "approved") && (
+                            <div className="ots-actions">
+                              {share.status === "waiting_acceptance" && (
+                                <>
+                                  <button
+                                    className="ots-btn ots-btn--sm ots-btn--info"
+                                    type="button"
+                                    onClick={() =>
+                                      handleViewTrainerSchedule(share)
+                                    }
+                                    title="Xem lịch huấn luyện viên"
+                                  >
+                                    Lịch
+                                  </button>
+                                  <button
+                                    className="ots-btn ots-btn--sm ots-btn--success"
+                                    type="button"
+                                    onClick={() =>
+                                      handleAcceptShare(share.id, share)
+                                    }
+                                    title="Chấp nhận"
+                                  >
+                                    Chấp nhận
+                                  </button>
+                                  <button
+                                    className="ots-btn ots-btn--sm ots-btn--danger"
+                                    type="button"
+                                    onClick={() => handleRejectShare(share.id)}
+                                    title="Từ chối"
+                                  >
+                                    Từ chối
+                                  </button>
+                                </>
+                              )}
+                              {share.status === "pending_trainer" && (
+                                <>
+                                  <button
+                                    className="ots-btn ots-btn--sm ots-btn--info"
+                                    type="button"
+                                    onClick={() =>
+                                      handleViewTrainerSchedule(share)
+                                    }
+                                    title="Xem lịch huấn luyện viên"
+                                  >
+                                    Lịch
+                                  </button>
+                                  <button
+                                    className="ots-btn ots-btn--sm ots-btn--danger"
+                                    type="button"
+                                    onClick={() => handleRejectShare(share.id)}
+                                    title="Từ chối"
+                                  >
+                                    Từ chối
+                                  </button>
+                                </>
+                              )}
+                              {share.status === "approved" && (
+                                <button
+                                  className="ots-btn ots-btn--sm ots-btn--info"
+                                  type="button"
+                                  onClick={() =>
+                                    handleViewTrainerSchedule(share)
+                                  }
+                                  title="Xem lịch huấn luyện viên"
+                                >
+                                  Lịch
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>
@@ -2414,7 +2652,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             <div className="ots-availability-panel__header">
               <div>
                 <h3 className="ots-availability-panel__title">
-                  Lịch rảnh huấn luyện viên
+                  Lịch dạy huấn luyện viên
                 </h3>
                 <p className="ots-availability-panel__subtitle">
                   Xem khung giờ còn trống của từng huấn luyện viên theo chi
@@ -2462,7 +2700,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     loadMemberDailySchedule();
                   }}
                 >
-                  Xem lịch rảnh
+                  Xem lịch 
                 </button>
               </div>
             </div>
@@ -2610,7 +2848,27 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                                   <span>
                                     {block.startTime} - {block.endTime}
                                   </span>
-                                  <span>{getOccupiedBlockLabel(block)}</span>
+                                  <span className="ots-slot-pill__busyCol">
+                                    <span>{getOccupiedBlockLabel(block)}</span>
+                                    {String(block.type || "") === "trainer_share" &&
+                                    String(block.sharePaymentStatus || "") ===
+                                      "paid" ? (
+                                      <span
+                                        className={
+                                          block.sharePaymentPtAcknowledgedAt
+                                            ? "ots-paymentLabel--strikeResolved ots-slot-pill__paidTag"
+                                            : "ots-slot-pill__paidTag"
+                                        }
+                                        title={
+                                          block.sharePaymentPtAcknowledgedAt
+                                            ? "PT đã xác nhận — hết tranh chấp thanh toán"
+                                            : "Chủ phòng đã xác nhận chuyển khoản"
+                                        }
+                                      >
+                                        Đã thanh toán
+                                      </span>
+                                    ) : null}
+                                  </span>
                                 </div>
                               ))
                             ) : (
@@ -2781,7 +3039,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             className="ots-modal__backdrop"
             onClick={closeMemberBookingDetail}
           />
-          <div className="ots-modal__content ots-modal__content--booking-detail">
+          <div className="ots-modal__content ots-modal__content--booking-detail" style={{ maxWidth: "860px" }}>
             <div className="ots-modal__header">
               <h2>Chi tiết buổi tập</h2>
               <button
@@ -2940,7 +3198,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         <div className="ots-modal">
           <div
             className="ots-modal__backdrop"
-            onClick={() => setShowModal(false)}
+            onClick={closeModal}
           />
           <div className="ots-modal__content">
             <div className="ots-modal__header">
@@ -2951,7 +3209,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               </h2>
               <button
                 className="ots-modal__close"
-                onClick={() => setShowModal(false)}
+                onClick={closeModal}
               >
                 ×
               </button>
@@ -3265,6 +3523,23 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               )}
 
               <Field
+                label="Giá buổi mượn (VNĐ)"
+                required
+                hint="Giá một buổi PT dạy tại chi nhánh bạn. Bên cho mượn sẽ gửi tên ngân hàng và STK để bạn chuyển sau khi buổi hoàn thành."
+              >
+                <input
+                  type="number"
+                  step={1000}
+                  className="ots-input"
+                  value={form.sessionPrice}
+                  onChange={(e) =>
+                    setForm({ ...form, sessionPrice: e.target.value })
+                  }
+                  placeholder="Ví dụ: 500000"
+                />
+              </Field>
+
+              <Field
                 label="Huấn luyện viên cần mượn"
                 hint="Chỉ liệt kê PT cùng chuyên môn (theo gói / slot báo bận) và còn rảnh đúng ngày — giờ đã chọn (mặc định theo báo bận nếu chỉ một slot). Để trống để gửi yêu cầu mở cho tất cả PT trong danh sách."
               >
@@ -3445,7 +3720,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 <button
                   type="button"
                   className="ots-btn ots-btn--secondary"
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                 >
                   Hủy
                 </button>
@@ -3957,29 +4232,33 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* Detail Modal — dùng ots-modal + .ots-share-detail-modal để có layout/form rõ trên nền tối */}
       {showDetailModal && selectedShare && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDetailModal(false)}
-        >
+        <div className="ots-modal">
           <div
-            className="modal-content modal-detail"
+            className="ots-modal__backdrop"
+            onClick={() => setShowDetailModal(false)}
+          />
+          <div
+            className="ots-modal__content ots-share-detail-modal"
+            style={{ maxWidth: "640px", width: "100%" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h2 className="modal-title">
+            <div className="ots-modal__header">
+              <h2>
                 Chi tiết yêu cầu chia sẻ huấn luyện viên #{selectedShare.id}
               </h2>
               <button
-                className="modal-close"
+                type="button"
+                className="ots-modal__close"
                 onClick={() => setShowDetailModal(false)}
+                aria-label="Đóng"
               >
                 ×
               </button>
             </div>
 
-            <div className="modal-body">
+            <div className="ots-modal__body">
               <div className="detail-grid">
                 <div className="detail-row">
                   <span className="detail-label">Từ Gym:</span>
@@ -4035,6 +4314,404 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                   </span>
                 </div>
 
+                {selectedShare.status === "approved" && (
+                  <div className="detail-row detail-row--full ots-share-paymentCard">
+                    <div className="ots-share-paymentCard__title">
+                      Thanh toán mượn PT ngoài chi nhánh (bạn trả tiền cho bên cho
+                      mượn)
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Trạng thái TT:</span>
+                      <span className="detail-value">
+                        {renderSharePaymentStatusCell(selectedShare)}
+                      </span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Giá buổi:</span>
+                      <span className="detail-value">
+                        {formatVnd(selectedShare.sessionPrice)}
+                      </span>
+                    </div>
+                    {(() => {
+                      const ps = selectedShare.sharePaymentStatus || "none";
+                      if (ps === "awaiting_transfer" || ps === "paid" || ps === "disputed")
+                        return null;
+                      return (
+                        <div
+                          className="detail-row detail-row--full"
+                          style={{
+                            flexDirection: "column",
+                            alignItems: "stretch",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <span className="detail-label">
+                            Nhập / sửa giá buổi (VNĐ) — cần có trước khi đối tác
+                            gửi STK:
+                          </span>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "0.5rem",
+                              alignItems: "center",
+                            }}
+                          >
+                            <input
+                              type="number"
+                              min={1}
+                              className="ots-input"
+                              style={{ maxWidth: "220px" }}
+                              value={detailSessionPriceInput}
+                              onChange={(e) =>
+                                setDetailSessionPriceInput(e.target.value)
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              disabled={savingDetailPrice}
+                              onClick={handleDetailSaveSessionPrice}
+                            >
+                              {savingDetailPrice ? "Đang lưu…" : "Lưu giá"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {(selectedShare.sharePaymentStatus === "awaiting_transfer" ||
+                      selectedShare.sharePaymentStatus === "disputed") && (
+                      <>
+                        {selectedShare.sharePaymentStatus === "disputed" &&
+                          selectedShare.sharePaymentDisputeNote && (
+                            <div
+                              className="detail-row detail-row--full"
+                              style={{
+                                padding: "0.65rem 0.75rem",
+                                borderRadius: "8px",
+                                background: "rgba(245, 158, 11, 0.12)",
+                                border: "1px solid rgba(245, 158, 11, 0.35)",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                                Khiếu nại từ PT:
+                              </span>
+                              <span className="detail-value" style={{ whiteSpace: "pre-wrap" }}>
+                                {selectedShare.sharePaymentDisputeNote}
+                              </span>
+                              {selectedShare.sharePaymentDisputedAt && (
+                                <div style={{ marginTop: "0.35rem", fontSize: "0.85rem", opacity: 0.85 }}>
+                                  {new Date(selectedShare.sharePaymentDisputedAt).toLocaleString("vi-VN")}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        <div className="detail-row detail-row--full">
+                          <span className="detail-label">
+                            Tài khoản nhận (PT đã gửi):
+                          </span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Ngân hàng:</span>
+                          <span className="detail-value">
+                            {selectedShare.lenderBankName || "—"}
+                          </span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Số TK:</span>
+                          <span className="detail-value">
+                            {selectedShare.lenderBankAccountNumber || "—"}
+                          </span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">Chủ TK:</span>
+                          <span className="detail-value">
+                            {selectedShare.lenderAccountHolderName || "—"}
+                          </span>
+                        </div>
+                        <div className="detail-row detail-row--full">
+                          <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                            Ảnh chứng từ chuyển khoản (tuỳ chọn, tối đa 8)
+                          </span>
+                          {confirmPaymentFiles.length > 0 && (
+                            <ul
+                              style={{
+                                margin: "0 0 0.5rem",
+                                paddingLeft: "1.1rem",
+                                fontSize: "0.82rem",
+                              }}
+                            >
+                              {confirmPaymentFiles.map((f, i) => (
+                                <li key={`${f.name}-${i}`}>
+                                  {f.name}{" "}
+                                  <button
+                                    type="button"
+                                    className="btn-cancel"
+                                    style={{
+                                      marginLeft: 6,
+                                      padding: "2px 8px",
+                                      fontSize: "0.75rem",
+                                    }}
+                                    onClick={() =>
+                                      setConfirmPaymentFiles((prev) =>
+                                        prev.filter((_, j) => j !== i),
+                                      )
+                                    }
+                                  >
+                                    Bỏ
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            multiple
+                            disabled={paymentActionLoading}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setConfirmPaymentFiles((prev) => {
+                                const room = Math.max(0, 8 - prev.length);
+                                return [...prev, ...files.slice(0, room)];
+                              });
+                              e.target.value = "";
+                            }}
+                            style={{ marginBottom: "0.65rem", fontSize: "0.82rem" }}
+                          />
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            disabled={paymentActionLoading}
+                            onClick={handleDetailConfirmPayment}
+                          >
+                            {paymentActionLoading
+                              ? "Đang xác nhận…"
+                              : "Xác nhận đã chuyển khoản"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {selectedShare.sharePaymentStatus === "paid" &&
+                      selectedShare.paymentMarkedPaidAt && (
+                        <div className="detail-row">
+                          <span className="detail-label">Đã xác nhận thanh toán:</span>
+                          <span className="detail-value">
+                            {new Date(
+                              selectedShare.paymentMarkedPaidAt,
+                            ).toLocaleString("vi-VN")}
+                          </span>
+                        </div>
+                      )}
+
+                    {selectedShare.sharePaymentStatus === "paid" &&
+                      parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls).length >
+                        0 && (
+                        <div className="detail-row detail-row--full">
+                          <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                            Ảnh chứng từ thanh toán
+                          </span>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            {parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls).map(
+                              (url, idx) => (
+                                <a
+                                  key={`${url}-${idx}`}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src={normalizeSingleImageSrc(url)}
+                                    alt=""
+                                    style={{
+                                      width: 72,
+                                      height: 72,
+                                      objectFit: "cover",
+                                      borderRadius: 8,
+                                      border: "1px solid rgba(0,0,0,0.12)",
+                                    }}
+                                  />
+                                </a>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {selectedShare.sharePaymentStatus === "paid" &&
+                      selectedShare.sharePaymentDisputeNote && (
+                        <div
+                          className={`detail-row detail-row--full ots-share-disputeNoteFromPt${
+                            selectedShare.sharePaymentPtAcknowledgedAt
+                              ? " ots-share-disputeNoteFromPt--resolved"
+                              : ""
+                          }`}
+                        >
+                          <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                            Huấn luyện viên báo chưa nhận tiền (sau khi đã xác nhận thanh toán):
+                          </span>
+                          <span className="detail-value" style={{ whiteSpace: "pre-wrap" }}>
+                            {selectedShare.sharePaymentDisputeNote}
+                          </span>
+                          {selectedShare.sharePaymentDisputedAt && (
+                            <div style={{ marginTop: "0.35rem", fontSize: "0.85rem", opacity: 0.9 }}>
+                              {new Date(selectedShare.sharePaymentDisputedAt).toLocaleString("vi-VN")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {selectedShare.sharePaymentPtAcknowledgedAt && (
+                      <div className="detail-row detail-row--full ots-share-ptAckResolved">
+                        <span className="ots-share-ptAckResolved__icon" aria-hidden>
+                          ✓
+                        </span>
+                        <div>
+                          <div className="ots-share-ptAckResolved__title">
+                            PT đã xác nhận — kết thúc phản hồi thanh toán
+                          </div>
+                          <div className="ots-share-ptAckResolved__time">
+                            {new Date(selectedShare.sharePaymentPtAcknowledgedAt).toLocaleString("vi-VN")}
+                          </div>
+                          <p className="ots-share-ptAckResolved__hint">
+                            Không cần gửi thêm phản hồi; trạng thái thanh toán đã được PT xác nhận.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedShare.sharePaymentDisputeNote ||
+                      selectedShare.sharePaymentStatus === "disputed") &&
+                      !selectedShare.sharePaymentPtAcknowledgedAt && (
+                      <div className="detail-row detail-row--full ots-share-borrowerReply">
+                        <p className="ots-share-detail-hint">
+                          {selectedShare.sharePaymentStatus === "paid"
+                            ? "Đây là form phản hồi khiếu nại — cuộn trong khung nếu không thấy ô nhập hoặc nút Gửi."
+                            : "Điền nội dung và ảnh chứng từ rồi bấm Gửi phản hồi cho PT."}
+                        </p>
+                        <div className="ots-share-borrowerReply__title">
+                          Phản hồi cho huấn luyện viên — nội dung & ảnh chứng từ thanh toán
+                        </div>
+                        {selectedShare.borrowerDisputeResponseAt && (
+                          <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", opacity: 0.85 }}>
+                            Cập nhật gần nhất:{" "}
+                            {new Date(selectedShare.borrowerDisputeResponseAt).toLocaleString("vi-VN")}
+                          </p>
+                        )}
+                        <span className="detail-label" style={{ display: "block", marginBottom: "0.25rem" }}>
+                          Nội dung phản hồi
+                        </span>
+                        <textarea
+                          className="ots-input"
+                          rows={3}
+                          value={borrowerResponseText}
+                          onChange={(e) => setBorrowerResponseText(e.target.value)}
+                          style={{ width: "100%", minHeight: "72px", marginBottom: "0.65rem" }}
+                          placeholder="Đối chiếu lệnh chi, thời điểm chuyển…"
+                        />
+                        <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                          Ảnh chứng từ (tối đa 8)
+                        </span>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          {borrowerProofUrls.map((url, idx) => (
+                            <div key={`${url}-${idx}`} style={{ position: "relative" }}>
+                              <img
+                                src={normalizeSingleImageSrc(url)}
+                                alt=""
+                                style={{
+                                  width: 72,
+                                  height: 72,
+                                  objectFit: "cover",
+                                  borderRadius: 8,
+                                  border: "1px solid rgba(0,0,0,0.12)",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                aria-label="Xóa ảnh"
+                                onClick={() =>
+                                  setBorrowerProofUrls((prev) => prev.filter((_, j) => j !== idx))
+                                }
+                                style={{
+                                  position: "absolute",
+                                  top: -6,
+                                  right: -6,
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: "50%",
+                                  border: "none",
+                                  background: "#ef4444",
+                                  color: "#fff",
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {pendingProofFiles.length > 0 && (
+                          <ul style={{ margin: "0 0 0.5rem", paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
+                            {pendingProofFiles.map((f, i) => (
+                              <li key={`${f.name}-${i}`}>
+                                {f.name}{" "}
+                                <button
+                                  type="button"
+                                  className="btn-cancel"
+                                  style={{ marginLeft: 6, padding: "2px 8px", fontSize: "0.75rem" }}
+                                  onClick={() =>
+                                    setPendingProofFiles((prev) => prev.filter((_, j) => j !== i))
+                                  }
+                                >
+                                  Bỏ
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setPendingProofFiles((prev) => {
+                              const room = Math.max(
+                                0,
+                                8 - borrowerProofUrls.length - prev.length,
+                              );
+                              const add = files.slice(0, room);
+                              return [...prev, ...add];
+                            });
+                            e.target.value = "";
+                          }}
+                          style={{ marginBottom: "0.65rem", fontSize: "0.82rem" }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          disabled={disputeResponseLoading}
+                          onClick={handleBorrowerDisputeResponseSubmit}
+                        >
+                          {disputeResponseLoading ? "Đang gửi…" : "Gửi phản hồi cho PT"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {selectedShare.Member && (
                   <div className="detail-row">
                     <span className="detail-label">Hội viên gắn kèm:</span>
@@ -4060,11 +4737,12 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="ots-modal__footer">
               {(selectedShare.status === "waiting_acceptance" ||
                 selectedShare.status === "pending_trainer") && (
                 <>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowDetailModal(false);
                       handleEdit(selectedShare);
@@ -4074,6 +4752,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     Sửa
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowDetailModal(false);
                       handleDelete(selectedShare.id);
@@ -4085,6 +4764,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 </>
               )}
               <button
+                type="button"
                 onClick={() => setShowDetailModal(false)}
                 className="btn-cancel"
               >

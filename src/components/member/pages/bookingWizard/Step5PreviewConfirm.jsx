@@ -8,11 +8,16 @@ import {
   Dumbbell,
   MapPin,
   UserRound,
+  Lock,
 } from "lucide-react";
 import {
   memberConfirmFixedPlan,
   memberGetFixedPlanOptions,
 } from "../../../../services/memberBookingService";
+import {
+  memberGetCurrentMembershipCard,
+  memberGetMembershipCardPlans,
+} from "../../../../services/membershipCardService";
 import "./bookingWizard.css";
 
 const fmtVND = (n) => Number(n || 0).toLocaleString("vi-VN");
@@ -27,15 +32,42 @@ const DOW_LABEL = {
   6: "T7",
 };
 
-function Chip({ active, disabled, onClick, children }) {
+const DEFAULT_TIME_SLOTS = [
+  { start: "08:00", end: "09:00" },
+  { start: "09:00", end: "10:00" },
+  { start: "10:00", end: "11:00" },
+  { start: "11:00", end: "12:00" },
+  { start: "12:00", end: "13:00" },
+  { start: "13:00", end: "14:00" },
+  { start: "14:00", end: "15:00" },
+  { start: "15:00", end: "16:00" },
+  { start: "16:00", end: "17:00" },
+  { start: "17:00", end: "18:00" },
+  { start: "18:00", end: "19:00" },
+  { start: "19:00", end: "20:00" },
+  { start: "20:00", end: "21:00" },
+  { start: "21:00", end: "22:00" },
+  { start: "22:00", end: "23:00" },
+];
+
+function Chip({ active, disabled, note, onClick, children }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`bw-chip ${active ? "isActive" : ""} ${disabled ? "isDisabled" : ""}`}
+      title={disabled ? note || "Khung giờ này hiện không khả dụng" : ""}
+      className={[
+        "bw-chip",
+        active ? "isActive" : "",
+        disabled ? "isDisabled" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      {children}
+      {disabled ? <Lock size={13} /> : <Clock3 size={14} />}
+      <span>{children}</span>
+      {disabled && note ? <small className="bw-chipNote">{note}</small> : null}
     </button>
   );
 }
@@ -83,6 +115,52 @@ function buildPreviewSessions({ startDate, pattern = [], totalSessions = 0, slot
   return out;
 }
 
+function normalizeSlotAvailability(rawSlot = {}) {
+  const unavailable =
+    rawSlot?.isAvailable === false ||
+    rawSlot?.available === false ||
+    rawSlot?.disabled === true ||
+    rawSlot?.status === "busy" ||
+    rawSlot?.status === "unavailable" ||
+    rawSlot?.status === "occupied";
+
+  return {
+    ...rawSlot,
+    start: rawSlot?.start || "",
+    end: rawSlot?.end || "",
+    disabled: unavailable,
+    note:
+      rawSlot?.note ||
+      rawSlot?.reason ||
+      rawSlot?.message ||
+      (unavailable ? "PT bận / không thể nhận lịch này" : ""),
+  };
+}
+
+function mergeSlots(slotCatalog = [], apiSlots = []) {
+  const catalog =
+    Array.isArray(slotCatalog) && slotCatalog.length ? slotCatalog : DEFAULT_TIME_SLOTS;
+
+  const byKey = new Map(
+    (apiSlots || []).map((s) => {
+      const normalized = normalizeSlotAvailability(s);
+      return [`${normalized.start}-${normalized.end}`, normalized];
+    })
+  );
+
+  return catalog.map((base) => {
+    const key = `${base.start}-${base.end}`;
+    const matched = byKey.get(key);
+
+    if (matched) return matched;
+
+    return {
+      ...base,
+      disabled: true,
+    };
+  });
+}
+
 export default function Step5PreviewConfirm({
   gym,
   pkg,
@@ -101,6 +179,9 @@ export default function Step5PreviewConfirm({
 
   const [slot, setSlot] = useState(null);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+  const [membershipPlans, setMembershipPlans] = useState([]);
+  const [membershipPlanId, setMembershipPlanId] = useState(0);
+  const [currentMembershipCard, setCurrentMembershipCard] = useState(null);
 
   const totalSessions = Number(pkg?.sessions || pkg?.totalSessions || 0) || 0;
   const patternKey = useMemo(
@@ -139,10 +220,10 @@ export default function Step5PreviewConfirm({
         const data = res?.data?.data || null;
         setOptions(data);
 
-        const firstSlot =
-          Array.isArray(data?.slots) && data.slots.length ? data.slots[0] : null;
+        const mergedSlots = mergeSlots(data?.slotCatalog, data?.slots);
+        const firstAvailableSlot = mergedSlots.find((s) => !s.disabled) || null;
 
-        setSlot(firstSlot || null);
+        setSlot(firstAvailableSlot);
       } catch (e) {
         if (!active) return;
 
@@ -160,7 +241,7 @@ export default function Step5PreviewConfirm({
     return () => {
       active = false;
     };
-  }, [pkg?.id, trainer?.id, startDate, patternKey]);
+  }, [pkg?.id, trainer?.id, startDate, patternKey, pattern]);
 
   const preview = useMemo(() => {
     return buildPreviewSessions({
@@ -172,7 +253,21 @@ export default function Step5PreviewConfirm({
   }, [startDate, pattern, totalSessions, slot]);
 
   const duplicateWarning = options?.warning || null;
-  const slots = Array.isArray(options?.slots) ? options.slots : [];
+  const hasActiveMembershipCard = !!currentMembershipCard?.id;
+  const membershipPlan =
+    membershipPlans.find((p) => Number(p.id) === Number(membershipPlanId)) || null;
+  const membershipPrice = hasActiveMembershipCard ? 0 : Number(membershipPlan?.price || 0);
+  const membershipSelectHint = hasActiveMembershipCard
+    ? `Đã mua thẻ thành viên • Còn hạn đến ${new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}`
+    : membershipPlan
+      ? `${membershipPlan.label} • ${fmtVND(membershipPrice)} VND`
+      : "Vui lòng chọn thẻ thành viên";
+  const packagePrice = Number(pkg?.price || 0);
+  const totalAmount = packagePrice + membershipPrice;
+
+  const slots = useMemo(() => {
+    return mergeSlots(options?.slotCatalog, options?.slots);
+  }, [options]);
 
   const canSubmit = !!(
     pkg?.id &&
@@ -181,9 +276,35 @@ export default function Step5PreviewConfirm({
     patternKey &&
     slot?.start &&
     slot?.end &&
+    !slot?.disabled &&
+    (hasActiveMembershipCard || !!membershipPlan) &&
     preview.length > 0 &&
     (!duplicateWarning?.hasActiveSamePackage || confirmDuplicate)
   );
+
+  useEffect(() => {
+    let mounted = true;
+    const gymId = Number(pkg?.gymId || pkg?.Gym?.id || 0) || undefined;
+    Promise.all([memberGetMembershipCardPlans({ gymId }), memberGetCurrentMembershipCard({ gymId })])
+      .then(([planRes, cardRes]) => {
+        if (!mounted) return;
+        const plans = Array.isArray(planRes?.data?.data) ? planRes.data.data : [];
+        setMembershipPlans(plans);
+        if (plans.length > 0) {
+          setMembershipPlanId(Number(plans[0].id));
+        }
+        setCurrentMembershipCard(cardRes?.data?.data || null);
+      })
+      .catch(() => {
+        if (mounted) {
+          setMembershipPlans([]);
+          setCurrentMembershipCard(null);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [pkg?.gymId, pkg?.Gym?.id]);
 
   const handleConfirm = async () => {
     if (!canSubmit || submitting) return;
@@ -200,6 +321,7 @@ export default function Step5PreviewConfirm({
         startTime: slot.start,
         paymentMethod: payMethod,
         confirmDuplicate: !!confirmDuplicate,
+        membershipCardPlanId: hasActiveMembershipCard ? 0 : Number(membershipPlanId),
       });
 
       const data = res?.data?.data || null;
@@ -230,6 +352,25 @@ export default function Step5PreviewConfirm({
           Kiểm tra lại thông tin gói tập, PT, lịch học và thanh toán trước khi hoàn tất.
         </p>
       </header>
+
+      <div className={`bw-membershipFlow ${hasActiveMembershipCard ? "is-ok" : "is-required"}`}>
+        <div className="bw-membershipFlowHead">
+          <CreditCard size={16} />
+          <b>{hasActiveMembershipCard ? "Bạn đã có thẻ thành viên còn hạn" : "Bạn cần mua thêm thẻ thành viên"}</b>
+        </div>
+        {hasActiveMembershipCard ? (
+          <p>
+            Hệ thống đã kiểm tra thẻ hiện tại của bạn còn hạn đến{" "}
+            <strong>{new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}</strong>. Bước này bạn
+            không phải trả thêm tiền thẻ.
+          </p>
+        ) : (
+          <p>
+            Để vào tập tại gym, bạn cần có thẻ thành viên còn hiệu lực. Vui lòng chọn loại thẻ bên dưới, tổng tiền sẽ
+            được cộng rõ ràng trước khi thanh toán.
+          </p>
+        )}
+      </div>
 
       <div className="bw-summaryHero">
         <div className="bw-summaryHeroLeft">
@@ -287,13 +428,22 @@ export default function Step5PreviewConfirm({
             <div className="bw-miniGrid">
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Giá gói</div>
-                <div className="bw-miniValue">{fmtVND(pkg?.price)} VND</div>
+                <div className="bw-miniValue">{fmtVND(packagePrice)} VND</div>
+              </div>
+
+              <div className="bw-miniBox">
+                <div className="bw-miniLabel">Thẻ thành viên</div>
+                <div className="bw-miniValue">
+                  {hasActiveMembershipCard
+                    ? `Đã có thẻ còn hạn đến ${new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}`
+                    : `${fmtVND(membershipPrice)} VND`}
+                </div>
               </div>
 
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Tổng tạm tính</div>
                 <div className="bw-miniValue bw-miniValueAccent">
-                  {fmtVND(pkg?.price)} VND
+                  {fmtVND(totalAmount)} VND
                 </div>
               </div>
             </div>
@@ -322,27 +472,45 @@ export default function Step5PreviewConfirm({
             Chọn khung giờ hợp lệ
           </div>
 
-          <div className="bw-chipRow" style={{ marginTop: 10 }}>
+          <div className="bw-chipRow bw-chipRowSlots" style={{ marginTop: 10 }}>
             {slots.map((s) => {
               const active = slot?.start === s.start && slot?.end === s.end;
+              const disabled = !!s.disabled;
+
               return (
                 <Chip
                   key={`${s.start}-${s.end}`}
                   active={active}
-                  onClick={() => setSlot(s)}
+                  disabled={disabled}
+                  note={s.note}
+                  onClick={() => {
+                    if (!disabled) setSlot(s);
+                  }}
                 >
-                  <Clock3 size={14} />
-                  <span>{s.start}–{s.end}</span>
+                  {s.start}–{s.end}
                 </Chip>
               );
             })}
 
             {!slots.length && (
               <div className="bw-alert bw-alertWarn">
-                Không có khung giờ nào hợp lệ cho toàn bộ lịch cố định này. Hãy quay lại chọn ngày bắt đầu hoặc pattern khác.
+                Không có dữ liệu khung giờ để hiển thị. Hãy quay lại chọn ngày bắt đầu hoặc pattern khác.
               </div>
             )}
           </div>
+
+          {!!slots.length && (
+            <div className="bw-slotLegend">
+              <span className="bw-slotLegendItem">
+                <span className="bw-slotLegendDot bw-slotLegendDot--available" />
+                Có thể chọn
+              </span>
+              <span className="bw-slotLegendItem">
+                <span className="bw-slotLegendDot bw-slotLegendDot--busy" />
+                PT bận / không khả dụng
+              </span>
+            </div>
+          )}
         </>
       )}
 
@@ -365,7 +533,6 @@ export default function Step5PreviewConfirm({
             <CreditCard size={16} />
             <span>Phương thức thanh toán</span>
           </div>
-
           <select
             value={payMethod}
             onChange={(e) => setPayMethod(e.target.value)}
@@ -374,6 +541,42 @@ export default function Step5PreviewConfirm({
           >
             <option value="payos">PayOS</option>
           </select>
+        </div>
+
+        <div className="bw-paymentSelectWrap bw-paymentSelectWrapMembership">
+          <div className="bw-paymentLabel">
+            <CreditCard size={16} />
+            <span>{hasActiveMembershipCard ? "Thẻ thành viên hiện tại" : "Thẻ thành viên (bắt buộc)"}</span>
+          </div>
+          <div className={`bw-membershipSelectCard ${hasActiveMembershipCard ? "is-active-card" : ""}`}>
+            <div className="bw-membershipSelectTop">
+              <span className="bw-membershipSelectHint">{membershipSelectHint}</span>
+              {!hasActiveMembershipCard ? (
+                <span className="bw-membershipSelectPrice">+ {fmtVND(membershipPrice)} VND</span>
+              ) : (
+                <span className="bw-membershipSelectPrice is-free">ĐÃ MUA</span>
+              )}
+            </div>
+            {hasActiveMembershipCard ? (
+              <div className="bw-membershipOwnedRow">
+                <CheckCircle2 size={16} />
+                <span>Bạn đã mua thẻ thành viên và hiện vẫn còn hiệu lực.</span>
+              </div>
+            ) : (
+              <select
+                value={membershipPlanId}
+                onChange={(e) => setMembershipPlanId(Number(e.target.value))}
+                className="bw-input bw-inputCompact"
+                disabled={submitting || membershipPlans.length === 0}
+              >
+                {membershipPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.label} - {fmtVND(plan.price)} VND
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         <div className="bw-actionsRightGroup">
@@ -393,7 +596,7 @@ export default function Step5PreviewConfirm({
         </div>
       </div>
 
-      {!!slot && !!preview.length && (
+      {!!slot && !slot.disabled && !!preview.length && (
         <>
           <div className="bw-blockTitle">Lịch dự kiến</div>
 

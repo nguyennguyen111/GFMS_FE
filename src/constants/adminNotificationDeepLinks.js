@@ -32,7 +32,10 @@ export function resolveAdminNotificationHref(item) {
       return `/admin/maintenance${q}`;
     default:
       if (item.relatedType === "franchise_request" && Number.isFinite(id)) return `/admin/franchises${q}`;
-      if (item.relatedType === "purchase_request" && Number.isFinite(id)) {
+      if (["purchase_request", "purchaserequest"].includes(String(item.relatedType || "")) && Number.isFinite(id)) {
+        return `/admin/purchase-workflow?tab=purchaseRequests&highlight=${id}`;
+      }
+      if (type === "purchase_request" && Number.isFinite(id)) {
         return `/admin/purchase-workflow?tab=purchaseRequests&highlight=${id}`;
       }
       if (item.relatedType === "quotation" && Number.isFinite(id)) {
@@ -49,7 +52,7 @@ export function resolveAdminNotificationHref(item) {
 export function adminNotificationCategoryLabel(type) {
   const t = String(type || "");
   if (t.includes("franchise")) return "Nhượng quyền";
-  if (t.includes("procurement") || t.includes("purchase") || t.includes("quotation")) return "Mua sắm";
+  if (t.includes("procurement") || t.includes("purchase") || t.includes("quotation") || t.includes("combo")) return "Mua sắm";
   if (t.includes("maintenance")) return "Bảo trì";
   return "Hệ thống";
 }

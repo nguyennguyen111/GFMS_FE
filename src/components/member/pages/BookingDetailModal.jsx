@@ -6,9 +6,9 @@ import {
   Clock3,
   Dumbbell,
   MapPin,
-  RefreshCcw,
   UserRound,
   X,
+  Lock,
 } from "lucide-react";
 import "./BookingDetailModal.css";
 import {
@@ -27,52 +27,25 @@ const DAY_OPTIONS = [
   { value: "sunday", label: "Chủ nhật" },
 ];
 
-const DAY_KEY_BY_JS_DAY = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
+const DEFAULT_TIME_SLOTS = [
+  { startTime: "06:00", endTime: "07:00", label: "06:00 - 07:00" },
+  { startTime: "07:00", endTime: "08:00", label: "07:00 - 08:00" },
+  { startTime: "08:00", endTime: "09:00", label: "08:00 - 09:00" },
+  { startTime: "09:00", endTime: "10:00", label: "09:00 - 10:00" },
+  { startTime: "10:00", endTime: "11:00", label: "10:00 - 11:00" },
+  { startTime: "11:00", endTime: "12:00", label: "11:00 - 12:00" },
+  { startTime: "12:00", endTime: "13:00", label: "12:00 - 13:00" },
+  { startTime: "13:00", endTime: "14:00", label: "13:00 - 14:00" },
+  { startTime: "14:00", endTime: "15:00", label: "14:00 - 15:00" },
+  { startTime: "15:00", endTime: "16:00", label: "15:00 - 16:00" },
+  { startTime: "16:00", endTime: "17:00", label: "16:00 - 17:00" },
+  { startTime: "17:00", endTime: "18:00", label: "17:00 - 18:00" },
+  { startTime: "18:00", endTime: "19:00", label: "18:00 - 19:00" },
+  { startTime: "19:00", endTime: "20:00", label: "19:00 - 20:00" },
+  { startTime: "20:00", endTime: "21:00", label: "20:00 - 21:00" },
+  { startTime: "21:00", endTime: "22:00", label: "21:00 - 22:00" },
+  { startTime: "22:00", endTime: "23:00", label: "22:00 - 23:00" },
 ];
-
-const safeParseJSON = (value, fallback = {}) => {
-  try {
-    if (!value) return fallback;
-    return typeof value === "string" ? JSON.parse(value) : value;
-  } catch {
-    return fallback;
-  }
-};
-
-const timeToMinutes = (value) => {
-  const raw = String(value || "").slice(0, 5);
-  const [h, m] = raw.split(":").map(Number);
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
-  return h * 60 + m;
-};
-
-const getTrainerWorkingRanges = (booking, isoDate) => {
-  if (!isoDate) return [];
-  const availableHours = safeParseJSON(booking?.Trainer?.availableHours, {});
-  const jsDay = new Date(`${isoDate}T00:00:00`).getDay();
-  const dayKey = DAY_KEY_BY_JS_DAY[jsDay];
-  return Array.isArray(availableHours?.[dayKey]) ? availableHours[dayKey] : [];
-};
-
-const slotFitsTrainerHours = (slot, ranges = []) => {
-  const slotStart = timeToMinutes(slot?.startTime);
-  const slotEnd = timeToMinutes(slot?.endTime);
-  if (slotStart === null || slotEnd === null) return false;
-
-  return ranges.some((range) => {
-    const rangeStart = timeToMinutes(range?.start);
-    const rangeEnd = timeToMinutes(range?.end);
-    if (rangeStart === null || rangeEnd === null) return false;
-    return slotStart >= rangeStart && slotEnd <= rangeEnd;
-  });
-};
 
 const getMemberSessionDisplay = (booking) => {
   const st = String(booking?.status || "").toLowerCase();
@@ -135,8 +108,60 @@ const getRescheduleMeta = (booking) => {
   return null;
 };
 
+const normalizeApiSlot = (slot) => ({
+  ...slot,
+  startTime: String(slot?.startTime || "").slice(0, 5),
+  endTime: String(slot?.endTime || "").slice(0, 5),
+  label:
+    slot?.label ||
+    `${String(slot?.startTime || "").slice(0, 5)} - ${String(slot?.endTime || "").slice(0, 5)}`,
+});
+
+const buildDisplaySlots = (options) => {
+  const availableSlots = Array.isArray(options?.availableSlots)
+    ? options.availableSlots.map(normalizeApiSlot)
+    : [];
+
+  const slotCatalog =
+    Array.isArray(options?.slotCatalog) && options.slotCatalog.length
+      ? options.slotCatalog.map((slot) => ({
+          ...slot,
+          startTime: String(slot?.startTime || slot?.start || "").slice(0, 5),
+          endTime: String(slot?.endTime || slot?.end || "").slice(0, 5),
+          label:
+            slot?.label ||
+            `${String(slot?.startTime || slot?.start || "").slice(0, 5)} - ${String(
+              slot?.endTime || slot?.end || ""
+            ).slice(0, 5)}`,
+        }))
+      : DEFAULT_TIME_SLOTS;
+
+  const availableMap = new Map(
+    availableSlots.map((slot) => [slot.startTime, slot])
+  );
+
+  return slotCatalog.map((base) => {
+    const matched = availableMap.get(base.startTime);
+
+    if (matched) {
+      return {
+        ...base,
+        ...matched,
+        disabled: false,
+        reason: "",
+      };
+    }
+
+    return {
+      ...base,
+      disabled: true,
+      reason: "PT bận / đã có lịch",
+    };
+  });
+};
+
 export default function BookingDetailModal({ booking, onClose, onUpdated }) {
-  const [mode, setMode] = useState("detail"); // detail | request
+  const [mode, setMode] = useState("detail");
   const [weekday, setWeekday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedStartTime, setSelectedStartTime] = useState("");
@@ -181,29 +206,27 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
         const data = res?.data?.data || null;
         setOptions(data);
 
-        const filteredDates = (data?.availableDates || []).filter(
-          (it) => getTrainerWorkingRanges(booking, it.date).length
-        );
+        const availableDates = Array.isArray(data?.availableDates) ? data.availableDates : [];
 
         const nextDate =
-          selectedDate && filteredDates.some((it) => it.date === selectedDate)
+          selectedDate && availableDates.some((it) => it.date === selectedDate)
             ? selectedDate
-            : data?.selectedDate && filteredDates.some((it) => it.date === data.selectedDate)
+            : data?.selectedDate && availableDates.some((it) => it.date === data.selectedDate)
             ? data.selectedDate
-            : filteredDates?.[0]?.date || "";
+            : availableDates?.[0]?.date || "";
 
         setSelectedDate(nextDate);
 
-        const filteredSlots = (data?.availableSlots || []).filter((it) =>
-          slotFitsTrainerHours(it, getTrainerWorkingRanges(booking, nextDate))
-        );
+        const nextDisplaySlots = buildDisplaySlots(data);
+        const firstAvailableSlot =
+          nextDisplaySlots.find((it) => !it.disabled)?.startTime || "";
 
-        const nextSlot =
-          selectedStartTime && filteredSlots.some((it) => it.startTime === selectedStartTime)
-            ? selectedStartTime
-            : filteredSlots?.[0]?.startTime || "";
-
-        setSelectedStartTime(nextSlot);
+        setSelectedStartTime((prev) => {
+          if (prev && nextDisplaySlots.some((it) => it.startTime === prev && !it.disabled)) {
+            return prev;
+          }
+          return firstAvailableSlot;
+        });
       } catch (e) {
         if (!mounted) return;
         setOptions(null);
@@ -218,7 +241,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
     return () => {
       mounted = false;
     };
-  }, [mode, booking, booking?.id, weekday, selectedDate, selectedStartTime]);
+  }, [mode, booking, booking?.id, weekday, selectedDate]);
 
   const disp = useMemo(() => getMemberSessionDisplay(booking), [booking]);
   const rescheduleMeta = useMemo(() => getRescheduleMeta(booking), [booking]);
@@ -242,20 +265,18 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
   }, [booking, isPastBooking]);
 
   const filteredAvailableDates = useMemo(() => {
-    return (options?.availableDates || []).filter(
-      (it) => getTrainerWorkingRanges(booking, it.date).length
-    );
-  }, [booking, options]);
+    return Array.isArray(options?.availableDates) ? options.availableDates : [];
+  }, [options]);
 
   const selectedDateMeta = useMemo(
     () => filteredAvailableDates.find((it) => it.date === selectedDate) || null,
     [filteredAvailableDates, selectedDate]
   );
 
-  const filteredAvailableSlots = useMemo(() => {
-    const ranges = getTrainerWorkingRanges(booking, selectedDate);
-    return (options?.availableSlots || []).filter((it) => slotFitsTrainerHours(it, ranges));
-  }, [booking, options, selectedDate]);
+  const displaySlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return buildDisplaySlots(options);
+  }, [options, selectedDate]);
 
   if (!booking) return null;
 
@@ -284,8 +305,15 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
   };
 
   const handleSubmitRequest = async () => {
+    const selectedSlot = displaySlots.find((it) => it.startTime === selectedStartTime);
+
     if (!selectedDate || !selectedStartTime) {
       setError("Vui lòng chọn ngày và khung giờ mong muốn.");
+      return;
+    }
+
+    if (!selectedSlot || selectedSlot.disabled) {
+      setError("Khung giờ này hiện không thể chọn. Vui lòng chọn khung giờ khác.");
       return;
     }
 
@@ -331,7 +359,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
             </h3>
             <p className="bd-sub">
               {mode === "request"
-                ? "Chọn ngày và khung giờ phù hợp với lịch làm việc của PT để gửi yêu cầu đổi lịch."
+                ? "Chọn ngày và khung giờ phù hợp để gửi yêu cầu đổi lịch."
                 : "Xem nhanh thông tin lịch tập và gửi yêu cầu đổi lịch ngay trong ứng dụng."}
             </p>
           </div>
@@ -471,22 +499,44 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
                   <div className="bd-helperText">Ngày đã chọn: {selectedDateMeta.label}</div>
                 ) : null}
 
+                <div className="bd-slotLegend">
+                  <span className="bd-slotLegendItem">
+                    <span className="bd-slotLegendDot bd-slotLegendDot--available" />
+                    Có thể chọn
+                  </span>
+                  <span className="bd-slotLegendItem">
+                    <span className="bd-slotLegendDot bd-slotLegendDot--busy" />
+                    PT bận
+                  </span>
+                </div>
+
                 <div className="bd-slotGrid">
-                  {filteredAvailableSlots.map((it) => (
+                  {displaySlots.map((it) => (
                     <button
                       key={it.startTime}
                       type="button"
-                      className={`bd-slotBtn ${selectedStartTime === it.startTime ? "active" : ""}`}
-                      onClick={() => setSelectedStartTime(it.startTime)}
-                      disabled={loadingOptions}
+                      className={`bd-slotBtn ${selectedStartTime === it.startTime ? "active" : ""} ${
+                        it.disabled ? "is-disabled" : ""
+                      }`}
+                      onClick={() => {
+                        if (!it.disabled) setSelectedStartTime(it.startTime);
+                      }}
+                      disabled={loadingOptions || it.disabled}
+                      title={it.disabled ? it.reason || "Không khả dụng" : ""}
                     >
-                      {it.label}
+                      <span className="bd-slotBtnMain">
+                        {it.disabled ? <Lock size={12} /> : <Clock3 size={12} />}
+                        <span>{it.label}</span>
+                      </span>
+                      {it.disabled && it.reason ? (
+                        <span className="bd-slotBtnSub">{it.reason}</span>
+                      ) : null}
                     </button>
                   ))}
 
-                  {!loadingOptions && selectedDate && !filteredAvailableSlots.length ? (
+                  {!loadingOptions && selectedDate && !displaySlots.length ? (
                     <div className="bd-emptyState">
-                      Ngày này không còn khung giờ trống trong giờ làm việc của PT.
+                      Ngày này hiện chưa có dữ liệu khung giờ.
                     </div>
                   ) : null}
                 </div>

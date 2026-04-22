@@ -1,730 +1,573 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import "./EquipmentPage.css";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../../../setup/axios";
+import adminPurchaseWorkflowService from "../../../services/adminPurchaseWorkflowService";
+import { getEquipments, getSuppliers } from "../../../services/equipmentSupplierInventoryService";
+import "./EquipmentPage.css";
 
-import {
-  createEquipment,
-  deleteEquipment,
-  discontinueEquipment,
-  getSuppliers,
-  getEquipmentCategories,
-  getEquipments,
-  updateEquipment,
-  // images
-  getEquipmentImages,
-  uploadEquipmentImages,
-  setPrimaryEquipmentImage,
-  deleteEquipmentImage,
-} from "../../../services/equipmentSupplierInventoryService";
-import { translateEquipmentCategoryName } from "../../../utils/equipmentCategoryI18n";
+const money = (value) => Number(value || 0).toLocaleString("vi-VN");
 
+const emptyItem = { equipmentId: "", quantity: 1, note: "" };
 const emptyForm = {
   name: "",
+  code: "",
   description: "",
-  categoryId: "",
-  unit: "VND",
-  price: 0,
-  quantity: 0,
-  preferredSupplierId: "",
+  price: "",
   status: "active",
-};
-
-const validateEquipmentForm = (form, mode = "create") => {
-  const errors = [];
-  const name = String(form.name || "").trim();
-  const price = Number(form.price ?? 0);
-  const quantity = Number(form.quantity ?? 0);
-
-  if (!name) errors.push("Tên thiết bị là bắt buộc.");
-  if (name.length > 255) errors.push("Tên thiết bị quá dài (tối đa 255 ký tự).");
-
-  if (!Number.isFinite(price) || price <= 0) {
-    errors.push("Giá bán phải lớn hơn 0.");
-  }
-
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    errors.push(
-      mode === "create"
-        ? "Số lượng ban đầu phải lớn hơn 0."
-        : "Số lượng phải lớn hơn 0."
-    );
-  }
-
-  if (mode === "create") {
-    const catId = Number(form.categoryId);
-    if (!form.categoryId || !Number.isFinite(catId) || catId <= 0) {
-      errors.push("Vui lòng chọn danh mục.");
-    }
-    const supId = Number(form.preferredSupplierId);
-    if (!form.preferredSupplierId || !Number.isFinite(supId) || supId <= 0) {
-      errors.push("Vui lòng chọn nhà cung cấp.");
-    }
-    const desc = String(form.description || "").trim();
-    if (!desc) {
-      errors.push("Vui lòng nhập mô tả thiết bị.");
-    }
-  }
-
-  return errors;
+  thumbnail: "",
+  supplierId: "",
+  isSelling: true,
+  items: [emptyItem],
 };
 
 export default function EquipmentPage() {
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [equipments, setEquipments] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-
-  // filters
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("all"); // all | active | discontinued
-  const [categoryId, setCategoryId] = useState("all");
-
-  // modal create/edit
-  const [show, setShow] = useState(false);
-  const [mode, setMode] = useState("create"); // create | edit
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  /** Giữ mã từ DB khi sửa (không hiện form) để PUT gửi lại đúng backend */
-  const [persistedCode, setPersistedCode] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const saveLockRef = useRef(false);
-  const [createImages, setCreateImages] = useState([]);
+  const [query, setQuery] = useState("");
+  const [equipmentQuery, setEquipmentQuery] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
-  // modal images
-  const [imgOpen, setImgOpen] = useState(false);
-  const [imgEquipment, setImgEquipment] = useState(null);
-  const [gallery, setGallery] = useState([]);
-  const [uploading, setUploading] = useState(false);
-
-  // ✅ tuyệt đối hoá url ảnh theo baseURL hiện tại (local/deploy)
   const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
-  const absUrl = (u) => (u ? (u.startsWith("http") ? u : `${API_HOST}${u}`) : "");
+  const absUrl = (u) => (u ? ((String(u).startsWith("http") || String(u).startsWith("data:")) ? u : `${API_HOST}${u}`) : "");
 
-  const fetchInit = async () => {
-    setLoading(true);
-    setErr("");
+  const equipmentMap = useMemo(
+    () => new Map(equipments.map((equipment) => [Number(equipment.id), equipment])),
+    [equipments]
+  );
+
+  const totalItems = useMemo(
+    () => form.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [form.items]
+  );
+
+  const selectedEquipmentKinds = useMemo(
+    () => form.items.filter((item) => item.equipmentId).length,
+    [form.items]
+  );
+
+  const selectedSupplier = useMemo(
+    () => suppliers.find((supplier) => Number(supplier.id) === Number(form.supplierId)),
+    [suppliers, form.supplierId]
+  );
+
+
+  const comboThumbnailUrl = useMemo(() => absUrl(form.thumbnail), [form.thumbnail]);
+
+  const uploadThumbnailFile = async (file) => {
+    if (!file) return;
+    const isValidType = ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(file.type);
+    if (!isValidType) {
+      setError("Thumbnail chỉ hỗ trợ PNG, JPG, JPEG hoặc WEBP.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Thumbnail không được vượt quá 8MB.");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("kind", "image");
+    setUploadingThumbnail(true);
+    setError("");
     try {
-      const [catRes, supRes] = await Promise.all([getEquipmentCategories(), getSuppliers({ page: 1, limit: 500, status: "active" })]);
-      setCategories(catRes?.data?.data ?? catRes?.data ?? []);
-      setSuppliers(supRes?.data?.data ?? supRes?.data ?? []);
-      await fetchList();
+      const res = await axios.post("/api/upload/chat-asset", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const uploadedUrl = res?.data?.url || "";
+      setForm((prev) => ({ ...prev, thumbnail: uploadedUrl }));
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải dữ liệu ban đầu thất bại");
+      setError(e?.response?.data?.error || e?.response?.data?.message || e.message);
     } finally {
-      setLoading(false);
+      setUploadingThumbnail(false);
     }
   };
 
-  const fetchList = async () => {
-    setLoading(true);
-    setErr("");
-    try {
-      const res = await getEquipments({
-        page: 1,
-        limit: 200,
-        q: q || undefined,
-        status: status !== "all" ? status : undefined,
-        categoryId: categoryId !== "all" ? Number(categoryId) : undefined,
-      });
+  const handleThumbnailInputChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadThumbnailFile(file);
+    e.target.value = "";
+  };
 
-      const data = res?.data?.data ?? res?.data ?? res?.data?.rows ?? res?.rows ?? [];
-      const normalized = Array.isArray(data) ? data : data.data ?? data.items ?? [];
-      setItems(normalized);
+  const filteredEquipments = useMemo(() => {
+    const keyword = equipmentQuery.trim().toLowerCase();
+    if (!keyword) return equipments;
+    return equipments.filter((equipment) => {
+      const haystack = [equipment.name, equipment.code, equipment.description, equipment?.category?.name, equipment?.categoryName, equipment?.preferredSupplierName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(keyword);
+    });
+  }, [equipments, equipmentQuery]);
+
+  const loadRefs = async () => {
+    const [eqRes, supplierRes] = await Promise.all([
+      getEquipments({ page: 1, limit: 500, status: "all" }),
+      getSuppliers({ page: 1, limit: 200 }),
+    ]);
+    setEquipments(eqRes?.data || []);
+    setSuppliers(supplierRes?.data || []);
+  };
+
+  const loadRows = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await adminPurchaseWorkflowService.getEquipmentCombos({ q: query, page: 1, limit: 100 });
+      setRows(res?.data?.data || []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Tải danh sách thất bại");
+      setError(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadRefs();
+    loadRows();
   }, []);
 
-  const onSearch = () => fetchList();
-
-  const openCreate = () => {
-    setMode("create");
+  const resetForm = () => {
+    setForm({ ...emptyForm, items: [{ ...emptyItem }] });
     setEditingId(null);
-    setPersistedCode(null);
-    setCreateImages([]);
-    setForm({ ...emptyForm, status: "active" });
-    setErr("");
-    setShow(true);
   };
 
-  const openEdit = (row) => {
-    setMode("edit");
-    setEditingId(row.id);
-    setPersistedCode(row.code != null && row.code !== "" ? String(row.code) : null);
-    setForm({
-      name: row.name ?? "",
-      description: row.description ?? "",
-      categoryId: row.categoryId ? String(row.categoryId) : "",
-      unit: "VND",
-      price: Number(row.price ?? 0),
-      quantity: Number(row.adminStockQuantity ?? row.quantity ?? 0) || 0,
-      preferredSupplierId: row.preferredSupplierId ? String(row.preferredSupplierId) : "",
-      status: row.status ?? "active",
-    });
-    setErr("");
-    setShow(true);
-  };
-
-  const closeModal = () => {
-    setShow(false);
-    setErr("");
-    setCreateImages([]);
-  };
-
-  const save = async () => {
-    if (saving || saveLockRef.current) return;
-    saveLockRef.current = true;
-    setSaving(true);
-    setErr("");
-    try {
-      const validationErrors = validateEquipmentForm(form, mode);
-      if (validationErrors.length) {
-        setErr(validationErrors.join(" "));
-        return;
+  const addEquipmentToCombo = (equipmentId) => {
+    setForm((prev) => {
+      const existed = prev.items.find((item) => Number(item.equipmentId) === Number(equipmentId));
+      if (existed) {
+        return {
+          ...prev,
+          items: prev.items.map((item) => (
+            Number(item.equipmentId) === Number(equipmentId)
+              ? { ...item, quantity: Number(item.quantity || 0) + 1 }
+              : item
+          )),
+        };
       }
-
-      const payload = {
-        name: form.name?.trim(),
-        code: mode === "create" ? null : persistedCode != null ? String(persistedCode).trim() || null : null,
-        description: form.description?.trim() || null,
-        categoryId: form.categoryId ? Number(form.categoryId) : null,
-        preferredSupplierId: form.preferredSupplierId ? Number(form.preferredSupplierId) : null,
-        unit: "VND",
-        price: Number(form.price ?? 0) || 0,
-        quantity: Number(form.quantity ?? 0) || 0,
-        minStockLevel: 0,
-        maxStockLevel: 0,
-        status: form.status === "discontinued" ? "discontinued" : "active",
+      return {
+        ...prev,
+        items: [...prev.items.filter((item, index) => index > 0 || item.equipmentId), { equipmentId: String(equipmentId), quantity: 1, note: "" }],
       };
+    });
+  };
 
-      if (!payload.name) {
-        setErr("Tên thiết bị là bắt buộc");
-        return;
-      }
+  const updateItem = (index, patch) => {
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item, idx) => (idx === index ? { ...item, ...patch } : item)),
+    }));
+  };
 
-      if (mode === "create") {
-        const created = await createEquipment(payload);
-        const createdId = Number(created?.id ?? created?.data?.id ?? created?.data?.data?.id ?? 0);
-        if (createdId > 0 && createImages.length > 0) {
-          try {
-            await uploadEquipmentImages(createdId, createImages);
-          } catch (uploadErr) {
-            alert(
-              uploadErr?.response?.data?.message ||
-                uploadErr?.message ||
-                "Tạo thiết bị thành công nhưng tải ảnh thất bại. Bạn có thể vào nút 'Ảnh' để tải lại."
-            );
-          }
-        }
+  const removeItem = (index) => {
+    setForm((prev) => {
+      const nextItems = prev.items.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        items: nextItems.length ? nextItems : [{ ...emptyItem }],
+      };
+    });
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        ...form,
+        price: Number(form.price || 0),
+        supplierId: form.supplierId || null,
+        items: form.items
+          .filter((item) => item.equipmentId)
+          .map((item, index) => ({
+            equipmentId: Number(item.equipmentId),
+            quantity: Number(item.quantity || 1),
+            note: item.note || "",
+            sortOrder: index + 1,
+          })),
+      };
+      if (editingId) {
+        await adminPurchaseWorkflowService.updateEquipmentCombo(editingId, payload);
       } else {
-        await updateEquipment(editingId, payload);
+        await adminPurchaseWorkflowService.createEquipmentCombo(payload);
       }
-
-      closeModal();
-      fetchList();
-    } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || "Lưu thất bại");
+      resetForm();
+      loadRows();
+    } catch (e2) {
+      setError(e2?.response?.data?.message || e2.message);
     } finally {
       setSaving(false);
-      saveLockRef.current = false;
     }
   };
 
-  const onDiscontinue = async (row) => {
-    const okConfirm = window.confirm(`Ẩn/Ngưng sử dụng thiết bị "${row.name}"?`);
-    if (!okConfirm) return;
-    try {
-      await discontinueEquipment(row.id);
-      fetchList();
-    } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Discontinue failed");
-    }
+  const onEdit = (row) => {
+    setEditingId(row.id);
+    setForm({
+      name: row.name || "",
+      code: row.code || "",
+      description: row.description || "",
+      price: row.price || "",
+      status: row.status || "active",
+      thumbnail: row.thumbnail || "",
+      supplierId: row.supplierId || "",
+      isSelling: Boolean(row.isSelling),
+      items: (row.items || []).length
+        ? row.items.map((item) => ({
+            equipmentId: String(item.equipmentId),
+            quantity: item.quantity,
+            note: item.note || "",
+          }))
+        : [{ ...emptyItem }],
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const onDelete = async (row) => {
-    const okConfirm = window.confirm(
-      `Xóa vĩnh viễn thiết bị "${row.name}"?\n\nChỉ xóa được khi chưa phát sinh dữ liệu kho/chứng từ.`
-    );
-    if (!okConfirm) return;
+    if (!window.confirm(`Xóa combo ${row.name}?`)) return;
     try {
-      await deleteEquipment(row.id);
-      await fetchList();
+      await adminPurchaseWorkflowService.deleteEquipmentCombo(row.id);
+      loadRows();
+      if (editingId === row.id) resetForm();
     } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Xóa thiết bị thất bại");
+      setError(e?.response?.data?.message || e.message);
     }
   };
 
-  const openImages = async (row) => {
-    setImgEquipment(row);
-    setImgOpen(true);
+  const onToggleSelling = async (row) => {
     try {
-      const res = await getEquipmentImages(row.id);
-      setGallery(res?.data?.data ?? res?.data ?? []);
+      await adminPurchaseWorkflowService.toggleEquipmentComboSelling(row.id, { isSelling: !row.isSelling });
+      loadRows();
     } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Load images failed");
-      setGallery([]);
+      setError(e?.response?.data?.message || e.message);
     }
   };
-
-  const closeImages = () => {
-    setImgOpen(false);
-    setImgEquipment(null);
-    setGallery([]);
-    setUploading(false);
-  };
-
-  const visibleItems = useMemo(() => items || [], [items]);
-
-  const catMap = useMemo(() => {
-    const map = new Map();
-    (categories || []).forEach((c) => map.set(Number(c.id), c));
-    return map;
-  }, [categories]);
 
   return (
-    <div className="eq-page">
-      <div className="eq-head">
+    <div className="combo-admin-page">
+      <div className="combo-admin-hero">
         <div>
-          <h2 className="eq-title">Thiết bị</h2>
-          <div className="eq-sub">
-            Quản lý danh mục, giá và nhà cung cấp. Tổng tồn theo từng phòng gym xem tại mục <strong>Kho thiết bị</strong>.
+          <div className="combo-admin-kicker">Thiết bị & combo</div>
+          <h2>Combo thiết bị</h2>
+          <p>
+            Giữ nguyên danh mục thiết bị hiện có, sau đó admin chọn các thiết bị đó để setup combo bán cho owner.
+            Owner sẽ mua theo combo nhưng vẫn xem rõ bên trong có những thiết bị nào.
+          </p>
+        </div>
+        <div className="combo-admin-heroStats">
+          <div className="combo-admin-statCard">
+            <span>Thiết bị sẵn để ghép combo</span>
+            <strong>{equipments.length}</strong>
+          </div>
+          <div className="combo-admin-statCard">
+            <span>Combo đang quản lý</span>
+            <strong>{rows.length}</strong>
+          </div>
+          <div className="combo-admin-statCard combo-admin-statCard--accent">
+            <span>Thiết bị đã chọn vào combo</span>
+            <strong>{selectedEquipmentKinds}</strong>
+          </div>
+        </div>
+      </div>
+
+      {error ? <div className="combo-admin-alert">{error}</div> : null}
+
+      <div className="combo-admin-toolbar">
+        <button type="button" className="combo-btn" onClick={() => navigate("/admin/devices")}>Mở trang thiết bị</button>
+        <button type="button" className="combo-btn combo-btn--ghost" onClick={() => navigate("/admin/suppliers")}>Mở trang nhà cung cấp</button>
+      </div>
+
+      <div className="combo-admin-layout">
+        <section className="combo-panel combo-panel--catalog">
+          <div className="combo-panel__header">
+            <div>
+              <h3>Danh mục thiết bị hiện có</h3>
+              <p>Admin chọn từ danh mục thiết bị gốc để thêm vào combo.</p>
+            </div>
+            <input
+              className="combo-input"
+              placeholder="Tìm theo tên / mã thiết bị"
+              value={equipmentQuery}
+              onChange={(e) => setEquipmentQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="combo-equipment-grid">
+            {filteredEquipments.map((equipment) => {
+              const imageUrl = absUrl(equipment.primaryImageUrl || equipment.thumbnail || equipment.imageUrl || equipment.image || "");
+              const categoryName = equipment?.category?.name || equipment?.categoryName || "Chưa phân loại";
+              const supplierName = equipment?.preferredSupplierName || equipment?.supplier?.name || "Chưa gán supplier";
+              return (
+                <div key={equipment.id} className="combo-equipment-card">
+                  <div className="combo-equipment-card__media">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={equipment.name} />
+                    ) : (
+                      <div className="combo-equipment-card__placeholder">{equipment.name?.slice(0, 1) || "T"}</div>
+                    )}
+                  </div>
+                  <div className="combo-equipment-card__top">
+                    <div>
+                      <div className="combo-equipment-card__name">{equipment.name}</div>
+                      <div className="combo-equipment-card__meta">
+                        {equipment.code || `EQ-${equipment.id}`} · {categoryName}
+                      </div>
+                    </div>
+                    <div className="combo-tag">Catalog gốc</div>
+                  </div>
+                  <div className="combo-equipment-card__desc">{equipment.description || "Chưa có mô tả thiết bị."}</div>
+                  <div className="combo-equipment-card__footer">
+                    <span className="combo-tag">{supplierName}</span>
+                    <button type="button" className="combo-btn combo-btn--accent" onClick={() => addEquipmentToCombo(equipment.id)}>
+                      Thêm vào combo
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {!filteredEquipments.length ? <div className="combo-empty">Không tìm thấy thiết bị phù hợp.</div> : null}
+          </div>
+        </section>
+
+        <section className="combo-panel combo-panel--editor">
+          <div className="combo-panel__header">
+            <div>
+              <h3>{editingId ? "Cập nhật combo" : "Tạo combo từ danh mục thiết bị"}</h3>
+              <p>Thiết bị gốc được CRUD ở trang Thiết bị. Ở đây admin chỉ chọn thiết bị để build combo và tự set giá bán ở cấp combo.</p>
+            </div>
+          </div>
+
+          <form className="combo-form" onSubmit={submit}>
+            <div className="combo-form__grid combo-form__grid--2col">
+              <input className="combo-input" placeholder="Tên combo" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input className="combo-input" placeholder="Mã combo" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+              <input className="combo-input" placeholder="Giá combo" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <select className="combo-input" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}>
+                <option value="">Chọn supplier</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                ))}
+              </select>
+              <select className="combo-input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+              <div className="combo-thumbnailField">
+                <div
+                  className={`combo-thumbnailDropzone ${uploadingThumbnail ? "is-uploading" : ""}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) uploadThumbnailFile(file);
+                  }}
+                >
+                  <input
+                    id="combo-thumbnail-upload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    className="combo-thumbnailDropzone__input"
+                    onChange={handleThumbnailInputChange}
+                  />
+                  <div className="combo-thumbnailDropzone__content">
+                    <strong>{uploadingThumbnail ? "Đang upload thumbnail..." : "Kéo & thả ảnh combo vào đây"}</strong>
+                    <span>hoặc bấm để chọn ảnh cover. Hỗ trợ PNG / JPG / WEBP tối đa 8MB.</span>
+                  </div>
+                  <label htmlFor="combo-thumbnail-upload" className="combo-btn combo-btn--ghost">
+                    {form.thumbnail ? "Thay ảnh" : "Chọn ảnh"}
+                  </label>
+                </div>
+                <input className="combo-input" placeholder="Hoặc dán Thumbnail URL" value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} />
+                {comboThumbnailUrl ? (
+                  <div className="combo-thumbnailPreview">
+                    <div className="combo-thumbnailPreview__media">
+                      <img src={comboThumbnailUrl} alt={form.name || "combo thumbnail"} />
+                    </div>
+                    <div className="combo-thumbnailPreview__text">
+                      <strong>Thumbnail hiện tại</strong>
+                      <span>Ảnh sẽ được crop gọn theo khung vuông để không bị phình khi preview và khi owner xem combo.</span>
+                      <span>{form.thumbnail}</span>
+                    </div>
+                  </div>
+                ) : null}
+                {form.thumbnail ? (
+                  <button type="button" className="combo-btn combo-btn--ghost combo-thumbnailField__remove" onClick={() => setForm((prev) => ({ ...prev, thumbnail: "" }))}>
+                    Xóa ảnh
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <textarea className="combo-input combo-textarea" placeholder="Mô tả combo" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+
+            <label className="combo-checkboxRow">
+              <input type="checkbox" checked={form.isSelling} onChange={(e) => setForm({ ...form, isSelling: e.target.checked })} />
+              <span>Đang mở bán combo này</span>
+            </label>
+
+            <div className="combo-selectedBlock">
+              <div className="combo-selectedBlock__head">
+                <div>
+                  <h4>Thiết bị trong combo</h4>
+                  <p>Show rõ từng thiết bị để admin cấu hình và owner nhìn thấy đầy đủ.</p>
+                </div>
+                <div className="combo-selectedBlock__stats">
+                  <span>{totalItems} item</span>
+                  <span>Giá bán được set ở cấp combo, không lấy từ từng thiết bị lẻ</span>
+                </div>
+              </div>
+
+              <div className="combo-selectedTable">
+                <div className="combo-selectedTable__head">
+                  <span>Thiết bị</span>
+                  <span>Số lượng</span>
+                  <span>Ghi chú</span>
+                  <span />
+                </div>
+                {form.items.map((item, index) => {
+                  const equipment = equipmentMap.get(Number(item.equipmentId));
+                  return (
+                    <div key={index} className="combo-selectedRow">
+                      <div className="combo-selectedEquipment">
+                        <select className="combo-input" value={item.equipmentId} onChange={(e) => updateItem(index, { equipmentId: e.target.value })}>
+                          <option value="">Chọn thiết bị</option>
+                          {equipments.map((equipmentOption) => (
+                            <option key={equipmentOption.id} value={equipmentOption.id}>{equipmentOption.name}</option>
+                          ))}
+                        </select>
+                        <div className="combo-selectedEquipment__meta">
+                          {equipment ? `${equipment.code || `EQ-${equipment.id}`} · ${equipment?.category?.name || equipment?.categoryName || "Chưa phân loại"}` : "Chọn một thiết bị từ danh mục hiện có"}
+                        </div>
+                      </div>
+                      <input className="combo-input" type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, { quantity: e.target.value })} />
+                      <input className="combo-input" placeholder="Ghi chú item" value={item.note} onChange={(e) => updateItem(index, { note: e.target.value })} />
+                      <button type="button" className="combo-btn combo-btn--ghost" onClick={() => removeItem(index)}>Xóa</button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="combo-selectedActions">
+                <button type="button" className="combo-btn" onClick={() => setForm((prev) => ({ ...prev, items: [...prev.items, { ...emptyItem }] }))}>
+                  + Thêm dòng thiết bị
+                </button>
+              </div>
+            </div>
+
+            <div className="combo-previewCard">
+              <div className="combo-previewCard__cover">
+                {comboThumbnailUrl ? <img src={comboThumbnailUrl} alt={form.name || "combo"} /> : <div>{form.name || "Preview combo"}</div>}
+              </div>
+              <div className="combo-previewCard__body">
+                <div className="combo-previewCard__titleRow">
+                  <div>
+                    <div className="combo-previewCard__title">{form.name || "Tên combo sẽ hiển thị ở đây"}</div>
+                    <div className="combo-previewCard__meta">{form.code || "Mã combo"} · {selectedSupplier?.name || "Chưa chọn supplier"}</div>
+                  </div>
+                  <div className="combo-previewCard__price">{money(form.price)}đ</div>
+                </div>
+                <div className="combo-previewCard__desc">{form.description || "Mô tả combo sẽ xuất hiện cho owner xem trước khi gửi yêu cầu."}</div>
+                <div className="combo-previewItems">
+                  {form.items.filter((item) => item.equipmentId).map((item, index) => {
+                    const equipment = equipmentMap.get(Number(item.equipmentId));
+                    return (
+                      <div key={`${item.equipmentId}-${index}`} className="combo-previewItems__row">
+                        <div>
+                          <strong>{equipment?.name || `Thiết bị #${item.equipmentId}`}</strong>
+                          <span>{equipment?.code || "Không có mã"}</span>
+                        </div>
+                        <div>x {item.quantity}</div>
+                      </div>
+                    );
+                  })}
+                  {!form.items.some((item) => item.equipmentId) ? <div className="combo-empty">Chưa có thiết bị nào trong combo.</div> : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="combo-form__actions">
+              <button className="combo-btn combo-btn--accent" type="submit" disabled={saving}>
+                {saving ? "Đang lưu..." : editingId ? "Lưu thay đổi combo" : "Tạo combo"}
+              </button>
+              {editingId ? <button className="combo-btn combo-btn--ghost" type="button" onClick={resetForm}>Hủy sửa</button> : null}
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <section className="combo-panel combo-panel--list">
+        <div className="combo-panel__header">
+          <div>
+            <h3>Danh sách combo đã setup</h3>
+            <p>Hiển thị rõ các thiết bị thành phần để admin kiểm tra trước khi bán.</p>
+          </div>
+          <div className="combo-searchBox">
+            <input className="combo-input" placeholder="Tìm combo" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <button type="button" className="combo-btn" onClick={loadRows}>Tìm</button>
           </div>
         </div>
 
-        <button className="eq-btn eq-btn--primary" onClick={openCreate}>
-          + Thêm thiết bị
-        </button>
-      </div>
-
-      <div className="eq-filters">
-        <input
-          className="eq-input"
-          placeholder="Tìm theo tên, brand, model..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => (e.key === "Enter" ? onSearch() : null)}
-        />
-
-        <select
-          className="eq-select"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-        >
-          <option value="all">Tất cả danh mục</option>
-          {(categories || []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
-            </option>
-          ))}
-        </select>
-
-        <select className="eq-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="all">Tất cả trạng thái</option>
-          <option value="active">Đang hoạt động</option>
-          <option value="discontinued">Ngừng sử dụng</option>
-        </select>
-
-        <button className="eq-btn" onClick={onSearch} disabled={loading}>
-          {loading ? "Đang tải..." : "Tải lại"}
-        </button>
-      </div>
-
-      {err ? <div className="eq-alert">{err}</div> : null}
-
-      <div className="eq-table">
-        <table className="eq-table__tbl">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Ảnh</th>
-              <th>Tên</th>
-              <th>Danh mục</th>
-              <th>Đơn vị</th>
-              <th>Giá bán</th>
-              <th>Trạng thái</th>
-              <th style={{ width: 320 }}>Hành động</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {visibleItems.length === 0 ? (
-              <tr>
-                <td className="eq-empty" colSpan={8}>
-                  Không có dữ liệu
-                </td>
-              </tr>
-            ) : (
-              visibleItems.map((row) => {
-                const catObj = catMap.get(Number(row.categoryId));
-                const catRawName = row.categoryName || catObj?.name || "";
-                const catRawCode = catObj?.code || "";
-                const cat = translateEquipmentCategoryName(catRawName, catRawCode) || "-";
-                const isActive = row.status === "active";
-                return (
-                  <tr key={row.id}>
-                    <td>{row.id}</td>
-
-                    <td className="eq-img-cell">
-                      {row.primaryImageUrl ? (
-                        <img
-                          className="eq-thumb"
-                          src={absUrl(row.primaryImageUrl)}
-                          alt={row.name}
-                        />
-                      ) : (
-                        <div className="eq-thumb placeholder">Chưa có ảnh</div>
-                      )}
-                    </td>
-
-                    <td className="eq-strong">
-                      {row.name}
-                      {row.brand || row.model ? (
-                        <div className="eq-muted">
-                          {[row.brand, row.model].filter(Boolean).join(" • ")}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td>{cat}</td>
-                    <td>{row.unit || "-"}</td>
-                    <td>{Number(row.price || 0).toLocaleString("vi-VN")} đ</td>
-                    <td>
-                      <span className={`eq-badge ${isActive ? "active" : "inactive"}`}>
-                        {isActive ? "Đang hoạt động" : "Ngừng sử dụng"}
-                      </span>
-                    </td>
-                    <td className="eq-actions">
-                      <button className="eq-btn eq-btn--ghost" onClick={() => openEdit(row)}>
-                        Sửa
-                      </button>
-
-                      <button className="eq-btn eq-btn--ghost" onClick={() => openImages(row)}>
-                        Ảnh
-                      </button>
-
-                      <button
-                        className="eq-btn eq-btn--danger"
-                        onClick={() => onDiscontinue(row)}
-                        disabled={!isActive}
-                      >
-                        Ẩn thiết bị
-                      </button>
-                      <button
-                        className="eq-btn eq-btn--danger"
-                        onClick={() => onDelete(row)}
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ===== Modal Create/Edit (portal: tránh bị cắt bởi overflow layout admin) ===== */}
-      {show
-        ? createPortal(
-            <div className="eq-modal__backdrop" onMouseDown={closeModal}>
-              <div
-                className="eq-modal eq-modal--form"
-                onMouseDown={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-              >
-                <div className="eq-modal__header">
+        {loading ? <div className="combo-empty">Đang tải combo...</div> : null}
+        <div className="combo-listGrid">
+          {rows.map((row) => (
+            <article key={row.id} className="combo-card">
+              <div className="combo-card__top">
+                <div className="combo-card__identity">
+                  <div className="combo-card__thumb">
+                    {row.thumbnail ? <img src={row.thumbnail} alt={row.name} /> : <span>{row.name?.slice(0, 1) || "C"}</span>}
+                  </div>
                   <div>
-                    <div className="eq-modal__title">
-                      {mode === "create" ? "Thêm thiết bị" : "Cập nhật thiết bị"}
-                    </div>
-                    <div className="eq-modal__subtitle">
-                      Điền thông tin danh mục &amp; giá. Số lượng ban đầu (nếu có) dùng nhập tồn kho admin khi tạo mới.
+                    <div className="combo-card__name">{row.name}</div>
+                    <div className="combo-card__meta">
+                      {row.code} · {row.supplier?.name || "Chưa gán supplier"} · {row.status}
                     </div>
                   </div>
-
-                  <button type="button" className="eq-iconbtn" onClick={closeModal} aria-label="Đóng">
-                    ✕
-                  </button>
                 </div>
-
-                <div className="eq-modal__body">
-                  <div className="eq-formgrid">
-                    <label className="eq-field eq-field--full">
-                      <span className="eq-label">
-                        Tên <b>*</b>
-                      </span>
-                      <input
-                        className="eq-input"
-                        value={form.name}
-                        onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                        placeholder="VD: Máy chạy bộ thương mại"
-                      />
-                    </label>
-
-                    <label className="eq-field">
-                  <span className="eq-label">
-                    Danh mục{mode === "create" ? <> <b>*</b></> : null}
+                <div className="combo-card__priceWrap">
+                  <strong>{money(row.price)}đ</strong>
+                  <span className={`combo-badge ${row.isSelling ? "is-selling" : "is-paused"}`}>
+                    {row.isSelling ? "Đang bán" : "Tạm dừng"}
                   </span>
-                  <select
-                    className="eq-select"
-                    value={form.categoryId}
-                    onChange={(e) => setForm((s) => ({ ...s, categoryId: e.target.value }))}
-                  >
-                    <option value="">-- Chọn --</option>
-                    {(categories || []).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {translateEquipmentCategoryName(c.name, c.code)} {c.code ? `(${c.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                </div>
+              </div>
 
-                <label className="eq-field">
-                  <span className="eq-label">Đơn vị</span>
-                  <input className="eq-input" value="VND" readOnly />
-                </label>
+              <div className="combo-card__desc">{row.description || "Không có mô tả combo."}</div>
 
-                <label className="eq-field">
-                  <span className="eq-label">Giá bán (VNĐ)</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.price}
-                    onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-                    placeholder="VD: 25000000"
-                  />
-                </label>
-
-                <label className="eq-field">
-                  <span className="eq-label">Số lượng</span>
-                  <input
-                    className="eq-input"
-                    type="number"
-                    min="0"
-                    value={form.quantity}
-                    onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
-                    placeholder="VD: 10"
-                  />
-                </label>
-
-                <label className="eq-field eq-col2">
-                  <span className="eq-label">
-                    Nhà cung cấp{mode === "create" ? <> <b>*</b></> : null}
-                  </span>
-                  <select
-                    className="eq-select"
-                    value={form.preferredSupplierId}
-                    onChange={(e) => setForm((s) => ({ ...s, preferredSupplierId: e.target.value }))}
-                  >
-                    <option value="">-- Chọn nhà cung cấp --</option>
-                    {(suppliers || []).map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.code ? `(${s.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="eq-field eq-col2">
-                  <span className="eq-label">
-                    Mô tả{mode === "create" ? <> <b>*</b></> : null}
-                  </span>
-                  <textarea
-                    className="eq-textarea"
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                    placeholder="VD: Thiết bị cao cấp cho phòng gym..."
-                  />
-                </label>
-
-                {mode === "create" ? (
-                  <label className="eq-field eq-col2">
-                    <span className="eq-label">Ảnh thiết bị</span>
-                    <input
-                      className="eq-input-file"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        setCreateImages(files);
-                      }}
-                    />
-                    <div className="eq-hint">
-                      {createImages.length
-                        ? `Đã chọn ${createImages.length} ảnh. Ảnh sẽ được tải lên ngay sau khi tạo thiết bị.`
-                        : "Bạn có thể chọn nhiều ảnh ngay khi tạo mới."}
-                    </div>
-                  </label>
-                ) : null}
-
-                <label className="eq-field eq-col2">
-                  <span className="eq-label">Trạng thái</span>
-                  <select
-                    className="eq-select"
-                    value={form.status}
-                    onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
-                  >
-                    <option value="active">Đang hoạt động</option>
-                    <option value="discontinued">Ngừng sử dụng</option>
-                  </select>
-                  <div className="eq-hint">
-                    * Ngừng sử dụng: ẩn thiết bị khỏi nghiệp vụ tạo mới (vẫn giữ dữ liệu lịch sử)
+              <div className="combo-card__table">
+                <div className="combo-card__tableHead">
+                  <span>Thiết bị</span>
+                  <span>Mã</span>
+                  <span>Số lượng</span>
+                </div>
+                {(row.items || []).map((item) => (
+                  <div key={item.id} className="combo-card__tableRow">
+                    <span>{item.equipment?.name || `#${item.equipmentId}`}</span>
+                    <span>{item.equipment?.code || "-"}</span>
+                    <span>x {item.quantity}</span>
                   </div>
-                </label>
-                  </div>
-
-                  {err ? <div className="eq-alert eq-alert--inmodal">{err}</div> : null}
-                </div>
-
-                <div className="eq-modal__footer">
-                  <button type="button" className="eq-btn eq-btn--ghost" onClick={closeModal}>
-                    Huỷ
-                  </button>
-                  <button
-                    type="button"
-                    className="eq-btn eq-btn--primary"
-                    onClick={save}
-                    disabled={saving}
-                  >
-                    {saving ? "Đang lưu..." : "Lưu"}
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body
-          )
-        : null}
-
-      {/* ===== Modal Images ===== */}
-      {imgOpen && imgEquipment
-        ? createPortal(
-            <div className="eq-modal__backdrop" onMouseDown={closeImages}>
-              <div className="eq-modal eq-modal--wide" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="eq-modal__header">
-              <div>
-                <div className="eq-modal__title">Ảnh thiết bị</div>
-                <div className="eq-modal__subtitle">{imgEquipment.name}</div>
+                ))}
               </div>
 
-              <button className="eq-iconbtn" onClick={closeImages} aria-label="Đóng">
-                ✕
-              </button>
-            </div>
-
-            <div className="eq-modal__body">
-              <div className="eq-upload-row">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  disabled={uploading}
-                  onChange={async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (!files.length) return;
-
-                    setUploading(true);
-                    try {
-                      await uploadEquipmentImages(imgEquipment.id, files);
-                      const res = await getEquipmentImages(imgEquipment.id);
-                      setGallery(res?.data?.data ?? res?.data ?? []);
-                      await fetchList(); // để refresh ảnh đại diện ngoài bảng
-                    } catch (err2) {
-                      alert(err2?.response?.data?.message || err2?.message || "Tải ảnh lên thất bại");
-                    } finally {
-                      setUploading(false);
-                      e.target.value = "";
-                    }
-                  }}
-                />
-                {uploading ? <span className="eq-muted">Đang upload...</span> : null}
+              <div className="combo-card__actions">
+                <button type="button" className="combo-btn" onClick={() => onEdit(row)}>Sửa</button>
+                <button type="button" className="combo-btn combo-btn--ghost" onClick={() => onToggleSelling(row)}>
+                  {row.isSelling ? "Tắt bán" : "Mở bán"}
+                </button>
+                <button type="button" className="combo-btn combo-btn--danger" onClick={() => onDelete(row)}>Xóa</button>
               </div>
-
-              <div className="eq-gallery">
-                {gallery.length === 0 ? (
-                  <div className="eq-muted">Chưa có ảnh. Hãy upload ảnh cho thiết bị.</div>
-                ) : (
-                  gallery.map((img) => (
-                    <div key={img.id} className={`eq-card-img ${img.isPrimary ? "primary" : ""}`}>
-                      <img src={absUrl(img.url)} alt={img.altText || "equipment"} />
-
-                      {img.isPrimary ? <div className="eq-badge2">Ảnh đại diện</div> : null}
-
-                      <div className="eq-img-actions">
-                        {!img.isPrimary ? (
-                          <button
-                            className="eq-btn eq-btn--ghost"
-                            onClick={async () => {
-                              try {
-                                await setPrimaryEquipmentImage(imgEquipment.id, img.id);
-                                const res = await getEquipmentImages(imgEquipment.id);
-                                setGallery(res?.data?.data ?? res?.data ?? []);
-                                await fetchList();
-                              } catch (err3) {
-                                alert(
-                                  err3?.response?.data?.message ||
-                                  err3?.message ||
-                                    "Đặt ảnh đại diện thất bại"
-                                );
-                              }
-                            }}
-                          >
-                            Đặt đại diện
-                          </button>
-                        ) : null}
-
-                        <button
-                          className="eq-btn eq-btn--danger"
-                          onClick={async () => {
-                            const okConfirm = window.confirm("Xoá ảnh này?");
-                            if (!okConfirm) return;
-
-                            try {
-                              await deleteEquipmentImage(imgEquipment.id, img.id);
-                              const res = await getEquipmentImages(imgEquipment.id);
-                              setGallery(res?.data?.data ?? res?.data ?? []);
-                              await fetchList();
-                            } catch (err4) {
-                              alert(
-                                err4?.response?.data?.message ||
-                                  err4?.message ||
-                                  "Xoá ảnh thất bại"
-                              );
-                            }
-                          }}
-                        >
-                          Xoá
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="eq-modal__footer">
-              <button type="button" className="eq-btn eq-btn--ghost" onClick={closeImages}>
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>,
-            document.body
-          )
-        : null}
+            </article>
+          ))}
+          {!rows.length && !loading ? <div className="combo-empty">Chưa có combo nào.</div> : null}
+        </div>
+      </section>
     </div>
   );
 }

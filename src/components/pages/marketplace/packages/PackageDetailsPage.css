@@ -352,6 +352,78 @@
   color: var(--pkd-muted);
 }
 
+.pkd-flowCard {
+  border-color: rgba(214, 255, 0, 0.16);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(214, 255, 0, 0.06) 0%, transparent 42%),
+    var(--pkd-surface);
+}
+
+.pkd-flowSteps {
+  display: grid;
+  gap: 12px;
+}
+
+.pkd-flowStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--pkd-stroke);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pkd-flowIndex {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(214, 255, 0, 0.16);
+  color: var(--pkd-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.pkd-flowStep b {
+  display: block;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.pkd-flowStep p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.pkd-flowHint {
+  margin-top: 12px;
+  border: 1px solid var(--pkd-stroke);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 10px 12px;
+}
+
+.pkd-flowHintTitle {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pkd-muted);
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+.pkd-flowHint ul {
+  margin: 0;
+  padding-left: 16px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .pkd-loading {
   padding: 90px 20px;
   color: var(--pkd-muted);

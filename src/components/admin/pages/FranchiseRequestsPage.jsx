@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { adminFranchiseApi } from "../../../services/adminFranchiseApi";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
 import { FRANCHISE_CONTRACT_STATUS_LABEL as CONTRACT_LABEL } from "../../../utils/franchiseContractLabels";
+import useAdminRealtimeRefresh from "../../../hooks/useAdminRealtimeRefresh";
 import "./FranchiseRequestsPage.css";
 
 const STATUS_LABEL = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối" };
@@ -136,6 +137,12 @@ export default function FranchiseRequestsPage() {
   useEffect(() => {
     loadFranchises();
   }, [loadFranchises]);
+
+  useAdminRealtimeRefresh({
+    onRefresh: loadFranchises,
+    events: ["notification:new"],
+    notificationTypes: ["admin_franchise_request_submitted"],
+  });
 
   useEffect(() => {
     if (loading) return;

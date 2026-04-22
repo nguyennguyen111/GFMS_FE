@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useAdminRealtimeRefresh from "../../../hooks/useAdminRealtimeRefresh";
 import "./MaintenancePage.css";
 import {
   admGetMaintenances,
@@ -34,6 +35,10 @@ const money = (v) => {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN");
 };
+
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString("vi-VN") : "-");
+
+const getMaintenanceCode = (id) => `MT-${String(Number(id || 0)).padStart(6, "0")}`;
 
 // Prefer displaying names (from included relations) instead of raw IDs
 const gymLabel = (m) => m?.gym?.name || m?.Gym?.name || m?.gymName || m?.gymId || "-";
@@ -125,6 +130,15 @@ export default function MaintenancePage() {
     // eslint-disable-next-line
   }, []);
 
+  useAdminRealtimeRefresh({
+    onRefresh: async () => {
+      await fetchList();
+      if (selectedId) await fetchDetail(selectedId);
+    },
+    events: ["notification:new", "maintenance:changed"],
+    notificationTypes: ["admin_maintenance_request_submitted", "admin_maintenance_cancelled_by_owner"],
+  });
+
   useLayoutEffect(() => {
     const h = Number(searchParams.get("highlight"));
     if (!Number.isFinite(h) || h <= 0) return;
@@ -137,7 +151,7 @@ export default function MaintenancePage() {
     setModal({
       open: true,
       type: "approve",
-      payload: { scheduledDate: "", notes: "" },
+      payload: { scheduledDate: "", targetCompletionDate: "", notes: "" },
     });
 
   const openReject = () =>
@@ -168,7 +182,7 @@ export default function MaintenancePage() {
   const canApprove = useMemo(() => detail?.status === "pending", [detail]);
 
   // start sau khi duyệt
-  const canStart = useMemo(() => detail?.status === "approve", [detail]);
+  const canStart = useMemo(() => ["approve", "assigned"].includes(detail?.status), [detail]);
 
   // ✅ chuẩn nghiệp vụ: complete CHỈ khi in_progress
   const canComplete = useMemo(() => detail?.status === "in_progress", [detail]);
@@ -320,7 +334,7 @@ export default function MaintenancePage() {
                     className={selectedId === r.id ? "is-active" : ""}
                     onClick={() => setSelectedId(r.id)}
                   >
-                    <td>#{r.id}</td>
+                    <td>{getMaintenanceCode(r.id)}</td>
                     <td>
                       <span className={`ma-pill ma-pill--${r.status}`}>
                         {MAINTENANCE_STATUS_VI[r.status] || r.status}
@@ -328,7 +342,7 @@ export default function MaintenancePage() {
                     </td>
                     <td>{gymLabel(r)}</td>
                     <td>{equipmentLabel(r)}</td>
-                    <td>{r.scheduledDate ? new Date(r.scheduledDate).toLocaleString() : "-"}</td>
+                    <td>{formatDateTime(r.scheduledDate)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
@@ -368,7 +382,7 @@ export default function MaintenancePage() {
               <div className="ma-detail">
                 <div className="ma-kv">
                   <div className="ma-k">Mã</div>
-                  <div className="ma-v">#{detail.id}</div>
+                  <div className="ma-v">{getMaintenanceCode(detail.id)}</div>
                 </div>
                 <div className="ma-kv">
                   <div className="ma-k">Trạng thái</div>
@@ -401,8 +415,12 @@ export default function MaintenancePage() {
                 <div className="ma-kv">
                   <div className="ma-k">Lịch hẹn</div>
                   <div className="ma-v">
-                    {detail.scheduledDate ? new Date(detail.scheduledDate).toLocaleString() : "-"}
+                    {formatDateTime(detail.scheduledDate)}
                   </div>
+                </div>
+                <div className="ma-kv">
+                  <div className="ma-k">Hạn hoàn tất dự kiến</div>
+                  <div className="ma-v">{formatDateTime(detail.targetCompletionDate)}</div>
                 </div>
               </div>
 
@@ -443,7 +461,7 @@ export default function MaintenancePage() {
             {modal.type === "approve" && (
               <div className="ma-modal__body">
                 <div className="ma-field">
-                  <label>Ngày giờ hẹn</label>
+                  <label>Ngày giờ hẹn kiểm tra</label>
                   <input
                     type="datetime-local"
                     value={modal.payload.scheduledDate}
@@ -451,6 +469,19 @@ export default function MaintenancePage() {
                       setModal((m) => ({
                         ...m,
                         payload: { ...m.payload, scheduledDate: e.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="ma-field">
+                  <label>Hạn hoàn tất dự kiến</label>
+                  <input
+                    type="datetime-local"
+                    value={modal.payload.targetCompletionDate}
+                    onChange={(e) =>
+                      setModal((m) => ({
+                        ...m,
+                        payload: { ...m.payload, targetCompletionDate: e.target.value },
                       }))
                     }
                   />

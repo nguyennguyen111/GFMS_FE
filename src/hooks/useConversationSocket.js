@@ -11,6 +11,8 @@ export default function useConversationSocket({ peerUserId, conversationKey }) {
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
   const typingTimer = useRef(null);
+  const sendingRef = useRef(false);
+  const lastSendRef = useRef({ key: "", at: 0 });
 
   useEffect(() => {
     if (!peerUserId || !conversationKey) {
@@ -71,9 +73,25 @@ export default function useConversationSocket({ peerUserId, conversationKey }) {
   }, [peerUserId, conversationKey]);
 
   const sendMessage = useCallback(async (content) => {
-    const saved = await sendConversationMessage(peerUserId, content);
-    setMessages((prev) => (prev.some((x) => Number(x.id) === Number(saved?.id)) ? prev : [...prev, saved]));
-    return saved;
+    const messageKey = String(content || "");
+    const nowTs = Date.now();
+    if (sendingRef.current) return null;
+    if (
+      messageKey &&
+      messageKey === lastSendRef.current.key &&
+      nowTs - Number(lastSendRef.current.at || 0) < 1200
+    ) {
+      return null;
+    }
+    sendingRef.current = true;
+    try {
+      const saved = await sendConversationMessage(peerUserId, content);
+      setMessages((prev) => (prev.some((x) => Number(x.id) === Number(saved?.id)) ? prev : [...prev, saved]));
+      lastSendRef.current = { key: messageKey, at: nowTs };
+      return saved;
+    } finally {
+      sendingRef.current = false;
+    }
   }, [peerUserId]);
 
   const emitTyping = useCallback((isTyping) => {

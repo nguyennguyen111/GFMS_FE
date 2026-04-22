@@ -64,22 +64,25 @@
   align-items: center;
   gap: 12px;
 }
-.ad-brand__mark {
+.ad-brand__avatar {
   width: 40px;
   height: 40px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  color: #111;
-  background: linear-gradient(90deg, var(--orange), var(--orange-2));
-  box-shadow: 0 12px 30px rgba(255, 138, 0, 0.18);
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  flex: 0 0 40px;
 }
-.ad-brand__name {
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  font-size: 12px;
-  opacity: 0.95;
+.ad-brand__text {
+  min-width: 0;
+}
+.ad-brand__wordmark {
+  display: block;
+  height: 24px;
+  width: auto;
+  max-width: 132px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(255, 176, 0, 0.08));
 }
 .ad-brand__sub {
   font-size: 11px;

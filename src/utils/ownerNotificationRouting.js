@@ -52,10 +52,17 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (notificationType === "payment") {
+    if (["purchaserequest", "purchase_request"].includes(relatedType)) {
+      return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
+    }
     return withQuery("/owner/procurement-payments", "transactionId", relatedId);
   }
 
   if (relatedType === "transaction" && notificationType === "package_purchase") {
+    return withQuery("/owner/transactions", "transactionId", relatedId);
+  }
+
+  if (relatedType === "transaction" && notificationType === "membership_card_purchase") {
     return withQuery("/owner/transactions", "transactionId", relatedId);
   }
 
@@ -68,6 +75,10 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (notificationType === "package_purchase") {
+    return "/owner/transactions";
+  }
+
+  if (notificationType === "membership_card_purchase") {
     return "/owner/transactions";
   }
 

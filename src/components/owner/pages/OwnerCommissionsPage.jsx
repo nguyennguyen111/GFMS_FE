@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import {
   ownerGetCommissions,
   ownerPreviewClosePayrollPeriod,
@@ -37,18 +35,12 @@ const formatDate = (value) => {
   return date.toLocaleDateString("vi-VN");
 };
 
-const toDateValue = (value) => {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const toDateString = (date) => {
-  if (!date) return "";
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+const formatTimeRange = (startTime, endTime) => {
+  const start = String(startTime || "").slice(0, 5);
+  const end = String(endTime || "").slice(0, 5);
+  if (!start && !end) return "N/A";
+  if (start && end) return `${start} - ${end}`;
+  return start || end;
 };
 
 const OwnerCommissionsPage = () => {
@@ -56,6 +48,13 @@ const OwnerCommissionsPage = () => {
   const [gyms, setGyms] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [commissions, setCommissions] = useState([]);
+  const [commissionPage, setCommissionPage] = useState(1);
+  const [commissionPagination, setCommissionPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+  });
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -90,6 +89,8 @@ const OwnerCommissionsPage = () => {
 
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState(null);
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
 
   const [dialog, setDialog] = useState(null);
   const [dialogBusy, setDialogBusy] = useState(false);
@@ -131,27 +132,40 @@ const OwnerCommissionsPage = () => {
     }
   }, []);
 
-  const loadCommissions = useCallback(async () => {
+  const loadCommissions = useCallback(async (page = commissionPage) => {
     try {
       setLoading(true);
       const activeFilters = {
         ...filters,
         gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
       };
-      const response = await ownerGetCommissions(activeFilters);
+      const response = await ownerGetCommissions({
+        ...activeFilters,
+        page,
+        limit: 20,
+      });
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const pagination = response.data?.pagination || {};
       setCommissions(
         selectedGymId
           ? rows.filter((item) => String(item?.gymId || item?.Gym?.id || item?.gym?.id || "") === String(selectedGymId))
           : rows
       );
+      setCommissionPagination({
+        total: Number(pagination.total || 0),
+        page: Number(pagination.page || page || 1),
+        limit: Number(pagination.limit || 20),
+        totalPages: Number(pagination.totalPages || 0),
+      });
+      setCommissionPage(Number(pagination.page || page || 1));
     } catch (error) {
       console.error("Lỗi khi tải hoa hồng:", error);
       setCommissions([]);
+      setCommissionPagination({ total: 0, page: 1, limit: 20, totalPages: 0 });
     } finally {
       setLoading(false);
     }
-  }, [filters, selectedGymId]);
+  }, [filters, selectedGymId, commissionPage]);
 
   const filteredPeriods = useMemo(() => {
     if (!selectedGymId) return periods;
@@ -184,21 +198,26 @@ const OwnerCommissionsPage = () => {
   }, []);
 
   useEffect(() => {
-    loadGyms();
-    loadTrainers();
-    loadCommissions();
-    loadPeriods();
-  }, [loadGyms, loadTrainers, loadCommissions, loadPeriods]);
+    void Promise.all([loadGyms(), loadTrainers(), loadPeriods()]);
+  }, [loadGyms, loadTrainers, loadPeriods]);
+
+  useEffect(() => {
+    loadCommissions(commissionPage);
+  }, [loadCommissions, commissionPage]);
 
   useOwnerRealtimeRefresh({
     onRefresh: async () => {
-      await Promise.all([loadCommissions(), loadPeriods()]);
+      await Promise.all([loadCommissions(commissionPage), loadPeriods()]);
       if (rateForm.gymId) {
         await loadRateForGym(rateForm.gymId);
       }
     },
-    events: ["commission:changed"],
+    events: ["commission:changed", "booking:status-changed"],
   });
+
+  useEffect(() => {
+    setCommissionPage(1);
+  }, [filters.gymId, filters.status, filters.fromDate, filters.toDate, selectedGymId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -280,15 +299,11 @@ const OwnerCommissionsPage = () => {
           break;
         }
         case "payTrainer": {
-          const result = await ownerPayByTrainer(payByTrainerForm);
+          await ownerPayByTrainer(payByTrainerForm);
           await loadCommissions();
           await loadPeriods();
           setPayByTrainerForm({ gymId: "", trainerId: "", fromDate: "", toDate: "" });
-          showAlert(
-            "success",
-            "Hoàn tất",
-            `Đã chi trả ${formatMoney(result.data?.totalAmount || 0)} cho huấn luyện viên.`
-          );
+          showAlert("success", "Hoàn tất", "Đã chi trả cho huấn luyện viên.");
           break;
         }
         default:
@@ -404,8 +419,7 @@ const OwnerCommissionsPage = () => {
         kind: "confirm",
         tone: "warning",
         title: "Xác nhận chi trả theo huấn luyện viên",
-        message:
-          "Các buổi «Chờ chốt kỳ» trong khoảng ngày đã chọn sẽ chuyển sang «Đã chi trả» và được ghi nhận vào số dư khả dụng của huấn luyện viên. Vui lòng kiểm tra đúng người nhận trước khi xác nhận.",
+        message: "",
         meta: {
           gymName: gym?.name || "",
           periodLabel: `${formatDate(fromDate)} — ${formatDate(toDate)}`,
@@ -488,6 +502,16 @@ const OwnerCommissionsPage = () => {
     setSelectedPeriod(null);
   };
 
+  const handleOpenCommission = (commission) => {
+    setSelectedCommission(commission);
+    setShowCommissionModal(true);
+  };
+
+  const handleCloseCommissionModal = () => {
+    setShowCommissionModal(false);
+    setSelectedCommission(null);
+  };
+
   return (
     <div className="owner-commissions-page">
       <div className="page-header">
@@ -523,23 +547,33 @@ const OwnerCommissionsPage = () => {
             <option value="calculated">Đã trả</option>
             <option value="paid">Đã chi trả</option>
           </select>
-          <DatePicker
-            selected={toDateValue(filters.fromDate)}
-            onChange={(date) => setFilters({ ...filters, fromDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
-            className="filter-select date-input"
-            showPopperArrow={false}
-          />
-          <DatePicker
-            selected={toDateValue(filters.toDate)}
-            onChange={(date) => setFilters({ ...filters, toDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
-            className="filter-select date-input"
-            showPopperArrow={false}
-          />
-          <button className="search-button" onClick={loadCommissions}>
+          <div className="date-range-group">
+            <label className="date-field">
+              <span className="date-label">Từ ngày</span>
+              <input
+                type="date"
+                value={filters.fromDate || ""}
+                onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
+                className="filter-select date-input"
+              />
+            </label>
+            <label className="date-field">
+              <span className="date-label">Đến ngày</span>
+              <input
+                type="date"
+                value={filters.toDate || ""}
+                onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
+                className="filter-select date-input"
+              />
+            </label>
+          </div>
+          <button
+            className="search-button"
+            onClick={() => {
+              setCommissionPage(1);
+              loadCommissions(1);
+            }}
+          >
             Lọc
           </button>
         </div>
@@ -555,17 +589,21 @@ const OwnerCommissionsPage = () => {
               <th>Gói tập</th>
               <th>Giá trị/buổi</th>
               <th>Hoa hồng Huấn luyện viên</th>
+              <th>Doanh thu chủ (buổi)</th>
+              <th>Ghi chú</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="empty-cell">Đang tải dữ liệu...</td>
+                <td colSpan="9" className="empty-cell">Đang tải dữ liệu...</td>
               </tr>
             ) : commissions.length > 0 ? (
-              commissions.map((c) => (
-                <tr key={c.id}>
+              commissions.map((c) => {
+                const isOwnerRetention = String(c.payee || "") === "owner";
+                return (
+                <tr key={c.id} className="commission-row" onClick={() => handleOpenCommission(c)}>
                   <td>{formatDate(c.sessionDate)}</td>
                   <td>
                     <div className="tx-user">
@@ -576,21 +614,53 @@ const OwnerCommissionsPage = () => {
                   <td>{c.Gym?.name || "N/A"}</td>
                   <td>{c.PackageActivation?.Package?.name || "N/A"}</td>
                   <td className="tx-amount">{formatMoney(c.sessionValue)}</td>
-                  <td className="tx-amount">{formatMoney(c.commissionAmount)}</td>
+                  <td className="tx-amount">
+                    {isOwnerRetention ? "—" : formatMoney(c.commissionAmount)}
+                  </td>
+                  <td className="tx-amount">
+                    {isOwnerRetention ? formatMoney(c.sessionValue) : "—"}
+                  </td>
+                  <td className="tx-note-cell">{c.retentionReason || (isOwnerRetention ? "" : "—")}</td>
                   <td>
-                    <span className={`tx-badge tx-badge-${c.status || "pending"}`}>
-                      {statusLabel[c.status] || c.status}
-                    </span>
+                    {isOwnerRetention ? (
+                      <span className="tx-badge tx-badge-owner">Doanh thu chủ</span>
+                    ) : (
+                      <span className={`tx-badge tx-badge-${c.status || "pending"}`}>
+                        {statusLabel[c.status] || c.status}
+                      </span>
+                    )}
                   </td>
                 </tr>
-              ))
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="7" className="empty-cell">Không có dữ liệu</td>
+                <td colSpan="9" className="empty-cell">Không có dữ liệu</td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+      <div className="commissions-pagination">
+        <button
+          className="pagination-btn"
+          disabled={loading || commissionPage <= 1}
+          onClick={() => setCommissionPage((p) => Math.max(1, p - 1))}
+        >
+          Trang trước
+        </button>
+        <span className="pagination-meta">
+          Trang {commissionPagination.page || 1}/{Math.max(1, commissionPagination.totalPages || 1)}
+          {" · "}
+          Tổng {commissionPagination.total || 0} dòng
+        </span>
+        <button
+          className="pagination-btn"
+          disabled={loading || commissionPage >= (commissionPagination.totalPages || 1)}
+          onClick={() => setCommissionPage((p) => Math.min(commissionPagination.totalPages || 1, p + 1))}
+        >
+          Trang sau
+        </button>
       </div>
 
       <div className="owner-section-heading">Kỳ lương đã chốt</div>
@@ -603,7 +673,6 @@ const OwnerCommissionsPage = () => {
               <th>Tổng buổi</th>
               <th>Tổng tiền</th>
               <th>Trạng thái</th>
-              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -621,20 +690,11 @@ const OwnerCommissionsPage = () => {
                       {period.status === "paid" ? "Đã chi trả" : "Đã trả"}
                     </span>
                   </td>
-                  <td>
-                    {period.status !== "paid" ? (
-                      <button className="btn-pay" onClick={() => handlePayPeriod(period.id)}>
-                        Chi trả
-                      </button>
-                    ) : (
-                      <span className="paid-text">Đã chi trả</span>
-                    )}
-                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="empty-cell">
+                <td colSpan="5" className="empty-cell">
                   Chưa có kỳ lương nào
                 </td>
               </tr>
@@ -661,21 +721,17 @@ const OwnerCommissionsPage = () => {
               </option>
             ))}
           </select>
-          <DatePicker
-            selected={toDateValue(periodForm.startDate)}
-            onChange={(date) => setPeriodForm({ ...periodForm, startDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
+          <input
+            type="date"
+            value={periodForm.startDate || ""}
+            onChange={(e) => setPeriodForm({ ...periodForm, startDate: e.target.value })}
             className="filter-select date-input"
-            showPopperArrow={false}
           />
-          <DatePicker
-            selected={toDateValue(periodForm.endDate)}
-            onChange={(date) => setPeriodForm({ ...periodForm, endDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
+          <input
+            type="date"
+            value={periodForm.endDate || ""}
+            onChange={(e) => setPeriodForm({ ...periodForm, endDate: e.target.value })}
             className="filter-select date-input"
-            showPopperArrow={false}
           />
           <input
             type="text"
@@ -730,21 +786,17 @@ const OwnerCommissionsPage = () => {
                 </option>
               ))}
           </select>
-          <DatePicker
-            selected={toDateValue(payByTrainerForm.fromDate)}
-            onChange={(date) => setPayByTrainerForm({ ...payByTrainerForm, fromDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
+          <input
+            type="date"
+            value={payByTrainerForm.fromDate || ""}
+            onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, fromDate: e.target.value })}
             className="filter-select date-input"
-            showPopperArrow={false}
           />
-          <DatePicker
-            selected={toDateValue(payByTrainerForm.toDate)}
-            onChange={(date) => setPayByTrainerForm({ ...payByTrainerForm, toDate: toDateString(date) })}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="dd/mm/yyyy"
+          <input
+            type="date"
+            value={payByTrainerForm.toDate || ""}
+            onChange={(e) => setPayByTrainerForm({ ...payByTrainerForm, toDate: e.target.value })}
             className="filter-select date-input"
-            showPopperArrow={false}
           />
           <button className="search-button" onClick={handlePayByTrainer}>
             Chi trả Huấn luyện viên
@@ -855,6 +907,32 @@ const OwnerCommissionsPage = () => {
             </div>
             <div className="tx-modal-footer">
               <button className="pagination-btn" onClick={handleClosePeriodModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCommissionModal && selectedCommission && (
+        <div className="tx-modal" onClick={handleCloseCommissionModal}>
+          <div className="tx-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="tx-modal-header">
+              <h2>Chi tiết buổi tập</h2>
+              <button className="tx-modal-close" onClick={handleCloseCommissionModal}>×</button>
+            </div>
+            <div className="tx-modal-body">
+              <div className="period-summary">
+                <div><strong>Ngày buổi tập:</strong> {formatDate(selectedCommission.sessionDate || selectedCommission.Booking?.bookingDate)}</div>
+                <div><strong>Giờ dạy:</strong> {formatTimeRange(selectedCommission.Booking?.startTime, selectedCommission.Booking?.endTime)}</div>
+                <div><strong>Huấn luyện viên:</strong> {selectedCommission.Trainer?.User?.username || "N/A"}</div>
+                <div><strong>Hội viên:</strong> {selectedCommission.Booking?.Member?.User?.username || "N/A"}</div>
+                <div><strong>Email hội viên:</strong> {selectedCommission.Booking?.Member?.User?.email || "N/A"}</div>
+                <div><strong>Phòng gym:</strong> {selectedCommission.Gym?.name || "N/A"}</div>
+                <div><strong>Gói tập:</strong> {selectedCommission.PackageActivation?.Package?.name || "N/A"}</div>
+                <div><strong>Giá trị buổi:</strong> {formatMoney(selectedCommission.sessionValue)}</div>
+              </div>
+            </div>
+            <div className="tx-modal-footer">
+              <button className="pagination-btn" onClick={handleCloseCommissionModal}>Đóng</button>
             </div>
           </div>
         </div>

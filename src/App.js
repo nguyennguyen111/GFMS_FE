@@ -24,6 +24,7 @@ import MemberPackageDetailPage from "./components/member/pages/MemberPackageDeta
 import MemberPaymentSuccessPage from "./components/member/pages/MemberPaymentSuccessPage";
 
 import MemberProfilePage from "./components/member/pages/MemberProfilePage";
+import MemberMembershipCardPage from "./components/member/pages/MemberMembershipCardPage";
 import MemberNotificationsPage from "./components/member/pages/MemberNotificationsPage";
 import MemberMessagesPage from "./components/member/pages/MemberMessagesPage";
 import MemberProgressPage from "./components/member/pages/MemberProgressPage";
@@ -188,6 +189,7 @@ function App() {
 
           {/* dropdown */}
           <Route path="profile" element={<MemberProfilePage />} />
+          <Route path="membership-cards" element={<MemberMembershipCardPage />} />
           <Route path="notifications" element={<MemberNotificationsPage />} />
           <Route path="messages" element={<MemberMessagesPage />} />
           <Route path="progress" element={<MemberProgressPage />} />

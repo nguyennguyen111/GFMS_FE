@@ -1,580 +1,734 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import axios from "../../../setup/axios";
 import { ownerGetMyGyms } from "../../../services/ownerGymService";
 import {
-  ownerGetPurchaseEquipments,
-  ownerGetSuppliers,
+  ownerGetActiveCombos,
   ownerCreatePurchaseRequest,
   ownerGetPurchaseRequests,
-  ownerGetPurchaseRequestDetail,
   ownerCreatePurchaseRequestPayOSLink,
   ownerConfirmReceivePurchaseRequest,
 } from "../../../services/ownerPurchaseService";
 import { confirmPayosPayment } from "../../../services/paymentService";
-import "../OwnerDashboard.css";
-import "./OwnerPurchaseRequestsPage.css";
-import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
+import { connectSocket } from "../../../services/socketClient";
+import "./OwnerPurchaseRequestsPage.css";
 
-const REASONS = [
-  { value: "new_opening", label: "Mở mới / mở rộng" },
-  { value: "replacement", label: "Thay mới" },
-  { value: "maintenance_unfixable", label: "Bảo trì không sửa được" },
-  { value: "upgrade", label: "Nâng cấp" },
-];
+const money = (v) => Number(v || 0).toLocaleString("vi-VN");
+
+const statusLabel = (status) =>
+  ({
+    submitted: "Chờ admin duyệt",
+    approved_waiting_deposit: "Chờ thanh toán cọc 30%",
+    paid_waiting_admin_confirm: "Đã cọc, chờ admin bàn giao",
+    shipping: "Đang giao combo",
+    delivered_waiting_final_payment: "Đã nhận combo, chờ thanh toán 70%",
+    completed: "Hoàn tất",
+    rejected: "Bị từ chối",
+  }[status] || status || "-");
+
+const statusClass = (status) =>
+  `owner-combo-status owner-combo-status--${status || "default"}`;
+
+const comboPlaceholder = (name = "Combo") =>
+  (name || "C").trim().slice(0, 1).toUpperCase();
 
 export default function OwnerPurchaseRequestsPage() {
-  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const { selectedGymId } = useSelectedGym();
+
   const [gyms, setGyms] = useState([]);
-  const [equipments, setEquipments] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [rows, setRows] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [combos, setCombos] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [filters, setFilters] = useState({ q: "", status: "", gymId: "" });
-  const [appliedFilters, setAppliedFilters] = useState({ q: "", status: "", gymId: "" });
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    comboId: "",
+    gymId: "",
+    note: "",
+    contactName: "",
+    contactPhone: "",
+    contactEmail: "",
+  });
+  const [payingId, setPayingId] = useState(null);
+  const [expandedComboId, setExpandedComboId] = useState(null);
 
-  const [gymId, setGymId] = useState("");
-  const [equipmentId, setEquipmentId] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [expectedSupplierId, setExpectedSupplierId] = useState("");
-  const [reason, setReason] = useState("new_opening");
-  const [note, setNote] = useState("");
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [actingId, setActingId] = useState(null);
+  const API_HOST = String(
+    axios?.defaults?.baseURL ||
+      process.env.REACT_APP_API_BASE ||
+      "http://localhost:8080"
+  ).replace(/\/+$/, "");
 
-  useEffect(() => {
-    const scopedGymId = selectedGymId ? String(selectedGymId) : "";
-    setFilters((prev) => ({ ...prev, gymId: scopedGymId }));
-    setAppliedFilters((prev) => ({ ...prev, gymId: scopedGymId }));
-    setGymId(scopedGymId);
-  }, [selectedGymId]);
+  const absUrl = (value) =>
+    value
+      ? String(value).startsWith("http") || String(value).startsWith("data:")
+        ? String(value)
+        : `${API_HOST}${value}`
+      : "";
 
-  const reasonLabelMap = useMemo(
-    () => REASONS.reduce((acc, item) => ({ ...acc, [item.value]: item.label }), {}),
-    []
+  const selectedCombo = useMemo(
+    () => combos.find((combo) => Number(combo.id) === Number(form.comboId)),
+    [combos, form.comboId]
   );
 
-  const selectedEquipment = useMemo(
-    () => equipments.find((eq) => Number(eq.id) === Number(equipmentId)) || null,
-    [equipments, equipmentId]
-  );
-  const selectedEquipmentPreferredSupplierId = Number(
-    selectedEquipment?.preferredSupplierId || selectedEquipment?.preferredSupplier?.id || 0
-  );
-  const hasAutoSupplier = selectedEquipmentPreferredSupplierId > 0;
-
-  useEffect(() => {
-    if (!selectedEquipment) {
-      setExpectedSupplierId("");
-      return;
-    }
-    const preferredId = selectedEquipmentPreferredSupplierId;
-    if (preferredId > 0) {
-      setExpectedSupplierId(String(preferredId));
-    } else {
-      setExpectedSupplierId("");
-    }
-  }, [selectedEquipment, selectedEquipmentPreferredSupplierId]);
-
-  const loadRefs = useCallback(async () => {
-    try {
-      const [gRes, eRes, sRes] = await Promise.all([
-        ownerGetMyGyms(),
-        ownerGetPurchaseEquipments({ page: 1, limit: 500 }),
-        ownerGetSuppliers({ page: 1, limit: 200 }),
-      ]);
-      const gData = gRes?.data?.data ?? gRes?.data ?? [];
-      setGyms(Array.isArray(gData) ? gData : []);
-      const eq = eRes?.data?.data ?? eRes?.data ?? [];
-      const uniqueEquipments = Array.isArray(eq)
-        ? Array.from(
-            new Map(
-              eq
-                .filter((item) => Number(item?.id) > 0)
-                .map((item) => [Number(item.id), item])
-            ).values()
+  const comboTotals = (combo) => {
+    const total = Number(combo?.price || 0);
+    return {
+      total,
+      deposit: Math.round(total * 0.3),
+      final: Math.round(total * 0.7),
+      itemTypes: Array.isArray(combo?.items) ? combo.items.length : 0,
+      itemUnits: Array.isArray(combo?.items)
+        ? combo.items.reduce(
+            (sum, item) => sum + Number(item.quantity || 0),
+            0
           )
-        : [];
-      setEquipments(uniqueEquipments);
-      const sup = sRes?.data?.data ?? sRes?.data ?? [];
-      setSuppliers(Array.isArray(sup) ? sup : []);
-    } catch (e) {
-      setErr(e?.response?.data?.message || e.message);
-    }
-  }, []);
+        : 0,
+    };
+  };
 
-  const loadList = useCallback(async (page = 1, overrideFilters = null) => {
+  const loadRefs = async () => {
+    const [gymRes, comboRes] = await Promise.all([
+      ownerGetMyGyms(),
+      ownerGetActiveCombos({ page: 1, limit: 100 }),
+    ]);
+
+    const gymRows = gymRes?.data?.data || gymRes?.data || [];
+    const comboRows = comboRes?.data?.data || [];
+
+    setGyms(gymRows);
+    setCombos(comboRows);
+    setExpandedComboId((prev) => prev || comboRows?.[0]?.id || null);
+
+    setForm((prev) => ({
+      ...prev,
+      gymId: selectedGymId
+        ? String(selectedGymId)
+        : prev.gymId || String(gymRows?.[0]?.id || ""),
+      comboId: prev.comboId || String(comboRows?.[0]?.id || ""),
+    }));
+  };
+
+  const loadRequests = useCallback(async () => {
     setLoading(true);
-    setErr("");
+    setError("");
+
     try {
-      const activeFilters = overrideFilters || appliedFilters;
       const res = await ownerGetPurchaseRequests({
-        page,
-        limit: pagination.limit,
-        q: activeFilters.q || undefined,
-        status: activeFilters.status || undefined,
-        gymId: selectedGymId ? String(selectedGymId) : activeFilters.gymId || undefined,
-      });
-      const data = res?.data?.data ?? res?.data ?? [];
-      const list = Array.isArray(data) ? data : [];
-      const meta = res?.data?.meta || {};
-
-      const detailResults = await Promise.allSettled(
-        list.map((item) => ownerGetPurchaseRequestDetail(item.id))
-      );
-
-      const detailById = new Map();
-      detailResults.forEach((result) => {
-        const detail = result.status === "fulfilled" ? (result.value?.data?.data ?? result.value?.data) : null;
-        if (detail?.id) detailById.set(detail.id, detail);
+        page: 1,
+        limit: 50,
+        gymId: selectedGymId || undefined,
       });
 
-      const extractReasonCode = (noteText) =>
-        /reason:([a-z_]+)/i.exec(String(noteText || ""))?.[1]?.toLowerCase() || null;
-
-      const normalized = list.map((row) => {
-        const detail = detailById.get(row.id);
-        const firstItem = detail?.items?.[0];
-        const reasonFromNote = extractReasonCode(detail?.notes) || extractReasonCode(row?.notes);
-
-        return {
-          ...row,
-          equipment: row.equipment || firstItem?.equipment || null,
-          quantity: row.quantity ?? firstItem?.quantity ?? null,
-          reasonCode: reasonFromNote || null,
-          fulfillmentPlan: detail?.fulfillmentPlan || row?.fulfillmentPlan || null,
-        };
-      });
-
-      setRows(normalized);
-      setPagination((prev) => ({
-        ...prev,
-        page: Number(meta.page) || page,
-        limit: Number(meta.limit) || prev.limit,
-        total: Number(meta.totalItems) || normalized.length,
-        totalPages: Number(meta.totalPages) || 1,
-      }));
+      setRequests(res?.data?.data || []);
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message);
+      setError(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  }, [appliedFilters, pagination.limit, selectedGymId]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const orderCode = params.get("orderCode");
-    const payos = params.get("payos");
-    if (payos !== "success" || !orderCode) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await confirmPayosPayment(orderCode);
-        if (!cancelled) await loadList(1);
-      } catch {
-        // Ignore: backend already handles idempotent confirm/webhook.
-      } finally {
-        params.delete("payos");
-        params.delete("orderCode");
-        const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
-        window.history.replaceState({}, "", next);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadList]);
+  }, [selectedGymId]);
 
   useEffect(() => {
     loadRefs();
-    loadList();
-  }, [loadList, loadRefs]);
+    loadRequests();
+  }, [selectedGymId, loadRequests]);
 
-  useOwnerRealtimeRefresh({
-    onRefresh: async () => {
-      await loadList(pagination.page || 1);
-    },
-    events: ["notification:new"],
-    notificationTypes: ["purchase_request", "quotation"],
-  });
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payos = params.get("payos");
+    const orderCode = params.get("orderCode");
 
-  const filteredRows = useMemo(() => {
-    if (!appliedFilters.gymId) return rows;
-    return rows.filter((r) => Number(r?.gym?.id) === Number(appliedFilters.gymId));
-  }, [rows, appliedFilters.gymId]);
+    if (payos === "success" && orderCode) {
+      confirmPayosPayment(orderCode)
+        .then(() => loadRequests())
+        .catch((e) => setError(e?.response?.data?.message || e.message));
+    }
+  }, [loadRequests]);
 
-  const handleSearchList = () => {
-    const nextFilters = {
-      q: (filters.q || "").trim(),
-      status: filters.status || "",
-      gymId: filters.gymId || "",
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const onPurchaseFlowChanged = (payload = {}) => {
+      const relatedType = String(
+        payload?.relatedType || payload?.type || ""
+      ).toLowerCase();
+      const notificationType = String(
+        payload?.notificationType || payload?.type || ""
+      ).toLowerCase();
+
+      if (
+        ["purchaserequest", "purchase_request"].includes(relatedType) ||
+        ["purchase_request", "payment"].includes(notificationType)
+      ) {
+        loadRequests();
+      }
     };
-    setAppliedFilters(nextFilters);
-    loadList(1, nextFilters);
-  };
+
+    socket.on("notification:new", onPurchaseFlowChanged);
+    socket.on("equipment:changed", onPurchaseFlowChanged);
+
+    return () => {
+      socket.off("notification:new", onPurchaseFlowChanged);
+      socket.off("equipment:changed", onPurchaseFlowChanged);
+    };
+  }, [loadRequests]);
+
+  useEffect(() => {
+    if (!requests.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const purchaseRequestId = Number(params.get("purchaseRequestId") || 0);
+    if (!purchaseRequestId) return;
+
+    const exists = requests.some(
+      (item) => Number(item.id) === purchaseRequestId
+    );
+    if (!exists) return;
+
+    window.requestAnimationFrame(() => {
+      const el = document.getElementById(
+        `owner-purchase-request-${purchaseRequestId}`
+      );
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [requests]);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
-    setErr("");
-    if (!expectedSupplierId) {
-      setErr("Vui lòng chọn NCC dự kiến trước khi gửi yêu cầu.");
-      return;
-    }
-
-    const structuredNote = [
-      `reason:${reason}`,
-      note ? `note:${note}` : null,
-    ]
-      .filter(Boolean)
-      .join(" | ");
+    setError("");
 
     try {
-      setSubmitting(true);
       await ownerCreatePurchaseRequest({
-        gymId: Number(gymId),
-        equipmentId: Number(equipmentId),
-        quantity: Number(quantity),
-        expectedSupplierId: expectedSupplierId ? Number(expectedSupplierId) : null,
-        reason,
-        note: structuredNote,
+        comboId: Number(form.comboId),
+        gymId: Number(form.gymId),
+        note: form.note,
+        contactName: form.contactName,
+        contactPhone: form.contactPhone,
+        contactEmail: form.contactEmail,
       });
-      setNote("");
-      await loadList(1);
-      setShowRequestForm(false);
-      alert("Đã gửi yêu cầu mua sắm.");
-    } catch (ex) {
-      setErr(ex?.response?.data?.message || ex.message);
-    } finally {
-      setSubmitting(false);
+
+      setForm((prev) => ({
+        ...prev,
+        comboId: prev.comboId,
+        note: "",
+        contactName: "",
+        contactPhone: "",
+        contactEmail: "",
+      }));
+
+      loadRequests();
+    } catch (e2) {
+      setError(e2?.response?.data?.message || e2.message);
     }
   };
 
-  const statusLabel = useMemo(
-    () => ({
-      submitted: "Chờ admin duyệt",
-      approved_waiting_payment: "Chờ thanh toán",
-      paid_waiting_admin_confirm: "Đã thanh toán, chờ admin xác nhận",
-      shipping: "Đang giao thiết bị",
-      completed: "Đã hoàn tất",
-      rejected: "Từ chối",
-    }),
-    []
-  );
+  const payPhase = async (requestId, phase) => {
+    setPayingId(requestId);
 
-  const handlePayRequest = async (id) => {
     try {
-      setActingId(id);
-      const res = await ownerCreatePurchaseRequestPayOSLink(id);
-      const url = res?.data?.data?.checkoutUrl;
-      if (!url) throw new Error("Không tạo được link PayOS");
-      window.location.href = url;
+      const res = await ownerCreatePurchaseRequestPayOSLink(requestId, {
+        phase,
+      });
+      const url = res?.data?.data?.checkoutUrl || res?.data?.checkoutUrl;
+      if (url) window.location.href = url;
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message);
+      setError(e?.response?.data?.message || e.message);
     } finally {
-      setActingId(null);
+      setPayingId(null);
     }
   };
 
-  const handleConfirmReceived = async (id) => {
+  const confirmReceived = async (requestId) => {
     try {
-      setActingId(id);
-      await ownerConfirmReceivePurchaseRequest(id);
-      await loadList(1);
-      alert("Đã xác nhận nhận thiết bị.");
+      await ownerConfirmReceivePurchaseRequest(requestId);
+      loadRequests();
     } catch (e) {
-      setErr(e?.response?.data?.message || e.message);
-    } finally {
-      setActingId(null);
+      setError(e?.response?.data?.message || e.message);
     }
   };
 
-  return (
-    <div className="od2-content owner-purchase-page">
-      <div className="owner-purchase-header">
-        <div>
-          <div className="od2-h1 owner-purchase-title">Yêu cầu mua sắm thiết bị</div>
-        </div>
-        <button
-          type="button"
-          className="owner-purchase-add-btn"
-          onClick={() => setShowRequestForm((prev) => !prev)}
-        >
-          {showRequestForm ? "Ẩn form" : "+ Thêm yêu cầu"}
-        </button>
-      </div>
-      <p className="owner-purchase-subtitle">
-        Bắt đầu từ nhu cầu vận hành tại {selectedGymName || "chi nhánh cần quản lý"}: chọn gym, thiết bị, số lượng, giá dự kiến, NCC và lý do. Hệ thống kiểm tra tồn kho / min stock
-        (với lý do &quot;thiếu tồn&quot;). Admin tiếp nhận và tạo báo giá.
-      </p>
+  const renderEquipmentRows = (items = [], dense = false) => (
+    <div className={`owner-combo-equipmentList ${dense ? "is-dense" : ""}`}>
+      {items.map((item, index) => {
+        const equipment = item?.equipment || {};
+        const imageUrl = absUrl(
+          equipment.primaryImageUrl || equipment?.images?.[0]?.url || ""
+        );
 
-      {err ? (
-        <div className="owner-purchase-error">{err}</div>
-      ) : null}
-
-      {showRequestForm && (
-        <div className="owner-purchase-modal-overlay" onClick={() => setShowRequestForm(false)}>
-          <div className="owner-purchase-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="owner-purchase-modal-header">
-              <h2 className="owner-purchase-modal-title">Thêm yêu cầu mua thiết bị</h2>
-              <button
-                type="button"
-                className="owner-purchase-modal-close"
-                disabled={submitting}
-                onClick={() => setShowRequestForm(false)}
-              >
-                ×
-              </button>
+        return (
+          <div
+            key={item.id || `${item.equipmentId}-${index}`}
+            className="owner-combo-equipmentRow"
+          >
+            <div className="owner-combo-equipmentRow__media">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={equipment.name || `Thiết bị ${index + 1}`}
+                />
+              ) : (
+                <span>{comboPlaceholder(equipment.name)}</span>
+              )}
             </div>
-            <div className="owner-purchase-modal-body">
-              <form onSubmit={submit} className="owner-purchase-form">
-                <div className="owner-purchase-grid owner-purchase-grid-2">
-                  <label>
-                    <div className="owner-purchase-label">Gym</div>
-                    <select className="od2-input" value={gymId} onChange={(e) => setGymId(e.target.value)} required disabled={Boolean(selectedGymId)}>
-                      <option value="">— Chọn —</option>
-                      {gyms.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <div className="owner-purchase-label">Thiết bị</div>
-                    <select
-                      className="od2-input"
-                      value={equipmentId}
-                      onChange={(e) => setEquipmentId(e.target.value)}
-                      required
-                    >
-                      <option value="">— Chọn —</option>
-                      {equipments.map((eq) => (
-                        <option key={eq.id} value={eq.id}>
-                          {eq.name} {eq.code ? `(${eq.code})` : ""}{eq?.preferredSupplier?.name ? ` - NCC: ${eq.preferredSupplier.name}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
 
-                <div className="owner-purchase-grid owner-purchase-grid-3">
-                  <label>
-                    <div className="owner-purchase-label">Số lượng</div>
-                    <input
-                      className="od2-input"
-                      type="number"
-                      min={1}
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <div className="owner-purchase-label">Giá thiết bị (VNĐ)</div>
-                    <input
-                      className="od2-input"
-                      type="text"
-                      value={
-                        selectedEquipment
-                          ? Number(selectedEquipment.price || 0).toLocaleString("vi-VN")
-                          : ""
-                      }
-                      placeholder="Chọn thiết bị để xem giá"
-                      readOnly
-                    />
-                  </label>
-                  <label>
-                    <div className="owner-purchase-label">Nhà cung cấp</div>
-                    <select
-                      className="od2-input"
-                      value={expectedSupplierId}
-                      onChange={(e) => setExpectedSupplierId(e.target.value)}
-                      disabled={hasAutoSupplier}
-                    >
-                      <option value="">— Không chọn —</option>
-                      {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+            <div className="owner-combo-equipmentRow__body">
+              <div className="owner-combo-equipmentRow__top">
+                <strong>
+                  {equipment.name || `Thiết bị #${item.equipmentId}`}
+                </strong>
+                <span className="owner-combo-chip">x {item.quantity}</span>
+              </div>
 
-                <div className="owner-purchase-grid owner-purchase-grid-2">
-                  <label>
-                    <div className="owner-purchase-label">Lý do mua</div>
-                    <select className="od2-input" value={reason} onChange={(e) => setReason(e.target.value)}>
-                      {REASONS.map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+              <div className="owner-combo-equipmentRow__meta">
+                <span>{equipment.code || `EQ-${item.equipmentId}`}</span>
+                {equipment.category?.name ? (
+                  <span>{equipment.category.name}</span>
+                ) : null}
+                {equipment.supplier?.name ? (
+                  <span>{equipment.supplier.name}</span>
+                ) : null}
+              </div>
 
-                <label>
-                  <div className="owner-purchase-label">Ghi chú</div>
-                  <textarea className="od2-input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-                </label>
-
-                <div className="owner-purchase-form-actions">
-                  <button
-                    type="button"
-                    className="owner-purchase-cancel"
-                    disabled={submitting}
-                    onClick={() => setShowRequestForm(false)}
-                  >
-                    Hủy
-                  </button>
-                  <button type="submit" className="owner-purchase-submit" disabled={submitting}>
-                    {submitting ? "Đang gửi..." : "Gửi yêu cầu"}
-                  </button>
-                </div>
-              </form>
+              <div className="owner-combo-equipmentRow__desc">
+                {equipment.description ||
+                  item.note ||
+                  "Thiết bị được lấy từ catalog gốc của hệ thống."}
+              </div>
             </div>
           </div>
+        );
+      })}
+
+      {!items.length ? (
+        <div className="owner-combo-empty">
+          Combo này chưa có thiết bị hiển thị.
         </div>
-      )}
+      ) : null}
+    </div>
+  );
 
-      <div className="od2-h2 owner-purchase-list-title">
-        Danh sách yêu cầu
+  return (
+    <div className="owner-combo-page">
+      <section className="owner-combo-hero">
+        <div>
+          <div className="owner-combo-kicker">Mua hàng theo combo</div>
+          <h2>Yêu cầu mua combo thiết bị</h2>
+          <p>
+            Owner chỉ mua theo combo, nhưng vẫn xem rõ từng thiết bị có trong
+            combo để gửi yêu cầu chính xác, sau đó thanh toán 2 giai đoạn qua
+            PayOS.
+          </p>
+        </div>
+
+        <div className="owner-combo-heroStats">
+          <div className="owner-combo-statCard">
+            <span>Combo đang bán</span>
+            <strong>{combos.length}</strong>
+          </div>
+
+          <div className="owner-combo-statCard">
+            <span>Yêu cầu đã tạo</span>
+            <strong>{requests.length}</strong>
+          </div>
+
+          <div className="owner-combo-statCard owner-combo-statCard--accent">
+            <span>Combo đang chọn</span>
+            <strong>{selectedCombo?.name || "-"}</strong>
+          </div>
+        </div>
+      </section>
+
+      {error ? <div className="owner-combo-alert">{error}</div> : null}
+
+      <div className="owner-combo-layout">
+        <section className="owner-combo-panel">
+          <div className="owner-combo-panel__header">
+            <div>
+              <h3>Danh sách combo đang bán</h3>
+              <p>
+                Nhấn vào một combo để xem đầy đủ thiết bị thành phần trước khi
+                gửi yêu cầu.
+              </p>
+            </div>
+          </div>
+
+          <div className="owner-combo-grid">
+            {combos.map((combo) => {
+              const isSelected = Number(form.comboId) === Number(combo.id);
+              const isExpanded = Number(expandedComboId) === Number(combo.id);
+              const pricing = comboTotals(combo);
+              const thumbnailUrl = absUrl(combo.thumbnail);
+
+              return (
+                <article
+                  key={combo.id}
+                  className={`owner-combo-card ${
+                    isSelected ? "is-selected" : ""
+                  }`}
+                >
+                  <div className="owner-combo-card__hero">
+                    <div className="owner-combo-card__media">
+                      {thumbnailUrl ? (
+                        <img src={thumbnailUrl} alt={combo.name} />
+                      ) : (
+                        <span>{comboPlaceholder(combo.name)}</span>
+                      )}
+                    </div>
+
+                    <div className="owner-combo-card__content">
+                      <div className="owner-combo-card__head">
+                        <div>
+                          <div className="owner-combo-card__title">
+                            {combo.name}
+                          </div>
+                          <div className="owner-combo-card__meta">
+                            {combo.code || `COMBO-${combo.id}`} · Supplier:{" "}
+                            {combo.supplier?.name || "-"}
+                          </div>
+                        </div>
+
+                        <div className="owner-combo-card__price">
+                          {money(combo.price)}đ
+                        </div>
+                      </div>
+
+                      <div className="owner-combo-card__desc">
+                        {combo.description || "Không có mô tả combo."}
+                      </div>
+
+                      <div className="owner-combo-card__summary">
+                        <span>{pricing.itemTypes} loại thiết bị</span>
+                        <span>{pricing.itemUnits} thiết bị tổng</span>
+                        <span>Cọc {money(pricing.deposit)}đ</span>
+                        <span>Còn lại {money(pricing.final)}đ</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="owner-combo-card__actions">
+                    <button
+                      type="button"
+                      className="owner-combo-btn owner-combo-btn--accent"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          comboId: String(combo.id),
+                        }));
+                        setExpandedComboId(combo.id);
+                      }}
+                    >
+                      Chọn combo này
+                    </button>
+
+                    <button
+                      type="button"
+                      className="owner-combo-btn"
+                      onClick={() =>
+                        setExpandedComboId(isExpanded ? null : combo.id)
+                      }
+                    >
+                      {isExpanded
+                        ? "Ẩn danh sách thiết bị"
+                        : "Xem thiết bị trong combo"}
+                    </button>
+                  </div>
+
+                  {isExpanded ? renderEquipmentRows(combo.items || []) : null}
+                </article>
+              );
+            })}
+
+            {!combos.length ? (
+              <div className="owner-combo-empty">Chưa có combo active.</div>
+            ) : null}
+          </div>
+        </section>
+
+        <form
+          onSubmit={submit}
+          className="owner-combo-panel owner-combo-formPanel"
+        >
+          <div className="owner-combo-panel__header">
+            <div>
+              <h3>Gửi yêu cầu mua combo</h3>
+              <p>Điền thông tin liên hệ và chọn đúng gym / branch nhận combo.</p>
+            </div>
+          </div>
+
+          <div className="owner-combo-formGrid">
+            <select
+              className="owner-combo-input"
+              value={form.comboId}
+              onChange={(e) =>
+                setForm({ ...form, comboId: e.target.value })
+              }
+            >
+              <option value="">Chọn combo</option>
+              {combos.map((combo) => (
+                <option key={combo.id} value={combo.id}>
+                  {combo.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="owner-combo-input"
+              value={form.gymId}
+              onChange={(e) => setForm({ ...form, gymId: e.target.value })}
+            >
+              <option value="">Chọn gym / branch</option>
+              {gyms.map((gym) => (
+                <option key={gym.id} value={gym.id}>
+                  {gym.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="owner-combo-input"
+              placeholder="Tên liên hệ"
+              value={form.contactName}
+              onChange={(e) =>
+                setForm({ ...form, contactName: e.target.value })
+              }
+            />
+
+            <input
+              className="owner-combo-input"
+              placeholder="Số điện thoại"
+              value={form.contactPhone}
+              onChange={(e) =>
+                setForm({ ...form, contactPhone: e.target.value })
+              }
+            />
+
+            <input
+              className="owner-combo-input owner-combo-formGrid__full"
+              placeholder="Email liên hệ"
+              value={form.contactEmail}
+              onChange={(e) =>
+                setForm({ ...form, contactEmail: e.target.value })
+              }
+            />
+
+            <textarea
+              className="owner-combo-input owner-combo-input--textarea owner-combo-formGrid__full"
+              placeholder="Ghi chú / lý do mua"
+              value={form.note}
+              onChange={(e) => setForm({ ...form, note: e.target.value })}
+            />
+          </div>
+
+          <div className="owner-combo-pricing">
+            <div className="owner-combo-pricing__row">
+              <span>Tổng giá combo</span>
+              <strong>{money(comboTotals(selectedCombo).total)}đ</strong>
+            </div>
+            <div className="owner-combo-pricing__row">
+              <span>Tiền cọc 30%</span>
+              <strong>{money(comboTotals(selectedCombo).deposit)}đ</strong>
+            </div>
+            <div className="owner-combo-pricing__row">
+              <span>Tiền còn lại 70%</span>
+              <strong>{money(comboTotals(selectedCombo).final)}đ</strong>
+            </div>
+          </div>
+
+          {selectedCombo ? (
+            <div className="owner-combo-selectedPreview">
+              <div className="owner-combo-selectedPreview__title">
+                Preview dữ liệu owner sẽ gửi sang admin
+              </div>
+
+              <div className="owner-combo-selectedPreview__hero">
+                <div className="owner-combo-selectedPreview__media">
+                  {absUrl(selectedCombo.thumbnail) ? (
+                    <img
+                      src={absUrl(selectedCombo.thumbnail)}
+                      alt={selectedCombo.name}
+                    />
+                  ) : (
+                    <span>{comboPlaceholder(selectedCombo.name)}</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>{selectedCombo.name}</strong>
+                  <div className="owner-combo-card__meta">
+                    {selectedCombo.code || `COMBO-${selectedCombo.id}`} ·{" "}
+                    {selectedCombo.supplier?.name || "Chưa có supplier"}
+                  </div>
+                </div>
+              </div>
+
+              {renderEquipmentRows(selectedCombo.items || [], true)}
+            </div>
+          ) : null}
+
+          <button
+            className="owner-combo-btn owner-combo-btn--accent owner-combo-btn--full"
+            type="submit"
+          >
+            Gửi yêu cầu mua combo
+          </button>
+        </form>
       </div>
 
-      <div className="owner-purchase-filters">
-        <input
-          type="text"
-          placeholder="Tìm theo mã, gym, thiết bị..."
-          value={filters.q}
-          onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && handleSearchList()}
-          className="owner-purchase-search-input"
-        />
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="owner-purchase-filter-select"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="submitted">Đã gửi</option>
-          <option value="rejected">Từ chối</option>
-          <option value="converted">Đã tạo báo giá</option>
-          <option value="fulfilled_from_stock">Đã cấp từ kho</option>
-        </select>
-        <select
-          value={filters.gymId}
-          onChange={(e) => setFilters({ ...filters, gymId: e.target.value })}
-          className="owner-purchase-filter-select"
-          disabled={Boolean(selectedGymId)}
-        >
-          <option value="">{selectedGymId ? (selectedGymName || "Chi nhánh đang quản lý") : "Tất cả phòng gym"}</option>
-          {gyms.map((gym) => (
-            <option key={gym.id} value={gym.id}>
-              {gym.name}
-            </option>
-          ))}
-        </select>
-        <button onClick={handleSearchList} className="owner-purchase-search-button">
-          Tìm
-        </button>
-      </div>
+      <section className="owner-combo-panel owner-combo-history">
+        <div className="owner-combo-panel__header">
+          <div>
+            <h3>Lịch sử yêu cầu mua combo</h3>
+            <p>
+              Mỗi request đều hiện trạng thái, số tiền cọc, số tiền còn lại và
+              snapshot thiết bị đúng tại thời điểm mua.
+            </p>
+          </div>
+        </div>
 
-      <div className="owner-purchase-table-wrap">
-        <table className="owner-purchase-table">
-          <thead>
-            <tr>
-              <th>Mã</th>
-              <th>Gym</th>
-              <th>Thiết bị</th>
-              <th>SL</th>
-              <th>Lý do</th>
-              <th>Cấp từ kho</th>
-              <th>Cần mua</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={9} className="owner-purchase-empty">
-                  Đang tải…
-                </td>
-              </tr>
-            ) : filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="owner-purchase-empty">
-                  Chưa có yêu cầu.
-                </td>
-              </tr>
-            ) : (
-              filteredRows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.code}</td>
-                  <td>{r.gym?.name}</td>
-                  <td>{r.equipment?.name}</td>
-                  <td>{r.quantity}</td>
-                  <td>{reasonLabelMap[r.reasonCode] || "—"}</td>
-                  <td>{r.issueQty ?? r.fulfillmentPlan?.issueQty ?? r.fulfillmentPlan?.stockUsedQuantity ?? "—"}</td>
-                  <td>{r.purchaseQty ?? r.fulfillmentPlan?.purchaseQty ?? r.fulfillmentPlan?.purchaseQuantity ?? "—"}</td>
-                  <td>
-                    <span className={`owner-purchase-status status-${r.status || "pending"}`}>
-                      {statusLabel[r.status] || r.status}
-                    </span>
-                  </td>
-                  <td>
-                    {r.status === "approved_waiting_payment" ? (
-                      <button
-                        type="button"
-                        className="owner-purchase-search-button"
-                        disabled={actingId === r.id}
-                        onClick={() => handlePayRequest(r.id)}
-                      >
-                        {actingId === r.id ? "Đang chuyển..." : "Thanh toán PayOS"}
-                      </button>
-                    ) : r.status === "shipping" ? (
-                      <button
-                        type="button"
-                        className="owner-purchase-search-button"
-                        disabled={actingId === r.id}
-                        onClick={() => handleConfirmReceived(r.id)}
-                      >
-                        {actingId === r.id ? "Đang xác nhận..." : "Xác nhận đã nhận"}
-                      </button>
+        {loading ? (
+          <div className="owner-combo-empty">Đang tải dữ liệu...</div>
+        ) : null}
+
+        <div className="owner-combo-historyList">
+          {requests.map((request) => {
+            const combo = request.combo || {};
+            const thumbnailUrl = absUrl(combo.thumbnail);
+
+            return (
+              <article
+                id={`owner-purchase-request-${request.id}`}
+                key={request.id}
+                className="owner-combo-historyCard"
+              >
+                <div className="owner-combo-historyCard__hero">
+                  <div className="owner-combo-historyCard__media">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={combo.name || request.code}
+                      />
                     ) : (
-                      "—"
+                      <span>
+                        {comboPlaceholder(combo.name || request.code)}
+                      </span>
                     )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  </div>
 
-      <div className="owner-purchase-pagination">
-        <button
-          className="owner-purchase-pagination-btn"
-          disabled={pagination.page <= 1 || loading}
-          onClick={() => loadList(pagination.page - 1, appliedFilters)}
-        >
-          Trước
-        </button>
-        <span className="owner-purchase-pagination-info">
-          Trang {pagination.page} / {pagination.totalPages || 1}
-        </span>
-        <button
-          className="owner-purchase-pagination-btn"
-          disabled={pagination.page >= pagination.totalPages || loading}
-          onClick={() => loadList(pagination.page + 1, appliedFilters)}
-        >
-          Sau
-        </button>
-      </div>
+                  <div className="owner-combo-historyCard__main">
+                    <div className="owner-combo-historyCard__top">
+                      <div>
+                        <div className="owner-combo-historyCard__code">
+                          {request.code}
+                        </div>
+                        <div className="owner-combo-historyCard__meta">
+                          {combo.name || "-"} · {request.gym?.name || "-"}
+                        </div>
+                      </div>
+
+                      <div className="owner-combo-historyCard__topRight">
+                        <span className={statusClass(request.status)}>
+                          {statusLabel(request.status)}
+                        </span>
+                        <strong>
+                          {money(
+                            request.totalAmount || request.payableAmount
+                          )}
+                          đ
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="owner-combo-historyGrid">
+                      <div className="owner-combo-infoBlock">
+                        <h4>Thanh toán</h4>
+                        <div className="owner-combo-kv">
+                          <span>Cọc 30%</span>
+                          <b>{money(request.depositAmount)}đ</b>
+                        </div>
+                        <div className="owner-combo-kv">
+                          <span>Còn lại 70%</span>
+                          <b>
+                            {money(
+                              request.finalAmount || request.remainingAmount
+                            )}
+                            đ
+                          </b>
+                        </div>
+                      </div>
+
+                      <div className="owner-combo-infoBlock">
+                        <h4>Liên hệ / ghi chú</h4>
+                        <div className="owner-combo-kv">
+                          <span>Người liên hệ</span>
+                          <b>{request.contactName || "-"}</b>
+                        </div>
+                        <div className="owner-combo-kv">
+                          <span>SĐT / Email</span>
+                          <b>
+                            {request.contactPhone ||
+                              request.contactEmail ||
+                              "-"}
+                          </b>
+                        </div>
+                        <div className="owner-combo-kv">
+                          <span>Ghi chú</span>
+                          <b>{request.note || "-"}</b>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {renderEquipmentRows(combo.items || [])}
+
+                <div className="owner-combo-historyCard__actions">
+                  {request.status === "approved_waiting_deposit" ? (
+                    <button
+                      className="owner-combo-btn owner-combo-btn--accent"
+                      onClick={() => payPhase(request.id, "deposit")}
+                      disabled={payingId === request.id}
+                    >
+                      Thanh toán cọc 30%
+                    </button>
+                  ) : null}
+
+                  {request.status === "shipping" ? (
+                    <button
+                      className="owner-combo-btn owner-combo-btn--accent"
+                      onClick={() => confirmReceived(request.id)}
+                    >
+                      Xác nhận đã nhận combo
+                    </button>
+                  ) : null}
+
+                  {request.status === "delivered_waiting_final_payment" ? (
+                    <button
+                      className="owner-combo-btn owner-combo-btn--accent"
+                      onClick={() => payPhase(request.id, "final")}
+                      disabled={payingId === request.id}
+                    >
+                      Thanh toán 70% còn lại
+                    </button>
+                  ) : null}
+
+                  {request.status === "rejected" ? (
+                    <div className="owner-combo-rejectReason">
+                      Lý do từ chối:{" "}
+                      {request.rejectReason ||
+                        request.adminRejectionNote ||
+                        "-"}
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+
+          {!requests.length && !loading ? (
+            <div className="owner-combo-empty">
+              Bạn chưa có yêu cầu mua combo nào.
+            </div>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
