@@ -69,7 +69,7 @@
 
 .dh-kpis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -119,7 +119,7 @@
 
 .dh-main-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -303,5 +303,92 @@
 
   .dh-request-card__right {
     text-align: left;
+  }
+}
+
+
+.dh-combo-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dh-combo-card {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+.dh-combo-card__media {
+  width: 108px;
+  height: 108px;
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(250,204,21,0.18), rgba(245,158,11,0.14));
+  color: #fff7ed;
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.dh-combo-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dh-combo-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dh-combo-card__code {
+  color: rgba(238, 242, 255, 0.62);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dh-combo-card__title {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.dh-combo-card__desc {
+  color: rgba(238, 242, 255, 0.72);
+  line-height: 1.5;
+}
+
+.dh-combo-card__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dh-combo-card__price {
+  color: #fbbf24;
+  font-weight: 900;
+}
+
+.dh-combo-card__time {
+  color: rgba(238, 242, 255, 0.58);
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .dh-combo-grid {
+    grid-template-columns: 1fr;
   }
 }

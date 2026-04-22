@@ -1,12 +1,14 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
-import { NavLink, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { NavLink, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import "../member/member-pages.css";
 import "./OwnerDashboard.css";
 import "./OwnerThemeOverrides.css";
 import Header from "../header/Header";
 import { logoutUser } from "../../services/authService";
 import useSelectedGym from "../../hooks/useSelectedGym";
+import useOwnerRealtimeRefresh from "../../hooks/useOwnerRealtimeRefresh";
 import { showAppToast } from "../../utils/appToast";
+import { getOwnerGymsListCached, invalidateOwnerGymsListCache } from "../../utils/ownerGymsListCache";
 
 const OwnerOverviewPage = React.lazy(() => import("./pages/OwnerOverviewPage"));
 const OwnerPackagesPage = React.lazy(() => import("./pages/OwnerPackagesPage"));
@@ -31,8 +33,10 @@ const PlaceholderPage = React.lazy(() => import("../admin/pages/PlaceholderPage"
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const { selectedGymName } = useSelectedGym();
+  const { selectedGymId, selectedGymName } = useSelectedGym();
+  const [suspendedGym, setSuspendedGym] = useState(null);
 
   useEffect(() => {
     const originalAlert = window.alert;
@@ -53,6 +57,46 @@ export default function OwnerDashboard() {
     try { return JSON.parse(localStorage.getItem("user") || "null"); }
     catch { return null; }
   })();
+
+  const syncSelectedGymStatus = async () => {
+    if (!selectedGymId) {
+      setSuspendedGym(null);
+      return;
+    }
+
+    try {
+      const gyms = await getOwnerGymsListCached();
+      const nextSelectedGym = (gyms || []).find((gym) => Number(gym.id) === Number(selectedGymId));
+      setSuspendedGym(String(nextSelectedGym?.status || "").toLowerCase() === "suspended" ? nextSelectedGym : null);
+    } catch {
+      setSuspendedGym(null);
+    }
+  };
+
+  useEffect(() => {
+    syncSelectedGymStatus();
+  }, [selectedGymId]);
+
+  useOwnerRealtimeRefresh({
+    enabled: Boolean(selectedGymId),
+    events: ["gym:changed"],
+    onRefresh: async () => {
+      invalidateOwnerGymsListCache();
+      await syncSelectedGymStatus();
+    },
+  });
+
+  useEffect(() => {
+    if (!suspendedGym) return;
+    if (location.pathname !== "/owner/gyms") {
+      showAppToast({
+        type: "warning",
+        title: "Gym đang tạm ngưng",
+        message: `Chi nhánh ${suspendedGym.name || `#${suspendedGym.id}`} đang bị admin tạm ngưng. Hệ thống đã chuyển bạn về mục Phòng tập.`,
+      });
+      navigate("/owner/gyms", { replace: true });
+    }
+  }, [suspendedGym, location.pathname, navigate]);
 
   const handleLogout = () => {
     logoutUser().finally(() => navigate("/login"));
@@ -166,10 +210,23 @@ export default function OwnerDashboard() {
 
       <main className="od2-main">
         <div className="od2-content">
+          {suspendedGym ? (
+            <div className="od2-suspendedBanner" role="alert">
+              Chi nhánh <strong>{suspendedGym.name || `#${suspendedGym.id}`}</strong> đang bị admin tạm ngưng.
+              Các nghiệp vụ vận hành của owner được khóa tạm thời cho tới khi gym được khôi phục.
+            </div>
+          ) : null}
           <div className="od2-branchBanner">
             <span className="od2-branchBanner__label">Chi nhánh đang quản lý</span>
             <strong>{selectedGymName || "Tất cả chi nhánh"}</strong>
           </div>
+          {suspendedGym && location.pathname !== "/owner/gyms" ? (
+            <div className="od2-suspendedPanel">
+              <h3>Gym đang tạm ngưng</h3>
+              <p>Admin đã tạm ngưng chi nhánh này nên các thao tác vận hành được khóa để tránh phát sinh nghiệp vụ sai trạng thái.</p>
+              <button className="od2-ghostBtn" onClick={() => navigate("/owner/gyms", { replace: true })}>Mở trang phòng tập</button>
+            </div>
+          ) : null}
           <Suspense fallback={<div className="od2-suspenseFallback">Đang tải…</div>}>
             <Routes>
               <Route path="/" element={<Navigate to="/owner/overview" replace />} />

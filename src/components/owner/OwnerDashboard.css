@@ -358,3 +358,29 @@
     display: none;
   }
 }
+
+
+.od2-suspendedBanner {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 170, 0, 0.32);
+  background: rgba(255, 170, 0, 0.1);
+  color: #ffe7b0;
+  line-height: 1.5;
+}
+
+.od2-suspendedPanel {
+  margin-bottom: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 170, 0, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 10px;
+}
+
+.od2-suspendedPanel h3,
+.od2-suspendedPanel p {
+  margin: 0;
+}
