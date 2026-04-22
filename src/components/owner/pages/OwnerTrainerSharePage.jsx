@@ -18,7 +18,7 @@ import { ownerUploadGymImage } from "../../../services/ownerGymService";
 import { getOwnerGymsListCached } from "../../../utils/ownerGymsListCache";
 import ownerMemberService from "../../../services/ownerMemberService";
 import ownerTrainerService from "../../../services/ownerTrainerService";
-import { getRequests as ownerGetRequests } from "../../../services/ownerRequestService";
+import { getRequests as ownerGetRequests, approveRequest } from "../../../services/ownerRequestService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import axios from "../../../setup/axios";
 import useSelectedGym from "../../../hooks/useSelectedGym";
@@ -537,6 +537,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     useState("");
   const [eligibleTrainers, setEligibleTrainers] = useState([]);
   const [loadingEligibleTrainers, setLoadingEligibleTrainers] = useState(false);
+  const [busyRequestIdToApprove, setBusyRequestIdToApprove] = useState(null);
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -585,6 +586,11 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       ? borrowSpecRaw
       : "";
 
+    const busyReqId = searchParams.get("fromBusyRequestId");
+    if (busyReqId) {
+      setBusyRequestIdToApprove(String(busyReqId));
+    }
+
     setEditing(null);
     setActiveTab("shares");
     setShowModal(true);
@@ -602,6 +608,12 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       note: prev.note || "",
     }));
   }, [isBookingsPage, searchParams, selectedGymId]);
+
+  // Wrapper để đóng modal và clear busyRequestIdToApprove
+  const closeModal = () => {
+    setBusyRequestIdToApprove(null);
+    setShowModal(false);
+  };
 
   const availableTrainers = React.useMemo(() => {
     if (!form.fromGymId) return [];
@@ -2060,6 +2072,18 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         };
         await ownerCreateTrainerShare(sharePayload);
         setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
+
+        // Nếu tạo từ luồng báo bận PT, cần approve request báo bận
+        if (busyRequestIdToApprove) {
+          try {
+            await approveRequest(busyRequestIdToApprove, "Đã duyệt yêu cầu báo bận và chuyển sang luồng mượn huấn luyện viên.", {
+              assignmentMode: "borrow_only",
+            });
+            setBusyRequestIdToApprove(null);
+          } catch (approveErr) {
+            console.warn("Không thể tự động duyệt request báo bận:", approveErr);
+          }
+        }
       }
 
       setShowModal(false);
@@ -3177,7 +3201,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         <div className="ots-modal">
           <div
             className="ots-modal__backdrop"
-            onClick={() => setShowModal(false)}
+            onClick={closeModal}
           />
           <div className="ots-modal__content">
             <div className="ots-modal__header">
@@ -3188,7 +3212,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               </h2>
               <button
                 className="ots-modal__close"
-                onClick={() => setShowModal(false)}
+                onClick={closeModal}
               >
                 ×
               </button>
@@ -3700,7 +3724,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 <button
                   type="button"
                   className="ots-btn ots-btn--secondary"
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                 >
                   Hủy
                 </button>
@@ -4340,7 +4364,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             <input
                               type="number"
                               min={1}
-                              step={1000}
                               className="ots-input"
                               style={{ maxWidth: "220px" }}
                               value={detailSessionPriceInput}
