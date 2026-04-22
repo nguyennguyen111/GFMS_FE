@@ -16,6 +16,7 @@ const statusLabel = {
 const typeLabel = {
   package_purchase: "Mua gói",
   package_renewal: "Gia hạn gói",
+  membership_card_purchase: "Mua thẻ thành viên",
   booking_payment: "Thanh toán huấn luyện viên",
 };
 
@@ -45,6 +46,7 @@ const OwnerTransactionsPage = () => {
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(false);
+  const [transactionView, setTransactionView] = useState("package");
 
   useEffect(() => {
     setFilters((prev) => ({ ...prev, gymId: selectedGymId ? String(selectedGymId) : "" }));
@@ -63,8 +65,13 @@ const OwnerTransactionsPage = () => {
   const loadTransactions = useCallback(async (page = 1) => {
     try {
       setLoading(true);
+      const defaultTypes =
+        transactionView === "membership"
+          ? "membership_card_purchase"
+          : "package_purchase,package_renewal";
       const params = {
         ...filters,
+        transactionType: filters.transactionType || defaultTypes,
         gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
         page,
         limit: pagination.limit,
@@ -78,7 +85,7 @@ const OwnerTransactionsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.limit]);
+  }, [filters, pagination.limit, selectedGymId, transactionView]);
 
   useEffect(() => {
     loadGyms();
@@ -92,7 +99,7 @@ const OwnerTransactionsPage = () => {
   useOwnerRealtimeRefresh({
     onRefresh: refreshTransactions,
     events: ["notification:new"],
-    notificationTypes: ["package_purchase"],
+    notificationTypes: ["package_purchase", "membership_card_purchase"],
   });
 
   const handleSearch = () => {
@@ -113,14 +120,43 @@ const OwnerTransactionsPage = () => {
     <div className="owner-transactions-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Giao dịch mua gói</h1>
+          <h1 className="page-title">
+            {transactionView === "membership" ? "Giao dịch thẻ thành viên" : "Giao dịch gói tập"}
+          </h1>
           <div className="page-subtitle">
-            Theo dõi giao dịch học viên mua gói tập tại {selectedGymName || "các phòng gym của bạn"}
+            {transactionView === "membership"
+              ? `Theo dõi giao dịch học viên mua thẻ thành viên tại ${selectedGymName || "các phòng gym của bạn"}`
+              : `Theo dõi giao dịch học viên mua gói tập tại ${selectedGymName || "các phòng gym của bạn"}`}
           </div>
         </div>
         <div className="page-summary">
           Tổng: <strong>{pagination.total || 0}</strong> giao dịch
         </div>
+      </div>
+
+      <div className="transactions-view-tabs">
+        <button
+          type="button"
+          className={`transactions-view-tab ${transactionView === "package" ? "active" : ""}`}
+          onClick={() => {
+            setTransactionView("package");
+            setFilters((prev) => ({ ...prev, transactionType: "" }));
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+        >
+          Giao dịch gói tập
+        </button>
+        <button
+          type="button"
+          className={`transactions-view-tab ${transactionView === "membership" ? "active" : ""}`}
+          onClick={() => {
+            setTransactionView("membership");
+            setFilters((prev) => ({ ...prev, transactionType: "" }));
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+        >
+          Giao dịch thẻ thành viên
+        </button>
       </div>
 
       <div className="transactions-search-filters">
@@ -151,8 +187,14 @@ const OwnerTransactionsPage = () => {
           className="filter-select"
         >
           <option value="">Tất cả loại</option>
-          <option value="package_purchase">Mua gói</option>
-          <option value="package_renewal">Gia hạn gói</option>
+          {transactionView === "membership" ? (
+            <option value="membership_card_purchase">Mua thẻ thành viên</option>
+          ) : (
+            <>
+              <option value="package_purchase">Mua gói</option>
+              <option value="package_renewal">Gia hạn gói</option>
+            </>
+          )}
         </select>
         <select
           value={filters.paymentStatus}
@@ -178,7 +220,7 @@ const OwnerTransactionsPage = () => {
               <th>Mã GD</th>
               <th>Học viên</th>
               <th>Phòng gym</th>
-              <th>Gói tập</th>
+              <th>{transactionView === "membership" ? "Thẻ thành viên" : "Gói tập"}</th>
               <th>Loại</th>
               <th>Số tiền</th>
               <th>Hình thức</th>
@@ -202,7 +244,11 @@ const OwnerTransactionsPage = () => {
                     </div>
                   </td>
                   <td>{tx.Gym?.name || "N/A"}</td>
-                  <td>{tx.Package?.name || "N/A"}</td>
+                  <td>
+                    {transactionView === "membership"
+                      ? tx?.description || `Thẻ thành viên #${tx.id}`
+                      : tx.Package?.name || "N/A"}
+                  </td>
                   <td>
                     <span className="tx-type">
                       {typeLabel[tx.transactionType] || tx.transactionType || "N/A"}
@@ -287,9 +333,13 @@ const OwnerTransactionsPage = () => {
                   </span>
                 </div>
                 <div className="tx-detail-item">
-                  <span className="tx-detail-label">Gói tập</span>
+                  <span className="tx-detail-label">
+                    {transactionView === "membership" ? "Thẻ thành viên" : "Gói tập"}
+                  </span>
                   <span className="tx-detail-value">
-                    {selectedTransaction.Package?.name || "N/A"}
+                    {transactionView === "membership"
+                      ? selectedTransaction.description || "N/A"
+                      : selectedTransaction.Package?.name || "N/A"}
                   </span>
                 </div>
                 <div className="tx-detail-item">

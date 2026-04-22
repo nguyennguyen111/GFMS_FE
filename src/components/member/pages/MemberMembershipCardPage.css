@@ -20,6 +20,28 @@
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
 }
 
+.mmc-top-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.mmc-back-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.mmc-back-btn:hover {
+  border-color: rgba(214, 255, 0, 0.38);
+  background: rgba(214, 255, 0, 0.08);
+  transform: translateY(-1px);
+}
+
 .mmc-header h2 {
   margin: 0 0 6px;
   font-size: 30px;

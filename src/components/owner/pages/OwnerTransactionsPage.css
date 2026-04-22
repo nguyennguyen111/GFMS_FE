@@ -33,6 +33,34 @@
   color: #eef2ff;
 }
 
+.transactions-view-tabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(15, 22, 33, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.transactions-view-tab {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(238, 242, 255, 0.86);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.transactions-view-tab.active {
+  border-color: rgba(214, 255, 0, 0.4);
+  background: rgba(214, 255, 0, 0.16);
+  color: #d6ff00;
+}
+
 .transactions-search-filters {
   display: flex;
   gap: 12px;
