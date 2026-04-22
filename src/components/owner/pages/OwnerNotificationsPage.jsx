@@ -11,6 +11,7 @@ import { resolveOwnerNotificationPath } from "../../../utils/ownerNotificationRo
 const iconMap = {
   booking_update: CalendarCheck,
   package_purchase: CreditCard,
+  membership_card_purchase: CreditCard,
   review: Star,
   trainer_request: Users,
   quotation: ShoppingCart,
@@ -28,6 +29,7 @@ const iconMap = {
 const categoryMap = {
   booking_update: "Lịch tập & Điểm danh",
   package_purchase: "Thanh toán & Gói tập",
+  membership_card_purchase: "Thẻ thành viên",
   review: "Đánh giá hội viên",
   trainer_request: "Duyệt yêu cầu huấn luyện viên",
   quotation: "Báo giá mua hàng",
