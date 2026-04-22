@@ -67,6 +67,7 @@ const normalizeUser = (u = {}) => ({
   groupId: u?.groupId ?? 4,
   gym: u?.gym || null,
   currentPackage: u?.currentPackage || null,
+  membershipCard: u?.membershipCard || null,
   latestMetric: u?.latestMetric || null,
 });
 
@@ -95,6 +96,36 @@ const formatDate = (value) => {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("vi-VN");
+};
+
+const getMembershipCardOverview = (membershipCard) => {
+  if (!membershipCard?.endDate) {
+    return {
+      hasCard: false,
+      isActive: false,
+      statusText: "Chưa có thẻ thành viên",
+      detailText: "Bạn chưa kích hoạt thẻ thành viên. Hãy mua thẻ để đặt lịch và tập tại gym.",
+      daysLeftText: "0 ngày",
+      endDateText: "—",
+    };
+  }
+
+  const end = new Date(membershipCard.endDate);
+  const now = new Date();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / msPerDay);
+  const isActive = daysLeft >= 0;
+
+  return {
+    hasCard: true,
+    isActive,
+    statusText: isActive ? "Thẻ đang còn hiệu lực" : "Thẻ đã hết hạn",
+    detailText: isActive
+      ? "Bạn có thể tiếp tục mua gói PT mà không cần mua thêm thẻ thành viên."
+      : "Thẻ đã hết hạn, vui lòng gia hạn để tiếp tục đặt lịch và sử dụng dịch vụ.",
+    daysLeftText: isActive ? `${daysLeft} ngày` : "Đã hết hạn",
+    endDateText: formatDate(membershipCard.endDate),
+  };
 };
 
 const getRoleText = (role) => {
@@ -462,6 +493,11 @@ export default function MemberProfilePage() {
     };
   }, [latestMetric, form, user]);
 
+  const membershipCardOverview = useMemo(
+    () => getMembershipCardOverview(user?.membershipCard || null),
+    [user?.membershipCard]
+  );
+
   const handlePickAvatar = async (file) => {
     if (!file) return;
     const validType = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type);
@@ -776,6 +812,9 @@ export default function MemberProfilePage() {
               ĐỔI MẬT KHẨU
             </button>
           ) : null}
+          <button className="mprof-btn ghost" onClick={() => navigate("/member/membership-cards")}>
+            MUA / GIA HẠN THẺ
+          </button>
         </div>
       </div>
 
@@ -916,6 +955,40 @@ export default function MemberProfilePage() {
               </div>
             </section>
 
+            <section className={`mprof-membershipCard ${membershipCardOverview.isActive ? "is-active" : "is-inactive"}`}>
+              <div className="mprof-membershipHead">
+                <label className="mprof-cardLabel">THẺ THÀNH VIÊN</label>
+                <span className={`mprof-membershipBadge ${membershipCardOverview.isActive ? "active" : "inactive"}`}>
+                  {membershipCardOverview.statusText}
+                </span>
+              </div>
+              <div className="mprof-membershipBody">
+                <div className="mprof-membershipMain">
+                  <div className="mprof-membershipPlan">
+                    {user?.membershipCard?.planMonths
+                      ? `GÓI ${user.membershipCard.planMonths} THÁNG`
+                      : "CHƯA KÍCH HOẠT"}
+                  </div>
+                  <div className="mprof-membershipHint">{membershipCardOverview.detailText}</div>
+                </div>
+                <div className="mprof-membershipMeta">
+                  <div>
+                    <span>HẾT HẠN</span>
+                    <b>{membershipCardOverview.endDateText}</b>
+                  </div>
+                  <div>
+                    <span>THỜI HẠN CÒN LẠI</span>
+                    <b>{membershipCardOverview.daysLeftText}</b>
+                  </div>
+                </div>
+              </div>
+              <div className="mprof-membershipActions">
+                <button className="mprof-btn primary" onClick={() => navigate("/member/membership-cards")}>
+                  {membershipCardOverview.hasCard ? "GIA HẠN THẺ NGAY" : "MUA THẺ THÀNH VIÊN"}
+                </button>
+              </div>
+            </section>
+
             <section className="mprof-activityCard">
               <div className="mprof-activityHead">
                 <label className="mprof-cardLabel">HOẠT ĐỘNG GẦN ĐÂY</label>
@@ -952,6 +1025,14 @@ export default function MemberProfilePage() {
                 <Info label="LẦN ĐĂNG NHẬP CUỐI" value={formatDateTime(form.lastLogin)} />
                 <Info label="GYM HIỆN TẠI" value={user?.gym?.name || "—"} />
                 <Info label="MÃ HỘI VIÊN" value={form.memberCode || "—"} />
+                <Info
+                  label="THẺ THÀNH VIÊN"
+                  value={
+                    user?.membershipCard
+                      ? `${user.membershipCard.planMonths} THÁNG (HẾT HẠN ${formatDate(user.membershipCard.endDate)})`
+                      : "CHƯA ĐĂNG KÝ"
+                  }
+                />
               </div>
             </section>
           </div>
