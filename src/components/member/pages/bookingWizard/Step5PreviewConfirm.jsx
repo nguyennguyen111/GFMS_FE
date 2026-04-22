@@ -257,6 +257,11 @@ export default function Step5PreviewConfirm({
   const membershipPlan =
     membershipPlans.find((p) => Number(p.id) === Number(membershipPlanId)) || null;
   const membershipPrice = hasActiveMembershipCard ? 0 : Number(membershipPlan?.price || 0);
+  const membershipSelectHint = hasActiveMembershipCard
+    ? `Đã mua thẻ thành viên • Còn hạn đến ${new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}`
+    : membershipPlan
+      ? `${membershipPlan.label} • ${fmtVND(membershipPrice)} VND`
+      : "Vui lòng chọn thẻ thành viên";
   const packagePrice = Number(pkg?.price || 0);
   const totalAmount = packagePrice + membershipPrice;
 
@@ -528,7 +533,6 @@ export default function Step5PreviewConfirm({
             <CreditCard size={16} />
             <span>Phương thức thanh toán</span>
           </div>
-
           <select
             value={payMethod}
             onChange={(e) => setPayMethod(e.target.value)}
@@ -539,23 +543,40 @@ export default function Step5PreviewConfirm({
           </select>
         </div>
 
-        <div className="bw-paymentSelectWrap">
+        <div className="bw-paymentSelectWrap bw-paymentSelectWrapMembership">
           <div className="bw-paymentLabel">
             <CreditCard size={16} />
             <span>{hasActiveMembershipCard ? "Thẻ thành viên hiện tại" : "Thẻ thành viên (bắt buộc)"}</span>
           </div>
-          <select
-            value={membershipPlanId}
-            onChange={(e) => setMembershipPlanId(Number(e.target.value))}
-            className="bw-input bw-inputCompact"
-            disabled={submitting || membershipPlans.length === 0 || hasActiveMembershipCard}
-          >
-            {membershipPlans.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.label} - {fmtVND(plan.price)} VND
-              </option>
-            ))}
-          </select>
+          <div className={`bw-membershipSelectCard ${hasActiveMembershipCard ? "is-active-card" : ""}`}>
+            <div className="bw-membershipSelectTop">
+              <span className="bw-membershipSelectHint">{membershipSelectHint}</span>
+              {!hasActiveMembershipCard ? (
+                <span className="bw-membershipSelectPrice">+ {fmtVND(membershipPrice)} VND</span>
+              ) : (
+                <span className="bw-membershipSelectPrice is-free">ĐÃ MUA</span>
+              )}
+            </div>
+            {hasActiveMembershipCard ? (
+              <div className="bw-membershipOwnedRow">
+                <CheckCircle2 size={16} />
+                <span>Bạn đã mua thẻ thành viên và hiện vẫn còn hiệu lực.</span>
+              </div>
+            ) : (
+              <select
+                value={membershipPlanId}
+                onChange={(e) => setMembershipPlanId(Number(e.target.value))}
+                className="bw-input bw-inputCompact"
+                disabled={submitting || membershipPlans.length === 0}
+              >
+                {membershipPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.label} - {fmtVND(plan.price)} VND
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         <div className="bw-actionsRightGroup">
