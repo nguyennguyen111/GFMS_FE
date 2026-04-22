@@ -116,7 +116,7 @@ export default function OwnerDashboard() {
         { label: "Gói tập", to: "/owner/packages", key: "packages",  },
         { label: "Hội viên", to: "/owner/members", key: "members",  },
         { label: "Huấn luyện viên", to: "/owner/bookings", key: "bookings",  },
-        { label: "Xem lịch", to: "/owner/trainer-bookings", key: "trainer-bookings",  },
+        { label: "Lịch dạy ", to: "/owner/trainer-bookings", key: "trainer-bookings",  },
         { label: "Chia sẻ huấn luyện viên", to: "/owner/trainers", key: "trainers",  },
         { label: "Đánh giá", to: "/owner/reviews", key: "reviews", },
       ],

@@ -32,8 +32,8 @@ import { TRAINER_SPECIALIZATION_OPTIONS } from "../../../constants/trainerSpecia
 const TRAINER_SHARE_LOOKUP_LIMIT = 400;
 
 const SHARE_PAYMENT_LABELS = {
-  none: "Chưa gửi CK",
-  awaiting_transfer: "Chờ chuyển khoản",
+  none: "Chưa thanh toán",
+  awaiting_transfer: "Chờ Thanh toán",
   disputed: "PT khiếu nại — chưa nhận tiền",
   paid: "Đã thanh toán",
 };
@@ -463,6 +463,7 @@ const INITIAL_FORM = {
   multipleDates: [],
   notes: "",
   sessionPrice: "",
+  busySlotRequestId: null, // ID của yêu cầu báo bận gốc - để cập nhật trạng thái khi PT nhận
 };
 
 export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
@@ -584,6 +585,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     )
       ? borrowSpecRaw
       : "";
+    const fromBusyRequestId = String(searchParams.get("fromBusyRequestId") || "");
+    const busySlotRequestId = fromBusyRequestId ? Number(fromBusyRequestId) : null;
 
     setEditing(null);
     setActiveTab("shares");
@@ -599,6 +602,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       startTime,
       endTime,
       borrowSpecialization,
+      busySlotRequestId,
       note: prev.note || "",
     }));
   }, [isBookingsPage, searchParams, selectedGymId]);
@@ -1995,14 +1999,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
-    const priceRaw = String(form.sessionPrice || "").replace(/,/g, "").trim();
-    const priceNum = Number(priceRaw);
-    if (!Number.isFinite(priceNum) || priceNum <= 0) {
-      setError("Nhập giá buổi mượn (VNĐ) lớn hơn 0.");
-      return;
-    }
-
-    // Validate time conflict (chỉ ngày đang chọn; cùng logic lọc với chọn slot)
+// Validate time conflict (chỉ ngày đang chọn; cùng logic lọc với chọn slot)
     if (form.startDate) {
       const bookings = bookingsByDate.get(form.startDate) || [];
       const st = normalizeTimeValue(form.startTime);
@@ -2140,7 +2137,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   };
 
   const pageTitle = isBookingsPage
-    ? "Lịch rảnh huấn luyện viên"
+    ? "Lịch dạy huấn luyện viên"
     : "Chia sẻ huấn luyện viên";
   const pageSubtitle = isBookingsPage
     ? `Xem khung giờ làm việc và khung giờ còn trống của huấn luyện viên${selectedGymName ? ` tại ${selectedGymName}` : " theo chi nhánh"}`
@@ -2631,7 +2628,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             <div className="ots-availability-panel__header">
               <div>
                 <h3 className="ots-availability-panel__title">
-                  Lịch rảnh huấn luyện viên
+                  Lịch dạy huấn luyện viên
                 </h3>
                 <p className="ots-availability-panel__subtitle">
                   Xem khung giờ còn trống của từng huấn luyện viên theo chi
@@ -2679,7 +2676,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     loadMemberDailySchedule();
                   }}
                 >
-                  Xem lịch rảnh
+                  Xem lịch 
                 </button>
               </div>
             </div>
@@ -3018,7 +3015,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
             className="ots-modal__backdrop"
             onClick={closeMemberBookingDetail}
           />
-          <div className="ots-modal__content ots-modal__content--booking-detail">
+          <div className="ots-modal__content ots-modal__content--booking-detail" style={{ maxWidth: "860px" }}>
             <div className="ots-modal__header">
               <h2>Chi tiết buổi tập</h2>
               <button
@@ -3508,7 +3505,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               >
                 <input
                   type="number"
-                  min={1}
                   step={1000}
                   className="ots-input"
                   value={form.sessionPrice}
@@ -4479,7 +4475,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                     {selectedShare.sharePaymentStatus === "paid" &&
                       selectedShare.paymentMarkedPaidAt && (
                         <div className="detail-row">
-                          <span className="detail-label">Đã xác nhận CK:</span>
+                          <span className="detail-label">Đã xác nhận thanh toán:</span>
                           <span className="detail-value">
                             {new Date(
                               selectedShare.paymentMarkedPaidAt,
@@ -4493,7 +4489,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         0 && (
                         <div className="detail-row detail-row--full">
                           <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
-                            Ảnh chứng từ CK
+                            Ảnh chứng từ thanh toán
                           </span>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                             {parseTrainerShareProofUrls(selectedShare.paymentProofImageUrls).map(
@@ -4532,7 +4528,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                           }`}
                         >
                           <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
-                            PT báo chưa nhận tiền (sau khi đã xác nhận CK):
+                            Huấn luyện viên báo chưa nhận tiền (sau khi đã xác nhận thanh toán):
                           </span>
                           <span className="detail-value" style={{ whiteSpace: "pre-wrap" }}>
                             {selectedShare.sharePaymentDisputeNote}
@@ -4574,7 +4570,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             : "Điền nội dung và ảnh chứng từ rồi bấm Gửi phản hồi cho PT."}
                         </p>
                         <div className="ots-share-borrowerReply__title">
-                          Phản hồi cho PT — nội dung & ảnh chứng từ CK
+                          Phản hồi cho huấn luyện viên — nội dung & ảnh chứng từ thanh toán
                         </div>
                         {selectedShare.borrowerDisputeResponseAt && (
                           <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", opacity: 0.85 }}>
