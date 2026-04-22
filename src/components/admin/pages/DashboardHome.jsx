@@ -1,25 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import "./DashboardHome.css";
 import { admGetDashboardOverview } from "../../../services/adminAdminCoreService";
+
+const API_HOST = process.env.REACT_APP_API_URL || "http://localhost:8080";
+const absUrl = (value) => (value ? (String(value).startsWith("http") || String(value).startsWith("data:") ? String(value) : `${API_HOST}${value}`) : "");
 
 const fmtMoney = (v) => {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN") + "đ";
 };
 
-const STATUS_LABELS = {
-  submitted: "Chờ admin duyệt",
-  approved_waiting_deposit: "Chờ owner cọc 30%",
-  paid_waiting_admin_confirm: "Đã cọc, chờ admin xác nhận",
-  shipping: "Đang bàn giao",
-  delivered_waiting_final_payment: "Chờ owner trả 70%",
-  completed: "Hoàn tất",
-  rejected: "Đã từ chối",
+const shortText = (value, max = 120) => {
+  const text = String(value || "").trim();
+  if (!text) return "Combo đang mở bán và sẵn sàng cho owner gửi yêu cầu mua.";
+  return text.length > max ? `${text.slice(0, max).trim()}...` : text;
 };
 
 export default function DashboardHome() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
@@ -39,7 +36,6 @@ export default function DashboardHome() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cards = useMemo(() => {
@@ -48,23 +44,28 @@ export default function DashboardHome() {
       {
         label: "Nhượng quyền chờ duyệt",
         value: c.franchisePending ?? 0,
-        note: "Việc cần admin xử lý",
+        note: "Cần admin xử lý",
       },
       {
         label: "Yêu cầu mua combo chờ duyệt",
         value: c.comboPending ?? 0,
-        note: "Request submitted",
+        note: "Chờ xác nhận workflow",
       },
       {
         label: "Yêu cầu bảo trì chờ xử lý",
         value: c.maintenancePending ?? 0,
         note: "Request kỹ thuật đang mở",
       },
+      {
+        label: "Phòng gym đang hoạt động",
+        value: c.activeGyms ?? 0,
+        note: "Số chi nhánh đang hoạt động",
+      },
     ];
   }, [data]);
 
   const revenueSeries = useMemo(() => data?.revenue30dSeries || [], [data]);
-  const latestComboRequests = useMemo(() => data?.latestComboRequests || [], [data]);
+  const sellingCombos = useMemo(() => data?.sellingCombos || [], [data]);
   const comboSalesTransactions = useMemo(() => data?.comboSalesTransactions || [], [data]);
   const maxRevenue = useMemo(() => Math.max(1, ...revenueSeries.map((x) => Number(x.total || 0))), [revenueSeries]);
 
@@ -74,7 +75,7 @@ export default function DashboardHome() {
         <div>
           <div className="dh-eyebrow">ADMIN DASHBOARD</div>
           <h2 className="dh-title">Tổng quan admin</h2>
-          <div className="dh-sub">Chỉ tập trung vào luồng chính: nhượng quyền, combo, bảo trì và dòng tiền combo.</div>
+          <div className="dh-sub">Theo dõi nhanh vận hành nhượng quyền, bảo trì, combo đang bán và dòng tiền combo theo chuẩn dashboard doanh nghiệp.</div>
         </div>
         <div className="dh-actions">
           <button className="dh-btn" onClick={load} disabled={loading}>
@@ -96,36 +97,35 @@ export default function DashboardHome() {
       </div>
 
       <div className="dh-main-grid">
-        <section className="dh-panel dh-panel--requests">
-          <div className="dh-panel__head">
-            <div className="dh-panel__title">Request combo mới nhất</div>
-            <button className="dh-link" onClick={() => navigate("/admin/purchase-workflow")}>Xem tất cả</button>
+        <section className="dh-panel dh-panel--combos">
+          <div className="dh-panel__head dh-panel__head--stack">
+            <div className="dh-panel__title">Combo đang bán</div>
+            <div className="dh-panel__hint">Hiển thị ảnh thumbnail và mô tả ngắn để admin nhìn nhanh danh mục combo đang mở bán</div>
           </div>
 
-          <div className="dh-request-list">
-            {!latestComboRequests.length ? (
-              <div className="dh-empty">Chưa có request combo.</div>
+          <div className="dh-combo-grid">
+            {!sellingCombos.length ? (
+              <div className="dh-empty">Chưa có combo đang bán.</div>
             ) : (
-              latestComboRequests.map((item) => (
-                <button
-                  key={item.id}
-                  className="dh-request-card"
-                  onClick={() => navigate(`/admin/purchase-workflow?highlight=${item.id}`)}
-                >
-                  <div className="dh-request-card__left">
-                    <div className="dh-request-card__code">{item.code}</div>
-                    <div className="dh-request-card__meta">
-                      {item.combo?.name || "Combo"} • {item.gym?.name || "-"}
+              sellingCombos.map((item) => {
+                const imageUrl = absUrl(item.thumbnail);
+                return (
+                  <article className="dh-combo-card" key={item.id}>
+                    <div className="dh-combo-card__media">
+                      {imageUrl ? <img src={imageUrl} alt={item.name} /> : <span>{(item.name || "C").slice(0, 1).toUpperCase()}</span>}
                     </div>
-                  </div>
-                  <div className="dh-request-card__right">
-                    <div className={`dh-status dh-status--${item.status || "default"}`}>
-                      {STATUS_LABELS[item.status] || item.status || "-"}
+                    <div className="dh-combo-card__body">
+                      <div className="dh-combo-card__code">{item.code || `COMBO-${item.id}`}</div>
+                      <div className="dh-combo-card__title">{item.name}</div>
+                      <div className="dh-combo-card__desc">{shortText(item.description)}</div>
+                      <div className="dh-combo-card__foot">
+                        <span className="dh-combo-card__price">{fmtMoney(item.price)}</span>
+                        <span className="dh-combo-card__time">{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString("vi-VN") : "-"}</span>
+                      </div>
                     </div>
-                    <div className="dh-request-card__amount">{fmtMoney(item.totalAmount || item.combo?.price || 0)}</div>
-                  </div>
-                </button>
-              ))
+                  </article>
+                );
+              })
             )}
           </div>
         </section>
@@ -133,7 +133,7 @@ export default function DashboardHome() {
         <section className="dh-panel dh-panel--chart">
           <div className="dh-panel__head dh-panel__head--stack">
             <div className="dh-panel__title">Doanh thu combo 30 ngày</div>
-            <div className="dh-panel__hint">Xu hướng thanh toán hoàn tất</div>
+            <div className="dh-panel__hint">Xu hướng thanh toán hoàn tất theo giao dịch combo</div>
           </div>
 
           <div className="dh-chart">
@@ -155,7 +155,7 @@ export default function DashboardHome() {
       <section className="dh-panel dh-panel--table">
         <div className="dh-panel__head dh-panel__head--stack">
           <div className="dh-panel__title">Giao dịch combo gần nhất</div>
-          <div className="dh-panel__hint">Giúp admin check nhanh dòng tiền theo combo</div>
+          <div className="dh-panel__hint">Kiểm tra nhanh dòng tiền theo từng giao dịch combo</div>
         </div>
 
         <div className="dh-table-wrap">
