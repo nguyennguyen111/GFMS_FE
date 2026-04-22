@@ -731,9 +731,9 @@ const PTSchedule = () => {
                               >
                                 {isSharedSession ? (
                                   booking?.sharePayment?.sharePaymentPtAcknowledgedAt ? (
-                                    <span className="mini-status--paidAck">Đã thanh toán</span>
+                                    <span className="mini-status--paidAck">✓ Đã thanh toán</span>
                                   ) : (
-                                    "↔ Lịch chia sẻ"
+                                    <span style={{ color: "#f59e0b" }}>↔ Chờ thanh toán</span>
                                   )
                                 ) : isBusyRequested ? (
                                   "⚠ PT báo bận"

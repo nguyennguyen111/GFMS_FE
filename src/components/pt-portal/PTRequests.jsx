@@ -403,6 +403,7 @@ export default function PTRequests() {
                 <th>Gym cho mượn</th>
                 <th>Gym cần huấn luyện viên</th>
                 <th>Thời gian</th>
+                <th>Giá buổi</th>
                 <th>Trạng thái</th>
                 <th>Ghi chú</th>
                 <th>Thao tác</th>
@@ -410,9 +411,9 @@ export default function PTRequests() {
             </thead>
             <tbody>
               {loadingShares ? (
-                <tr><td colSpan={6} className="ptr-empty">Đang tải...</td></tr>
+                <tr><td colSpan={7} className="ptr-empty">Đang tải...</td></tr>
               ) : shareRequests.length === 0 ? (
-                <tr><td colSpan={6} className="ptr-empty">Không có yêu cầu nào</td></tr>
+                <tr><td colSpan={7} className="ptr-empty">Không có yêu cầu nào</td></tr>
               ) : (
                 shareRequests.map((s) => {
                   const st = String(s?.status || "").toLowerCase();
@@ -432,6 +433,7 @@ export default function PTRequests() {
                     <td>{s.fromGym?.name || `Gym #${s.fromGymId}`}</td>
                     <td>{s.toGym?.name || `Gym #${s.toGymId}`}</td>
                     <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${String(s.startTime).slice(0, 5)}-${String(s.endTime).slice(0, 5)})` : ""}</td>
+                    <td>{s.sessionPrice != null ? s.sessionPrice.toLocaleString("vi-VN") + " đ" : "—"}</td>
                     <td>{statusLabel}</td>
                     <td title={s.notes || ""}>{s.notes || "-"}</td>
                     <td>
