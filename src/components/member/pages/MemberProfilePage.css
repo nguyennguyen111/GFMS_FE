@@ -310,6 +310,7 @@
 
 .mprof-card,
 .mprof-statusCard,
+.mprof-membershipCard,
 .mprof-activityCard,
 .mprof-systemCard,
 .mprof-securityCard {
@@ -339,6 +340,104 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+}
+
+.mprof-membershipCard {
+  grid-column: span 4;
+  background:
+    radial-gradient(circle at top right, rgba(214, 255, 0, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(38, 38, 38, 0.95), rgba(19, 19, 19, 0.98));
+  border: 1px solid #2b2b2b;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mprof-membershipCard.is-active {
+  border-color: rgba(214, 255, 0, 0.28);
+}
+
+.mprof-membershipCard.is-inactive {
+  border-color: rgba(255, 121, 121, 0.32);
+}
+
+.mprof-membershipHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mprof-membershipBadge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mprof-membershipBadge.active {
+  color: #d6ff00;
+  background: rgba(214, 255, 0, 0.12);
+  border: 1px solid rgba(214, 255, 0, 0.25);
+}
+
+.mprof-membershipBadge.inactive {
+  color: #ff9d9d;
+  background: rgba(255, 107, 107, 0.14);
+  border: 1px solid rgba(255, 107, 107, 0.25);
+}
+
+.mprof-membershipBody {
+  display: grid;
+  gap: 12px;
+}
+
+.mprof-membershipPlan {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.mprof-membershipHint {
+  color: #cfd3d8;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.mprof-membershipMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mprof-membershipMeta div {
+  border: 1px solid #2f2f2f;
+  border-radius: 10px;
+  background: rgba(15, 15, 15, 0.7);
+  padding: 10px;
+}
+
+.mprof-membershipMeta span {
+  display: block;
+  color: #9ba1a9;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.mprof-membershipMeta b {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.mprof-membershipActions {
+  margin-top: 4px;
 }
 
 .mprof-activityCard {
@@ -1320,6 +1419,7 @@
 
   .mprof-card-main,
   .mprof-statusCard,
+  .mprof-membershipCard,
   .mprof-activityCard,
   .mprof-systemCard {
     grid-column: auto;
@@ -1355,6 +1455,10 @@
 
   .mprof-name {
     font-size: 28px;
+  }
+
+  .mprof-membershipMeta {
+    grid-template-columns: 1fr;
   }
 
   .mprof-row2,
