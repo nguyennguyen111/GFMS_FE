@@ -2,6 +2,7 @@ import axios from "../setup/axios"; // instance baseURL=http://localhost:8080
 
 const BASE = "/api/pt";
 const PT_REVIEW_TIMEOUT_MS = 120000;
+const PT_SCHEDULE_TIMEOUT_MS = 90000;
 
 // ✅ match leader axios: interceptor chỉ đọc access_Token
 const getToken = () => {
@@ -53,13 +54,19 @@ export const updatePT = async (ptId, ptData) => {
 // 4) Xem lịch
 // 4a) Lấy schedule RAW (range) để đổ vào form update
 export const getPTScheduleRaw = async (ptId) => {
-  const res = await axios.get(`${BASE}/${ptId}/schedule?mode=raw`, ptConfig());
+  const res = await axios.get(
+    `${BASE}/${ptId}/schedule?mode=raw`,
+    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+  );
   return res.data?.availableHours || {};
 };
 
 // 4b) Lấy schedule SLOTS để hiển thị calendar
 export const getPTScheduleSlots = async (ptId) => {
-  const res = await axios.get(`${BASE}/${ptId}/schedule?mode=slots`, ptConfig());
+  const res = await axios.get(
+    `${BASE}/${ptId}/schedule?mode=slots`,
+    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+  );
   return res.data?.slots || {};
 };
 
@@ -76,7 +83,10 @@ export const updatePTSchedule = async (ptId, schedule) => {
 
 // 6) Chi tiết PT
 export const getPTDetails = async (ptId) => {
-  const res = await axios.get(`${BASE}/${ptId}/details`, ptConfig());
+  const res = await axios.get(
+    `${BASE}/${ptId}/details`,
+    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+  );
   return res.data;
 };
 

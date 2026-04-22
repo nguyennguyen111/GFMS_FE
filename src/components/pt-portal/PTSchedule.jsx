@@ -103,6 +103,8 @@ const PTSchedule = () => {
   const [busyReasonModalOpen, setBusyReasonModalOpen] = useState(false);
   const [busyReason, setBusyReason] = useState("");
   const [busyReasonError, setBusyReasonError] = useState("");
+  const [busySubmitting, setBusySubmitting] = useState(false);
+  const busySubmittingRef = useRef(false);
   const fetchedDateRef = useRef(new Set());
 
   const START_HOUR = 5;
@@ -137,10 +139,41 @@ const PTSchedule = () => {
   useEffect(() => {
     if (!ptId) return;
     setLoading(true);
-    Promise.all([getPTScheduleSlots(ptId), getPTDetails(ptId)]).then(([sch, info]) => {
-      setSchedule(sch || {});
-      setPT(info);
-    }).finally(() => setLoading(false));
+    let mounted = true;
+    (async () => {
+      const [scheduleResult, detailsResult] = await Promise.allSettled([
+        getPTScheduleSlots(ptId),
+        getPTDetails(ptId),
+      ]);
+
+      if (!mounted) return;
+
+      if (scheduleResult.status === "fulfilled") {
+        setSchedule(scheduleResult.value || {});
+      } else {
+        setSchedule({});
+        setNoticeModal({
+          title: "Không tải được lịch",
+          message: getRequestErrorMessage(
+            scheduleResult.reason,
+            "Máy chủ phản hồi chậm, vui lòng thử lại sau."
+          ),
+          tone: "danger",
+        });
+      }
+
+      if (detailsResult.status === "fulfilled") {
+        setPT(detailsResult.value || null);
+      } else {
+        setPT(null);
+      }
+
+      setLoading(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [ptId]);
 
   const applyBookingPatchToCache = (ymd, bookingId, patch = {}) => {
@@ -570,10 +603,13 @@ const PTSchedule = () => {
 
   const submitBusySlotRequest = async () => {
     if (!attBooking?.id) return;
+    if (busySubmittingRef.current) return;
     if (!String(busyReason || "").trim()) {
       setBusyReasonError("Vui lòng nhập lý do trước khi gửi yêu cầu.");
       return;
     }
+    busySubmittingRef.current = true;
+    setBusySubmitting(true);
     setAttLoading(true);
     try {
       await ptRequestBusySlot({ bookingId: attBooking.id, reason: String(busyReason || "").trim() });
@@ -587,9 +623,13 @@ const PTSchedule = () => {
         e?.response?.data?.EM ||
         e?.message ||
         "Không thể gửi yêu cầu báo bận.";
-      setNoticeModal({ title: "Không thể gửi yêu cầu", message: msg, tone: "danger" });
+      // Hiển thị lỗi trực tiếp trong modal nhập lý do để người dùng thấy ngay,
+      // tránh tình trạng phải đóng modal mới thấy popup báo lỗi phía dưới.
+      setBusyReasonError(msg);
     } finally {
       setAttLoading(false);
+      setBusySubmitting(false);
+      busySubmittingRef.current = false;
     }
   };
 
@@ -883,9 +923,9 @@ const PTSchedule = () => {
               type="button"
               className="nice-modal__btn nice-modal__btn--primary"
               onClick={submitBusySlotRequest}
-              disabled={attLoading}
+              disabled={attLoading || busySubmitting}
             >
-              {attLoading ? "Đang gửi..." : "Gửi yêu cầu"}
+              {attLoading || busySubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
             </button>
           </>
         }
