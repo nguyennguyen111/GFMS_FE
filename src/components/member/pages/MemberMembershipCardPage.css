@@ -1,0 +1,133 @@
+.mmc-page {
+  padding: 24px 16px 40px;
+}
+
+.mmc-container {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.mmc-header h2 {
+  margin: 0 0 6px;
+}
+
+.mmc-header p {
+  margin: 0;
+  color: #9ca3af;
+}
+
+.mmc-current-card,
+.mmc-current-empty,
+.mmc-gym-card {
+  border: 1px solid #2d3748;
+  background: #111827;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.mmc-current-empty {
+  color: #cbd5e1;
+}
+
+.mmc-gym-label {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.mmc-gym-select {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #4b5563;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #f3f4f6;
+  padding: 10px 12px;
+}
+
+.mmc-gym-info {
+  margin-top: 10px;
+}
+
+.mmc-gym-name {
+  font-weight: 700;
+}
+
+.mmc-gym-address {
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.mmc-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.mmc-plan-btn {
+  border: 1px solid #374151;
+  border-radius: 12px;
+  background: #0b1220;
+  color: #f9fafb;
+  text-align: left;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.mmc-plan-btn.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5) inset;
+}
+
+.mmc-plan-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mmc-plan-image {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mmc-plan-price {
+  font-size: 18px;
+  color: #93c5fd;
+  margin-bottom: 4px;
+}
+
+.mmc-plan-note {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.mmc-footer {
+  display: flex;
+}
+
+.mmc-buy-btn {
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  padding: 11px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mmc-buy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mmc-notice {
+  color: #fca5a5;
+}
+
+.mmc-loading {
+  padding: 24px;
+}

@@ -101,6 +101,35 @@ export default function PackageDetailsPage() {
               <p>{pkg.description || "Chưa có mô tả."}</p>
             </section>
 
+            <section className="pkd-card pkd-flowCard">
+              <div className="pkd-cardHead">
+                <h3>Hướng dẫn đặt lịch</h3>
+              </div>
+              <div className="pkd-flowSteps">
+                <div className="pkd-flowStep">
+                  <span className="pkd-flowIndex">1</span>
+                  <div>
+                    <b>Chọn gói tập và lịch phù hợp</b>
+                    <p>Bạn chọn huấn luyện viên, lịch tập và xác nhận gói theo nhu cầu của mình.</p>
+                  </div>
+                </div>
+                <div className="pkd-flowStep">
+                  <span className="pkd-flowIndex">2</span>
+                  <div>
+                    <b>Hệ thống kiểm tra thẻ thành viên tự động</b>
+                    <p>Nếu thẻ còn hạn, bạn không cần mua thêm. Nếu chưa có hoặc đã hết hạn, hệ thống sẽ gợi ý thẻ phù hợp.</p>
+                  </div>
+                </div>
+                <div className="pkd-flowStep">
+                  <span className="pkd-flowIndex">3</span>
+                  <div>
+                    <b>Thanh toán minh bạch, một lần xác nhận</b>
+                    <p>Chi phí gói tập và thẻ thành viên (nếu có) được hiển thị rõ ràng trước khi bạn thanh toán.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section className="pkd-card">
               <div className="pkd-cardHead">
                 <h3>Chi tiết gói</h3>
@@ -180,6 +209,14 @@ export default function PackageDetailsPage() {
                 {pkg.sessions} buổi • {pkg.durationDays} ngày
               </div>
 
+              <div className="pkd-flowHint">
+                <div className="pkd-flowHintTitle">Thông tin thanh toán</div>
+                <ul>
+                  <li>Thẻ còn hiệu lực: bạn chỉ cần thanh toán gói tập</li>
+                  <li>Chưa có hoặc thẻ đã hết hạn: hệ thống sẽ cộng thêm phí thẻ thành viên</li>
+                </ul>
+              </div>
+
               <button
                 className="pkd-buyBtn"
                 disabled={!pkg.isActive}
@@ -189,8 +226,15 @@ export default function PackageDetailsPage() {
               </button>
 
               <div className="pkd-hint">
-                Bỏ qua bước chọn gói và vào thẳng quy trình đặt lịch
+                Khi đặt lịch gói PT, hệ thống sẽ yêu cầu chọn thêm thẻ thành viên 1/2/3 tháng
               </div>
+              <button
+                className="pkd-buyBtn"
+                style={{ marginTop: 10, background: "#0f766e" }}
+                onClick={() => navigate(`/member/membership-cards?gymId=${pkg.gymId}`)}
+              >
+                Mua thẻ thành viên riêng
+              </button>
             </div>
           </aside>
         </div>
