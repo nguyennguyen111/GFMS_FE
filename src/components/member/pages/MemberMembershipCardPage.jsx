@@ -22,6 +22,7 @@ export default function MemberMembershipCardPage() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeType, setNoticeType] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function MemberMembershipCardPage() {
               : [];
         setGymOptions(gyms);
       } catch (e) {
+        setNoticeType("error");
         setNotice(e?.response?.data?.message || "Không tải được dữ liệu thẻ thành viên.");
       } finally {
         setLoading(false);
@@ -98,6 +100,7 @@ export default function MemberMembershipCardPage() {
     }
     setBuying(true);
     setNotice("");
+    setNoticeType("");
     try {
       const res = await memberPurchaseMembershipCard({
         gymId: Number(gymId),
@@ -109,9 +112,11 @@ export default function MemberMembershipCardPage() {
         window.location.href = data.paymentUrl;
         return;
       }
+      setNoticeType("success");
       setNotice("Mua thẻ thành công.");
       navigate("/member/profile");
     } catch (e) {
+      setNoticeType("error");
       setNotice(e?.response?.data?.message || "Mua thẻ thất bại.");
     } finally {
       setBuying(false);
@@ -180,7 +185,7 @@ export default function MemberMembershipCardPage() {
           </button>
         </div>
 
-        {notice ? <div className="mmc-notice">{notice}</div> : null}
+        {notice ? <div className={`mmc-notice ${noticeType}`}>{notice}</div> : null}
       </div>
     </div>
   );
