@@ -62,6 +62,10 @@ export function resolveOwnerNotificationPath(item) {
     return withQuery("/owner/transactions", "transactionId", relatedId);
   }
 
+  if (relatedType === "transaction" && notificationType === "membership_card_purchase") {
+    return withQuery("/owner/transactions", "transactionId", relatedId);
+  }
+
   if (relatedType === "withdrawal" || ["withdrawal", "commission"].includes(notificationType)) {
     return withQuery("/owner/withdrawals", "withdrawalId", relatedId);
   }
@@ -71,6 +75,10 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (notificationType === "package_purchase") {
+    return "/owner/transactions";
+  }
+
+  if (notificationType === "membership_card_purchase") {
     return "/owner/transactions";
   }
 
