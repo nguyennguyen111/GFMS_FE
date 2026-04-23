@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getMyPTReviews, replyPTReview } from "../../services/ptService";
+import { connectSocket } from "../../services/socketClient";
 import "./PTFeedback.css";
 
 const stars = (n) => "★".repeat(Number(n || 0)) + "☆".repeat(5 - Number(n || 0));
@@ -41,6 +42,22 @@ const PTFeedback = () => {
 
   useEffect(() => {
     fetchReviews();
+  }, [ratingFilter]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    let t = null;
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "review" && type !== "feedback") return;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => fetchReviews({ silent: true }), 250);
+    };
+    socket.on("notification:new", onNoti);
+    return () => {
+      if (t) clearTimeout(t);
+      socket.off("notification:new", onNoti);
+    };
   }, [ratingFilter]);
 
   const avgRating = useMemo(() => {
