@@ -358,11 +358,6 @@ export default function PTRequests() {
           {activeType === "OVERTIME" && (
             <div className="ptr-grid2">
               <div className="ptr-field">
-                <label>Ngày</label>
-                <input type="date" value={currentForm.date} onChange={(e) => updateForm("date", e.target.value)} />
-              </div>
-
-              <div className="ptr-field">
                 <label>Từ giờ</label>
                 <input type="time" value={currentForm.fromTime} onChange={(e) => updateForm("fromTime", e.target.value)} />
               </div>
@@ -370,6 +365,11 @@ export default function PTRequests() {
               <div className="ptr-field">
                 <label>Đến giờ</label>
                 <input type="time" value={currentForm.toTime} onChange={(e) => updateForm("toTime", e.target.value)} />
+              </div>
+
+              <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>
+                <label>Ngày</label>
+                <input type="date" value={currentForm.date} onChange={(e) => updateForm("date", e.target.value)} />
               </div>
 
               <div className="ptr-field" style={{ gridColumn: "1 / -1" }}>

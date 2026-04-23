@@ -4,6 +4,7 @@ import { Bell, CalendarCheck, CreditCard, MessageCircle, RefreshCw, Star } from 
 import "../member/member-pages.css";
 import "./PTNotificationsPage.css";
 import useTrainerNotifications from "../../hooks/useTrainerNotifications";
+import { resolveTrainerNotificationPath } from "../../utils/ptNotificationRouting";
 
 const iconMap = {
   booking_update: CalendarCheck,
@@ -48,13 +49,7 @@ export default function PTNotificationsPage() {
   );
 
   const resolvePath = (item) => {
-    const type = String(item?.notificationType || "").toLowerCase();
-    if (type === "withdrawal" || type === "payment") return "/pt/finance";
-    if (type === "review" || type === "feedback") return "/pt/feedback";
-    if (type === "chat") return "/pt/messages";
-    if (type === "request_update") return "/pt/requests";
-    if (["booking_update", "booking"].includes(type)) return "/pt/dashboard";
-    return "/pt/notifications";
+    return resolveTrainerNotificationPath(item);
   };
 
   const handleOpen = async (item) => {
