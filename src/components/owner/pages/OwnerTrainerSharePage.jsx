@@ -731,12 +731,18 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   }, [memberSchedulePage, memberScheduleTotalPages]);
 
   const visibleShares = React.useMemo(() => {
-    if (!selectedGymId) return shares;
-    return shares.filter(
+    console.log("🔍 visibleShares filtering - shares:", shares, "selectedGymId:", selectedGymId);
+    if (!selectedGymId) {
+      console.log("✅ No selectedGymId, returning all shares:", shares.length);
+      return shares;
+    }
+    const filtered = shares.filter(
       (share) =>
         String(share?.toGymId || share?.toGym?.id || "") ===
         String(selectedGymId),
     );
+    console.log("✅ Filtered shares:", filtered.length, "from total:", shares.length);
+    return filtered;
   }, [selectedGymId, shares]);
 
   const visibleReceivedShares = React.useMemo(() => {
@@ -1516,7 +1522,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         setLoading(true);
         setError("");
         const params = cleanQueryParams({ ...filters, page, limit: 10 });
+        console.log("📡 API call: /api/owner/trainer-shares", params);
         const res = await ownerGetMyTrainerShares(params);
+        console.log("📥 Response shares:", res.data);
         setShares(res.data?.data || []);
         setPagination(res.data?.pagination || {});
       } catch (err) {

@@ -212,7 +212,7 @@ const OwnerCommissionsPage = () => {
         await loadRateForGym(rateForm.gymId);
       }
     },
-    events: ["commission:changed"],
+    events: ["commission:changed", "booking:status-changed"],
   });
 
   useEffect(() => {

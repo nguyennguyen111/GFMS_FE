@@ -178,6 +178,13 @@ export default function GymDetailsPage() {
               </button>
 
               <button
+                className="gd-cta"
+                onClick={() => navigate(`/member/membership-cards?gymId=${gym.id}`)}
+              >
+                Mua thẻ thành viên
+              </button>
+
+              <button
                 className="gd-cta ghost"
                 onClick={() => navigate(`/marketplace/trainers?gymId=${gym.id}`)}
               >

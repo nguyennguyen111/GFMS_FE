@@ -14,6 +14,10 @@ import {
   memberConfirmFixedPlan,
   memberGetFixedPlanOptions,
 } from "../../../../services/memberBookingService";
+import {
+  memberGetCurrentMembershipCard,
+  memberGetMembershipCardPlans,
+} from "../../../../services/membershipCardService";
 import "./bookingWizard.css";
 
 const fmtVND = (n) => Number(n || 0).toLocaleString("vi-VN");
@@ -175,6 +179,9 @@ export default function Step5PreviewConfirm({
 
   const [slot, setSlot] = useState(null);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+  const [membershipPlans, setMembershipPlans] = useState([]);
+  const [membershipPlanId, setMembershipPlanId] = useState(0);
+  const [currentMembershipCard, setCurrentMembershipCard] = useState(null);
 
   const totalSessions = Number(pkg?.sessions || pkg?.totalSessions || 0) || 0;
   const patternKey = useMemo(
@@ -246,6 +253,17 @@ export default function Step5PreviewConfirm({
   }, [startDate, pattern, totalSessions, slot]);
 
   const duplicateWarning = options?.warning || null;
+  const hasActiveMembershipCard = !!currentMembershipCard?.id;
+  const membershipPlan =
+    membershipPlans.find((p) => Number(p.id) === Number(membershipPlanId)) || null;
+  const membershipPrice = hasActiveMembershipCard ? 0 : Number(membershipPlan?.price || 0);
+  const membershipSelectHint = hasActiveMembershipCard
+    ? `Đã mua thẻ thành viên • Còn hạn đến ${new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}`
+    : membershipPlan
+      ? `${membershipPlan.label} • ${fmtVND(membershipPrice)} VND`
+      : "Vui lòng chọn thẻ thành viên";
+  const packagePrice = Number(pkg?.price || 0);
+  const totalAmount = packagePrice + membershipPrice;
 
   const slots = useMemo(() => {
     return mergeSlots(options?.slotCatalog, options?.slots);
@@ -259,9 +277,34 @@ export default function Step5PreviewConfirm({
     slot?.start &&
     slot?.end &&
     !slot?.disabled &&
+    (hasActiveMembershipCard || !!membershipPlan) &&
     preview.length > 0 &&
     (!duplicateWarning?.hasActiveSamePackage || confirmDuplicate)
   );
+
+  useEffect(() => {
+    let mounted = true;
+    const gymId = Number(pkg?.gymId || pkg?.Gym?.id || 0) || undefined;
+    Promise.all([memberGetMembershipCardPlans({ gymId }), memberGetCurrentMembershipCard({ gymId })])
+      .then(([planRes, cardRes]) => {
+        if (!mounted) return;
+        const plans = Array.isArray(planRes?.data?.data) ? planRes.data.data : [];
+        setMembershipPlans(plans);
+        if (plans.length > 0) {
+          setMembershipPlanId(Number(plans[0].id));
+        }
+        setCurrentMembershipCard(cardRes?.data?.data || null);
+      })
+      .catch(() => {
+        if (mounted) {
+          setMembershipPlans([]);
+          setCurrentMembershipCard(null);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [pkg?.gymId, pkg?.Gym?.id]);
 
   const handleConfirm = async () => {
     if (!canSubmit || submitting) return;
@@ -278,6 +321,7 @@ export default function Step5PreviewConfirm({
         startTime: slot.start,
         paymentMethod: payMethod,
         confirmDuplicate: !!confirmDuplicate,
+        membershipCardPlanId: hasActiveMembershipCard ? 0 : Number(membershipPlanId),
       });
 
       const data = res?.data?.data || null;
@@ -308,6 +352,25 @@ export default function Step5PreviewConfirm({
           Kiểm tra lại thông tin gói tập, PT, lịch học và thanh toán trước khi hoàn tất.
         </p>
       </header>
+
+      <div className={`bw-membershipFlow ${hasActiveMembershipCard ? "is-ok" : "is-required"}`}>
+        <div className="bw-membershipFlowHead">
+          <CreditCard size={16} />
+          <b>{hasActiveMembershipCard ? "Bạn đã có thẻ thành viên còn hạn" : "Bạn cần mua thêm thẻ thành viên"}</b>
+        </div>
+        {hasActiveMembershipCard ? (
+          <p>
+            Hệ thống đã kiểm tra thẻ hiện tại của bạn còn hạn đến{" "}
+            <strong>{new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}</strong>. Bước này bạn
+            không phải trả thêm tiền thẻ.
+          </p>
+        ) : (
+          <p>
+            Để vào tập tại gym, bạn cần có thẻ thành viên còn hiệu lực. Vui lòng chọn loại thẻ bên dưới, tổng tiền sẽ
+            được cộng rõ ràng trước khi thanh toán.
+          </p>
+        )}
+      </div>
 
       <div className="bw-summaryHero">
         <div className="bw-summaryHeroLeft">
@@ -365,13 +428,22 @@ export default function Step5PreviewConfirm({
             <div className="bw-miniGrid">
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Giá gói</div>
-                <div className="bw-miniValue">{fmtVND(pkg?.price)} VND</div>
+                <div className="bw-miniValue">{fmtVND(packagePrice)} VND</div>
+              </div>
+
+              <div className="bw-miniBox">
+                <div className="bw-miniLabel">Thẻ thành viên</div>
+                <div className="bw-miniValue">
+                  {hasActiveMembershipCard
+                    ? `Đã có thẻ còn hạn đến ${new Date(currentMembershipCard.endDate).toLocaleDateString("vi-VN")}`
+                    : `${fmtVND(membershipPrice)} VND`}
+                </div>
               </div>
 
               <div className="bw-miniBox">
                 <div className="bw-miniLabel">Tổng tạm tính</div>
                 <div className="bw-miniValue bw-miniValueAccent">
-                  {fmtVND(pkg?.price)} VND
+                  {fmtVND(totalAmount)} VND
                 </div>
               </div>
             </div>
@@ -461,7 +533,6 @@ export default function Step5PreviewConfirm({
             <CreditCard size={16} />
             <span>Phương thức thanh toán</span>
           </div>
-
           <select
             value={payMethod}
             onChange={(e) => setPayMethod(e.target.value)}
@@ -470,6 +541,42 @@ export default function Step5PreviewConfirm({
           >
             <option value="payos">PayOS</option>
           </select>
+        </div>
+
+        <div className="bw-paymentSelectWrap bw-paymentSelectWrapMembership">
+          <div className="bw-paymentLabel">
+            <CreditCard size={16} />
+            <span>{hasActiveMembershipCard ? "Thẻ thành viên hiện tại" : "Thẻ thành viên (bắt buộc)"}</span>
+          </div>
+          <div className={`bw-membershipSelectCard ${hasActiveMembershipCard ? "is-active-card" : ""}`}>
+            <div className="bw-membershipSelectTop">
+              <span className="bw-membershipSelectHint">{membershipSelectHint}</span>
+              {!hasActiveMembershipCard ? (
+                <span className="bw-membershipSelectPrice">+ {fmtVND(membershipPrice)} VND</span>
+              ) : (
+                <span className="bw-membershipSelectPrice is-free">ĐÃ MUA</span>
+              )}
+            </div>
+            {hasActiveMembershipCard ? (
+              <div className="bw-membershipOwnedRow">
+                <CheckCircle2 size={16} />
+                <span>Bạn đã mua thẻ thành viên và hiện vẫn còn hiệu lực.</span>
+              </div>
+            ) : (
+              <select
+                value={membershipPlanId}
+                onChange={(e) => setMembershipPlanId(Number(e.target.value))}
+                className="bw-input bw-inputCompact"
+                disabled={submitting || membershipPlans.length === 0}
+              >
+                {membershipPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.label} - {fmtVND(plan.price)} VND
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         <div className="bw-actionsRightGroup">

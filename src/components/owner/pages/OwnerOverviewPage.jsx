@@ -7,16 +7,16 @@ import ownerDashboardService from "../../../services/ownerDashboardService";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 
-function StatCard({ title, value, hint, icon, loading }) {
+function StatCard({ title, value, hint, icon, loading, onClick }) {
   return (
-    <div className="ov-card">
+    <button className="ov-card ov-cardBtn" type="button" onClick={onClick}>
       <div className="ov-cardTop">
         <div className="ov-ico">{icon}</div>
         <div className="ov-title">{title}</div>
       </div>
       <div className="ov-value">{loading ? "…" : value}</div>
       <div className="ov-hint">{hint}</div>
-    </div>
+    </button>
   );
 }
 
@@ -43,6 +43,13 @@ function formatDate(d) {
   return `${dt.getDate().toString().padStart(2, "0")}/${(dt.getMonth() + 1)
     .toString()
     .padStart(2, "0")}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("vi-VN");
 }
 
 function GymDropdown({ gyms, selectedGymId, onChange }) {
@@ -136,6 +143,8 @@ export default function OwnerOverviewPage() {
   const [revenueTrend, setRevenueTrend] = useState([]);
   const [revenueHighlights, setRevenueHighlights] = useState({ todayRevenue: 0, monthRevenue: 0 });
   const [viewAllType, setViewAllType] = useState(null);
+  const [statDetailType, setStatDetailType] = useState(null);
+  const [revenueDetailType, setRevenueDetailType] = useState(null);
   const [gyms, setGyms] = useState([]);
   const [data, setData] = useState({
     todayBookings: 0,
@@ -143,10 +152,18 @@ export default function OwnerOverviewPage() {
     newMembersCount: 0,
     newMembersToday: [],
     upcomingBookings: [],
+    todayBookingsDetails: [],
     expiringMembers: [],
+    activeMembers: [],
     lowStock: [],
     bestSellingPackages: [],
     totalRevenue: 0,
+    revenueBreakdown: {
+      trainerShare: { total: 0, today: 0, month: 0 },
+      membershipCard: { total: 0, today: 0, month: 0 },
+    },
+    todayRevenueDetails: [],
+    monthRevenueDetails: [],
   });
 
   const fetchData = useCallback(async () => {
@@ -163,10 +180,18 @@ export default function OwnerOverviewPage() {
         newMembersCount: result.newMembersCount ?? 0,
         newMembersToday: result.newMembersToday ?? [],
         upcomingBookings: result.upcomingBookings ?? [],
+        todayBookingsDetails: result.todayBookingsDetails ?? [],
         expiringMembers: result.expiringMembers ?? [],
+        activeMembers: result.activeMembers ?? [],
         lowStock: result.lowStock ?? [],
         bestSellingPackages: result.bestSellingPackages ?? [],
         totalRevenue: result.totalRevenue ?? 0,
+        revenueBreakdown: result.revenueBreakdown ?? {
+          trainerShare: { total: 0, today: 0, month: 0 },
+          membershipCard: { total: 0, today: 0, month: 0 },
+        },
+        todayRevenueDetails: result.todayRevenueDetails ?? [],
+        monthRevenueDetails: result.monthRevenueDetails ?? [],
       });
     } catch (e) {
       setError(e?.response?.data?.message || e.message || "Lỗi tải dữ liệu");
@@ -303,24 +328,28 @@ export default function OwnerOverviewPage() {
       value: data.todayBookings,
       hint: "Tổng booking trong ngày",
       icon: "🗓️",
+      key: "todayBookings",
     },
     {
       title: "Tổng hội viên",
       value: data.totalMembers,
       hint: `Hội viên đang hoạt động${data.newMembersCount > 0 ? ` • +${data.newMembersCount} hôm nay` : ""}`,
       icon: "👥",
+      key: "totalMembers",
     },
     {
       title: "Hội viên sắp hết hạn",
       value: data.expiringMembers.length,
       hint: "Hết hạn trong 7 ngày tới",
       icon: "⏰",
+      key: "expiringMembers",
     },
     {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
-      hint: "Doanh thu chia sẻ từ huấn luyện viên",
+      hint: "Doanh thu owner (PT + thẻ thành viên)",
       icon: "💳",
+      key: "totalRevenue",
     },
   ];
 
@@ -332,6 +361,8 @@ export default function OwnerOverviewPage() {
     .slice(0, PREVIEW_LIMIT);
 
   const closeViewAll = () => setViewAllType(null);
+  const closeStatDetail = () => setStatDetailType(null);
+  const closeRevenueDetail = () => setRevenueDetailType(null);
 
   const getViewAllConfig = () => {
     if (viewAllType === "bookings") {
@@ -359,6 +390,14 @@ export default function OwnerOverviewPage() {
   };
 
   const viewAllConfig = getViewAllConfig();
+
+  const statDetailConfig = useMemo(() => {
+    if (statDetailType === "todayBookings") return { title: "Chi tiết booking hôm nay", empty: "Hôm nay chưa có booking nào." };
+    if (statDetailType === "totalMembers") return { title: "Chi tiết hội viên đang hoạt động", empty: "Chưa có hội viên đang hoạt động." };
+    if (statDetailType === "expiringMembers") return { title: "Chi tiết hội viên sắp hết hạn", empty: "Không có hội viên sắp hết hạn." };
+    if (statDetailType === "totalRevenue") return { title: "Chi tiết tổng doanh thu owner", empty: "" };
+    return null;
+  }, [statDetailType]);
 
   return (
     <div className="ov-wrap">
@@ -413,7 +452,7 @@ export default function OwnerOverviewPage() {
       {/* ── Stat cards ── */}
       <div className="ov-gridStats">
         {stats.map((s) => (
-          <StatCard key={s.title} loading={loading} {...s} />
+          <StatCard key={s.title} loading={loading} {...s} onClick={() => setStatDetailType(s.key)} />
         ))}
       </div>
 
@@ -434,18 +473,18 @@ export default function OwnerOverviewPage() {
         }
       >
         <div className="ov-revenueHighlights">
-          <div className="ov-revenueChip">
+          <button className="ov-revenueChip ov-revenueChipBtn" type="button" onClick={() => setRevenueDetailType("today")}>
             <div className="ov-revenueChipLabel">Doanh thu hôm nay</div>
             <div className="ov-revenueChipValue">
               {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.todayRevenue || 0).toLocaleString("vi-VN")}`}
             </div>
-          </div>
-          <div className="ov-revenueChip ov-revenueChip--month">
+          </button>
+          <button className="ov-revenueChip ov-revenueChip--month ov-revenueChipBtn" type="button" onClick={() => setRevenueDetailType("month")}>
             <div className="ov-revenueChipLabel">Doanh thu tháng này</div>
             <div className="ov-revenueChipValue">
               {revenueHighlightsLoading ? "…" : `₫ ${Number(revenueHighlights.monthRevenue || 0).toLocaleString("vi-VN")}`}
             </div>
-          </div>
+          </button>
         </div>
         {revenueTrendLoading ? (
           <div className="ov-empty">Đang tải biểu đồ doanh thu…</div>
@@ -681,6 +720,142 @@ export default function OwnerOverviewPage() {
                       >
                         Chi tiết
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {statDetailConfig && (
+        <div className="ov-modalBackdrop" onClick={closeStatDetail}>
+          <div className="ov-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ov-modalHead">
+              <div className="ov-modalTitle">{statDetailConfig.title}</div>
+              <button className="ov-miniBtn" onClick={closeStatDetail}>Đóng</button>
+            </div>
+            <div className="ov-modalBody">
+              {statDetailType === "todayBookings" && (
+                data.todayBookingsDetails.length === 0 ? (
+                  <div className="ov-empty">{statDetailConfig.empty}</div>
+                ) : (
+                  <div className="ov-list">
+                    {data.todayBookingsDetails.map((b) => (
+                      <div className="ov-row" key={`today-booking-${b.id}`}>
+                        <div className="ov-badge">{formatTime(b.startTime)}-{formatTime(b.endTime)}</div>
+                        <div className="ov-rowMain">
+                          <div className="ov-rowTitle">{b.memberName} • {b.trainerName}</div>
+                          <div className="ov-rowSub">{b.gymName}</div>
+                        </div>
+                        <span className="ov-miniBtn">{b.status || "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {statDetailType === "totalMembers" && (
+                data.activeMembers.length === 0 ? (
+                  <div className="ov-empty">{statDetailConfig.empty}</div>
+                ) : (
+                  <div className="ov-list">
+                    {data.activeMembers.map((m) => (
+                      <div className="ov-row" key={`active-member-${m.id}`}>
+                        <div className="ov-badge">#{m.id}</div>
+                        <div className="ov-rowMain">
+                          <div className="ov-rowTitle">{m.memberName}</div>
+                          <div className="ov-rowSub">{m.packageName} • {m.gymName}</div>
+                        </div>
+                        <div style={{ textAlign: "right", minWidth: 160 }}>
+                          <div style={{ fontSize: 12, color: "rgba(255,255,255,.78)" }}>{m.phone || "—"}</div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,.48)" }}>{m.email || ""}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {statDetailType === "expiringMembers" && (
+                data.expiringMembers.length === 0 ? (
+                  <div className="ov-empty">{statDetailConfig.empty}</div>
+                ) : (
+                  <div className="ov-list">
+                    {data.expiringMembers.map((m) => (
+                      <div className="ov-row" key={`expiring-member-${m.id}`}>
+                        <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>{m.daysLeft}d</div>
+                        <div className="ov-rowMain">
+                          <div className="ov-rowTitle">{m.memberName}</div>
+                          <div className="ov-rowSub">
+                            {m.packageName}
+                            {m.sessionsRemaining != null ? ` • còn ${m.sessionsRemaining} buổi` : ""}
+                          </div>
+                        </div>
+                        <span className="ov-miniBtn">HSD: {formatDate(m.packageExpiryDate)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {statDetailType === "totalRevenue" && (
+                <div className="ov-revenueDetailGrid">
+                  <div className="ov-revenueDetailCard">
+                    <div className="ov-revenueDetailLabel">Tổng doanh thu owner</div>
+                    <div className="ov-revenueDetailValue">₫ {Number(data.totalRevenue || 0).toLocaleString("vi-VN")}</div>
+                  </div>
+                  <div className="ov-revenueDetailCard">
+                    <div className="ov-revenueDetailLabel">Doanh thu từ buổi PT</div>
+                    <div className="ov-revenueDetailValue">₫ {Number(data.revenueBreakdown?.trainerShare?.total || 0).toLocaleString("vi-VN")}</div>
+                  </div>
+                  <div className="ov-revenueDetailCard">
+                    <div className="ov-revenueDetailLabel">Doanh thu từ thẻ thành viên</div>
+                    <div className="ov-revenueDetailValue">₫ {Number(data.revenueBreakdown?.membershipCard?.total || 0).toLocaleString("vi-VN")}</div>
+                  </div>
+                  <div className="ov-revenueDetailCard">
+                    <div className="ov-revenueDetailLabel">Doanh thu hôm nay</div>
+                    <div className="ov-revenueDetailValue">₫ {Number(revenueHighlights.todayRevenue || 0).toLocaleString("vi-VN")}</div>
+                  </div>
+                  <div className="ov-revenueDetailCard">
+                    <div className="ov-revenueDetailLabel">Doanh thu tháng này</div>
+                    <div className="ov-revenueDetailValue">₫ {Number(revenueHighlights.monthRevenue || 0).toLocaleString("vi-VN")}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {revenueDetailType && (
+        <div className="ov-modalBackdrop" onClick={closeRevenueDetail}>
+          <div className="ov-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ov-modalHead">
+              <div className="ov-modalTitle">
+                {revenueDetailType === "today" ? "Chi tiết doanh thu hôm nay" : "Chi tiết doanh thu tháng này"}
+              </div>
+              <button className="ov-miniBtn" onClick={closeRevenueDetail}>Đóng</button>
+            </div>
+            <div className="ov-modalBody">
+              {(revenueDetailType === "today" ? data.todayRevenueDetails : data.monthRevenueDetails).length === 0 ? (
+                <div className="ov-empty">Chưa có giao dịch doanh thu trong khoảng thời gian này.</div>
+              ) : (
+                <div className="ov-list">
+                  {(revenueDetailType === "today" ? data.todayRevenueDetails : data.monthRevenueDetails).map((item) => (
+                    <div className="ov-row" key={item.id}>
+                      <div className="ov-badge">{item.source === "membership_card" ? "Thẻ" : "PT"}</div>
+                      <div className="ov-rowMain">
+                        <div className="ov-rowTitle">{item.sourceLabel}</div>
+                        <div className="ov-rowSub">
+                          {item.reference}
+                          {item.memberName ? ` • ${item.memberName}` : ""}
+                          {item.gymName ? ` • ${item.gymName}` : ""}
+                        </div>
+                        <div className="ov-rowSub">{formatDateTime(item.occurredAt)}</div>
+                      </div>
+                      <span className="ov-miniBtn">₫ {Number(item.amount || 0).toLocaleString("vi-VN")}</span>
                     </div>
                   ))}
                 </div>
