@@ -1,6 +1,7 @@
 import axios from "../setup/axios";
 
 const BASE = "/api/pt";
+const PT_REQUEST_TIMEOUT_MS = 25000;
 
 const getToken = () => {
   try {
@@ -18,6 +19,7 @@ const ptConfig = () => {
   return {
     withCredentials: true,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    timeout: PT_REQUEST_TIMEOUT_MS,
   };
 };
 

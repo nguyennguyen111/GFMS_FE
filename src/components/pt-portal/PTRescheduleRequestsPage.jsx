@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./PTRescheduleRequestsPage.css";
+import { connectSocket } from "../../services/socketClient";
 
 // sửa lại import service đúng với project của bạn
 import {
@@ -90,6 +91,22 @@ export default function PTRescheduleRequestsPage() {
 
   useEffect(() => {
     loadRescheduleRequests();
+  }, [loadRescheduleRequests]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    let t = null;
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "booking_reschedule") return;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => loadRescheduleRequests(), 250);
+    };
+    socket.on("notification:new", onNoti);
+    return () => {
+      if (t) clearTimeout(t);
+      socket.off("notification:new", onNoti);
+    };
   }, [loadRescheduleRequests]);
 
   const pendingRescheduleCount = useMemo(() => {

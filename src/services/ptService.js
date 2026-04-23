@@ -1,8 +1,53 @@
 import axios from "../setup/axios"; // instance baseURL=http://localhost:8080
 
 const BASE = "/api/pt";
-const PT_REVIEW_TIMEOUT_MS = 120000;
-const PT_SCHEDULE_TIMEOUT_MS = 90000;
+// PT pages should fail fast to avoid "waiting forever" feeling.
+// Reviews + schedule are read-heavy and should not take minutes.
+const PT_REVIEW_TIMEOUT_MS = 15000;
+const PT_SCHEDULE_TIMEOUT_MS = 25000;
+const PT_READ_TIMEOUT_MS = 25000;
+
+const PT_CACHE_TTL_MS = 15000;
+const ptGetCache = new Map();
+const ptGetInFlight = new Map();
+
+const cacheKey = (url, params) => `${url}::${params ? JSON.stringify(params) : ""}`;
+
+const getCached = (key) => {
+  const hit = ptGetCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > PT_CACHE_TTL_MS) return null;
+  return hit.value;
+};
+
+const setCached = (key, value) => {
+  ptGetCache.set(key, { ts: Date.now(), value });
+  return value;
+};
+
+export const invalidatePTServiceCache = (prefix = "") => {
+  const p = String(prefix || "");
+  for (const k of ptGetCache.keys()) {
+    if (!p || k.includes(p)) ptGetCache.delete(k);
+  }
+};
+
+const cachedGet = async (url, { params, config, force = false } = {}) => {
+  const key = cacheKey(url, params);
+  if (!force) {
+    const cached = getCached(key);
+    if (cached != null) return cached;
+    if (ptGetInFlight.has(key)) return ptGetInFlight.get(key);
+  }
+
+  const req = axios
+    .get(url, { ...ptConfig(), ...(config || {}), ...(params ? { params } : {}), timeout: PT_READ_TIMEOUT_MS })
+    .then((res) => setCached(key, res))
+    .finally(() => ptGetInFlight.delete(key));
+
+  ptGetInFlight.set(key, req);
+  return req;
+};
 
 // ✅ match leader axios: interceptor chỉ đọc access_Token
 const getToken = () => {
@@ -104,19 +149,19 @@ export const getMyPTProfile = async () => {
 
 // 8) Hoa hồng (commission) của PT
 export const getMyPTCommissions = async (params = {}) => {
-  const res = await axios.get(`${BASE}/me/commissions`, { ...ptConfig(), params });
+  const res = await cachedGet(`${BASE}/me/commissions`, { params });
   return res.data;
 };
 
 // 9) Kỳ lương của PT
 export const getMyPTPayrollPeriods = async () => {
-  const res = await axios.get(`${BASE}/me/payroll-periods`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/payroll-periods`);
   return res.data;
 };
 
 // 10) Chi tiết hoa hồng theo kỳ
 export const getMyPTPayrollPeriodCommissions = async (periodId) => {
-  const res = await axios.get(`${BASE}/me/payroll-periods/${periodId}/commissions`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/payroll-periods/${periodId}/commissions`);
   return res.data;
 };
 
@@ -134,20 +179,20 @@ export const requestPTWithdrawal = async (payload) => {
 
 // 13) Danh sách yêu cầu chi trả
 export const getMyPTWithdrawals = async () => {
-  const res = await axios.get(`${BASE}/me/withdrawals`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/withdrawals`);
   return res.data;
 };
 
 // 14) Ví PT
 export const getMyPTWalletSummary = async () => {
-  const res = await axios.get(`${BASE}/me/wallet-summary`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/wallet-summary`);
   return res.data;
 };
 
 // 15) Lấy danh sách học viên đã đặt lịch (Bookings)
 export const getPTBookings = async (ptId) => {
   // Nếu ptId là "me", nó sẽ gọi /api/pt/me/bookings
-  const res = await axios.get(`${BASE}/${ptId}/bookings`, ptConfig());
+  const res = await cachedGet(`${BASE}/${ptId}/bookings`);
   return res.data; // Trả về mảng danh sách học viên
 };
 
@@ -169,7 +214,7 @@ export const uploadMyPTProfileImage = async ({ file, imageType = "avatar", certi
 
 // 16) Demo videos (UC-TR-010)
 export const getMyPTDemoVideos = async () => {
-  const res = await axios.get(`${BASE}/me/demo-videos`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/demo-videos`);
   return res.data;
 };
 
@@ -190,11 +235,12 @@ export const uploadMyPTDemoVideo = async ({ file, title }) => {
 
 export const deleteMyPTDemoVideo = async (videoId) => {
   const res = await axios.delete(`${BASE}/me/demo-videos/${videoId}`, ptConfig());
+  invalidatePTServiceCache("/me/demo-videos");
   return res.data;
 };
 
 export const getMyPTTrainingPlans = async () => {
-  const res = await axios.get(`${BASE}/me/training-plans`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/training-plans`);
   return res.data;
 };
 
@@ -238,6 +284,7 @@ export const sendPTActivationMaterial = async (payload) => {
 
 export const deletePTActivationMaterial = async (id) => {
   const res = await axios.delete(`${BASE}/me/activation-materials/${id}`, ptConfig());
+  invalidatePTServiceCache("/me/activation-materials");
   return res.data;
 };
 
@@ -259,7 +306,7 @@ export const replyPTReview = async (reviewId, reply) => {
 
 
 export const getMyPTRescheduleRequests = async () => {
-  const res = await axios.get(`${BASE}/me/reschedule-requests`, ptConfig());
+  const res = await cachedGet(`${BASE}/me/reschedule-requests`);
   return res.data;
 };
 
