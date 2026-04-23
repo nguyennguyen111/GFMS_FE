@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
+import { connectSocket } from "../../services/socketClient";
+import { getAccessToken, getCurrentUser } from "../../utils/auth";
 import {
   getPTAttendanceSchedule,
   invalidatePTAttendanceScheduleCache,
@@ -275,6 +277,51 @@ const PTSchedule = () => {
       .then((res) => setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] })))
       .catch(() => {});
   }, [ptId]);
+
+  const refreshVisibleAttendance = async ({ force = false } = {}) => {
+    const days =
+      activeTab === "today"
+        ? [{ date: new Date() }]
+        : weekDays.map((d) => ({ date: d.date }));
+    const ymDs = days.map((d) => toYMD(new Date(d.date)));
+
+    await Promise.all(
+      ymDs.map(async (ymd) => {
+        try {
+          invalidatePTAttendanceScheduleCache(ymd);
+          const res = await getPTAttendanceSchedule({ date: ymd }, { force });
+          setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+        } catch {
+          // ignore
+        }
+      })
+    );
+  };
+
+  useEffect(() => {
+    const token = getAccessToken();
+    const user = getCurrentUser();
+    const gid = Number(user?.groupId ?? user?.group_id ?? 0);
+    if (!token || gid !== 3) return undefined;
+
+    const socket = connectSocket();
+    const debounceRef = { t: null };
+
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "booking_update" && type !== "booking") return;
+      if (debounceRef.t) clearTimeout(debounceRef.t);
+      debounceRef.t = setTimeout(() => {
+        refreshVisibleAttendance({ force: true });
+      }, 250);
+    };
+
+    socket.on("notification:new", onNoti);
+    return () => {
+      if (debounceRef.t) clearTimeout(debounceRef.t);
+      socket.off("notification:new", onNoti);
+    };
+  }, [weekDays, activeTab]);
 
   const openAttendance = async (dateObj, slot) => {
     const ymd = toYMD(dateObj);

@@ -50,6 +50,14 @@ const PTLayout = () => {
               </NavLink>
 
               <NavLink
+                to={scheduleLink}
+                className={() => `pt-shell__link ${isScheduleActive ? "is-active" : ""}`}
+              >
+                <span className="pt-shell__dot" />
+                Lịch làm việc
+              </NavLink>
+
+              <NavLink
                 to="/pt/clients"
                 className={({ isActive }) =>
                   `pt-shell__link ${isActive ? "is-active" : ""}`
@@ -70,24 +78,6 @@ const PTLayout = () => {
               </NavLink>
 
               <NavLink
-                to={profileLink}
-                className={({ isActive }) =>
-                  `pt-shell__link ${isActive ? "is-active" : ""}`
-                }
-              >
-                <span className="pt-shell__dot" />
-                Hồ sơ
-              </NavLink>
-
-              <NavLink
-                to={scheduleLink}
-                className={() => `pt-shell__link ${isScheduleActive ? "is-active" : ""}`}
-              >
-                <span className="pt-shell__dot" />
-                Lịch làm việc
-              </NavLink>
-
-              <NavLink
                 to="/pt/reschedule-requests"
                 className={({ isActive }) =>
                   `pt-shell__link ${isActive ? "is-active" : ""}`
@@ -95,6 +85,16 @@ const PTLayout = () => {
               >
                 <span className="pt-shell__dot" />
                 Yêu cầu đổi lịch
+              </NavLink>
+
+              <NavLink
+                to="/pt/requests"
+                className={({ isActive }) =>
+                  `pt-shell__link ${isActive ? "is-active" : ""}`
+                }
+              >
+                <span className="pt-shell__dot" />
+                Gửi yêu cầu
               </NavLink>
 
               <NavLink
@@ -128,13 +128,13 @@ const PTLayout = () => {
               </NavLink>
 
               <NavLink
-                to="/pt/requests"
+                to={profileLink}
                 className={({ isActive }) =>
                   `pt-shell__link ${isActive ? "is-active" : ""}`
                 }
               >
                 <span className="pt-shell__dot" />
-                Gửi yêu cầu
+                Hồ sơ
               </NavLink>
             </nav>
           </aside>

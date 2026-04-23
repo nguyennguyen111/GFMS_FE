@@ -27,6 +27,7 @@ import { getCurrentUser } from "../../utils/auth";
 import { ownerGetMyGyms } from "../../services/ownerGymService";
 import OwnerHeaderNotifications from "./OwnerHeaderNotifications";
 import MemberHeaderNotifications from "./MemberHeaderNotifications";
+import PTHeaderNotifications from "./PTHeaderNotifications";
 import { getAccessToken } from "../../utils/auth";
 import { logoutUser } from "../../services/authService";
 
@@ -247,20 +248,7 @@ export default function Header() {
     </NavLink>
   );
 
-  const PTNotificationButton = () => (
-    <button
-      type="button"
-      className="header-icon-btn"
-      aria-label="Thông báo"
-      title="Thông báo"
-      onClick={() => go("/pt/notifications")}
-    >
-      <Bell size={18} />
-      {trainerNotifications.unreadCount > 0 ? (
-        <span className="header-noti-dot" />
-      ) : null}
-    </button>
-  );
+  const PTNotificationButton = () => <PTHeaderNotifications onNavigate={go} />;
 
   const PTMessageButton = () => (
     <button
