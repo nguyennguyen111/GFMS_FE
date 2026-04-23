@@ -217,7 +217,7 @@
   color: var(--gray);
   font-weight: 700;
   font-size: 0.75rem;
-  margin-top: -8px; /* Căn lề nhãn giờ trùng với vạch ngang */
+  margin-top: -8px;
 }
 
 /* GRID VIEW - Main Calendar Area */
@@ -265,7 +265,7 @@
   background-size: 100% 60px;
 }
 
-/* Slot Blocks (Ca làm việc) */
+/* Slot Blocks (Ca lam viec) */
 .ptWeek__block {
   position: absolute;
   left: 2px;
@@ -280,7 +280,6 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  /* Mặc định = slot rảnh (trung tính), KHÔNG trùng màu trạng thái điểm danh */
   background: rgba(10, 22, 16, 0.72) !important;
   border: 1px dashed rgba(214, 255, 0, 0.28) !important;
   border-left: 2px solid rgba(214, 255, 0, 0.42) !important;
@@ -304,7 +303,6 @@
   line-height: 1.05;
 }
 
-/* Nội dung trạng thái điểm danh (✓ Có mặt / ✗ Vắng mặt) */
 .mini-status {
   margin: 4px 0 0;
   padding: 0;
@@ -314,7 +312,7 @@
   white-space: nowrap;
 }
 
-/* Đã đối soát: chữ «Đã thanh toán», gạch chéo màu xanh lá */
+/* Da doi soat: chu "Da thanh toan", gach cheo mau xanh la */
 .ptWeek__block.is-shared .mini-status .mini-status--paidAck {
   color: #bbf7d0 !important;
   text-decoration: line-through !important;
@@ -362,16 +360,27 @@
   color: #ffe2ad !important;
 }
 
+/* Lich muon PT ngoai chi nhanh - mau tim */
 .ptWeek__block.is-shared {
-  background: rgba(89, 146, 255, 0.16) !important;
-  border-color: rgba(89, 146, 255, 0.45) !important;
-  border-left-color: #5992ff !important;
+  background: rgba(168, 85, 247, 0.16) !important;
+  border-color: rgba(168, 85, 247, 0.45) !important;
+  border-left-color: #a855f7 !important;
 }
 .ptWeek__block.is-shared * {
-  color: #dce8ff !important;
+  color: #e9d5ff !important;
 }
 
-/* Slot rảnh: giảm nhấn mạnh, tránh cảm giác "vỡ lưới/tách ô" khi scroll */
+/* Lich day the - mau xanh duong */
+.ptWeek__block.is-substitute {
+  background: rgba(0, 140, 255, 0.2) !important;
+  border-color: rgba(0, 140, 255, 0.5) !important;
+  border-left-color: #008cff !important;
+}
+.ptWeek__block.is-substitute * {
+  color: #b8e0ff !important;
+}
+
+/* Slot ranh: giam nhan manh, tranh cam giac "vo luoi/tach o" khi scroll */
 .ptWeek__block:not(.is-pending):not(.is-present):not(.is-absent):not(.is-busy-requested):not(.is-shared) {
   border-style: solid !important;
   border-color: rgba(214, 255, 0, 0.2) !important;

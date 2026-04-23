@@ -635,7 +635,8 @@ const PTSchedule = () => {
 
   if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
 
-  const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession) => {
+  const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession, isSubstitute) => {
+    if (isSubstitute) return '#008cff';
     if (sharedSession) return '#a78bfa';
     if (busyRequested) return '#f59e0b';
     if (attendanceStatus === 'present') return '#2ecc71';
@@ -734,9 +735,11 @@ const PTSchedule = () => {
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       const isBusyRequested = Boolean(booking?.busyRequested);
-                      const isSharedSession = String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
+                      const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
+                      const isSubstitute = String(booking?.sessionType || "").toLowerCase() === "substitute" || String(booking?.type || "").toLowerCase() === "substitute" || booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]");
                       if (booking) {
                         if (isSharedSession) statusClass = "is-shared";
+                        else if (isSubstitute) statusClass = "is-substitute";
                         else if (isBusyRequested) statusClass = "is-busy-requested";
                         else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
@@ -757,9 +760,11 @@ const PTSchedule = () => {
                           onClick={()=>openAttendance(d.date,s)}
                         >
                           <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession) }}>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession, isSubstitute) }}>
+                            {isSharedSession && <span style={{ color: "#a855f7" }}>↔ </span>}
+                            {isSubstitute && !isSharedSession && <span style={{ color: "#008cff" }}>🔄 </span>}
                             👤 {booking.Member?.User?.username || "Học viên"}
-                            {(attendanceStatus || isBusyRequested || isSharedSession) && (
+                            {(attendanceStatus || isBusyRequested || isSharedSession || isSubstitute) && (
                               <div
                                 className="mini-status"
                                 title={
@@ -773,8 +778,10 @@ const PTSchedule = () => {
                                   booking?.sharePayment?.sharePaymentPtAcknowledgedAt ? (
                                     <span className="mini-status--paidAck">✓ Đã thanh toán</span>
                                   ) : (
-                                    <span style={{ color: "#f59e0b" }}>↔ Chờ thanh toán</span>
+                                    <span style={{ color: "#a855f7" }}>↔ Mượn ngoài CN</span>
                                   )
+                                ) : isSubstitute ? (
+                                  <span style={{ color: "#008cff" }}>Lịch dạy thay</span>
                                 ) : isBusyRequested ? (
                                   "⚠ PT báo bận"
                                 ) : attendanceStatus === "present" ? (
