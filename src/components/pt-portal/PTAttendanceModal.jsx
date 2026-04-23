@@ -425,7 +425,7 @@ export default function PTAttendanceModal({
               </div>
             )}
 
-            {(commissionLocked || (isSharedSession && ptAckAt)) ? (
+            {(commissionLocked || (isSharedSession && (ptAckAt || booking?.sharePayment?.sharePaymentStatus === "paid"))) ? (
               <div className="ptAttModal__actions">
                 <span style={{ color: "#16a34a", fontWeight: 600, fontSize: "0.95rem" }}>
                   ✓ Đã thanh toán và hoàn thành buổi học
