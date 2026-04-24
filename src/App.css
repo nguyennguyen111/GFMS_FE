@@ -47,3 +47,18 @@ body:has(.site--compact),
 body:has(.auth-compact) {
   overflow-x: hidden;
 }
+
+@supports (zoom: 1) {
+  .site--compact,
+  .auth-compact {
+    width: 100%;
+    min-height: 100vh;
+    transform: none;
+    zoom: var(--compact-scale);
+  }
+
+  body:has(.site--compact),
+  body:has(.auth-compact) {
+    overflow-x: hidden;
+  }
+}

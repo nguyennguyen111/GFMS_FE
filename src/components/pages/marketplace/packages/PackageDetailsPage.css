@@ -462,3 +462,16 @@
     display: none;
   }
 }
+
+.pkd-membershipBtn {
+  margin-top: 10px;
+  background:
+    linear-gradient(135deg, rgba(214, 255, 0, 0.14), rgba(214, 255, 0, 0.06)) !important;
+  color: #d6ff00;
+  border: 1px solid rgba(214, 255, 0, 0.28);
+}
+
+.pkd-membershipBtn:hover {
+  background:
+    linear-gradient(135deg, rgba(214, 255, 0, 0.22), rgba(214, 255, 0, 0.1)) !important;
+}

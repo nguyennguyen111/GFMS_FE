@@ -26,7 +26,7 @@ const Footer = () => {
         </div>
 
         <div className="footer-copyright">
-          <p>© 2026 GFMS KINETIC MONOLITH. ALL RIGHTS RESERVED.</p>
+          <p>© 2026 GFMS. ALL RIGHTS RESERVED.</p>
         </div>
       </div>
     </footer>

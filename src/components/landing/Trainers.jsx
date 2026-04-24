@@ -25,7 +25,17 @@ const Trainers = ({ trainers = [], loading }) => {
           {loading && !items.length ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="trainer-card" />) : items.map((trainer, i) => (
             <button key={trainer.id || i} className="trainer-card" onClick={() => navigate(`/marketplace/trainers/${trainer.id}`)}>
               <div className="trainer-img-wrapper">
-                <ImageWithFallback src={trainer?.User?.avatar} alt={trainer?.User?.username || 'PT'} className="trainer-img" fallback="https://placehold.co/500x700/111111/D6FF00?text=PT" />
+                <ImageWithFallback
+  src={
+    trainer?.User?.avatar &&
+    !String(trainer.User.avatar).includes("default-avatar")
+      ? trainer.User.avatar
+      : "/placeholder-pt.jpg"
+  }
+  alt={trainer?.User?.username || "PT"}
+  className="trainer-img"
+  fallback="/placeholder-pt.jpg"
+/>
               </div>
               <h4 className="trainer-name">Coach {trainer?.User?.username || `PT #${trainer.id}`}</h4>
               <div className="trainer-role">{trainer.specialization || 'Huấn luyện cá nhân hoá'}</div>
