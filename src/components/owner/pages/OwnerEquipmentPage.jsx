@@ -422,7 +422,7 @@ export default function OwnerEquipmentPage() {
           <div className="oeq-modal" onClick={(e) => e.stopPropagation()}>
             <div className="oeq-modal-header">
               <h2 className="oeq-modal-title">Chi tiết thiết bị {detail?.name ? `- ${detail.name}` : ""}{detail?.selectedGym?.name ? ` (${detail.selectedGym.name})` : ""}</h2>
-              <button className="oeq-modal-close" onClick={closeDetail} type="button" aria-label="Đóng">×</button>
+              <button className="oeq-modal-close" onClick={closeDetail} type="button" aria-label="Đóng">✕</button>
             </div>
 
             <div className="oeq-modal-body">

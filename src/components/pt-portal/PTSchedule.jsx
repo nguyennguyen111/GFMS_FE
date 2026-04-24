@@ -783,11 +783,12 @@ const PTSchedule = () => {
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       const isBusyRequested = Boolean(booking?.busyRequested);
                       const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
-                      const isSubstitute = String(booking?.sessionType || "").toLowerCase() === "substitute" || String(booking?.type || "").toLowerCase() === "substitute" || booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]");
+                      // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true, KHÔNG phụ thuộc sessionType
+                      const isSubstitute = !isBusyRequested && (booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]"));
                       if (booking) {
                         if (isSharedSession) statusClass = "is-shared";
-                        else if (isSubstitute) statusClass = "is-substitute";
                         else if (isBusyRequested) statusClass = "is-busy-requested";
+                        else if (isSubstitute) statusClass = "is-substitute";
                         else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else statusClass = "is-pending";
@@ -809,7 +810,8 @@ const PTSchedule = () => {
                           <div className="ptWeek__blockTime">{s.start}</div>
                           {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession, isSubstitute) }}>
                             {isSharedSession && <span style={{ color: "#a855f7" }}>↔ </span>}
-                            {isSubstitute && !isSharedSession && <span style={{ color: "#008cff" }}>🔄 </span>}
+                            {isBusyRequested && <span style={{ color: "#f59e0b" }}>⚠ </span>}
+                            {isSubstitute && !isSharedSession && !isBusyRequested && <span style={{ color: "#008cff" }}>🔄 </span>}
                             👤 {booking.Member?.User?.username || "Học viên"}
                             {(attendanceStatus || isBusyRequested || isSharedSession || isSubstitute) && (
                               <div
@@ -827,10 +829,10 @@ const PTSchedule = () => {
                                   ) : (
                                     <span style={{ color: "#a855f7" }}>↔ Mượn ngoài CN</span>
                                   )
+                                ) : isBusyRequested ? (
+                                  "⚠ Đã báo bận"
                                 ) : isSubstitute ? (
                                   <span style={{ color: "#008cff" }}>Lịch dạy thay</span>
-                                ) : isBusyRequested ? (
-                                  "⚠ PT báo bận"
                                 ) : attendanceStatus === "present" ? (
                                   "✓ Có mặt"
                                 ) : attendanceStatus === "absent" ? (
