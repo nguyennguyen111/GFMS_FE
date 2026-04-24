@@ -63,6 +63,7 @@ import FAQPage from "./components/pages/support/FAQPage";
 
 /* ================= SIGNING (PUBLIC) ================= */
 import SignContractPage from "./components/public/SignContractPage";
+import EquipmentScanPage from "./components/public/EquipmentScanPage";
 
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
@@ -132,6 +133,7 @@ function App() {
       <Routes>
         {/* ===== PUBLIC SIGNING ===== */}
         <Route path="/sign-contract" element={<SignContractPage />} />
+        <Route path="/equipment/scan/:qrToken" element={<EquipmentScanPage />} />
 
         {/* ===== PUBLIC / MARKETPLACE ===== */}
         <Route element={<WebsiteLayout />}>

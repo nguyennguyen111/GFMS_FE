@@ -6,10 +6,9 @@ import "./PurchaseWorkflowPage.css";
 
 const statusLabel = (status) => ({
   submitted: "Chờ admin duyệt",
-  approved_waiting_deposit: "Đã duyệt, chờ owner cọc 30%",
-  paid_waiting_admin_confirm: "Owner đã cọc, chờ admin bàn giao",
+  approved_waiting_payment: "Đã duyệt, chờ owner thanh toán",
+  paid_waiting_admin_confirm: "Owner đã thanh toán, chờ admin bàn giao",
   shipping: "Admin đang giao combo",
-  delivered_waiting_final_payment: "Owner đã nhận, chờ thanh toán 70%",
   completed: "Hoàn tất",
   rejected: "Bị từ chối",
 }[status] || status || "-");
@@ -19,11 +18,14 @@ const formatDate = (value) => value ? new Date(value).toLocaleString("vi-VN") : 
 
 export default function PurchaseWorkflowPage() {
   const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [rejectMap, setRejectMap] = useState({});
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
   const absUrl = (value) => (value ? (String(value).startsWith("http") || String(value).startsWith("data:") ? String(value) : `${API_HOST}${value}`) : "");
@@ -34,20 +36,50 @@ export default function PurchaseWorkflowPage() {
     return acc;
   }, { total: 0 }), [rows]);
 
-  const loadRows = useCallback(async () => {
+  const loadRows = useCallback(async (override = {}) => {
     setLoading(true);
     setError("");
     try {
-      const res = await adminPurchaseWorkflowService.getPurchaseRequests({ q: query, status });
+      const nextPage = Number(override.page || page || 1);
+      const nextLimit = Number(override.limit || limit || 10);
+      const res = await adminPurchaseWorkflowService.getPurchaseRequests({
+        q: query,
+        status,
+        page: nextPage,
+        limit: nextLimit,
+      });
       setRows(res?.data?.data || []);
+      const incomingMeta = res?.data?.meta || {};
+      setMeta({
+        page: Number(incomingMeta.page || nextPage || 1),
+        limit: Number(incomingMeta.limit || nextLimit || 10),
+        total: Number(incomingMeta.total || incomingMeta.totalItems || 0),
+      });
     } catch (e) {
       setError(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  }, [query, status]);
+  }, [query, status, page, limit]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextStatus = String(params.get("status") || "").trim();
+    const nextQ = String(params.get("q") || "").trim();
+    const nextPage = Number(params.get("page") || 0);
+    const nextLimit = Number(params.get("limit") || 0);
+
+    if (nextStatus) setStatus(nextStatus);
+    if (nextQ) setQuery(nextQ);
+    if (nextPage) setPage(Math.max(1, nextPage));
+    if (nextLimit) setLimit(Math.max(1, Math.min(100, nextLimit)));
+  }, []);
 
   useEffect(() => { loadRows(); }, [loadRows]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, status]);
 
   useEffect(() => {
     const socket = connectSocket();
@@ -74,6 +106,22 @@ export default function PurchaseWorkflowPage() {
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [rows]);
+
+  const totalPages = useMemo(() => {
+    const t = Number(meta.total || 0);
+    const l = Math.max(1, Number(meta.limit || limit || 10));
+    return Math.max(1, Math.ceil(t / l) || 1);
+  }, [meta.total, meta.limit, limit]);
+
+  const rangeText = useMemo(() => {
+    const t = Number(meta.total || 0);
+    if (!t) return "0 kết quả";
+    const p = Math.max(1, Number(meta.page || page || 1));
+    const l = Math.max(1, Number(meta.limit || limit || 10));
+    const start = (p - 1) * l + 1;
+    const end = Math.min(t, p * l);
+    return `Hiển thị ${start}-${end} / ${t}`;
+  }, [meta.total, meta.page, meta.limit, page, limit]);
 
   const approve = async (id) => {
     try {
@@ -110,8 +158,7 @@ export default function PurchaseWorkflowPage() {
           <div className="purchase-admin-kicker">Admin workflow</div>
           <h2>Yêu cầu bán combo</h2>
           <p>
-            Admin theo dõi trọn luồng combo: owner gửi yêu cầu → admin duyệt → owner cọc 30% → admin giao combo
-            → owner xác nhận nhận → owner thanh toán 70% còn lại.
+            Admin theo dõi trọn luồng combo: owner gửi yêu cầu → admin duyệt → owner thanh toán 100% → admin giao combo → owner xác nhận nhận → hoàn tất.
           </p>
         </div>
         <div className="purchase-admin-stats">
@@ -132,18 +179,95 @@ export default function PurchaseWorkflowPage() {
         <select className="purchase-admin-input" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
           <option value="submitted">submitted</option>
-          <option value="approved_waiting_deposit">approved_waiting_deposit</option>
+          <option value="approved_waiting_payment">approved_waiting_payment</option>
           <option value="paid_waiting_admin_confirm">paid_waiting_admin_confirm</option>
           <option value="shipping">shipping</option>
-          <option value="delivered_waiting_final_payment">delivered_waiting_final_payment</option>
           <option value="completed">completed</option>
           <option value="rejected">rejected</option>
         </select>
-        <button className="purchase-admin-btn" onClick={loadRows}>Tìm</button>
+        <button
+          className="purchase-admin-btn"
+          onClick={() => {
+            setPage(1);
+            loadRows({ page: 1 });
+          }}
+        >
+          Tìm
+        </button>
       </section>
 
       {error ? <div className="purchase-admin-alert">{error}</div> : null}
       {loading ? <div className="purchase-admin-empty">Đang tải yêu cầu...</div> : null}
+
+      <section className="purchase-admin-pagination">
+        <div className="purchase-admin-pagination__left">
+          <span className="purchase-admin-pagination__range">{rangeText}</span>
+          <label className="purchase-admin-pagination__label">
+            <span>Hiển thị</span>
+            <select
+              className="purchase-admin-input purchase-admin-input--compact"
+              value={limit}
+              onChange={(e) => {
+                const next = Number(e.target.value || 10);
+                setLimit(next);
+                setPage(1);
+                loadRows({ page: 1, limit: next });
+              }}
+            >
+              {[5, 10, 20, 50].map((n) => (
+                <option key={n} value={n}>{n} / trang</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="purchase-admin-pagination__right">
+          <button
+            className="purchase-admin-btn purchase-admin-btn--ghost"
+            disabled={Number(page) <= 1 || loading}
+            onClick={() => {
+              const next = Math.max(1, Number(page) - 1);
+              setPage(next);
+              loadRows({ page: next });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            Trang trước
+          </button>
+
+          <div className="purchase-admin-pagination__pages">
+            <span className="purchase-admin-pagination__pageText">
+              Trang <b>{Math.min(Math.max(1, Number(page)), totalPages)}</b> / {totalPages}
+            </span>
+            <input
+              className="purchase-admin-input purchase-admin-input--compact"
+              type="number"
+              min={1}
+              max={totalPages}
+              value={page}
+              onChange={(e) => setPage(Number(e.target.value || 1))}
+              onBlur={() => {
+                const safe = Math.min(totalPages, Math.max(1, Number(page) || 1));
+                if (safe !== page) setPage(safe);
+                loadRows({ page: safe });
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          </div>
+
+          <button
+            className="purchase-admin-btn purchase-admin-btn--ghost"
+            disabled={Number(page) >= totalPages || loading}
+            onClick={() => {
+              const next = Math.min(totalPages, Number(page) + 1);
+              setPage(next);
+              loadRows({ page: next });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            Trang sau
+          </button>
+        </div>
+      </section>
 
       <div className="purchase-admin-list">
         {rows.map((row) => {
@@ -177,8 +301,7 @@ export default function PurchaseWorkflowPage() {
                     <div className="purchase-admin-infoBlock">
                       <h4>Thanh toán</h4>
                       <div className="purchase-admin-kv"><span>Tổng giá combo</span><b>{money(row.totalAmount || row.payableAmount)}đ</b></div>
-                      <div className="purchase-admin-kv"><span>Cọc 30%</span><b>{money(row.depositAmount)}đ</b></div>
-                      <div className="purchase-admin-kv"><span>Còn lại 70%</span><b>{money(row.finalAmount || row.remainingAmount)}đ</b></div>
+                      <div className="purchase-admin-kv"><span>Thanh toán</span><b>100%</b></div>
                     </div>
 
                     <div className="purchase-admin-infoBlock">

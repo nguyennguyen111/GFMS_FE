@@ -22,14 +22,20 @@ const emptyForm = {
   preferredSupplierId: "",
   price: "",
   status: "active",
+  usageGuide: "",
+  trainingInstructions: "",
+  muscleGroups: "",
+  safetyNotes: "",
+  guideImages: "",
+  guideVideoUrl: "",
 };
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN");
 
 const statusLabel = (value) => {
   if (value === "active") return "Đang hoạt động";
-  if (value === "inactive") return "Ngừng bán";
-  return "Ngưng sử dụng";
+  if (value === "inactive" || value === "discontinued") return "Ngưng sử dụng";
+  return "Không xác định";
 };
 
 export default function EquipmentCatalogPage() {
@@ -328,6 +334,38 @@ export default function EquipmentCatalogPage() {
     }
   };
 
+  const hydrateFormFromEquipment = (row = {}) => {
+    setForm({
+      name: row.name || "",
+      code: row.code || "",
+      description: row.description || "",
+      usageGuide:
+        row.usageGuide ||
+        row.workoutInstructions ||
+        row.instructionText ||
+        row.guideText ||
+        "",
+      trainingInstructions:
+        row.trainingInstructions ||
+        row.workoutTips ||
+        row.tips ||
+        "",
+      muscleGroups: row.muscleGroups || row.targetMuscles || "",
+      safetyNotes: row.safetyNotes || "",
+      guideImages: Array.isArray(row.guideImages)
+        ? row.guideImages.join("\n")
+        : row.guideImages || "",
+      guideVideoUrl: row.guideVideoUrl || row.videoUrl || "",
+      categoryId: row.categoryId ? String(row.categoryId) : "",
+      preferredSupplierId:
+        row.preferredSupplierId || row.supplierId
+          ? String(row.preferredSupplierId || row.supplierId)
+          : "",
+      price: row.price ?? "",
+      status: row.status === "inactive" ? "discontinued" : row.status || "active",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -337,6 +375,12 @@ export default function EquipmentCatalogPage() {
         name: form.name,
         code: form.code,
         description: form.description,
+        usageGuide: form.usageGuide,
+        trainingInstructions: form.trainingInstructions,
+        muscleGroups: form.muscleGroups,
+        safetyNotes: form.safetyNotes,
+        guideImages: form.guideImages,
+        guideVideoUrl: form.guideVideoUrl,
         categoryId: form.categoryId || null,
         preferredSupplierId: form.preferredSupplierId || null,
         price: form.price === "" ? null : Number(form.price),
@@ -344,25 +388,54 @@ export default function EquipmentCatalogPage() {
       };
 
       let targetId = editingId;
+      let savedEquipment = null;
       if (editingId) {
         const updated = await updateEquipment(editingId, payload);
-        targetId = updated?.id || editingId;
+        savedEquipment = updated?.data || updated;
+        targetId = savedEquipment?.id || editingId;
       } else {
         const created = await createEquipment(payload);
-        targetId = created?.id;
+        savedEquipment = created?.data || created;
+        targetId = savedEquipment?.id;
       }
 
       if (targetId && imageFile) {
         await uploadSelectedImage(targetId);
       }
 
-      await loadRows();
+      const freshRowsRes = await getEquipments({
+        page: 1,
+        limit: 200,
+        q: query || undefined,
+        status,
+      });
+      const freshRows = freshRowsRes?.data?.data ?? freshRowsRes?.data ?? [];
+      const normalizedRows = Array.isArray(freshRows) ? freshRows : [];
+      setRows(normalizedRows);
+
+      const latest =
+        normalizedRows.find((item) => Number(item.id) === Number(targetId)) ||
+        savedEquipment ||
+        null;
+
       setSelectedId(targetId || null);
       await loadImages(targetId || null);
-      resetForm();
+
+      if (editingId && latest) {
+        // Giữ chế độ sửa, hydrate lại form bằng dữ liệu BE trả về để không bị trắng/xóa field.
+        setEditingId(targetId);
+        hydrateFormFromEquipment(latest);
+        clearImageState();
+      } else {
+        resetForm();
+      }
     } catch (e2) {
       setError(
-        e2?.response?.data?.message || e2.message || "Lưu thiết bị thất bại",
+        e2?.response?.data?.message ||
+          e2?.response?.data?.error ||
+          (Array.isArray(e2?.response?.data?.details) ? e2.response.data.details.join("\n") : "") ||
+          e2.message ||
+          "Lưu thiết bị thất bại",
       );
     } finally {
       setSaving(false);
@@ -372,17 +445,7 @@ export default function EquipmentCatalogPage() {
   const startEdit = (row) => {
     setEditingId(row.id);
     setSelectedId(row.id);
-    setForm({
-      name: row.name || "",
-      code: row.code || "",
-      description: row.description || "",
-      categoryId: row.categoryId ? String(row.categoryId) : "",
-      preferredSupplierId: row.preferredSupplierId
-        ? String(row.preferredSupplierId)
-        : "",
-      price: row.price ?? "",
-      status: row.status || "active",
-    });
+    hydrateFormFromEquipment(row);
     clearImageState();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -455,7 +518,6 @@ export default function EquipmentCatalogPage() {
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Đang hoạt động</option>
-                <option value="inactive">Ngừng bán</option>
                 <option value="discontinued">Ngưng sử dụng</option>
               </select>
               <button type="button" className="eq-btn" onClick={loadRows}>
@@ -631,7 +693,6 @@ export default function EquipmentCatalogPage() {
                     }
                   >
                     <option value="active">Đang hoạt động</option>
-                    <option value="inactive">Ngừng bán</option>
                     <option value="discontinued">Ngưng sử dụng</option>
                   </select>
                 </div>
@@ -764,6 +825,51 @@ export default function EquipmentCatalogPage() {
                   onChange={(e) =>
                     setForm({ ...form, description: e.target.value })
                   }
+                />
+              </div>
+
+              <div className="eq-formSection">
+                <div className="eq-formSection__title">Hướng dẫn tập (QR)</div>
+                <textarea
+                  className="eq-input eq-textarea"
+                  placeholder="Hướng dẫn sử dụng (hiển thị trên trang quét QR)"
+                  value={form.usageGuide}
+                  onChange={(e) => setForm({ ...form, usageGuide: e.target.value })}
+                />
+                <textarea
+                  className="eq-input eq-textarea"
+                  placeholder="Hướng dẫn tập luyện (kỹ thuật, tư thế, số set/rep...)"
+                  value={form.trainingInstructions}
+                  onChange={(e) => setForm({ ...form, trainingInstructions: e.target.value })}
+                  style={{ marginTop: 10 }}
+                />
+                <input
+                  className="eq-input"
+                  placeholder="Nhóm cơ tác động (ví dụ: ngực, vai, tay sau)"
+                  value={form.muscleGroups}
+                  onChange={(e) => setForm({ ...form, muscleGroups: e.target.value })}
+                  style={{ marginTop: 10 }}
+                />
+                <textarea
+                  className="eq-input eq-textarea"
+                  placeholder="Lưu ý an toàn"
+                  value={form.safetyNotes}
+                  onChange={(e) => setForm({ ...form, safetyNotes: e.target.value })}
+                  style={{ marginTop: 10 }}
+                />
+                <input
+                  className="eq-input"
+                  placeholder="Video hướng dẫn (URL)"
+                  value={form.guideVideoUrl}
+                  onChange={(e) => setForm({ ...form, guideVideoUrl: e.target.value })}
+                  style={{ marginTop: 10 }}
+                />
+                <textarea
+                  className="eq-input eq-textarea"
+                  placeholder="Ảnh hướng dẫn (mỗi dòng 1 URL) — giai đoạn 3 sẽ render đầy đủ"
+                  value={form.guideImages}
+                  onChange={(e) => setForm({ ...form, guideImages: e.target.value })}
+                  style={{ marginTop: 10 }}
                 />
               </div>
 

@@ -74,7 +74,7 @@ const createWelcomeMessage = (auth) => ({
   id: uid(),
   role: "assistant",
   content: auth.isMember
-    ? `Chào ${auth.username}, mình là trợ lý GFMS. Mình hỗ trợ gym, gói tập, PT, BMI, lịch tập và booking bằng dữ liệu hệ thống.`
+    ? `Chào ${auth.username}, mình là trợ lý GFMS. Mình có thể nhớ luồng bạn đang làm để hỗ trợ nhanh hơn.`
     : "Chào bạn, mình là trợ lý GFMS. Mình có thể gợi ý gym, gói tập, PT và điều hướng nhanh đúng trang cần mở.",
   cards: null,
   actions: [],
@@ -495,17 +495,11 @@ export default function ChatBot() {
         return;
       }
 
-      // Core V2: backend trả bookingContext = null khi intent không phải booking.
-      // FE phải clear state để câu hỏi gym/membership sau đó không bị kéo nhầm sang booking cũ.
-      if (Object.prototype.hasOwnProperty.call(data || {}, "bookingContext")) {
-        if (data?.bookingContext && typeof data.bookingContext === "object") {
-          setBookingContext((prev) => ({
-            ...(prev || {}),
-            ...data.bookingContext,
-          }));
-        } else {
-          setBookingContext(null);
-        }
+      if (data?.bookingContext && typeof data.bookingContext === "object") {
+        setBookingContext((prev) => ({
+          ...(prev || {}),
+          ...data.bookingContext,
+        }));
       }
 
       const actions = Array.isArray(data?.actions)
@@ -562,35 +556,15 @@ export default function ChatBot() {
       return;
     }
 
-    if (action.type === "AI_SELECT_GYM") {
-      const gymPayload = action?.payload || {};
-      const nextBookingContext = {
-        ...(bookingContext || {}),
-        gymId: gymPayload.gymId || bookingContext?.gymId || null,
-        gymName: gymPayload.gymName || bookingContext?.gymName || null,
-        gymAddress: gymPayload.gymAddress || bookingContext?.gymAddress || null,
-        selectedDate: bookingContext?.selectedDate || null,
-        selectedTime: bookingContext?.selectedTime || null,
-        selectionSource: "gym_card",
-      };
-
-      setBookingContext(nextBookingContext);
-
-      const path = gymPayload.path || (gymPayload.gymId ? `/marketplace/gyms/${gymPayload.gymId}` : "/marketplace/gyms");
-      navigate(path);
-      setOpen(false);
-      return;
-    }
-
     if (action.type === "AI_SELECT_TRAINER") {
       const trainerPayload = action?.payload || {};
       const nextBookingContext = {
         trainerId: trainerPayload.trainerId || null,
         trainerName: trainerPayload.trainerName || null,
-        gymId: trainerPayload.gymId || bookingContext?.gymId || null,
-        gymName: trainerPayload.gymName || bookingContext?.gymName || null,
-        packageId: trainerPayload.packageId || bookingContext?.packageId || null,
-        packageName: trainerPayload.packageName || bookingContext?.packageName || null,
+        gymId: trainerPayload.gymId || null,
+        gymName: trainerPayload.gymName || null,
+        packageId: trainerPayload.packageId || null,
+        packageName: trainerPayload.packageName || null,
         activationId: trainerPayload.activationId || bookingContext?.activationId || null,
         selectedDate: null,
         selectedTime: null,
@@ -617,8 +591,8 @@ export default function ChatBot() {
       const nextBookingContext = {
         packageId: pkgPayload.packageId || null,
         packageName: pkgPayload.packageName || null,
-        gymId: pkgPayload.gymId || bookingContext?.gymId || null,
-        gymName: pkgPayload.gymName || bookingContext?.gymName || null,
+        gymId: pkgPayload.gymId || null,
+        gymName: pkgPayload.gymName || null,
         trainerId: pkgPayload.trainerId || bookingContext?.trainerId || null,
         trainerName: pkgPayload.trainerName || bookingContext?.trainerName || null,
         activationId: pkgPayload.activationId || bookingContext?.activationId || null,
@@ -644,10 +618,12 @@ export default function ChatBot() {
 
   const statusText = authState.isMember
     ? `Đang hỗ trợ ${authState.username}`
-    : "Tư vấn gym, thẻ thành viên, gói tập";
+    : "Tư vấn gym, PT, gói tập";
 
   const habitHint = useMemo(() => {
     if (!userPreferences || typeof userPreferences !== "object") return null;
+    if (userPreferences.favoriteTrainerName) return `Hay chọn PT ${userPreferences.favoriteTrainerName}`;
+    if (userPreferences.favoritePackageName) return `Quan tâm ${userPreferences.favoritePackageName}`;
     if (userPreferences.favoriteIntent === "booking") return "Bạn hay dùng luồng đặt lịch";
     return null;
   }, [userPreferences]);
@@ -781,7 +757,7 @@ export default function ChatBot() {
               className="gfms-ai-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={authState.isMember ? "Hỏi về gym, PT, gói tập, lịch, BMI..." : "Hỏi về gym, PT, gói tập..."}
+              placeholder="Nhập tin nhắn..."
             />
             <button className="gfms-ai-send" type="submit" disabled={loading || !text.trim()}>
               <Send size={15} />
