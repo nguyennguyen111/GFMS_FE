@@ -585,7 +585,7 @@ export default function MemberProfilePage() {
     } catch (e) {
       console.error(e);
       const message = e?.response?.data?.EM || e?.message || "Không thể cập nhật thông tin. Vui lòng thử lại.";
-      setPasswordNotice({ type: "error", message });
+      setProfileNotice({ type: "error", message });
     } finally {
       setSaving(false);
     }

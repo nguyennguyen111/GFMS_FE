@@ -1233,3 +1233,44 @@
 .bw-slotLegendDot--busy {
   background: rgba(255, 255, 255, 0.3);
 }
+/* GFMS final polish: cảnh báo bước 5 rõ và đẹp hơn */
+.bw-membershipFlow {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 16px 18px 16px 20px;
+}
+
+.bw-membershipFlow::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.bw-membershipFlowHead {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.bw-membershipFlow.is-required {
+  color: #ffd76a;
+  border-color: rgba(255, 215, 106, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 215, 106, 0.16), transparent 32%),
+    rgba(255, 215, 106, 0.075);
+}
+
+.bw-membershipFlow.is-ok {
+  color: #8ff0a4;
+  border-color: rgba(34, 197, 94, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(34, 197, 94, 0.16), transparent 32%),
+    rgba(34, 197, 94, 0.075);
+}
+
+.bw-membershipFlow p {
+  color: rgba(255, 255, 255, 0.76);
+}

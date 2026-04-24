@@ -121,7 +121,7 @@ export default function MemberPackageDetailPage() {
             className="mpd2-btn primary"
             onClick={() => navigate(`/marketplace/packages/${data.Package?.id}`)}
           >
-            <span>Book next session</span>
+            <span>Xem gói</span>
             <ArrowRight size={15} />
           </button>
         </div>
@@ -129,14 +129,14 @@ export default function MemberPackageDetailPage() {
 
       <section className="mpd2-overview">
         <div className="mpd2-investmentCard">
-          <div className="mpd2-label">Total investment</div>
+          <div className="mpd2-label">Giá gói</div>
           <div className="mpd2-investmentValue">{fmtMoney(data.Package?.price)}</div>
 
           <div className="mpd2-progressWrap">
             <div className="mpd2-progressMeta">
-              <span>Usage progress</span>
+              <span>Tiến độ</span>
               <b>
-                {left}/{total} sessions
+                {left}/{total} Buổi
               </b>
             </div>
             <div className="mpd2-progress">
@@ -146,9 +146,9 @@ export default function MemberPackageDetailPage() {
         </div>
 
         <div className="mpd2-statCard highlight">
-          <div className="mpd2-label">Remaining</div>
+          <div className="mpd2-label">Còn lại</div>
           <div className="mpd2-statValue">{left}</div>
-          <div className="mpd2-statSub">Sessions left</div>
+          <div className="mpd2-statSub">Buổi học</div>
         </div>
       </section>
 
@@ -195,14 +195,6 @@ export default function MemberPackageDetailPage() {
                 Loại gói
               </span>
               <b>{data.Package?.type || "basic"}</b>
-            </div>
-
-            <div className="mpd2-row">
-              <span className="mpd2-rowLabel">
-                <CalendarDays size={15} />
-                Hết hạn
-              </span>
-              <b>{fmtDate(data.expiryDate)}</b>
             </div>
           </div>
         </div>
