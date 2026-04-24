@@ -16,9 +16,9 @@ const OwnerMembershipCardPlansPage = React.lazy(() => import("./pages/OwnerMembe
 const OwnerMaintenancePage = React.lazy(() => import("./pages/OwnerMaintenancePage"));
 const OwnerEquipmentPage = React.lazy(() => import("./pages/OwnerEquipmentPage"));
 const OwnerInventoryPage = React.lazy(() => import("./pages/OwnerInventoryPage"));
-const OwnerPurchaseOrdersPage = React.lazy(() => import("./pages/OwnerPurchaseOrdersPage"));
-const OwnerReceiptsPage = React.lazy(() => import("./pages/OwnerReceiptsPage"));
 const OwnerPurchaseRequestsPage = React.lazy(() => import("./pages/OwnerPurchaseRequestsPage"));
+const OwnerPurchaseRequestHistoryPage = React.lazy(() => import("./pages/OwnerPurchaseRequestHistoryPage"));
+const OwnerEquipmentAssetsPage = React.lazy(() => import("./pages/OwnerEquipmentAssetsPage"));
 const OwnerProcurementPaymentsPage = React.lazy(() => import("./pages/OwnerProcurementPaymentsPage"));
 const OwnerFranchiseRequestsPage = React.lazy(() => import("./pages/OwnerFranchiseRequestsPage"));
 const OwnerTrainerSharePage = React.lazy(() => import("./pages/OwnerTrainerSharePage"));
@@ -135,16 +135,16 @@ export default function OwnerDashboard() {
       title: "Kho & Thiết bị",
       items: [
         { label: "Thiết bị", to: "/owner/equipment", key: "equipment",  },
-        { label: "Tồn kho", to: "/owner/inventory", key: "inventory",  },
+        { label: "Tài sản thiết bị (QR)", to: "/owner/equipment-assets", key: "equipment-assets",  },
+        { label: "Kho thiết bị", to: "/owner/inventory", key: "inventory",  },
         { label: "Bảo trì", to: "/owner/maintenance", key: "maintenance",  },
       ],
     },
     {
       title: "Mua hàng",
       items: [
-        { label: "Yêu cầu mua combo", to: "/owner/purchase-requests", key: "purchase-requests",  },
-        { label: "Đơn mua", to: "/owner/purchase-orders", key: "po", },
-        { label: "Nhận hàng", to: "/owner/receipts", key: "receipts", },
+        { label: "Mua combo", to: "/owner/purchase-requests", key: "purchase-requests", end: true,  },
+        { label: "Lịch sử mua combo", to: "/owner/purchase-requests/history", key: "purchase-requests-history", end: true,  },
         { label: "Thanh toán thiết bị", to: "/owner/procurement-payments", key: "procurement-payments",  },
       ],
     },
@@ -189,6 +189,7 @@ export default function OwnerDashboard() {
                 <NavLink
                   key={item.key}
                   to={item.to}
+                  end={Boolean(item.end)}
                   className={({ isActive }) => `od2-item ${isActive ? "is-active" : ""}`}
                 >
                   {navIcon ? <span className="od2-ico" aria-hidden>{navIcon}</span> : null}
@@ -251,15 +252,15 @@ export default function OwnerDashboard() {
 
               {/* Inventory & Equipment */}
               <Route path="/equipment" element={<OwnerEquipmentPage />} />
+              <Route path="/equipment-assets" element={<OwnerEquipmentAssetsPage />} />
               <Route path="/inventory" element={<OwnerInventoryPage />} />
               <Route path="/transfers" element={<Navigate to="/owner/equipment" replace />} />
               <Route path="/maintenance" element={<OwnerMaintenancePage />} />
 
               {/* Purchasing */}
               <Route path="/purchase-requests" element={<OwnerPurchaseRequestsPage />} />
+              <Route path="/purchase-requests/history" element={<OwnerPurchaseRequestHistoryPage />} />
               <Route path="/quotations" element={<Navigate to="/owner/purchase-requests" replace />} />
-              <Route path="/purchase-orders" element={<OwnerPurchaseOrdersPage />} />
-              <Route path="/receipts" element={<OwnerReceiptsPage />} />
               <Route path="/procurement-payments" element={<OwnerProcurementPaymentsPage />} />
 
               {/* Communication */}

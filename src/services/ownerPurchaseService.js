@@ -19,6 +19,8 @@ export const ownerGetPurchaseRequests = (params = {}) => axios.get(`${API}/purch
 export const ownerGetPurchaseRequestDetail = (id) => axios.get(`${API}/purchase-requests/${id}`);
 export const ownerCreatePurchaseRequestPayOSLink = (id, payload = {}) => axios.post(`${API}/purchase-requests/${id}/payos-link`, payload);
 export const ownerConfirmReceivePurchaseRequest = (id) => axios.patch(`${API}/purchase-requests/${id}/confirm-receive`);
+export const ownerExportPurchaseRequestsExcel = (params = {}) =>
+  axios.get(`${API}/purchase-requests/export-excel`, { params, responseType: "blob" });
 export const ownerGetProcurementPayments = (params = {}) => axios.get(`${API}/procurement-payments`, { params });
 export const ownerGetPayablePurchaseOrders = (params = {}) => axios.get(`${API}/purchase-orders/payable`, { params });
 export const ownerCreatePurchaseOrderPayOSLink = (purchaseOrderId, payload = {}) => axios.post(`${API}/purchase-orders/${purchaseOrderId}/payos-link`, payload);

@@ -50,7 +50,7 @@ export default function MaintenancePage() {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
 
-  const [filters, setFilters] = useState({ status: "", gymId: "", q: "" });
+  const [filters, setFilters] = useState({ status: "", gymId: "", q: "", overdue: "", overdueDays: "" });
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -118,6 +118,19 @@ export default function MaintenancePage() {
     fetchList();
     // eslint-disable-next-line
   }, [page]);
+
+  useEffect(() => {
+    const overdue = searchParams.get("overdue") || "";
+    const overdueDays = searchParams.get("overdueDays") || "";
+    if (!overdue && !overdueDays) return;
+    setFilters((prev) => ({
+      ...prev,
+      overdue: overdue ? String(overdue) : "1",
+      overdueDays: overdueDays ? String(overdueDays) : "7",
+    }));
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (selectedId) fetchDetail(selectedId);

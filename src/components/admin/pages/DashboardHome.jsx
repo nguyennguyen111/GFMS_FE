@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./DashboardHome.css";
 import { admGetDashboardOverview } from "../../../services/adminAdminCoreService";
 
@@ -17,6 +18,7 @@ const shortText = (value, max = 120) => {
 };
 
 export default function DashboardHome() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
@@ -67,6 +69,9 @@ export default function DashboardHome() {
   const revenueSeries = useMemo(() => data?.revenue30dSeries || [], [data]);
   const sellingCombos = useMemo(() => data?.sellingCombos || [], [data]);
   const comboSalesTransactions = useMemo(() => data?.comboSalesTransactions || [], [data]);
+  const alerts = useMemo(() => data?.alerts || [], [data]);
+  const assetKpis = useMemo(() => data?.assetKpis || {}, [data]);
+  const lifecycle = useMemo(() => assetKpis?.byLifecycleStatus || {}, [assetKpis]);
   const maxRevenue = useMemo(() => Math.max(1, ...revenueSeries.map((x) => Number(x.total || 0))), [revenueSeries]);
 
   return (
@@ -97,6 +102,77 @@ export default function DashboardHome() {
       </div>
 
       <div className="dh-main-grid">
+        <section className="dh-panel dh-panel--alerts">
+          <div className="dh-panel__head dh-panel__head--stack">
+            <div className="dh-panel__title">Cảnh báo vận hành</div>
+            <div className="dh-panel__hint">Theo dõi các điểm nghẽn: combo đã thanh toán chưa bàn giao, tài sản thiếu QR, bảo trì quá hạn</div>
+          </div>
+
+          {!alerts.length ? (
+            <div className="dh-empty">Chưa có cảnh báo.</div>
+          ) : (
+            <div className="dh-alertList">
+              {alerts.map((a) => (
+                <button
+                  key={a.key}
+                  type="button"
+                  className={`dh-alertRow is-${a.severity || "info"}`}
+                  onClick={() => (a?.link?.to ? navigate(a.link.to) : null)}
+                >
+                  <div className="dh-alertRow__main">
+                    <div className="dh-alertRow__title">{a.title}</div>
+                    <div className="dh-alertRow__meta">
+                      {a.thresholdDays ? <span>Ngưỡng: {a.thresholdDays} ngày</span> : null}
+                      {a.oldest?.updatedAt ? (
+                        <span>
+                          Cũ nhất: {new Date(a.oldest.updatedAt).toLocaleString("vi-VN")}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="dh-alertRow__count">{Number(a.count || 0)}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="dh-panel dh-panel--assets">
+          <div className="dh-panel__head dh-panel__head--stack">
+            <div className="dh-panel__title">Tài sản thiết bị (QR)</div>
+            <div className="dh-panel__hint">Tóm tắt vòng đời tài sản để admin nhìn nhanh chất lượng vận hành</div>
+          </div>
+
+          <div className="dh-assetGrid">
+            <div className="dh-assetKpi">
+              <div className="dh-assetKpi__label">Active</div>
+              <div className="dh-assetKpi__value">{Number(lifecycle.active || 0)}</div>
+            </div>
+            <div className="dh-assetKpi">
+              <div className="dh-assetKpi__label">Maintenance</div>
+              <div className="dh-assetKpi__value">{Number(lifecycle.maintenance || 0)}</div>
+            </div>
+            <div className="dh-assetKpi">
+              <div className="dh-assetKpi__label">Broken</div>
+              <div className="dh-assetKpi__value">{Number(lifecycle.broken || 0)}</div>
+            </div>
+            <div className="dh-assetKpi">
+              <div className="dh-assetKpi__label">Retired</div>
+              <div className="dh-assetKpi__value">{Number(lifecycle.retired || 0)}</div>
+            </div>
+            <div className="dh-assetKpi dh-assetKpi--warn" onClick={() => navigate("/admin/equipment-assets")} role="button" tabIndex={0}>
+              <div className="dh-assetKpi__label">Thiếu QR</div>
+              <div className="dh-assetKpi__value">{Number(assetKpis.missingQrCount || 0)}</div>
+            </div>
+          </div>
+
+          <div className="dh-panel__actions">
+            <button className="dh-btn dh-btn--ghost" onClick={() => navigate("/admin/equipment-assets")}>
+              Mở tài sản thiết bị
+            </button>
+          </div>
+        </section>
+
         <section className="dh-panel dh-panel--combos">
           <div className="dh-panel__head dh-panel__head--stack">
             <div className="dh-panel__title">Combo đang bán</div>

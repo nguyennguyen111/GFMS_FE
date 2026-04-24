@@ -34,7 +34,7 @@ const categoryMap = {
   trainer_request: "Duyệt yêu cầu huấn luyện viên",
   quotation: "Báo giá mua hàng",
   purchaseorder: "Đơn mua hàng",
-  receipt: "Nhận hàng & Tồn kho",
+  receipt: "Nhận hàng & Kho thiết bị",
   payment: "Thanh toán procurement",
   maintenance: "Bảo trì thiết bị",
   promo: "Ưu đãi & Khuyến mãi",
