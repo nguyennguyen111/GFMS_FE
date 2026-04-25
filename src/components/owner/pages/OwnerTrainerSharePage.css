@@ -1,8 +1,19 @@
 /* === Owner Trainer Share Page === */
+@keyframes otsFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes otsSkeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
 .ots-page {
   padding: 20px;
   color: #eef2ff;
   font-family: system-ui, -apple-system, sans-serif;
+  animation: otsFadeIn 0.25s ease-out;
 }
 
 .ots-header {
@@ -377,9 +388,10 @@
 .ots-loading,
 .ots-empty {
   text-align: center;
-  padding: 60px 20px;
+  padding: 30px 20px;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 15px;
+  font-size: 14px;
+  animation: otsFadeIn 0.25s ease-out;
 }
 
 .ots-empty p {
@@ -390,6 +402,19 @@
 .ots-empty--compact {
   padding: 24px 16px;
 }
+
+/* Skeleton bars — smooth replacement instead of blank → table flash */
+.ots-skeleton-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: otsSkeletonPulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+.ots-skeleton-bar--short { width: 60%; }
+.ots-skeleton-bar--medium { width: 80%; }
+.ots-skeleton-bar--full { width: 100%; }
 
 .ots-member-booking-browser {
   margin: 14px 0 16px;

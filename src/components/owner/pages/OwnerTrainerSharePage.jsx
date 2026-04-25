@@ -498,6 +498,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   const [savingDetailPrice, setSavingDetailPrice] = useState(false);
   const [paymentActionLoading, setPaymentActionLoading] = useState(false);
   const [confirmPaymentFiles, setConfirmPaymentFiles] = useState([]);
+  const [confirmPaymentNote, setConfirmPaymentNote] = useState("");
   const [disputeResponseLoading, setDisputeResponseLoading] = useState(false);
   const [borrowerResponseText, setBorrowerResponseText] = useState("");
   const [borrowerProofUrls, setBorrowerProofUrls] = useState([]);
@@ -1722,9 +1723,11 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       }
       const res = await ownerConfirmTrainerSharePayment(selectedShare.id, {
         imageUrls,
+        note: confirmPaymentNote || undefined,
       });
       setSuccess("Đã xác nhận đã chuyển khoản.");
       setConfirmPaymentFiles([]);
+      setConfirmPaymentNote("");
       const updated = res?.data?.data;
       if (updated) setSelectedShare(updated);
       loadShares(currentPage);
@@ -2258,7 +2261,27 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
 
           {/* Shares Table */}
           {loading ? (
-            <div className="ots-loading">Đang tải...</div>
+            <table className="ots-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Trainer</th><th>Từ Gym</th><th>Đến Gym</th><th>Thời gian</th><th>Giá buổi</th><th>Thanh toán</th><th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3].map((n) => (
+                  <tr key={n}>
+                    <td><span className="ots-skeleton-bar" style={{ display: "inline-block", width: "24px", height: "12px" }} /></td>
+                    <td><span className="ots-skeleton-bar ots-skeleton-bar--short" style={{ display: "inline-block" }} /></td>
+                    <td><span className="ots-skeleton-bar ots-skeleton-bar--medium" style={{ display: "inline-block" }} /></td>
+                    <td><span className="ots-skeleton-bar ots-skeleton-bar--medium" style={{ display: "inline-block" }} /></td>
+                    <td><span className="ots-skeleton-bar" style={{ display: "inline-block", width: "60px", height: "12px" }} /></td>
+                    <td><span className="ots-skeleton-bar" style={{ display: "inline-block", width: "50px", height: "12px" }} /></td>
+                    <td><span className="ots-skeleton-bar" style={{ display: "inline-block", width: "80px", height: "12px" }} /></td>
+                    <td><span className="ots-skeleton-bar" style={{ display: "inline-block", width: "90px", height: "12px" }} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : error ? (
             <div className="ots-empty">
               <p style={{ color: "#ff5555" }}>Lỗi: {error}</p>
@@ -4489,6 +4512,20 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             }}
                             style={{ marginBottom: "0.65rem", fontSize: "0.82rem" }}
                           />
+                          <div className="detail-row detail-row--full" style={{ marginBottom: "0.65rem" }}>
+                            <span className="detail-label" style={{ display: "block", marginBottom: "0.35rem" }}>
+                              Ghi chú (tuỳ chọn)
+                            </span>
+                            <input
+                              type="text"
+                              className="ots-input"
+                              value={confirmPaymentNote}
+                              onChange={(e) => setConfirmPaymentNote(e.target.value)}
+                              placeholder="VD: Thanh toán buổi 1/3 tháng 4/2026"
+                              disabled={paymentActionLoading}
+                              style={{ width: "100%", maxWidth: "320px" }}
+                            />
+                          </div>
                           <button
                             type="button"
                             className="btn-primary"

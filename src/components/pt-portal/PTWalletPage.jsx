@@ -226,7 +226,8 @@ const PTWalletPage = () => {
                 <input
                   className="ptp-input"
                   value={form.bankName}
-                  onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                  onChange={(e) => setForm({ ...form, bankName: e.target.value.replace(/[^a-zA-ZÀ-ỹ\s]/g, "") })}
+                  placeholder="VD: Vietcombank"
                 />
               </div>
               <div className="ptp-row">
@@ -234,7 +235,8 @@ const PTWalletPage = () => {
                 <input
                   className="ptp-input"
                   value={form.accountNumber}
-                  onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                  onChange={(e) => setForm({ ...form, accountNumber: e.target.value.replace(/[^0-9]/g, "") })}
+                  placeholder="VD: 1234567890"
                 />
               </div>
               <div className="ptp-row">
