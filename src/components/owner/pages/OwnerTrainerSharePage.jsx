@@ -119,7 +119,7 @@ const DAY_KEYS_BY_INDEX = [
 const DEFAULT_SHARE_TYPE = "temporary";
 const DEFAULT_COMMISSION_SPLIT = 0.7;
 const TRAINER_AVAILABILITY_PAGE_SIZE = 4;
-const MEMBER_SCHEDULE_PAGE_SIZE = 6;
+const MEMBER_SCHEDULE_PAGE_SIZE = 10;
 
 function StatusBadge({ status }) {
   const info = STATUS_LABELS[status] || { label: status, color: "secondary" };
