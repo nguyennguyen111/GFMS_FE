@@ -1,3 +1,103 @@
+/* Lớp điểm danh — khi mở nhận xét: làm mờ + không tương tác */
+.ptAttModal__main {
+  transition: filter 0.22s ease, opacity 0.22s ease;
+}
+
+.ptAttModal__main--dimmed {
+  filter: blur(5px);
+  opacity: 0.38;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Popup nhận xét đè ngang lên card điểm danh */
+.ptAttModal__card--feedbackActive {
+  position: relative;
+  overflow: hidden;
+}
+
+.ptAttModal__feedbackLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 16px;
+  pointer-events: auto;
+}
+
+.ptAttModal__feedbackSheet {
+  width: 100%;
+  max-width: 100%;
+  max-height: min(78vh, 520px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 18px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 255, 170, 0.45);
+  background: rgba(10, 18, 14, 0.98);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.ptAttModal__feedbackTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #00ffaa;
+  margin-bottom: 10px;
+}
+
+.ptAttModal__feedbackHint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(238, 242, 255, 0.72);
+}
+
+.ptAttModal__feedbackLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.55);
+}
+
+.ptAttModal__feedbackTextarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0f1210;
+  color: #fff;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+}
+
+.ptAttModal__feedbackTextarea:focus {
+  outline: none;
+  border-color: rgba(0, 255, 170, 0.45);
+}
+
+.ptAttModal__feedbackError {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #ff8a80;
+  font-weight: 600;
+}
+
+.ptAttModal__feedbackActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .ptAttModal__backdrop {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -8,6 +108,7 @@
 }
 
 .ptAttModal__card {
+    position: relative;
     background: #1a1d21;
     border: 1px solid rgba(255, 138, 0, 0.3);
     border-radius: 16px;

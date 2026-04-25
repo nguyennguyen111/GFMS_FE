@@ -578,12 +578,13 @@ const PTSchedule = () => {
     }
   };
 
-  const completeStatus = async () => {
-    if (!attBooking || attActionPending) return;
+  const completeStatus = async ({ ptMemberFeedback } = {}) => {
+    if (!attBooking || attActionPending) return false;
     const targetBooking = attBooking;
     const ymd = toYMD(new Date(targetBooking.bookingDate));
     const previousBookingStatus = targetBooking.status;
     const previousAttendance = targetBooking.trainerAttendance || null;
+    const fb = String(ptMemberFeedback || "").trim();
     setAttBooking((prev) =>
       prev && prev.id === targetBooking.id
         ? {
@@ -593,6 +594,7 @@ const PTSchedule = () => {
               ...(prev?.trainerAttendance || {}),
               status: "present",
             },
+            ptMemberFeedback: fb,
           }
         : prev
     );
@@ -602,25 +604,38 @@ const PTSchedule = () => {
         ...(targetBooking?.trainerAttendance || {}),
         status: "present",
       },
+      ptMemberFeedback: fb,
     });
     setAttActionPending(true);
     try {
-      const result = await ptCheckOut({ bookingId: targetBooking.id, status: "present" });
+      const result = await ptCheckOut({
+        bookingId: targetBooking.id,
+        status: "present",
+        ptMemberFeedback,
+      });
       const nextBookingStatus = result?.booking?.status || "completed";
       const nextAttendance = result?.attendance || {
         ...(targetBooking?.trainerAttendance || {}),
         status: "present",
       };
+      const nextFb = result?.booking?.ptMemberFeedback ?? fb;
       setAttBooking((prev) =>
         prev && prev.id === targetBooking.id
-          ? { ...prev, status: nextBookingStatus, trainerAttendance: nextAttendance }
+          ? {
+              ...prev,
+              status: nextBookingStatus,
+              trainerAttendance: nextAttendance,
+              ptMemberFeedback: nextFb,
+            }
           : prev
       );
       applyBookingPatchToCache(ymd, targetBooking.id, {
         status: nextBookingStatus,
         trainerAttendance: nextAttendance,
+        ptMemberFeedback: nextFb,
       });
       invalidatePTAttendanceScheduleCache(ymd);
+      return true;
     } catch (e) {
       setAttBooking((prev) =>
         prev && prev.id === targetBooking.id
@@ -636,6 +651,7 @@ const PTSchedule = () => {
       setAttendanceBlockModal(
         locked ? PT_ATTENDANCE_LOCK_MSG : msg
       );
+      return false;
     } finally {
       setAttActionPending(false);
     }

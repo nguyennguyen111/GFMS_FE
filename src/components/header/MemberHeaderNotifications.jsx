@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   CreditCard,
   MessageCircle,
+  MessageSquare,
   RefreshCw,
   ShieldAlert,
   Star,
@@ -22,6 +23,7 @@ const iconMap = {
   payment: CreditCard,
   trainer_request: UserPlus,
   chat: MessageCircle,
+  session_feedback: MessageSquare,
   review: Star,
   promo: Tag,
   security: ShieldAlert,
@@ -75,6 +77,10 @@ export default function MemberHeaderNotifications({ onNavigate }) {
     const type = String(item?.notificationType || "").toLowerCase();
 
     if (type === "chat") return "/member/messages";
+    if (type === "session_feedback") {
+      const rid = item?.relatedId ?? item?.related_id;
+      return rid ? `/member/bookings?sessionFeedback=${rid}` : "/member/bookings";
+    }
     if (["booking_update", "booking", "booking_reschedule"].includes(type)) {
       return "/member/bookings";
     }

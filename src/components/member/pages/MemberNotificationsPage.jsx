@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BellRing, CalendarCheck, CreditCard, Dumbbell, MessageCircle, RefreshCw, ShieldAlert, Star, Tag, Repeat, UserPlus } from "lucide-react";
+import { BellRing, CalendarCheck, CreditCard, Dumbbell, MessageCircle, MessageSquare, RefreshCw, ShieldAlert, Star, Tag, Repeat, UserPlus } from "lucide-react";
 import "../member-pages.css";
 import "./MemberNotificationsPage.css";
 import useRealtimeNotifications from "../../../hooks/useRealtimeNotifications";
@@ -13,6 +13,7 @@ const iconMap = {
   payment: CreditCard,
   trainer_request: UserPlus,
   chat: MessageCircle,
+  session_feedback: MessageSquare,
   review: Star,
   promo: Tag,
   security: ShieldAlert,
@@ -22,6 +23,7 @@ const iconMap = {
 const categoryMap = {
   booking_update: "Lịch tập & Buổi đã hoàn thành",
   booking_reschedule: "Đổi lịch & Xác nhận",
+  session_feedback: "Nhận xét từ PT",
   package_purchase: "Thanh toán & Gói tập",
   payment: "Thanh toán & Gói tập",
   trainer_request: "Tài khoản & Yêu cầu",
@@ -52,6 +54,10 @@ export default function MemberNotificationsPage() {
   const resolveNotificationPath = (item) => {
     const type = String(item?.notificationType || "").toLowerCase();
     if (type === "chat") return "/member/messages";
+    if (type === "session_feedback") {
+      const rid = item?.relatedId ?? item?.related_id;
+      return rid ? `/member/bookings?sessionFeedback=${rid}` : "/member/bookings";
+    }
     if (["booking_update", "booking", "booking_reschedule"].includes(type)) return "/member/bookings";
     if (["package_purchase", "transaction", "payment"].includes(type)) return "/member/my-packages";
     if (type === "review") return "/member/reviews";

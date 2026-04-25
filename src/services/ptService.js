@@ -1,11 +1,13 @@
 import axios from "../setup/axios"; // instance baseURL=http://localhost:8080
 
 const BASE = "/api/pt";
-// PT pages should fail fast to avoid "waiting forever" feeling.
-// Reviews + schedule are read-heavy and should not take minutes.
+// PT pages should fail fast to avoid "waiting forever" feeling (đặc biệt lịch / deploy chậm).
 const PT_REVIEW_TIMEOUT_MS = 15000;
-const PT_SCHEDULE_TIMEOUT_MS = 25000;
-const PT_READ_TIMEOUT_MS = 25000;
+/** GET lịch slots/raw + details — trang lịch gọi song song, không nên chờ 25–60s */
+const PT_SCHEDULE_READ_TIMEOUT_MS = 12000;
+/** PUT cập nhật lịch rảnh — có thể hơi lâu hơn GET nhưng vẫn giới hạn để UI không treo */
+const PT_SCHEDULE_WRITE_TIMEOUT_MS = 22000;
+const PT_READ_TIMEOUT_MS = 18000;
 
 const PT_CACHE_TTL_MS = 15000;
 const ptGetCache = new Map();
@@ -101,7 +103,7 @@ export const updatePT = async (ptId, ptData) => {
 export const getPTScheduleRaw = async (ptId) => {
   const res = await axios.get(
     `${BASE}/${ptId}/schedule?mode=raw`,
-    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+    { ...ptConfig(), timeout: PT_SCHEDULE_READ_TIMEOUT_MS }
   );
   return res.data?.availableHours || {};
 };
@@ -110,7 +112,7 @@ export const getPTScheduleRaw = async (ptId) => {
 export const getPTScheduleSlots = async (ptId) => {
   const res = await axios.get(
     `${BASE}/${ptId}/schedule?mode=slots`,
-    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+    { ...ptConfig(), timeout: PT_SCHEDULE_READ_TIMEOUT_MS }
   );
   return res.data?.slots || {};
 };
@@ -121,7 +123,7 @@ export const updatePTSchedule = async (ptId, schedule) => {
   const res = await axios.put(
     `${BASE}/${ptId}/schedule`,
     { availableHours: schedule }, // 👈 wrapper đúng như controller đọc
-    ptConfig()
+    { ...ptConfig(), timeout: PT_SCHEDULE_WRITE_TIMEOUT_MS }
   );
   return res.data;
 };
@@ -130,7 +132,7 @@ export const updatePTSchedule = async (ptId, schedule) => {
 export const getPTDetails = async (ptId) => {
   const res = await axios.get(
     `${BASE}/${ptId}/details`,
-    { ...ptConfig(), timeout: PT_SCHEDULE_TIMEOUT_MS }
+    { ...ptConfig(), timeout: PT_SCHEDULE_READ_TIMEOUT_MS }
   );
   return res.data;
 };
@@ -143,7 +145,7 @@ export const updatePTSkills = async (ptId, payload) => {
 
 // 0) Lấy PT profile của chính mình
 export const getMyPTProfile = async () => {
-  const res = await axios.get(`${BASE}/me`, ptConfig());
+  const res = await axios.get(`${BASE}/me`, { ...ptConfig(), timeout: PT_SCHEDULE_READ_TIMEOUT_MS });
   return res.data;
 };
 
