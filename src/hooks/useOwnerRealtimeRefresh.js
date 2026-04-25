@@ -54,13 +54,11 @@ export default function useOwnerRealtimeRefresh({
     const handlers = {};
 
     const scheduleRefresh = () => {
-      console.log(`[trainer_share realtime] scheduling refresh in ${debounceMs}ms, enabled=${enabled}`);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
 
       timerRef.current = setTimeout(() => {
-        console.log(`[trainer_share realtime] executing refresh`);
         timerRef.current = null;
         Promise.resolve(refreshRef.current?.()).catch(() => {});
       }, debounceMs);
