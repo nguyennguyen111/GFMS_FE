@@ -694,10 +694,16 @@ const OwnerBookingsPage = () => {
               </thead>
               <tbody>
                 {trainers.length > 0 ? (
-                  trainers.map((trainer) => (
+                  [...trainers].sort((a, b) => {
+                    const aActive = a.isActive !== false;
+                    const bActive = b.isActive !== false;
+                    if (aActive === bActive) return 0;
+                    return aActive ? -1 : 1;
+                  }).map((trainer) => (
                     <tr
                       key={trainer.id}
                       className={highlightTrainerId === trainer.id ? "new-trainer-row" : ""}
+                      style={{ opacity: trainer.isActive === false ? 0.6 : 1 }}
                     >
                       <td>{trainer.User?.username || "N/A"}</td>
                       <td>{trainer.User?.email || "N/A"}</td>
