@@ -567,3 +567,20 @@
     justify-content: flex-start;
   }
 }
+
+@keyframes ptFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ptSchedule {
+  animation: ptFadeIn 0.25s ease-out;
+}
+
+.ptSchedule__card {
+  animation: ptFadeIn 0.3s ease-out;
+}
+
+.ptSchedule__controlWrapper {
+  animation: ptFadeIn 0.2s ease-out;
+}

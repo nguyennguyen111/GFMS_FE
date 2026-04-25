@@ -243,6 +243,13 @@ export default function PTAttendanceModal({
                           </div>
                         ) : null}
 
+                        {st === "paid" && sp?.paymentNote ? (
+                          <div className="ptAttModal__sharePayPostPaid">
+                            <span className="ptAttModal__sharePayPostPaidLabel">Ghi chú từ phòng mượn</span>
+                            <p>{sp.paymentNote}</p>
+                          </div>
+                        ) : null}
+
                         {st === "paid" && sp?.sharePaymentDisputeNote ? (
                           <div className="ptAttModal__sharePayPostPaid">
                             <span className="ptAttModal__sharePayPostPaidLabel">Phản ánh đã gửi</span>

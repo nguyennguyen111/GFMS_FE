@@ -680,7 +680,18 @@ const PTSchedule = () => {
     }
   };
 
-  if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
+  if (loading) return (
+    <div className="ptSchedule">
+      <div className="ptSchedule__controlWrapper">
+        <div className="ptSchedule__tabs" />
+      </div>
+      <div className="ptSchedule__card">
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#9ab3a0", fontSize: "14px" }}>
+          Đang tải lịch...
+        </div>
+      </div>
+    </div>
+  );
 
   const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession, isSubstitute) => {
     if (isSubstitute) return '#008cff';
