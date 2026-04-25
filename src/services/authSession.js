@@ -16,7 +16,8 @@ let currentUser = null;
 
 const safeParse = (raw) => {
   try {
-    return raw ? JSON.parse(raw) : null;
+    if (!raw || raw === "undefined" || raw === "null") return null;
+    return JSON.parse(raw);
   } catch {
     return null;
   }

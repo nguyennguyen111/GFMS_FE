@@ -6,6 +6,17 @@ import {
   sendConversationMessage,
 } from "../services/memberMessageService";
 
+function getStoredCurrentUserId() {
+  try {
+    const raw = localStorage.getItem("user");
+    const parsed = raw ? JSON.parse(raw) : null;
+    const user = parsed?.user || parsed || {};
+    return Number(user?.id || user?.userId || localStorage.getItem("userId") || 0);
+  } catch {
+    return Number(localStorage.getItem("userId") || 0);
+  }
+}
+
 export default function useConversationSocket({ peerUserId, conversationKey }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -83,12 +94,33 @@ export default function useConversationSocket({ peerUserId, conversationKey }) {
     ) {
       return null;
     }
+
+    const tempId = `tmp-${nowTs}-${Math.random().toString(16).slice(2)}`;
+    const currentUserId = getStoredCurrentUserId();
+    const optimistic = {
+      id: tempId,
+      senderId: currentUserId,
+      receiverId: Number(peerUserId),
+      content,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      __pending: true,
+    };
+
     sendingRef.current = true;
+    setMessages((prev) => [...prev, optimistic]);
+
     try {
       const saved = await sendConversationMessage(peerUserId, content);
-      setMessages((prev) => (prev.some((x) => Number(x.id) === Number(saved?.id)) ? prev : [...prev, saved]));
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((x) => String(x.id) !== tempId);
+        return withoutTemp.some((x) => Number(x.id) === Number(saved?.id)) ? withoutTemp : [...withoutTemp, saved];
+      });
       lastSendRef.current = { key: messageKey, at: nowTs };
       return saved;
+    } catch (err) {
+      setMessages((prev) => prev.filter((x) => String(x.id) !== tempId));
+      throw err;
     } finally {
       sendingRef.current = false;
     }

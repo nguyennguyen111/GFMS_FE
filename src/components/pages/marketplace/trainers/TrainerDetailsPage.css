@@ -475,3 +475,25 @@
   }
 }
 .gd-feedbackSection,.td-feedbackSection{margin-top:0}
+.td-right {
+  position: sticky;
+  top: calc(var(--header-h, 76px) + 24px);
+  height: fit-content;
+  align-self: start;
+}
+
+.td-grid {
+  align-items: start;
+}
+
+.td-right .td-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(214, 255, 0, 0.08), transparent 36%),
+    var(--td-surface);
+}
+
+@media (max-width: 1200px) {
+  .td-right {
+    position: static;
+  }
+}

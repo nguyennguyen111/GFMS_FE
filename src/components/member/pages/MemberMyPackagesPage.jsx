@@ -173,13 +173,6 @@ export default function MemberMyPackagesPage() {
           </span>
         </div>
 
-        <div className="mp3-creditRow">
-          <span className="mp3-creditLabel">Session credit</span>
-          <span className="mp3-creditValue">
-            {sessionsRemaining}/{totalSessions || "—"}
-          </span>
-        </div>
-
         <div className="mp3-progress">
           <div
             className={`mp3-progressBar ${status}`}
@@ -193,7 +186,7 @@ export default function MemberMyPackagesPage() {
               <CreditCard size={14} />
             </span>
             <div>
-              <div className="mp3-metaLabel">Price</div>
+              <div className="mp3-metaLabel">Giá</div>
               <div className="mp3-metaValue">{fmtMoney(x.Package?.price)}</div>
             </div>
           </div>
@@ -224,7 +217,7 @@ export default function MemberMyPackagesPage() {
                   navigate(`/member/my-packages/${x.id}`);
                 }}
               >
-                <span>View details</span>
+                <span>Chi tiết</span>
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -239,7 +232,7 @@ export default function MemberMyPackagesPage() {
       <div className="mp3-header">
         <div className="mp3-headerLeft">
           <div className="mp3-kicker">Membership assets</div>
-          <h1 className="mp3-title">My Packages</h1>
+          <h1 className="mp3-title">Gói của tôi</h1>
         </div>
 
         <div className="mp3-headerRight">
@@ -313,7 +306,7 @@ export default function MemberMyPackagesPage() {
           <section className="mp3-section">
             <div className="mp3-sectionHead">
               <div className="mp3-sectionTitleWrap">
-                <h2 className="mp3-sectionTitle">Active Packages</h2>
+                <h2 className="mp3-sectionTitle">Gói đang hoạt động</h2>
                 <div className="mp3-sectionLine" />
               </div>
               <div className="mp3-sectionCount">{activeRows.length} current</div>

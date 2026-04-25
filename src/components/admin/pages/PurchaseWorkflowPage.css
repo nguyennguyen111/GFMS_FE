@@ -60,6 +60,43 @@
   grid-template-columns: 1.2fr .55fr auto;
   gap: 12px;
 }
+.purchase-admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+.purchase-admin-pagination__left,
+.purchase-admin-pagination__right,
+.purchase-admin-pagination__pages,
+.purchase-admin-pagination__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.purchase-admin-pagination__range {
+  color: rgba(238,242,255,.72);
+  font-size: 13px;
+}
+.purchase-admin-pagination__label span {
+  color: rgba(238,242,255,.62);
+  font-size: 13px;
+}
+.purchase-admin-pagination__pageText {
+  color: rgba(238,242,255,.72);
+  font-size: 13px;
+}
+.purchase-admin-input--compact {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+}
 .purchase-admin-input {
   width: 100%;
   min-height: 44px;
@@ -146,10 +183,9 @@
   background: rgba(255,255,255,.06);
 }
 .purchase-admin-badge.status-submitted,
-.purchase-admin-badge.status-approved_waiting_deposit,
+.purchase-admin-badge.status-approved_waiting_payment,
 .purchase-admin-badge.status-paid_waiting_admin_confirm,
-.purchase-admin-badge.status-shipping,
-.purchase-admin-badge.status-delivered_waiting_final_payment {
+.purchase-admin-badge.status-shipping {
   border-color: rgba(255,138,0,.3);
   background: rgba(255,138,0,.12);
   color: #ffd49d;
@@ -232,6 +268,10 @@
   }
   .purchase-admin-itemsTable__head {
     display: none;
+  }
+  .purchase-admin-pagination__right {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

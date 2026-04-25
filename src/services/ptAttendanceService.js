@@ -2,7 +2,8 @@ import axios from "../setup/axios"; // hoặc "../setup/axios" tùy project
 
 const BASE = "/api/pt";
 const PT_ATTENDANCE_ACTION_TIMEOUT_MS = 120000;
-const PT_ATTENDANCE_READ_TIMEOUT_MS = 90000;
+// Schedule/attendance reads should not keep users waiting too long.
+const PT_ATTENDANCE_READ_TIMEOUT_MS = 25000;
 const ATTENDANCE_CACHE_TTL_MS = 15000;
 const attendanceScheduleCache = new Map();
 const attendanceScheduleInFlight = new Map();

@@ -167,6 +167,7 @@ export default function OwnerEquipmentPage() {
   const [changingUsageUnitId, setChangingUsageUnitId] = useState(null);
   const [selectedUnitIds, setSelectedUnitIds] = useState([]);
   const [changingUsageBulk, setChangingUsageBulk] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState({});
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -227,6 +228,7 @@ export default function OwnerEquipmentPage() {
     setDetail(null);
     setUnitSearch("");
     setSelectedUnitIds([]);
+    setHistoryExpanded({});
   }, []);
 
   const visibleUnits = (detail?.units || []).filter((unit) => {
@@ -283,6 +285,10 @@ export default function OwnerEquipmentPage() {
   const getVisibleUnitEvents = (unit) => {
     const events = unit?.eventTimeline || [];
     return events;
+  };
+
+  const toggleHistory = (unitId) => {
+    setHistoryExpanded((prev) => ({ ...prev, [unitId]: !prev[unitId] }));
   };
 
   const handleUsageStatusChange = useCallback(async (unit) => {
@@ -422,7 +428,7 @@ export default function OwnerEquipmentPage() {
           <div className="oeq-modal" onClick={(e) => e.stopPropagation()}>
             <div className="oeq-modal-header">
               <h2 className="oeq-modal-title">Chi tiết thiết bị {detail?.name ? `- ${detail.name}` : ""}{detail?.selectedGym?.name ? ` (${detail.selectedGym.name})` : ""}</h2>
-              <button className="oeq-modal-close" onClick={closeDetail} type="button" aria-label="Đóng">×</button>
+              <button className="oeq-modal-close" onClick={closeDetail} type="button" aria-label="Đóng">✕</button>
             </div>
 
             <div className="oeq-modal-body">
@@ -540,26 +546,39 @@ export default function OwnerEquipmentPage() {
                         </div>
 
                         <div className="oeq-unit-history">
-                          <div className="oeq-unit-history__title">Lịch sử vận hành thiết bị</div>
-                          {getVisibleUnitEvents(unit).length === 0 ? (
-                            <div className="oeq-unit-history__empty">Chưa có lịch sử vận hành thiết bị</div>
-                          ) : (
-                            getVisibleUnitEvents(unit).map((event) => (
-                              <div key={`event-${event.id}`} className="oeq-history-item oeq-history-item--event">
-                                <div className="oeq-history-item__head">
-                                  <span className={`oeq-badge oeq-badge--${event.eventType}`}>{formatUnitEventType(event.eventType)}</span>
-                                  <span className="oeq-history-item__time">{formatDateTime(event.eventAt)}</span>
-                                </div>
-                                <div className="oeq-history-item__body">{describeUnitEvent(event, unit)}</div>
-                                {buildUnitEventMeta(event).length > 0 && (
-                                  <div className="oeq-history-item__meta">
-                                    {buildUnitEventMeta(event).map((value) => (
-                                      <span key={value}>{value}</span>
-                                    ))}
+                          <div
+                            className="oeq-unit-history__title"
+                            onClick={() => toggleHistory(unit.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === "Enter" && toggleHistory(unit.id)}
+                          >
+                            <span>Lịch sử vận hành ({getVisibleUnitEvents(unit).length})</span>
+                            <span className={`oeq-unit-history__arrow ${historyExpanded[unit.id] ? "is-open" : ""}`}>▼</span>
+                          </div>
+                          {historyExpanded[unit.id] && (
+                            <>
+                              {getVisibleUnitEvents(unit).length === 0 ? (
+                                <div className="oeq-unit-history__empty">Chưa có lịch sử vận hành thiết bị</div>
+                              ) : (
+                                getVisibleUnitEvents(unit).map((event) => (
+                                  <div key={`event-${event.id}`} className="oeq-history-item oeq-history-item--event">
+                                    <div className="oeq-history-item__head">
+                                      <span className={`oeq-badge oeq-badge--${event.eventType}`}>{formatUnitEventType(event.eventType)}</span>
+                                      <span className="oeq-history-item__time">{formatDateTime(event.eventAt)}</span>
+                                    </div>
+                                    <div className="oeq-history-item__body">{describeUnitEvent(event, unit)}</div>
+                                    {buildUnitEventMeta(event).length > 0 && (
+                                      <div className="oeq-history-item__meta">
+                                        {buildUnitEventMeta(event).map((value) => (
+                                          <span key={value}>{value}</span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            ))
+                                ))
+                              )}
+                            </>
                           )}
                         </div>
 

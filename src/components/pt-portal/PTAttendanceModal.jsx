@@ -58,11 +58,13 @@ export default function PTAttendanceModal({
   const [isEditing, setIsEditing] = useState(false);
   const [sharePay, setSharePay] = useState(emptyPay);
   const [disputeNote, setDisputeNote] = useState("");
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
 
   useEffect(() => {
     setIsEditing(false);
     setSharePay(emptyPay);
     setDisputeNote(String(booking?.sharePayment?.sharePaymentDisputeNote || ""));
+    setShowDisputeModal(false);
   }, [open, booking?.id, booking?.sharePayment?.sharePaymentDisputeNote]);
 
   if (!open) return null;
@@ -179,17 +181,19 @@ export default function PTAttendanceModal({
                       ? sp.paymentProofImageUrls.filter(Boolean)
                       : [];
                     const disputeNoteTrim = String(sp?.sharePaymentDisputeNote || "").trim();
+                    const hasComplained = disputeNoteTrim.length > 0;
+                    const ownerResponded = !!sp?.borrowerDisputeResponseAt || proofs.length > 0;
                     const canAcknowledge =
-                      st === "paid" &&
-                      !ptAckAt &&
-                      disputeNoteTrim.length > 0 &&
-                      (!!sp?.borrowerDisputeResponseAt || proofs.length > 0);
+                      st === "paid" && !ptAckAt && !hasComplained;
+                    const canAckAfterComplaint =
+                      st === "paid" && !ptAckAt && hasComplained && ownerResponded;
                     const showDisputeForm =
                       onSubmitShareDispute &&
                       !ptAckAt &&
+                      showDisputeModal &&
                       (st === "awaiting_transfer" ||
                         st === "disputed" ||
-                        (st === "paid" && disputeNoteTrim.length > 0 && !canAcknowledge));
+                        st === "paid");
                     return (
                       <>
                         <dl className="ptAttModal__sharePayDl">
@@ -236,6 +240,13 @@ export default function PTAttendanceModal({
                                 {new Date(sp.paymentMarkedPaidAt).toLocaleString("vi-VN")}
                               </time>
                             </span>
+                          </div>
+                        ) : null}
+
+                        {st === "paid" && sp?.paymentNote ? (
+                          <div className="ptAttModal__sharePayPostPaid">
+                            <span className="ptAttModal__sharePayPostPaidLabel">Ghi chú từ phòng mượn</span>
+                            <p>{sp.paymentNote}</p>
                           </div>
                         ) : null}
 
@@ -347,8 +358,7 @@ export default function PTAttendanceModal({
                         {canAcknowledge && onAckSharePayment ? (
                           <div className="ptAttModal__sharePayAck">
                             <p className="ptAttModal__sharePayAckLead">
-                              Chủ phòng đã gửi phản hồi hoặc ảnh chứng từ. Nếu bạn đã nhận đủ tiền, hãy
-                              xác nhận để đóng vụ thanh toán buổi này.
+                              Chủ phòng đã xác nhận thanh toán. Nếu bạn đã nhận đủ tiền, hãy xác nhận để đóng vụ thanh toán buổi này.
                             </p>
                             <button
                               type="button"
@@ -360,6 +370,47 @@ export default function PTAttendanceModal({
                               }}
                             >
                               {loading ? "Đang xác nhận…" : "✓ Xác nhận đã nhận tiền"}
+                            </button>
+                            <button
+                              type="button"
+                              className="ptAttModal__btn ptAttModal__btn--disputeSend"
+                              style={{ marginTop: "8px" }}
+                              disabled={loading}
+                              onClick={() => {
+                                setShowDisputeModal(true);
+                              }}
+                            >
+                              Chưa nhận được tiền — Phản ánh
+                            </button>
+                          </div>
+                        ) : null}
+
+                        {canAckAfterComplaint && onAckSharePayment ? (
+                          <div className="ptAttModal__sharePayAck">
+                            <p className="ptAttModal__sharePayAckLead">
+                              Chủ phòng đã gửi phản hồi. Bạn đã nhận được tiền chưa?
+                            </p>
+                            <button
+                              type="button"
+                              className="ptAttModal__btn ptAttModal__btn--present"
+                              disabled={loading}
+                              onClick={async () => {
+                                const ok = await onAckSharePayment();
+                                if (ok && refresh) await refresh();
+                              }}
+                            >
+                              {loading ? "Đang xác nhận…" : "✓ Đã nhận đủ tiền — Đồng ý"}
+                            </button>
+                            <button
+                              type="button"
+                              className="ptAttModal__btn ptAttModal__btn--disputeSend"
+                              style={{ marginTop: "8px" }}
+                              disabled={loading}
+                              onClick={() => {
+                                setShowDisputeModal(true);
+                              }}
+                            >
+                              Vẫn chưa nhận được — Khiếu nại tiếp
                             </button>
                           </div>
                         ) : null}
@@ -409,6 +460,17 @@ export default function PTAttendanceModal({
                                     ? "Gửi phản ánh"
                                     : "Gửi khiếu nại"}
                             </button>
+                            <button
+                              type="button"
+                              className="ptAttModal__btn"
+                              style={{ marginTop: "8px", background: "#6c757d" }}
+                              onClick={() => {
+                                setShowDisputeModal(false);
+                                setDisputeNote("");
+                              }}
+                            >
+                              Hủy
+                            </button>
                           </div>
                         ) : null}
                       </>
@@ -425,7 +487,7 @@ export default function PTAttendanceModal({
               </div>
             )}
 
-            {(commissionLocked || (isSharedSession && ptAckAt)) ? (
+            {(commissionLocked || (isSharedSession && (ptAckAt || booking?.sharePayment?.sharePaymentStatus === "paid"))) ? (
               <div className="ptAttModal__actions">
                 <span style={{ color: "#16a34a", fontWeight: 600, fontSize: "0.95rem" }}>
                   ✓ Đã thanh toán và hoàn thành buổi học

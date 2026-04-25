@@ -229,12 +229,11 @@ export default function PackageDetailsPage() {
                 Khi đặt lịch gói PT, hệ thống sẽ yêu cầu chọn thêm thẻ thành viên 1/2/3 tháng
               </div>
               <button
-                className="pkd-buyBtn"
-                style={{ marginTop: 10, background: "#0f766e" }}
-                onClick={() => navigate(`/member/membership-cards?gymId=${pkg.gymId}`)}
-              >
-                Mua thẻ thành viên riêng
-              </button>
+  className="pkd-buyBtn pkd-membershipBtn"
+  onClick={() => navigate(`/member/membership-cards?gymId=${pkg.gymId}`)}
+>
+  Mua thẻ thành viên riêng
+</button>
             </div>
           </aside>
         </div>

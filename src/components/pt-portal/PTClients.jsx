@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { getPTBookings } from "../../services/ptService";
+import { connectSocket } from "../../services/socketClient";
+import { getPTBookings, invalidatePTServiceCache } from "../../services/ptService";
 import "./PTClients.css";
 
 const AVATAR_PLACEHOLDER = "https://placehold.co/96x96/101317/D6FF00?text=GFMS";
@@ -342,6 +343,29 @@ const PTClients = ({ trainerId = "me" }) => {
         setError("Không tải được danh sách học viên.");
         setLoading(false);
       });
+  }, [trainerId]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    let t = null;
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "booking_update" && type !== "booking") return;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        invalidatePTServiceCache("/bookings");
+        setLoading(true);
+        getPTBookings(trainerId)
+          .then((data) => setBookings(normalizeBookingsPayload(data)))
+          .catch(() => {})
+          .finally(() => setLoading(false));
+      }, 250);
+    };
+    socket.on("notification:new", onNoti);
+    return () => {
+      if (t) clearTimeout(t);
+      socket.off("notification:new", onNoti);
+    };
   }, [trainerId]);
 
   const members = useMemo(() => buildMemberGroups(bookings), [bookings]);

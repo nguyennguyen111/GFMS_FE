@@ -62,6 +62,20 @@
   outline: none;
 }
 
+/* Make dropdowns readable in dark theme (page-scoped) */
+.ptp-wrap select.ptp-input,
+.ptp-wrap select.ptp-select {
+  background: #0b0b0b;
+  color: #ffffff;
+  color-scheme: dark;
+}
+
+.ptp-wrap select.ptp-input option,
+.ptp-wrap select.ptp-select option {
+  background: #0b0b0b;
+  color: #ffffff;
+}
+
 .ptp-btn {
   border-radius: 14px;
   padding: 10px 12px;
@@ -134,9 +148,49 @@
   gap: 12px;
 }
 
+.pt-demo-grid--docs {
+  margin-top: 10px;
+}
+
 .pt-demo-item-card {
   padding: 10px;
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pt-doc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pt-doc-titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pt-doc-title {
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.pt-doc-meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.pt-doc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 .pt-demo-video {

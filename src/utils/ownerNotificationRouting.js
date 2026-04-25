@@ -32,15 +32,15 @@ export function resolveOwnerNotificationPath(item) {
   }
 
   if (["purchaserequest", "purchase_request"].includes(relatedType) || notificationType === "purchase_request") {
-    return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
+    return withQuery("/owner/purchase-requests/history", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "quotation" || notificationType === "quotation") {
-    return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
+    return withQuery("/owner/purchase-requests/history", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "purchaseorder" || notificationType === "purchaseorder") {
-    return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
+    return withQuery("/owner/purchase-requests/history", "purchaseRequestId", relatedId);
   }
 
   if (relatedType === "receipt" || notificationType === "receipt") {
@@ -53,7 +53,7 @@ export function resolveOwnerNotificationPath(item) {
 
   if (notificationType === "payment") {
     if (["purchaserequest", "purchase_request"].includes(relatedType)) {
-      return withQuery("/owner/purchase-requests", "purchaseRequestId", relatedId);
+      return withQuery("/owner/purchase-requests/history", "purchaseRequestId", relatedId);
     }
     return withQuery("/owner/procurement-payments", "transactionId", relatedId);
   }

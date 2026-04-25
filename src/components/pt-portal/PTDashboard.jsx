@@ -4,6 +4,7 @@ import { Line } from "react-chartjs-2";
 import "../../services/chartSetup";
 import { makeLineChartData, makeLineOptions } from "../../services/chartService";
 import { getTrainerId, setTrainerId } from "./ptStorage";
+import { connectSocket } from "../../services/socketClient";
 import {
   getMyPTProfile,
   getPTBookings,
@@ -164,8 +165,8 @@ const PTDashboard = () => {
     }
   }, []);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
+  const loadDashboard = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setLoadError("");
     try {
       const profileRes = await getMyPTProfile();
@@ -206,12 +207,35 @@ const PTDashboard = () => {
       console.error("PTDashboard load error:", e);
       setLoadError(e?.response?.data?.message || "Không tải được bảng điều khiển. Thử đăng nhập lại.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    let t = null;
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      // Các loại này tác động trực tiếp dashboard KPIs / mini-week.
+      if (!["booking_update", "booking", "review", "feedback", "withdrawal", "request_update"].includes(type)) return;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => loadDashboard({ silent: true }), 350);
+    };
+    socket.on("notification:new", onNoti);
+    socket.on("withdrawal:created", onNoti);
+    socket.on("withdrawal:approved", onNoti);
+    socket.on("withdrawal:rejected", onNoti);
+    return () => {
+      if (t) clearTimeout(t);
+      socket.off("notification:new", onNoti);
+      socket.off("withdrawal:created", onNoti);
+      socket.off("withdrawal:approved", onNoti);
+      socket.off("withdrawal:rejected", onNoti);
+    };
   }, [loadDashboard]);
 
   useEffect(() => {

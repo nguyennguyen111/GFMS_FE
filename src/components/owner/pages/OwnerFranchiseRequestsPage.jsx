@@ -75,7 +75,6 @@ const INITIAL_FORM = {
   contactPerson: "",
   contactPhone: "",
   contactEmail: "",
-  investmentAmount: "",
   businessPlan: "",
 };
 
@@ -334,7 +333,6 @@ export default function OwnerFranchiseRequestsPage() {
       contactPerson: req.contactPerson || "",
       contactPhone: req.contactPhone || "",
       contactEmail: req.contactEmail || "",
-      investmentAmount: req.investmentAmount || "",
       businessPlan: req.businessPlan || "",
     });
     setShowModal(true);
@@ -815,17 +813,6 @@ export default function OwnerFranchiseRequestsPage() {
                   className="ofr-input"
                   value={form.contactEmail}
                   onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                />
-              </Field>
-
-              <Field label="Số vốn dự kiến" hint="VNĐ">
-                <input
-                  type="number"
-                  className="ofr-input"
-                  value={form.investmentAmount}
-                  onChange={(e) => setForm({ ...form, investmentAmount: e.target.value })}
-                  min="0"
-                  step="1000000"
                 />
               </Field>
 

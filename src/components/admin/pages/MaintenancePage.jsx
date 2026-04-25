@@ -40,6 +40,19 @@ const formatDateTime = (value) => (value ? new Date(value).toLocaleString("vi-VN
 
 const getMaintenanceCode = (id) => `MT-${String(Number(id || 0)).padStart(6, "0")}`;
 
+const pad2 = (n) => String(n).padStart(2, "0");
+const toDatetimeLocalValue = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+const minFutureDateTimeLocal = () => toDatetimeLocalValue(new Date(Date.now() + 5 * 60 * 1000));
+const parseLocalDateTime = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
 // Prefer displaying names (from included relations) instead of raw IDs
 const gymLabel = (m) => m?.gym?.name || m?.Gym?.name || m?.gymName || m?.gymId || "-";
 const equipmentLabel = (m) =>
@@ -50,7 +63,7 @@ export default function MaintenancePage() {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ page: 1, limit: 10, totalItems: 0, totalPages: 1 });
 
-  const [filters, setFilters] = useState({ status: "", gymId: "", q: "" });
+  const [filters, setFilters] = useState({ status: "", gymId: "", q: "", overdue: "", overdueDays: "" });
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -120,6 +133,19 @@ export default function MaintenancePage() {
   }, [page]);
 
   useEffect(() => {
+    const overdue = searchParams.get("overdue") || "";
+    const overdueDays = searchParams.get("overdueDays") || "";
+    if (!overdue && !overdueDays) return;
+    setFilters((prev) => ({
+      ...prev,
+      overdue: overdue ? String(overdue) : "1",
+      overdueDays: overdueDays ? String(overdueDays) : "7",
+    }));
+    setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (selectedId) fetchDetail(selectedId);
     // eslint-disable-next-line
   }, [selectedId]);
@@ -151,7 +177,11 @@ export default function MaintenancePage() {
     setModal({
       open: true,
       type: "approve",
-      payload: { scheduledDate: "", targetCompletionDate: "", notes: "" },
+      payload: {
+        scheduledDate: minFutureDateTimeLocal(),
+        targetCompletionDate: toDatetimeLocalValue(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+        notes: "",
+      },
     });
 
   const openReject = () =>
@@ -195,8 +225,24 @@ export default function MaintenancePage() {
     try {
       const payload = { ...(modal.payload || {}) };
 
-      if (!payload.scheduledDate) {
-        alert("Bạn chưa chọn ngày giờ hẹn");
+      const minTime = Date.now() + 60 * 1000;
+      const scheduledAt = parseLocalDateTime(payload.scheduledDate);
+      const targetAt = parseLocalDateTime(payload.targetCompletionDate);
+
+      if (!scheduledAt) {
+        alert("Bạn chưa chọn ngày giờ hẹn kiểm tra hợp lệ");
+        return;
+      }
+      if (scheduledAt.getTime() < minTime) {
+        alert("Ngày giờ hẹn kiểm tra phải nằm trong tương lai.");
+        return;
+      }
+      if (payload.targetCompletionDate && !targetAt) {
+        alert("Hạn hoàn tất dự kiến không hợp lệ.");
+        return;
+      }
+      if (targetAt && targetAt.getTime() <= scheduledAt.getTime()) {
+        alert("Hạn hoàn tất dự kiến phải sau ngày giờ hẹn kiểm tra.");
         return;
       }
 
@@ -464,6 +510,7 @@ export default function MaintenancePage() {
                   <label>Ngày giờ hẹn kiểm tra</label>
                   <input
                     type="datetime-local"
+                    min={minFutureDateTimeLocal()}
                     value={modal.payload.scheduledDate}
                     onChange={(e) =>
                       setModal((m) => ({
@@ -477,6 +524,7 @@ export default function MaintenancePage() {
                   <label>Hạn hoàn tất dự kiến</label>
                   <input
                     type="datetime-local"
+                    min={modal.payload.scheduledDate || minFutureDateTimeLocal()}
                     value={modal.payload.targetCompletionDate}
                     onChange={(e) =>
                       setModal((m) => ({

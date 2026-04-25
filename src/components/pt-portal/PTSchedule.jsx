@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
+import { connectSocket } from "../../services/socketClient";
+import { getAccessToken, getCurrentUser } from "../../utils/auth";
 import {
   getPTAttendanceSchedule,
   invalidatePTAttendanceScheduleCache,
@@ -275,6 +277,51 @@ const PTSchedule = () => {
       .then((res) => setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] })))
       .catch(() => {});
   }, [ptId]);
+
+  const refreshVisibleAttendance = async ({ force = false } = {}) => {
+    const days =
+      activeTab === "today"
+        ? [{ date: new Date() }]
+        : weekDays.map((d) => ({ date: d.date }));
+    const ymDs = days.map((d) => toYMD(new Date(d.date)));
+
+    await Promise.all(
+      ymDs.map(async (ymd) => {
+        try {
+          invalidatePTAttendanceScheduleCache(ymd);
+          const res = await getPTAttendanceSchedule({ date: ymd }, { force });
+          setAttCache((prev) => ({ ...prev, [ymd]: res?.rows || [] }));
+        } catch {
+          // ignore
+        }
+      })
+    );
+  };
+
+  useEffect(() => {
+    const token = getAccessToken();
+    const user = getCurrentUser();
+    const gid = Number(user?.groupId ?? user?.group_id ?? 0);
+    if (!token || gid !== 3) return undefined;
+
+    const socket = connectSocket();
+    const debounceRef = { t: null };
+
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type !== "booking_update" && type !== "booking") return;
+      if (debounceRef.t) clearTimeout(debounceRef.t);
+      debounceRef.t = setTimeout(() => {
+        refreshVisibleAttendance({ force: true });
+      }, 250);
+    };
+
+    socket.on("notification:new", onNoti);
+    return () => {
+      if (debounceRef.t) clearTimeout(debounceRef.t);
+      socket.off("notification:new", onNoti);
+    };
+  }, [weekDays, activeTab]);
 
   const openAttendance = async (dateObj, slot) => {
     const ymd = toYMD(dateObj);
@@ -633,9 +680,21 @@ const PTSchedule = () => {
     }
   };
 
-  if (loading) return <div className="ptSchedule"><div className="ptSchedule__card">Đang tải lịch...</div></div>;
+  if (loading) return (
+    <div className="ptSchedule">
+      <div className="ptSchedule__controlWrapper">
+        <div className="ptSchedule__tabs" />
+      </div>
+      <div className="ptSchedule__card">
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#9ab3a0", fontSize: "14px" }}>
+          Đang tải lịch...
+        </div>
+      </div>
+    </div>
+  );
 
-  const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession) => {
+  const getStudentNameColor = (attendanceStatus, busyRequested, sharedSession, isSubstitute) => {
+    if (isSubstitute) return '#008cff';
     if (sharedSession) return '#a78bfa';
     if (busyRequested) return '#f59e0b';
     if (attendanceStatus === 'present') return '#2ecc71';
@@ -734,10 +793,13 @@ const PTSchedule = () => {
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       const isBusyRequested = Boolean(booking?.busyRequested);
-                      const isSharedSession = String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
+                      const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
+                      // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true, KHÔNG phụ thuộc sessionType
+                      const isSubstitute = !isBusyRequested && (booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]"));
                       if (booking) {
                         if (isSharedSession) statusClass = "is-shared";
                         else if (isBusyRequested) statusClass = "is-busy-requested";
+                        else if (isSubstitute) statusClass = "is-substitute";
                         else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else statusClass = "is-pending";
@@ -757,9 +819,12 @@ const PTSchedule = () => {
                           onClick={()=>openAttendance(d.date,s)}
                         >
                           <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession) }}>
+                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession, isSubstitute) }}>
+                            {isSharedSession && <span style={{ color: "#a855f7" }}>↔ </span>}
+                            {isBusyRequested && <span style={{ color: "#f59e0b" }}>⚠ </span>}
+                            {isSubstitute && !isSharedSession && !isBusyRequested && <span style={{ color: "#008cff" }}>🔄 </span>}
                             👤 {booking.Member?.User?.username || "Học viên"}
-                            {(attendanceStatus || isBusyRequested || isSharedSession) && (
+                            {(attendanceStatus || isBusyRequested || isSharedSession || isSubstitute) && (
                               <div
                                 className="mini-status"
                                 title={
@@ -773,10 +838,12 @@ const PTSchedule = () => {
                                   booking?.sharePayment?.sharePaymentPtAcknowledgedAt ? (
                                     <span className="mini-status--paidAck">✓ Đã thanh toán</span>
                                   ) : (
-                                    <span style={{ color: "#f59e0b" }}>↔ Chờ thanh toán</span>
+                                    <span style={{ color: "#a855f7" }}>↔ Mượn ngoài CN</span>
                                   )
                                 ) : isBusyRequested ? (
-                                  "⚠ PT báo bận"
+                                  "⚠ Đã báo bận"
+                                ) : isSubstitute ? (
+                                  <span style={{ color: "#008cff" }}>Lịch dạy thay</span>
                                 ) : attendanceStatus === "present" ? (
                                   "✓ Có mặt"
                                 ) : attendanceStatus === "absent" ? (

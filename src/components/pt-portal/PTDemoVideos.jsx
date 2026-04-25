@@ -312,78 +312,94 @@ const PTDemoVideos = () => {
 
       {error ? <div className="ptp-error">{error}</div> : null}
 
-      {loading ? (
-        <div className="ptp-card pt-demo-loading-card">
-          Đang tải...
-        </div>
-      ) : videos.length === 0 ? (
-        <div className="ptp-empty">Chưa có video hướng dẫn nào.</div>
-      ) : (
-        <div className="pt-demo-grid">
-          {videos.map((v) => (
-            <div key={v.id} className="ptp-card pt-demo-item-card">
-              <video
-                src={v.url || v.fileUrl || v.videoUrl || v.src}
-                controls
-                className="pt-demo-video"
-                onLoadedMetadata={(e) => {
-                  const duration = e.currentTarget?.duration;
-                  if (!Number.isFinite(duration)) return;
-                  setDurationsById((prev) => {
-                    // chỉ set lần đầu để tránh render liên tục
-                    if (prev[v.id] != null) return prev;
-                    return { ...prev, [v.id]: duration };
-                  });
-                }}
-              />
-              <div className="pt-demo-title">{v.title || "Video hướng dẫn"}</div>
-              <div className="ptp-sub">
-                {Number.isFinite(durationsById[v.id])
-                  ? `Thời lượng: ${Math.round(Number(durationsById[v.id]))} giây`
-                  : v.duration
-                    ? `Thời lượng: ${Math.round(Number(v.duration))} giây`
-                    : "Thời lượng: không có"} |{" "}
-                {formatBytes(v.bytes)}
+      <div className="ptp-card pt-demo-upload-card" style={{ marginTop: 12 }}>
+        <h3 className="pt-demo-title">Video hướng dẫn</h3>
+        {loading ? (
+          <div className="ptp-sub">Đang tải...</div>
+        ) : videos.length === 0 ? (
+          <div className="ptp-sub">Chưa có video hướng dẫn nào.</div>
+        ) : (
+          <div className="pt-demo-grid" style={{ marginTop: 10 }}>
+            {videos.map((v) => (
+              <div key={v.id} className="ptp-card pt-demo-item-card">
+                <video
+                  src={v.url || v.fileUrl || v.videoUrl || v.src}
+                  controls
+                  className="pt-demo-video"
+                  onLoadedMetadata={(e) => {
+                    const duration = e.currentTarget?.duration;
+                    if (!Number.isFinite(duration)) return;
+                    setDurationsById((prev) => {
+                      if (prev[v.id] != null) return prev;
+                      return { ...prev, [v.id]: duration };
+                    });
+                  }}
+                />
+                <div className="pt-demo-title">{v.title || "Video hướng dẫn"}</div>
+                <div className="ptp-sub">
+                  {Number.isFinite(durationsById[v.id])
+                    ? `Thời lượng: ${Math.round(Number(durationsById[v.id]))} giây`
+                    : v.duration
+                      ? `Thời lượng: ${Math.round(Number(v.duration))} giây`
+                      : "Thời lượng: không có"}{" "}
+                  | {formatBytes(v.bytes)}
+                </div>
+                <div className="pt-demo-delete-action">
+                  <button
+                    type="button"
+                    className="ptp-btn ptp-btn--warn ptp-btn--small"
+                    onClick={() => onDelete(v.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
               </div>
-              <div className="pt-demo-delete-action">
-                <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDelete(v.id)}>
-                  Xóa
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="ptp-card pt-demo-upload-card" style={{ marginTop: 12 }}>
         <h3 className="pt-demo-title">Tài liệu kế hoạch tập luyện</h3>
         {!plans.length ? (
           <div className="ptp-sub">Chưa có file kế hoạch nào.</div>
         ) : (
-          <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-            {plans.map((p) => (
-              <div key={p.id} className="ptp-card" style={{ padding: 10 }}>
-                <div style={{ fontWeight: 700 }}>{p.title || "Kế hoạch tập"}</div>
-                <div className="ptp-sub">{formatBytes(p.bytes)} {p.mimeType ? `| ${p.mimeType}` : ""}</div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {p.url || p.fileUrl ? (
-                    <a
-                      className="ptp-btn ptp-btn--small"
-                      href={p.url || p.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
+          <div className="pt-demo-grid pt-demo-grid--docs">
+            {plans.map((p) => {
+              const url = p.url || p.fileUrl || "";
+              return (
+                <div key={p.id} className="ptp-card pt-demo-item-card pt-doc-item">
+                  <div className="pt-doc-titleRow">
+                    <div className="pt-doc-title">{p.title || "Kế hoạch tập"}</div>
+                    <div className="pt-doc-meta">{formatBytes(p.bytes)}</div>
+                  </div>
+                  <div className="ptp-sub">
+                    {p.mimeType ? p.mimeType : "Tài liệu"}
+                  </div>
+                  <div className="pt-doc-actions">
+                    {url ? (
+                      <a
+                        className="ptp-btn ptp-btn--small"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Xem/Tải file
+                      </a>
+                    ) : (
+                      <span className="ptp-sub">Chưa có link file</span>
+                    )}
+                    <button
+                      type="button"
+                      className="ptp-btn ptp-btn--warn ptp-btn--small"
+                      onClick={() => onDeletePlan(p.id)}
                     >
-                      Xem/Tải file
-                    </a>
-                  ) : (
-                    <span className="ptp-sub">Chưa có link file</span>
-                  )}
-                  <button className="ptp-btn ptp-btn--warn ptp-btn--small" onClick={() => onDeletePlan(p.id)}>
-                    Xóa
-                  </button>
+                      Xóa
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

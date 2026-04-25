@@ -269,11 +269,6 @@ export default function TrainerDetailsPage() {
                   value={languages.length ? languages.join(", ") : "—"}
                 />
                 <InfoRow
-                  icon={<Clock3 size={16} />}
-                  label="Tối đa / ngày"
-                  value={safe(trainer.maxSessionsPerDay, 5)}
-                />
-                <InfoRow
                   icon={<Briefcase size={16} />}
                   label="Nhận share"
                   value={trainer.isAvailableForShare ? "Có" : "Không"}
@@ -296,11 +291,6 @@ export default function TrainerDetailsPage() {
                   label="SĐT"
                   value={safe(trainer?.User?.phone)}
                 />
-                <InfoRow
-                  icon={<MapPin size={16} />}
-                  label="Địa chỉ"
-                  value={safe(trainer?.User?.address)}
-                />
                 {trainer?.Gym && (
                   <InfoRow
                     icon={<Dumbbell size={16} />}
@@ -309,13 +299,6 @@ export default function TrainerDetailsPage() {
                   />
                 )}
               </div>
-            </div>
-
-            <div className="td-card">
-              <div className="td-cardHead">
-                <h3>Social</h3>
-              </div>
-              <SocialLinks links={trainer.socialLinks} />
             </div>
           </div>
         </section>

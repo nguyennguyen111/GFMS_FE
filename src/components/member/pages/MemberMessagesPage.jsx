@@ -201,10 +201,10 @@ export default function MemberMessagesPage() {
     if (text.length > 1000) return setError("Tin nhắn tối đa 1000 ký tự.");
     try {
       const content = encodeChatPayload({ type: "text", text });
-      await sendMessage(content);
       setDraft("");
       emitTyping(false);
       updateConversationPreview(text);
+      await sendMessage(content);
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Gửi tin nhắn thất bại.");
     }

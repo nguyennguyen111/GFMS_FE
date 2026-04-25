@@ -85,11 +85,13 @@ export default function FranchiseRequestsPage() {
   const [contractStatus, setContractStatus] = useState("all");
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [meta, setMeta] = useState({ totalItems: 0, totalPages: 1 });
 
   const [modal, setModal] = useState({ open: false, type: "", id: null, text: "" });
   const [signModal, setSignModal] = useState({ open: false, id: null, signerName: "Admin" });
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", detail: "", confirmLabel: "Xác nhận" });
+  const confirmResolverRef = useRef(null);
   const signPadRef = useRef(null);
 
 
@@ -140,8 +142,8 @@ export default function FranchiseRequestsPage() {
 
   useAdminRealtimeRefresh({
     onRefresh: loadFranchises,
-    events: ["notification:new"],
-    notificationTypes: ["admin_franchise_request_submitted"],
+    events: ["notification:new", "franchise:changed"],
+    notificationTypes: ["admin_franchise_request_submitted", "franchise"],
   });
 
   useEffect(() => {
@@ -190,12 +192,32 @@ export default function FranchiseRequestsPage() {
   }, [actionMenuId]);
 
 
+  function askEnterpriseConfirm(opts = {}) {
+    return new Promise((resolve) => {
+      confirmResolverRef.current = resolve;
+      setConfirmModal({
+        open: true,
+        title: opts.title || "Xác nhận thao tác",
+        message: opts.message || opts.confirmText || "Bạn có chắc chắn muốn tiếp tục?",
+        detail: opts.detail || "",
+        confirmLabel: opts.confirmLabel || "Xác nhận",
+      });
+    });
+  }
+
+  function closeEnterpriseConfirm(ok) {
+    const resolver = confirmResolverRef.current;
+    confirmResolverRef.current = null;
+    setConfirmModal({ open: false, title: "", message: "", detail: "", confirmLabel: "Xác nhận" });
+    resolver?.(Boolean(ok));
+  }
+
   async function runAction(id, fn, opts = {}) {
     setBusyId(id);
     setError("");
     try {
-      if (opts?.confirmText) {
-        const ok = window.confirm(opts.confirmText);
+      if (opts?.confirmText || opts?.message) {
+        const ok = await askEnterpriseConfirm(opts);
         if (!ok) return;
       }
       await fn();
@@ -296,8 +318,10 @@ export default function FranchiseRequestsPage() {
       id,
       () => adminFranchiseApi.countersign(id, { signerName: signModal.signerName, signatureDataUrl }),
       {
-        confirmText:
-          "Xác nhận ký đối chiếu và hoàn tất? Hệ thống sẽ tạo phòng gym và khóa bản PDF cuối.",
+        title: "Hoàn tất đối chiếu hợp đồng",
+        confirmText: "Xác nhận ký đối chiếu và hoàn tất?",
+        detail: "Hệ thống sẽ tạo phòng gym, khóa bản PDF cuối và phát hành chứng nhận hoàn tất cho đối tác.",
+        confirmLabel: "Ký đối chiếu & hoàn tất",
       }
     );
 
@@ -406,14 +430,13 @@ export default function FranchiseRequestsPage() {
               id="fr-page-size"
               className="fr-select"
               value={String(pageSize)}
+              disabled
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
             >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
+              <option value="5">5</option>
             </select>
           </div>
         </div>
@@ -911,6 +934,28 @@ export default function FranchiseRequestsPage() {
 
               <button className="fr-btn fr-btn-primary" onClick={submitModal} disabled={busyId !== null}>
                 Gửi
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmModal.open ? (
+        <div className="fr-confirmBackdrop" role="presentation" onMouseDown={() => closeEnterpriseConfirm(false)}>
+          <div className="fr-confirmCard" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="fr-confirmIcon">✓</div>
+            <div className="fr-confirmContent">
+              <div className="fr-confirmEyebrow">GFMS Enterprise Workflow</div>
+              <h3>{confirmModal.title}</h3>
+              <p>{confirmModal.message}</p>
+              {confirmModal.detail ? <div className="fr-confirmDetail">{confirmModal.detail}</div> : null}
+            </div>
+            <div className="fr-confirmActions">
+              <button className="fr-btn fr-btn-ghost" type="button" onClick={() => closeEnterpriseConfirm(false)}>
+                Hủy
+              </button>
+              <button className="fr-btn fr-btn-warning" type="button" onClick={() => closeEnterpriseConfirm(true)}>
+                {confirmModal.confirmLabel}
               </button>
             </div>
           </div>

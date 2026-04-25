@@ -135,7 +135,7 @@ export default function OwnerInventoryPage() {
   return (
     <div className="oinv-page">
       <div className="oinv-head">
-        <h2>Tồn kho</h2>
+        <h2>Kho thiết bị</h2>
         <p>{selectedGymName ? `Đang quản lý tồn kho của chi nhánh ${selectedGymName}` : "Quản lý hàng tồn kho theo từng gym"}</p>
       </div>
 
