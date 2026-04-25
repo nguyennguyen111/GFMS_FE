@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -69,9 +69,10 @@ const getMemberSessionDisplay = (booking) => {
 };
 
 export default function MemberBookingsCalendarPage() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [feedbackHighlightId, setFeedbackHighlightId] = useState(null);
   const [weekCursor, setWeekCursor] = useState(() => startOfWeekMonday(new Date()));
 
   const loadBookings = useCallback(async () => {
@@ -90,6 +91,28 @@ export default function MemberBookingsCalendarPage() {
   }, [loadBookings]);
 
   useEffect(() => {
+    const raw = searchParams.get("sessionFeedback");
+    if (!raw) return;
+    const id = Number(raw);
+    if (!Number.isFinite(id) || id <= 0) return;
+    setFeedbackHighlightId(id);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("sessionFeedback");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!feedbackHighlightId || !bookings.length) return;
+    const b = bookings.find((x) => Number(x.id) === Number(feedbackHighlightId));
+    if (b) setSelected(b);
+  }, [feedbackHighlightId, bookings]);
+
+  useEffect(() => {
     const socket = connectSocket();
     const onBookingStatusChanged = () => {
       loadBookings();
@@ -98,7 +121,7 @@ export default function MemberBookingsCalendarPage() {
       const t = String(
         payload?.notificationType || payload?.type || "",
       ).toLowerCase();
-      if (t === "booking_update") loadBookings();
+      if (t === "booking_update" || t === "session_feedback") loadBookings();
     };
     socket.on("booking:status-changed", onBookingStatusChanged);
     socket.on("notification:new", onNotificationNew);
@@ -332,7 +355,23 @@ export default function MemberBookingsCalendarPage() {
         </section>
       </div>
 
-      {selected && <BookingDetailModal booking={selected} onClose={() => setSelected(null)} onUpdated={async () => { await loadBookings(); setSelected(null); }} />}
+      {selected ? (
+        <BookingDetailModal
+          booking={selected}
+          initialShowFeedback={
+            feedbackHighlightId != null && Number(selected.id) === Number(feedbackHighlightId)
+          }
+          onClose={() => {
+            setSelected(null);
+            setFeedbackHighlightId(null);
+          }}
+          onUpdated={async () => {
+            await loadBookings();
+            setSelected(null);
+            setFeedbackHighlightId(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

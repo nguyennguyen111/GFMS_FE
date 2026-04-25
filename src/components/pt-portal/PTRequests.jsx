@@ -87,6 +87,26 @@ const formatDateTime = (v) => {
   }
 };
 
+const todayISO = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const minutesNow = () => {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+};
+
+const hhmmToMin = (v) => {
+  const s = String(v || "").trim();
+  const m = s.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+};
+
 export default function PTRequests() {
   const PAGE_SIZE = 8;
   const [activeType, setActiveType] = useState("LEAVE");
@@ -141,10 +161,12 @@ export default function PTRequests() {
 
   const validate = () => {
     const f = currentForm;
+    const today = todayISO();
 
     if (activeType === "LEAVE") {
       if (!f.fromDate || !f.toDate) return "Vui lòng chọn ngày bắt đầu và kết thúc";
       if (f.fromDate > f.toDate) return "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc";
+      if (f.fromDate < today || f.toDate < today) return "Không thể gửi đơn nghỉ phép cho ngày quá khứ";
       if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }
@@ -153,6 +175,11 @@ export default function PTRequests() {
       if (!f.date) return "Cần chọn ngày";
       if (!f.fromTime || !f.toTime) return "Cần nhập giờ bắt đầu và kết thúc";
       if (f.fromTime >= f.toTime) return "Giờ bắt đầu phải trước giờ kết thúc";
+      if (f.date < today) return "Không thể gửi đơn tăng ca cho ngày quá khứ";
+      if (f.date === today) {
+        const toMin = hhmmToMin(f.toTime);
+        if (toMin != null && toMin <= minutesNow()) return "Không thể gửi đơn tăng ca cho khung giờ đã qua";
+      }
       if (!String(f.reason || "").trim()) return "Vui lòng nhập lý do";
       return null;
     }

@@ -1,10 +1,11 @@
 import axios from "../setup/axios"; // hoặc "../setup/axios" tùy project
 
 const BASE = "/api/pt";
-const PT_ATTENDANCE_ACTION_TIMEOUT_MS = 120000;
-// Schedule/attendance reads should not keep users waiting too long.
-const PT_ATTENDANCE_READ_TIMEOUT_MS = 25000;
-const ATTENDANCE_CACHE_TTL_MS = 15000;
+/** POST điểm danh / reset / busy — đủ cho BE chậm, không treo phút như timeout axios mặc định */
+const PT_ATTENDANCE_MUTATION_TIMEOUT_MS = 45000;
+/** GET lịch buổi theo ngày — trang PT có thể gọi nhiều ngày song song, fail fast khi deploy/network chậm */
+const PT_ATTENDANCE_READ_TIMEOUT_MS = 12000;
+const ATTENDANCE_CACHE_TTL_MS = 20000;
 const attendanceScheduleCache = new Map();
 const attendanceScheduleInFlight = new Map();
 
@@ -22,7 +23,7 @@ const getToken = () => {
 const ptConfig = (options = {}) => ({
   withCredentials: true,
   headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
-  timeout: options.timeout ?? PT_ATTENDANCE_ACTION_TIMEOUT_MS,
+  timeout: options.timeout ?? PT_ATTENDANCE_MUTATION_TIMEOUT_MS,
 });
 
 const buildScheduleCacheKey = (params = {}) => {
@@ -81,26 +82,58 @@ export const getPTAttendanceSchedule = async (params = {}, options = {}) => {
 };
 
 export const ptCheckIn = async ({ bookingId, method = "manual", status = "present" }) => {
-  const res = await axios.post(`${BASE}/attendance/check-in`, { bookingId, method, status }, ptConfig());
+  const res = await axios.post(
+    `${BASE}/attendance/check-in`,
+    { bookingId, method, status },
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS })
+  );
   return res.data;
 };
 
-export const ptCheckOut = async ({ bookingId, sessionNotes, exercises, weight, bodyFat, muscleMass, sessionRating, status = "absent" }) => {
+export const ptCheckOut = async ({
+  bookingId,
+  sessionNotes,
+  ptMemberFeedback,
+  exercises,
+  weight,
+  bodyFat,
+  muscleMass,
+  sessionRating,
+  status = "absent",
+}) => {
   const res = await axios.post(
     `${BASE}/attendance/check-out`,
-    { bookingId, sessionNotes, exercises, weight, bodyFat, muscleMass, sessionRating, status },
-    ptConfig()
+    {
+      bookingId,
+      sessionNotes,
+      ptMemberFeedback,
+      exercises,
+      weight,
+      bodyFat,
+      muscleMass,
+      sessionRating,
+      status,
+    },
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS })
   );
   return res.data;
 };
 
 export const ptResetAttendance = async ({ bookingId }) => {
-  const res = await axios.post(`${BASE}/attendance/reset`, { bookingId }, ptConfig());
+  const res = await axios.post(
+    `${BASE}/attendance/reset`,
+    { bookingId },
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS })
+  );
   return res.data;
 };
 
 export const ptRequestBusySlot = async ({ bookingId, reason }) => {
-  const res = await axios.post(`${BASE}/attendance/request-busy-slot`, { bookingId, reason }, ptConfig());
+  const res = await axios.post(
+    `${BASE}/attendance/request-busy-slot`,
+    { bookingId, reason },
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS })
+  );
   return res.data;
 };
 
@@ -109,7 +142,7 @@ export const ptSendSharePaymentInstruction = async (bookingId, body) => {
   const res = await axios.post(
     `${BASE}/bookings/${bookingId}/share-payment-instruction`,
     body,
-    ptConfig(),
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS }),
   );
   return res.data;
 };
@@ -119,7 +152,7 @@ export const ptSubmitSharePaymentDispute = async (bookingId, body) => {
   const res = await axios.post(
     `${BASE}/bookings/${bookingId}/share-payment-dispute`,
     body,
-    ptConfig(),
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS }),
   );
   return res.data;
 };
@@ -129,7 +162,7 @@ export const ptAcknowledgeSharePaymentResponse = async (bookingId) => {
   const res = await axios.post(
     `${BASE}/bookings/${bookingId}/share-payment-ack`,
     {},
-    ptConfig(),
+    ptConfig({ timeout: PT_ATTENDANCE_MUTATION_TIMEOUT_MS }),
   );
   return res.data;
 };

@@ -59,12 +59,20 @@ export default function PTAttendanceModal({
   const [sharePay, setSharePay] = useState(emptyPay);
   const [disputeNote, setDisputeNote] = useState("");
   const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [completeFeedbackOpen, setCompleteFeedbackOpen] = useState(false);
+  const [completeFeedbackText, setCompleteFeedbackText] = useState("");
+  const [completeFeedbackError, setCompleteFeedbackError] = useState("");
+
+  const MIN_FEEDBACK_LEN = 8;
 
   useEffect(() => {
     setIsEditing(false);
     setSharePay(emptyPay);
     setDisputeNote(String(booking?.sharePayment?.sharePaymentDisputeNote || ""));
     setShowDisputeModal(false);
+    setCompleteFeedbackOpen(false);
+    setCompleteFeedbackText("");
+    setCompleteFeedbackError("");
   }, [open, booking?.id, booking?.sharePayment?.sharePaymentDisputeNote]);
 
   if (!open) return null;
@@ -96,7 +104,14 @@ export default function PTAttendanceModal({
 
   return (
     <div className="ptAttModal__backdrop" onMouseDown={onClose}>
-      <div className="ptAttModal__card" onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className={`ptAttModal__card${completeFeedbackOpen ? " ptAttModal__card--feedbackActive" : ""}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`ptAttModal__main${completeFeedbackOpen ? " ptAttModal__main--dimmed" : ""}`}
+          aria-hidden={completeFeedbackOpen}
+        >
         <div className="ptAttModal__head">
           <div>
             <div className="ptAttModal__title">ĐIỂM DANH BUỔI TẬP</div>
@@ -508,10 +523,9 @@ export default function PTAttendanceModal({
                         type="button"
                         className="ptAttModal__btn ptAttModal__btn--present"
                         disabled={interactionDisabled}
-                        onClick={async () => {
-                          await onComplete({ status: "present" });
-                          setIsEditing(false);
-                          if (refresh) await refresh();
+                        onClick={() => {
+                          setCompleteFeedbackError("");
+                          setCompleteFeedbackOpen(true);
                         }}
                       >
                         ✓ Hoàn thành buổi tập
@@ -575,6 +589,82 @@ export default function PTAttendanceModal({
             )}
           </>
         )}
+        </div>
+
+        {completeFeedbackOpen ? (
+          <div
+            className="ptAttModal__feedbackLayer"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <div
+              className="ptAttModal__feedbackSheet"
+              onMouseDown={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="pt-att-feedback-title"
+            >
+              <div className="ptAttModal__feedbackTitle" id="pt-att-feedback-title">
+                Nhận xét buổi tập (bắt buộc)
+              </div>
+              <p className="ptAttModal__feedbackHint">
+                Mô tả ngắn gọn mức độ tập luyện, kỹ thuật hoặc tiến độ của học viên trong buổi này. Học viên sẽ nhận
+                thông báo và xem được nội dung này.
+              </p>
+              <label className="ptAttModal__feedbackLabel">
+                <span>Nội dung nhận xét</span>
+                <textarea
+                  className="ptAttModal__feedbackTextarea"
+                  rows={6}
+                  value={completeFeedbackText}
+                  onChange={(e) => setCompleteFeedbackText(e.target.value)}
+                  placeholder="Ví dụ: Form squat ổn định hơn tuần trước, cần duy trì nhịp thở khi tăng tạ..."
+                  disabled={interactionDisabled}
+                />
+              </label>
+              {completeFeedbackError ? (
+                <div className="ptAttModal__feedbackError">{completeFeedbackError}</div>
+              ) : null}
+              <div className="ptAttModal__feedbackActions">
+                <button
+                  type="button"
+                  className="ptAttModal__btn ptAttModal__btn--edit"
+                  disabled={interactionDisabled}
+                  onClick={() => {
+                    setCompleteFeedbackOpen(false);
+                    setCompleteFeedbackError("");
+                  }}
+                >
+                  Quay lại
+                </button>
+                <button
+                  type="button"
+                  className="ptAttModal__btn ptAttModal__btn--present"
+                  disabled={interactionDisabled}
+                  onClick={async () => {
+                    if (interactionDisabled || !onComplete) return;
+                    setCompleteFeedbackError("");
+                    const trimmed = String(completeFeedbackText || "").trim();
+                    if (trimmed.length < MIN_FEEDBACK_LEN) {
+                      setCompleteFeedbackError(
+                        `Vui lòng nhập ít nhất ${MIN_FEEDBACK_LEN} ký tự (hiện ${trimmed.length}).`
+                      );
+                      return;
+                    }
+                    const ok = await onComplete({ ptMemberFeedback: trimmed });
+                    if (!ok) return;
+                    setCompleteFeedbackOpen(false);
+                    setCompleteFeedbackText("");
+                    setIsEditing(false);
+                    if (refresh) await refresh();
+                  }}
+                >
+                  Gửi và hoàn thành buổi
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
