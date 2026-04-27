@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getPTScheduleSlots, getPTDetails, getMyPTProfile } from "../../services/ptService";
 import { connectSocket } from "../../services/socketClient";
 import { getAccessToken, getCurrentUser } from "../../utils/auth";
+import { normalizeSingleImageSrc } from "../../utils/image";
 import {
   getPTAttendanceSchedule,
   invalidatePTAttendanceScheduleCache,
@@ -718,6 +719,33 @@ const PTSchedule = () => {
     return '#3498db';
   };
 
+  // Đồng bộ logic chọn avatar với `PTClients.jsx`
+  const isUsableAvatarUrl = (url) => {
+    const s = String(url || "").trim();
+    if (!s) return false;
+    if (/default-avatar\.png$/i.test(s)) return false;
+    return /^https?:\/\//i.test(s) || s.startsWith("data:image/") || s.startsWith("/");
+  };
+
+  const pickMemberAvatar = (booking) => {
+    const member = booking?.Member || booking?.member || null;
+    const direct = member?.avatar;
+    const nested = member?.User?.avatar;
+    const raw = isUsableAvatarUrl(direct) ? String(direct).trim() : isUsableAvatarUrl(nested) ? String(nested).trim() : "";
+    const normalized = raw ? normalizeSingleImageSrc(raw) : "";
+    return normalized || null;
+  };
+
+  const pickMemberInitial = (booking) => {
+    const name =
+      booking?.Member?.User?.username ||
+      booking?.Member?.User?.email ||
+      booking?.Member?.fullName ||
+      "";
+    const ch = String(name).trim().charAt(0).toUpperCase();
+    return ch || "H";
+  };
+
   return (
     <div className="ptSchedule">
       <div className="ptSchedule__header">
@@ -830,19 +858,16 @@ const PTSchedule = () => {
                           className={`ptWeek__block ${statusClass}`} 
                           style={{
                             top: `${topPx}px`, 
-                            height: `${heightPx - 2}px`,
+                            // Tránh cắt chữ ở đáy (đặc biệt các line "đã báo bận", "có mặt"...)
+                            height: `${Math.max(18, heightPx)}px`,
                           }} 
                           onClick={()=>openAttendance(d.date,s)}
                         >
-                          <div className="ptWeek__blockTime">{s.start}</div>
-                          {booking && <div className="ptWeek__studentName" style={{ color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession, isSubstitute) }}>
-                            {isSharedSession && <span style={{ color: "#a855f7" }}>↔ </span>}
-                            {isBusyRequested && <span style={{ color: "#f59e0b" }}>⚠ </span>}
-                            {isSubstitute && !isSharedSession && !isBusyRequested && <span style={{ color: "#008cff" }}>🔄 </span>}
-                            👤 {booking.Member?.User?.username || "Học viên"}
-                            {(attendanceStatus || isBusyRequested || isSharedSession || isSubstitute) && (
+                          <div className="ptWeek__topRow">
+                            <div className="ptWeek__blockTime">{s.start}</div>
+                            {booking && (attendanceStatus || isBusyRequested || isSharedSession || isSubstitute) ? (
                               <div
-                                className="mini-status"
+                                className="mini-status mini-status--inline"
                                 title={
                                   isSharedSession &&
                                   booking?.sharePayment?.sharePaymentPtAcknowledgedAt
@@ -868,8 +893,44 @@ const PTSchedule = () => {
                                   ""
                                 )}
                               </div>
-                            )}
-                          </div>}
+                            ) : null}
+                          </div>
+
+                          {booking ? (
+                            <div
+                              className="ptWeek__studentName"
+                              style={{
+                                color: getStudentNameColor(attendanceStatus, isBusyRequested, isSharedSession, isSubstitute),
+                              }}
+                            >
+                            <span className="ptWeek__studentChip">
+                              {(() => {
+                                const av = pickMemberAvatar(booking);
+                                if (av) {
+                                  return (
+                                    <img
+                                      className="ptWeek__studentAvatar"
+                                      src={av}
+                                      alt="avatar"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <span className="ptWeek__studentAvatarFallback" aria-hidden>
+                                    {pickMemberInitial(booking)}
+                                  </span>
+                                );
+                              })()}
+                              <span className="ptWeek__studentText">
+                                {booking.Member?.User?.username || "Học viên"}
+                              </span>
+                            </span>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -895,8 +956,34 @@ const PTSchedule = () => {
                   const booking = todayAttendanceRows.find(
                     (b) => String(b.startTime || "").slice(0, 5) === String(s.start || "").slice(0, 5)
                   );
-                  const studentCell = booking
-                    ? booking.Member?.User?.username || "Học viên"
+                  const studentCell = booking ? (
+                    <span className="ptWeek__studentChip">
+                      {(() => {
+                        const av = pickMemberAvatar(booking);
+                        if (av) {
+                          return (
+                            <img
+                              className="ptWeek__studentAvatar"
+                              src={av}
+                              alt="avatar"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <span className="ptWeek__studentAvatarFallback" aria-hidden>
+                            {pickMemberInitial(booking)}
+                          </span>
+                        );
+                      })()}
+                      <span className="ptWeek__studentText">
+                        {booking.Member?.User?.username || "Học viên"}
+                      </span>
+                    </span>
+                  )
                     : "Lịch rảnh";
                   return (
                     <tr key={i}>
