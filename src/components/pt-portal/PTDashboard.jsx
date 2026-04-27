@@ -12,7 +12,6 @@ import {
   getMyPTCommissions,
   getMyPTReviews,
   getPTScheduleSlots,
-  getMyPTPayrollPeriods,
 } from "../../services/ptService";
 import "../member/member-pages.css";
 import "../member/pages/MemberHomePage.css";
@@ -82,22 +81,6 @@ const normalizeReviews = (raw) => {
   return [];
 };
 
-const normalizePayrollItems = (raw) => {
-  if (Array.isArray(raw?.data)) return raw.data;
-  if (Array.isArray(raw)) return raw;
-  return [];
-};
-
-/** Nhãn ngắn cho kỳ lương (trục biểu đồ) */
-const formatPayrollPeriodLabel = (item, idx) => {
-  const p = item?.PayrollPeriod;
-  if (!p?.startDate || !p?.endDate) return `Kỳ ${idx + 1}`;
-  const s = new Date(p.startDate);
-  const e = new Date(p.endDate);
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return `Kỳ ${idx + 1}`;
-  return `${s.getDate()}/${s.getMonth() + 1}→${e.getDate()}/${e.getMonth() + 1}`;
-};
-
 /** Mốc thời gian bắt đầu buổi (ngày + giờ) để sort đúng thứ tự trong cùng một ngày */
 const getBookingStartMs = (b) => {
   const ymd = bookingToYMD(b?.bookingDate);
@@ -154,7 +137,6 @@ const PTDashboard = () => {
   const [commissions, setCommissions] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [scheduleSlots, setScheduleSlots] = useState({});
-  const [payrollItems, setPayrollItems] = useState([]);
   const [kpiModal, setKpiModal] = useState(null);
 
   const user = useMemo(() => {
@@ -180,20 +162,18 @@ const PTDashboard = () => {
         setCommissions([]);
         setReviews([]);
         setScheduleSlots({});
-        setPayrollItems([]);
         setWallet({ availableBalance: 0, totalWithdrawn: 0 });
         return;
       }
       setTrainerId(Number(myId));
       setPtId(Number(myId));
 
-      const [bookingsRaw, walletRes, commRes, revRes, sch, payrollRes] = await Promise.all([
+      const [bookingsRaw, walletRes, commRes, revRes, sch] = await Promise.all([
         getPTBookings("me").catch(() => []),
         getMyPTWalletSummary().catch(() => ({ data: { availableBalance: 0, totalWithdrawn: 0 } })),
         getMyPTCommissions({}).catch(() => ({ data: [] })),
         getMyPTReviews({}).catch(() => ({ data: [] })),
         getPTScheduleSlots(String(myId)).catch(() => ({})),
-        getMyPTPayrollPeriods().catch(() => ({ data: [] })),
       ]);
 
       setTrainer(me);
@@ -202,7 +182,6 @@ const PTDashboard = () => {
       setCommissions(normalizeCommissions(commRes));
       setReviews(normalizeReviews(revRes));
       setScheduleSlots(sch || {});
-      setPayrollItems(normalizePayrollItems(payrollRes));
     } catch (e) {
       console.error("PTDashboard load error:", e);
       setLoadError(e?.response?.data?.message || "Không tải được bảng điều khiển. Thử đăng nhập lại.");
@@ -435,11 +414,11 @@ const PTDashboard = () => {
       });
   }, [commissions, bookings]);
 
-  const revenueChart = useMemo(() => {
+  const incomeChart = useMemo(() => {
     const labels = [];
     const sums = [];
     const now = new Date();
-    for (let w = 3; w >= 0; w--) {
+    for (let w = 5; w >= 0; w--) {
       const monday = startOfWeekMonday(now);
       monday.setDate(monday.getDate() - w * 7);
       const nextMonday = new Date(monday);
@@ -457,38 +436,12 @@ const PTDashboard = () => {
     return {
       data: makeLineChartData({
         labels,
-        label: "Hoa hồng (₫)",
+        label: "Thu nhập (₫)",
         data: sums,
       }),
-      options: makeLineOptions("Hoa hồng theo tuần (4 tuần gần nhất)"),
+      options: makeLineOptions("Thu nhập theo tuần (6 tuần gần nhất)"),
     };
   }, [commissions]);
-
-  /** Lương theo kỳ payroll đã chốt (totalAmount trên PayrollItem) */
-  const salaryChart = useMemo(() => {
-    const sorted = [...payrollItems]
-      .filter((x) => x?.PayrollPeriod)
-      .sort((a, b) => {
-        const da = new Date(a.PayrollPeriod.startDate || 0).getTime();
-        const db = new Date(b.PayrollPeriod.startDate || 0).getTime();
-        return da - db;
-      });
-    const last = sorted.slice(-6);
-    const labels = last.map((it, idx) => formatPayrollPeriodLabel(it, idx));
-    const sums = last.map((it) => Number(it.totalAmount ?? 0));
-    const empty = last.length === 0;
-    return {
-      data: makeLineChartData({
-        labels: empty ? ["—"] : labels,
-        label: "Lương theo kỳ (₫)",
-        data: empty ? [0] : sums,
-        borderColor: "rgba(78, 205, 196, 0.95)",
-        backgroundColor: "rgba(78, 205, 196, 0.14)",
-      }),
-      options: makeLineOptions("Lương theo kỳ đã chốt (tối đa 6 kỳ gần nhất)"),
-      empty,
-    };
-  }, [payrollItems]);
 
   const displayName = user?.username || user?.fullName || "PT";
   const email = user?.email || "—";
@@ -859,32 +812,14 @@ const PTDashboard = () => {
           <div className="mh-card">
             <div className="mh-card__head">
               <div>
-                <div className="mh-card__title">Biểu đồ hoa hồng</div>
-                <div className="mh-card__desc">4 tuần gần nhất</div>
+                <div className="mh-card__title">Biểu đồ thu nhập</div>
+                <div className="mh-card__desc">6 tuần gần nhất</div>
               </div>
             </div>
 
             <div className="ptd-chartBox">
-              <Line data={revenueChart.data} options={revenueChart.options} />
+              <Line data={incomeChart.data} options={incomeChart.options} />
             </div>
-          </div>
-
-          <div className="mh-card">
-            <div className="mh-card__head">
-              <div>
-                <div className="mh-card__title">Biểu đồ lương</div>
-              </div>
-            </div>
-            <div className="mh-card__desc ptd-chartHint">
-              Tổng tiền theo từng kỳ lương đã chốt (Payroll). Màu teal phân biệt với hoa hồng theo tuần.
-            </div>
-            {salaryChart.empty ? (
-              <div className="ptd-chartEmpty">Chưa có kỳ lương đã chốt.</div>
-            ) : (
-              <div className="ptd-chartBox">
-                <Line data={salaryChart.data} options={salaryChart.options} />
-              </div>
-            )}
           </div>
         </div>
 

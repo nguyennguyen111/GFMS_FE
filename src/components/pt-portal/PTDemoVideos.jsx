@@ -28,13 +28,11 @@ const PTDemoVideos = () => {
   const [videos, setVideos] = useState([]);
   const [durationsById, setDurationsById] = useState({});
   const [plans, setPlans] = useState([]);
-  const [title, setTitle] = useState("");
-  const [planTitle, setPlanTitle] = useState("");
-  const [file, setFile] = useState(null);
-  const [planFile, setPlanFile] = useState(null);
+  const [uploadKind, setUploadKind] = useState("demo_video"); // demo_video | training_plan
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadingPlan, setUploadingPlan] = useState(false);
   const [error, setError] = useState("");
   const [eligibleActivations, setEligibleActivations] = useState([]);
   const [sendActivationId, setSendActivationId] = useState("");
@@ -127,27 +125,43 @@ const PTDemoVideos = () => {
 
   const onUpload = async (e) => {
     e.preventDefault();
-    if (!String(title || "").trim()) {
-      setError("Vui lòng nhập tiêu đề video.");
+    const kind = String(uploadKind || "").toLowerCase();
+    const isVideo = kind === "demo_video";
+    const titleLabel = isVideo ? "video" : "kế hoạch tập luyện";
+    const maxMb = isVideo ? MAX_VIDEO_MB : MAX_PLAN_MB;
+
+    if (!String(uploadTitle || "").trim()) {
+      setError(`Vui lòng nhập tiêu đề ${titleLabel}.`);
       return;
     }
-    if (!file) {
-      setError("Vui lòng chọn 1 video.");
+    if (!uploadFile) {
+      setError(isVideo ? "Vui lòng chọn 1 video." : "Vui lòng chọn file kế hoạch (pdf/doc/docx).");
       return;
     }
-    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      setError(`Video quá lớn. Giới hạn: ${MAX_VIDEO_MB}MB.`);
+    if (uploadFile.size > maxMb * 1024 * 1024) {
+      setError(
+        isVideo
+          ? `Video quá lớn. Giới hạn: ${MAX_VIDEO_MB}MB.`
+          : `File kế hoạch quá lớn. Giới hạn: ${MAX_PLAN_MB}MB.`
+      );
       return;
     }
     try {
       setUploading(true);
       setError("");
-      await uploadMyPTDemoVideo({ file, title: String(title || "").trim() });
-      setTitle("");
-      setFile(null);
+      if (isVideo) {
+        await uploadMyPTDemoVideo({ file: uploadFile, title: String(uploadTitle || "").trim() });
+      } else {
+        await uploadMyPTTrainingPlan({ file: uploadFile, title: String(uploadTitle || "").trim() });
+      }
+      setUploadTitle("");
+      setUploadFile(null);
       await fetchVideos();
     } catch (err) {
-      setError(err?.response?.data?.message || "Upload video thất bại.");
+      setError(
+        err?.response?.data?.message ||
+          (isVideo ? "Upload video thất bại." : "Upload file kế hoạch thất bại.")
+      );
     } finally {
       setUploading(false);
     }
@@ -160,34 +174,6 @@ const PTDemoVideos = () => {
       setVideos((prev) => prev.filter((v) => String(v.id) !== String(videoId)));
     } catch (err) {
       setError(err?.response?.data?.message || "Không xóa được video.");
-    }
-  };
-
-  const onUploadPlan = async (e) => {
-    e.preventDefault();
-    if (!String(planTitle || "").trim()) {
-      setError("Vui lòng nhập tiêu đề kế hoạch tập luyện.");
-      return;
-    }
-    if (!planFile) {
-      setError("Vui lòng chọn file kế hoạch (pdf/doc/docx).");
-      return;
-    }
-    if (planFile.size > MAX_PLAN_MB * 1024 * 1024) {
-      setError(`File kế hoạch quá lớn. Giới hạn: ${MAX_PLAN_MB}MB.`);
-      return;
-    }
-    try {
-      setUploadingPlan(true);
-      setError("");
-      await uploadMyPTTrainingPlan({ file: planFile, title: String(planTitle || "").trim() });
-      setPlanTitle("");
-      setPlanFile(null);
-      await fetchVideos();
-    } catch (err) {
-      setError(err?.response?.data?.message || "Upload file kế hoạch thất bại.");
-    } finally {
-      setUploadingPlan(false);
     }
   };
 
@@ -253,59 +239,63 @@ const PTDemoVideos = () => {
       </div>
 
       <form className="ptp-card pt-demo-upload-card" onSubmit={onUpload}>
-        <h3 className="pt-demo-title">Thư viện video hướng dẫn</h3>
+        <h3 className="pt-demo-title">Upload vào thư viện</h3>
         <div className="ptp-grid ptp-grid--single">
           <div className="ptp-row">
-            <label>Tiêu đề video</label>
+            <label>Loại nội dung</label>
+            <select
+              className="ptp-input"
+              value={uploadKind}
+              onChange={(e) => {
+                const next = e.target.value;
+                setUploadKind(next);
+                setUploadTitle("");
+                setUploadFile(null);
+                setError("");
+              }}
+            >
+              <option value="demo_video">Video hướng dẫn</option>
+              <option value="training_plan">Tài liệu kế hoạch (PDF/DOC/DOCX)</option>
+            </select>
+          </div>
+          <div className="ptp-row">
+            <label>{uploadKind === "demo_video" ? "Tiêu đề video" : "Tiêu đề kế hoạch tập luyện"}</label>
             <input
               className="ptp-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ví dụ: Demo buổi tập giảm mỡ"
+              value={uploadTitle}
+              onChange={(e) => setUploadTitle(e.target.value)}
+              placeholder={
+                uploadKind === "demo_video"
+                  ? "Ví dụ: Demo buổi tập giảm mỡ"
+                  : "Ví dụ: Kế hoạch tập 8 tuần giảm mỡ"
+              }
             />
           </div>
           <div className="ptp-row">
-            <label>Chọn file video</label>
+            <label>
+              {uploadKind === "demo_video"
+                ? `Chọn file video (≤ ${MAX_VIDEO_MB}MB)`
+                : `Chọn file kế hoạch (≤ ${MAX_PLAN_MB}MB)`}
+            </label>
             <input
               className="ptp-input"
               type="file"
-              accept="video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept={
+                uploadKind === "demo_video"
+                  ? "video/*"
+                  : ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              }
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
             />
           </div>
         </div>
         <div className="pt-demo-upload-action">
           <button type="submit" className="ptp-btn ptp-btn--primary" disabled={uploading}>
-            {uploading ? "Đang lưu..." : "Lưu video vào thư viện"}
-          </button>
-        </div>
-      </form>
-
-      <form className="ptp-card pt-demo-upload-card" onSubmit={onUploadPlan}>
-        <h3 className="pt-demo-title">Thư viện tài liệu kế hoạch (PDF/DOC/DOCX)</h3>
-        <div className="ptp-grid ptp-grid--single">
-          <div className="ptp-row">
-            <label>Tiêu đề kế hoạch tập luyện</label>
-            <input
-              className="ptp-input"
-              value={planTitle}
-              onChange={(e) => setPlanTitle(e.target.value)}
-              placeholder="Ví dụ: Kế hoạch tập 8 tuần giảm mỡ"
-            />
-          </div>
-          <div className="ptp-row">
-            <label>Chọn file kế hoạch (pdf/doc/docx)</label>
-            <input
-              className="ptp-input"
-              type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={(e) => setPlanFile(e.target.files?.[0] || null)}
-            />
-          </div>
-        </div>
-        <div className="pt-demo-upload-action">
-          <button type="submit" className="ptp-btn ptp-btn--primary" disabled={uploadingPlan}>
-            {uploadingPlan ? "Đang lưu..." : "Lưu tài liệu vào thư viện"}
+            {uploading
+              ? "Đang lưu..."
+              : uploadKind === "demo_video"
+              ? "Lưu video vào thư viện"
+              : "Lưu tài liệu vào thư viện"}
           </button>
         </div>
       </form>
