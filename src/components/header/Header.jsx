@@ -259,7 +259,11 @@ export default function Header() {
       onClick={() => go("/pt/messages")}
     >
       <MessageCircle size={18} />
-      {trainerMessageUnread > 0 ? <span className="header-noti-dot" /> : null}
+      {trainerMessageUnread > 0 ? (
+        <span className="header-noti-count">
+          {trainerMessageUnread > 99 ? "99+" : trainerMessageUnread}
+        </span>
+      ) : null}
     </button>
   );
 

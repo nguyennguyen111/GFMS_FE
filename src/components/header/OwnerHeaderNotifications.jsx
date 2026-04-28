@@ -92,6 +92,8 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
   const { selectedGymId } = useSelectedGym();
   const notifications = useRealtimeNotifications({ gymId: selectedGymId });
   const unreadPreviewItems = notifications.items.filter((item) => !item.isRead).slice(0, 5);
+  const unreadBadgeText =
+    notifications.unreadCount > 99 ? "99+" : String(notifications.unreadCount || 0);
 
   useEffect(() => {
     const onClick = (event) => {
@@ -127,7 +129,9 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
       >
         <Bell size={18} />
         {notifications.unreadCount > 0 ? (
-          <span className="ohn-badge" />
+          <span className="ohn-badge" aria-label={`${notifications.unreadCount} thông báo chưa đọc`}>
+            {unreadBadgeText}
+          </span>
         ) : null}
       </button>
 

@@ -90,7 +90,9 @@ export default function PTHeaderNotifications({ onNavigate }) {
         onClick={() => setOpen((v) => !v)}
       >
         <Bell size={18} />
-        {unreadCount > 0 ? <span className="header-noti-dot" /> : null}
+        {unreadCount > 0 ? (
+          <span className="header-noti-count">{unreadCount > 99 ? "99+" : unreadCount}</span>
+        ) : null}
       </button>
 
       {open && (
