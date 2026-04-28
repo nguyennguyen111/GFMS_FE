@@ -127,6 +127,7 @@ export default function MemberHeaderNotifications({ onNavigate }) {
   const latestItems = useMemo(() => {
     return Array.isArray(items) ? items.slice(0, 8) : [];
   }, [items]);
+  const unreadBadgeText = unreadCount > 99 ? "99+" : String(unreadCount || 0);
 
   const handleOpenItem = async (item) => {
     if (!item) return;
@@ -165,7 +166,11 @@ export default function MemberHeaderNotifications({ onNavigate }) {
         onClick={() => setOpen((v) => !v)}
       >
         <Bell size={18} />
-        {unreadCount > 0 ? <span className="header-noti-dot" /> : null}
+        {unreadCount > 0 ? (
+          <span className="header-noti-count" aria-label={`${unreadCount} thông báo chưa đọc`}>
+            {unreadBadgeText}
+          </span>
+        ) : null}
       </button>
 
       {!open && toastItem ? (
@@ -225,6 +230,11 @@ export default function MemberHeaderNotifications({ onNavigate }) {
               <h3 className="header-notification-dropdown__title">
                 Cập nhật gần đây
               </h3>
+              {unreadCount > 0 ? (
+                <div className="header-notification-dropdown__unread">
+                  {unreadCount} chưa đọc
+                </div>
+              ) : null}
             </div>
 
             <button
