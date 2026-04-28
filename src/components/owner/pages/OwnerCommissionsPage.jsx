@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ownerGetCommissions,
+  ownerGetPendingAttendanceWindow,
   ownerPreviewClosePayrollPeriod,
   ownerPreviewPayByTrainer,
   ownerClosePayrollPeriod,
@@ -44,6 +46,8 @@ const formatTimeRange = (startTime, endTime) => {
 };
 
 const OwnerCommissionsPage = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("commissions");
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
   const [trainers, setTrainers] = useState([]);
@@ -56,6 +60,14 @@ const OwnerCommissionsPage = () => {
     totalPages: 0,
   });
   const [periods, setPeriods] = useState([]);
+  const [pendingAttendanceRows, setPendingAttendanceRows] = useState([]);
+  const [pendingPagination, setPendingPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+  });
+  const [pendingPage, setPendingPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const [filters, setFilters] = useState({
@@ -167,6 +179,30 @@ const OwnerCommissionsPage = () => {
     }
   }, [filters, selectedGymId, commissionPage]);
 
+  const loadPendingAttendance = useCallback(async (page = pendingPage) => {
+    try {
+      const response = await ownerGetPendingAttendanceWindow({
+        gymId: selectedGymId ? String(selectedGymId) : filters.gymId || undefined,
+        page,
+        limit: 20,
+      });
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const pagination = response.data?.pagination || {};
+      setPendingAttendanceRows(rows);
+      setPendingPagination({
+        total: Number(pagination.total || 0),
+        page: Number(pagination.page || page || 1),
+        limit: Number(pagination.limit || 20),
+        totalPages: Number(pagination.totalPages || 0),
+      });
+      setPendingPage(Number(pagination.page || page || 1));
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách chờ điểm danh:", error);
+      setPendingAttendanceRows([]);
+      setPendingPagination({ total: 0, page: 1, limit: 20, totalPages: 0 });
+    }
+  }, [selectedGymId, filters.gymId, pendingPage]);
+
   const filteredPeriods = useMemo(() => {
     if (!selectedGymId) return periods;
     return periods.filter((period) => String(period?.gymId || period?.Gym?.id || "") === String(selectedGymId));
@@ -205,9 +241,15 @@ const OwnerCommissionsPage = () => {
     loadCommissions(commissionPage);
   }, [loadCommissions, commissionPage]);
 
+  useEffect(() => {
+    if (activeTab === "pending-attendance") {
+      loadPendingAttendance(pendingPage);
+    }
+  }, [activeTab, loadPendingAttendance, pendingPage]);
+
   useOwnerRealtimeRefresh({
     onRefresh: async () => {
-      await Promise.all([loadCommissions(commissionPage), loadPeriods()]);
+      await Promise.all([loadCommissions(commissionPage), loadPeriods(), loadPendingAttendance(pendingPage)]);
       if (rateForm.gymId) {
         await loadRateForGym(rateForm.gymId);
       }
@@ -217,6 +259,7 @@ const OwnerCommissionsPage = () => {
 
   useEffect(() => {
     setCommissionPage(1);
+    setPendingPage(1);
   }, [filters.gymId, filters.status, filters.fromDate, filters.toDate, selectedGymId]);
 
   useEffect(() => {
@@ -523,6 +566,20 @@ const OwnerCommissionsPage = () => {
 
       <div className="commissions-header">
         <div className="section-title">Doanh thu theo buổi từ huấn luyện viên</div>
+        <div className="owner-tabs">
+          <button
+            className={`owner-tab ${activeTab === "commissions" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("commissions")}
+          >
+            Doanh thu buổi tập
+          </button>
+          <button
+            className={`owner-tab ${activeTab === "pending-attendance" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("pending-attendance")}
+          >
+            Chờ PT sửa điểm danh (24h)
+          </button>
+        </div>
         <div className="commissions-filters">
           <select
             className="filter-select"
@@ -578,7 +635,8 @@ const OwnerCommissionsPage = () => {
           </button>
         </div>
       </div>
-
+      {activeTab === "commissions" ? (
+      <>
       <div className="commissions-table-wrapper">
         <table className="commissions-table">
           <thead>
@@ -662,6 +720,92 @@ const OwnerCommissionsPage = () => {
           Trang sau
         </button>
       </div>
+      </>
+      ) : (
+      <>
+      <div className="commissions-table-wrapper">
+        <table className="commissions-table">
+          <thead>
+            <tr>
+              <th>Ngày buổi tập</th>
+              <th>Khung giờ</th>
+              <th>Huấn luyện viên</th>
+              <th>Hội viên</th>
+              <th>Phòng gym</th>
+              <th>Hạn cuối điểm danh</th>
+              <th>Thời gian còn lại</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendingAttendanceRows.length > 0 ? (
+              pendingAttendanceRows.map((row) => {
+                const remainingHours = Math.max(0, Number(row.remainingMs || 0)) / (1000 * 60 * 60);
+                const remainingLabel =
+                  remainingHours >= 1
+                    ? `${remainingHours.toFixed(1)} giờ`
+                    : `${Math.max(0, Math.round(remainingHours * 60))} phút`;
+                return (
+                  <tr key={row.bookingId}>
+                    <td>{formatDate(row.bookingDate)}</td>
+                    <td>{formatTimeRange(row.startTime, row.endTime)}</td>
+                    <td>
+                      <div className="tx-user">
+                        <div className="tx-user-name">{row.trainerName || "N/A"}</div>
+                        <div className="tx-user-email">{row.trainerEmail || "N/A"}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="tx-user">
+                        <div className="tx-user-name">{row.memberName || "N/A"}</div>
+                        <div className="tx-user-email">{row.memberEmail || "N/A"}</div>
+                      </div>
+                    </td>
+                    <td>{row.gymName || "N/A"}</td>
+                    <td>{new Date(row.attendanceDeadline).toLocaleString("vi-VN")}</td>
+                    <td><span className="tx-badge tx-badge-pending">{remainingLabel}</span></td>
+                    <td>
+                      <button
+                        className="owner-open-booking-btn"
+                        onClick={() => navigate(`/owner/trainer-bookings?bookingId=${encodeURIComponent(row.bookingId)}`)}
+                      >
+                        Mở chi tiết buổi
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="8" className="empty-cell">Không có buổi nào đang chờ PT sửa điểm danh.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="commissions-pagination">
+        <button
+          className="pagination-btn"
+          disabled={pendingPage <= 1}
+          onClick={() => setPendingPage((p) => Math.max(1, p - 1))}
+        >
+          Trang trước
+        </button>
+        <span className="pagination-meta">
+          Trang {pendingPagination.page || 1}/{Math.max(1, pendingPagination.totalPages || 1)}
+          {" · "}
+          Tổng {pendingPagination.total || 0} dòng
+        </span>
+        <button
+          className="pagination-btn"
+          disabled={pendingPage >= (pendingPagination.totalPages || 1)}
+          onClick={() => setPendingPage((p) => Math.min(pendingPagination.totalPages || 1, p + 1))}
+        >
+          Trang sau
+        </button>
+      </div>
+      </>
+      )}
 
       <div className="owner-section-heading">Kỳ lương đã chốt</div>
       <div className="periods-table-wrapper">
