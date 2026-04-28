@@ -5,12 +5,15 @@ import "../member-pages.css";
 import "./MemberNotificationsPage.css";
 import useRealtimeNotifications from "../../../hooks/useRealtimeNotifications";
 import { previewTextFromPayload } from "../../../utils/chatPayload";
+import { resolveMemberNotificationPath } from "../../../utils/memberNotificationRouting";
 
 const iconMap = {
   booking_update: CalendarCheck,
   booking_reschedule: Repeat,
   package_purchase: CreditCard,
   payment: CreditCard,
+  transaction: CreditCard,
+  membership_card: CreditCard,
   trainer_request: UserPlus,
   chat: MessageCircle,
   session_feedback: MessageSquare,
@@ -26,6 +29,8 @@ const categoryMap = {
   session_feedback: "Nhận xét từ PT",
   package_purchase: "Thanh toán & Gói tập",
   payment: "Thanh toán & Gói tập",
+  transaction: "Thanh toán & Gói tập",
+  membership_card: "Thẻ thành viên",
   trainer_request: "Tài khoản & Yêu cầu",
   chat: "Tin nhắn & Tương tác",
   review: "Đánh giá & Phản hồi",
@@ -51,26 +56,11 @@ export default function MemberNotificationsPage() {
   ), [items, filter]);
 
 
-  const resolveNotificationPath = (item) => {
-    const type = String(item?.notificationType || "").toLowerCase();
-    if (type === "chat") return "/member/messages";
-    if (type === "session_feedback") {
-      const rid = item?.relatedId ?? item?.related_id;
-      return rid ? `/member/bookings?sessionFeedback=${rid}` : "/member/bookings";
-    }
-    if (["booking_update", "booking", "booking_reschedule"].includes(type)) return "/member/bookings";
-    if (["package_purchase", "transaction", "payment"].includes(type)) return "/member/my-packages";
-    if (type === "review") return "/member/reviews";
-    if (type === "trainer_request") return "/member/profile";
-    if (type === "promo") return "/member/my-packages";
-    return "/member/notifications";
-  };
-
   const handleOpenNotification = async (item) => {
     if (!item?.isRead) {
       try { await markOne(item.id); } catch {}
     }
-    navigate(resolveNotificationPath(item));
+    navigate(resolveMemberNotificationPath(item));
   };
 
   const grouped = useMemo(() => {

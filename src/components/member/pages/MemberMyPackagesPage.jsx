@@ -309,7 +309,7 @@ export default function MemberMyPackagesPage() {
                 <h2 className="mp3-sectionTitle">Gói đang hoạt động</h2>
                 <div className="mp3-sectionLine" />
               </div>
-              <div className="mp3-sectionCount">{activeRows.length} current</div>
+              <div className="mp3-sectionCount">{activeRows.length} hiện hành</div>
             </div>
 
             {activeRows.length === 0 ? (
@@ -327,7 +327,7 @@ export default function MemberMyPackagesPage() {
                 <h2 className="mp3-sectionTitle">Gói đã dùng hết</h2>
                 <div className="mp3-sectionLine" />
               </div>
-              <div className="mp3-sectionCount">{usedUpRows.length} used up</div>
+              <div className="mp3-sectionCount">{usedUpRows.length} đã dùng hết</div>
             </div>
 
             {usedUpRows.length === 0 ? (
