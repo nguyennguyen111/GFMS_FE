@@ -40,54 +40,144 @@ export default function DashboardHome() {
     load();
   }, []);
 
-  const cards = useMemo(() => {
+  const metrics = useMemo(() => {
     const c = data?.cards || {};
+    return {
+      franchisePending: Number(c.franchisePending || 0),
+      comboPending: Number(c.comboPending || 0),
+      maintenancePending: Number(c.maintenancePending || 0),
+      activeGyms: Number(c.activeGyms || 0),
+      comboRevenue30d: Number(c.comboRevenue30d || 0),
+    };
+  }, [data]);
+
+  const cards = useMemo(() => {
     return [
       {
         label: "Nhượng quyền chờ duyệt",
-        value: c.franchisePending ?? 0,
+        value: metrics.franchisePending,
         note: "Cần admin xử lý",
       },
       {
         label: "Yêu cầu mua combo chờ duyệt",
-        value: c.comboPending ?? 0,
+        value: metrics.comboPending,
         note: "Chờ xác nhận workflow",
       },
       {
         label: "Yêu cầu bảo trì chờ xử lý",
-        value: c.maintenancePending ?? 0,
+        value: metrics.maintenancePending,
         note: "Request kỹ thuật đang mở",
       },
       {
         label: "Phòng gym đang hoạt động",
-        value: c.activeGyms ?? 0,
+        value: metrics.activeGyms,
         note: "Số chi nhánh đang hoạt động",
       },
     ];
-  }, [data]);
+  }, [metrics]);
 
   const revenueSeries = useMemo(() => data?.revenue30dSeries || [], [data]);
-  const sellingCombos = useMemo(() => data?.sellingCombos || [], [data]);
+  const sellingCombos = useMemo(() => {
+    const rows = Array.isArray(data?.sellingCombos) ? [...data.sellingCombos] : [];
+    rows.sort((a, b) => {
+      const soldDiff = Number(b?.soldCount || 0) - Number(a?.soldCount || 0);
+      if (soldDiff !== 0) return soldDiff;
+      return new Date(b?.updatedAt || 0).getTime() - new Date(a?.updatedAt || 0).getTime();
+    });
+    return rows.slice(0, 4);
+  }, [data]);
   const comboSalesTransactions = useMemo(() => data?.comboSalesTransactions || [], [data]);
   const alerts = useMemo(() => data?.alerts || [], [data]);
   const assetKpis = useMemo(() => data?.assetKpis || {}, [data]);
   const lifecycle = useMemo(() => assetKpis?.byLifecycleStatus || {}, [assetKpis]);
   const maxRevenue = useMemo(() => Math.max(1, ...revenueSeries.map((x) => Number(x.total || 0))), [revenueSeries]);
+  const todayRevenue = useMemo(() => Number(revenueSeries?.[revenueSeries.length - 1]?.total || 0), [revenueSeries]);
+  const midRevenue = useMemo(() => Math.round(maxRevenue / 2), [maxRevenue]);
+  const maxPointIndex = useMemo(() => {
+    if (!revenueSeries.length) return -1;
+    let idx = 0;
+    let best = Number(revenueSeries[0]?.total || 0);
+    for (let i = 1; i < revenueSeries.length; i += 1) {
+      const value = Number(revenueSeries[i]?.total || 0);
+      if (value > best) {
+        best = value;
+        idx = i;
+      }
+    }
+    return idx;
+  }, [revenueSeries]);
+  const chartPoints = useMemo(() => {
+    if (!revenueSeries.length) return "";
+    const width = 720;
+    const height = 220;
+    const step = revenueSeries.length <= 1 ? width : width / (revenueSeries.length - 1);
+    return revenueSeries
+      .map((point, idx) => {
+        const x = Number((idx * step).toFixed(2));
+        const ratio = Number(point?.total || 0) / maxRevenue;
+        const y = Number((height - ratio * 180 - 20).toFixed(2));
+        return `${x},${y}`;
+      })
+      .join(" ");
+  }, [revenueSeries, maxRevenue]);
+  const chartAreaPoints = useMemo(() => {
+    if (!chartPoints) return "";
+    return `${chartPoints} 720,220 0,220`;
+  }, [chartPoints]);
+  const chartLabelPoints = useMemo(() => {
+    if (!revenueSeries.length || maxPointIndex < 0) return [];
+    const width = 720;
+    const height = 220;
+    const step = revenueSeries.length <= 1 ? width : width / (revenueSeries.length - 1);
+    const pick = new Set([maxPointIndex, revenueSeries.length - 1]);
+    return Array.from(pick)
+      .filter((idx) => idx >= 0 && idx < revenueSeries.length)
+      .map((idx) => {
+        const value = Number(revenueSeries[idx]?.total || 0);
+        const x = Number((idx * step).toFixed(2));
+        const y = Number((height - (value / maxRevenue) * 180 - 20).toFixed(2));
+        return { idx, x, y, value, date: revenueSeries[idx]?.date };
+      });
+  }, [revenueSeries, maxRevenue, maxPointIndex]);
+  const firstDate = revenueSeries?.[0]?.date || "-";
+  const middleDate = revenueSeries?.[Math.floor(revenueSeries.length / 2)]?.date || "-";
+  const lastDate = revenueSeries?.[revenueSeries.length - 1]?.date || "-";
 
   return (
     <div className="dh-wrap dh-wrap--combo">
-      <div className="dh-head">
-        <div>
-          <div className="dh-eyebrow">ADMIN DASHBOARD</div>
-          <h2 className="dh-title">Tổng quan admin</h2>
-          <div className="dh-sub">Theo dõi nhanh vận hành nhượng quyền, bảo trì, combo đang bán và dòng tiền combo theo chuẩn dashboard doanh nghiệp.</div>
+      <section className="dh-hero">
+        <div className="dh-head">
+          <div>
+            <div className="dh-eyebrow">BẢNG ĐIỀU KHIỂN QUẢN TRỊ</div>
+            <h2 className="dh-title">Tổng quan vận hành hệ thống</h2>
+            <div className="dh-sub">Theo dõi nhanh nhượng quyền, bảo trì, combo và dòng tiền để xử lý các đầu việc quan trọng trong ngày.</div>
+          </div>
+          <div className="dh-actions">
+            <button className="dh-btn" onClick={load} disabled={loading}>
+              {loading ? "Đang tải..." : "Làm mới"}
+            </button>
+          </div>
         </div>
-        <div className="dh-actions">
-          <button className="dh-btn" onClick={load} disabled={loading}>
-            {loading ? "Đang tải..." : "Làm mới"}
+
+        <div className="dh-quick">
+          <button className="dh-quick__item" type="button" onClick={() => navigate("/admin/franchises")}>
+            <span>Nhượng quyền</span>
+            <strong>{metrics.franchisePending} chờ duyệt</strong>
           </button>
+          <button className="dh-quick__item" type="button" onClick={() => navigate("/admin/purchase-workflow")}>
+            <span>Yêu cầu combo</span>
+            <strong>{metrics.comboPending} chờ xử lý</strong>
+          </button>
+          <button className="dh-quick__item" type="button" onClick={() => navigate("/admin/maintenance")}>
+            <span>Bảo trì</span>
+            <strong>{metrics.maintenancePending} yêu cầu mở</strong>
+          </button>
+          <div className="dh-quick__item is-static">
+            <span>Doanh thu hôm nay</span>
+            <strong>{fmtMoney(todayRevenue)}</strong>
+          </div>
         </div>
-      </div>
+      </section>
 
       {err ? <div className="dh-alert">{err}</div> : null}
 
@@ -145,19 +235,19 @@ export default function DashboardHome() {
 
           <div className="dh-assetGrid">
             <div className="dh-assetKpi">
-              <div className="dh-assetKpi__label">Active</div>
+              <div className="dh-assetKpi__label">Đang hoạt động</div>
               <div className="dh-assetKpi__value">{Number(lifecycle.active || 0)}</div>
             </div>
             <div className="dh-assetKpi">
-              <div className="dh-assetKpi__label">Maintenance</div>
+              <div className="dh-assetKpi__label">Đang bảo trì</div>
               <div className="dh-assetKpi__value">{Number(lifecycle.maintenance || 0)}</div>
             </div>
             <div className="dh-assetKpi">
-              <div className="dh-assetKpi__label">Broken</div>
+              <div className="dh-assetKpi__label">Hỏng</div>
               <div className="dh-assetKpi__value">{Number(lifecycle.broken || 0)}</div>
             </div>
             <div className="dh-assetKpi">
-              <div className="dh-assetKpi__label">Retired</div>
+              <div className="dh-assetKpi__label">Ngừng sử dụng</div>
               <div className="dh-assetKpi__value">{Number(lifecycle.retired || 0)}</div>
             </div>
             <div className="dh-assetKpi dh-assetKpi--warn" onClick={() => navigate("/admin/equipment-assets")} role="button" tabIndex={0}>
@@ -175,8 +265,8 @@ export default function DashboardHome() {
 
         <section className="dh-panel dh-panel--combos">
           <div className="dh-panel__head dh-panel__head--stack">
-            <div className="dh-panel__title">Combo đang bán</div>
-            <div className="dh-panel__hint">Hiển thị ảnh thumbnail và mô tả ngắn để admin nhìn nhanh danh mục combo đang mở bán</div>
+            <div className="dh-panel__title">Top 4 combo bán chạy</div>
+            <div className="dh-panel__hint">Hiển thị 4 combo có số lượt bán cao nhất để admin theo dõi nhanh hiệu suất bán</div>
           </div>
 
           <div className="dh-combo-grid">
@@ -213,17 +303,40 @@ export default function DashboardHome() {
           </div>
 
           <div className="dh-chart">
-            {revenueSeries.map((point) => {
-              const value = Number(point.total || 0);
-              const h = Math.max(8, Math.round((value / maxRevenue) * 170));
-              return (
-                <div className="dh-chart__col" key={point.date} title={`${point.date}: ${fmtMoney(value)}`}>
-                  <div className="dh-chart__bar" style={{ height: h }} />
+            {!revenueSeries.length ? (
+              <div className="dh-empty">Chưa có dữ liệu doanh thu.</div>
+            ) : (
+              <div className="dh-chartBox">
+                <div className="dh-chartAxisY">
+                  <span>{fmtMoney(maxRevenue)}</span>
+                  <span>{fmtMoney(midRevenue)}</span>
+                  <span>0đ</span>
                 </div>
-              );
-            })}
+                <svg className="dh-chartSvg" viewBox="0 0 720 220" preserveAspectRatio="none" aria-label="Biểu đồ doanh thu 30 ngày">
+                <defs>
+                  <linearGradient id="dhRevenueFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(251,191,36,0.38)" />
+                    <stop offset="100%" stopColor="rgba(251,191,36,0.03)" />
+                  </linearGradient>
+                </defs>
+                <polyline className="dh-chartSvg__line" points={chartPoints} />
+                <polygon className="dh-chartSvg__area" points={chartAreaPoints} fill="url(#dhRevenueFill)" />
+                {chartLabelPoints.map((p) => (
+                  <g key={p.idx}>
+                    <circle cx={p.x} cy={p.y} r="4" className="dh-chartSvg__dot" />
+                    <text x={p.x + 8} y={Math.max(14, p.y - 8)} className="dh-chartSvg__value">{fmtMoney(p.value)}</text>
+                  </g>
+                ))}
+                </svg>
+              </div>
+            )}
           </div>
 
+          <div className="dh-chartAxisX">
+            <span>{firstDate}</span>
+            <span>{middleDate}</span>
+            <span>{lastDate}</span>
+          </div>
           <div className="dh-chart-total">Tổng 30 ngày: {fmtMoney(data?.cards?.comboRevenue30d || 0)}</div>
         </section>
       </div>
