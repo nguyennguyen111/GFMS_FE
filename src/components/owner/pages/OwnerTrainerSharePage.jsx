@@ -4272,7 +4272,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           />
           <div
             className="ots-modal__content ots-share-detail-modal"
-            style={{ maxWidth: "640px", width: "100%" }}
+            style={{ maxWidth: "380px", width: "100%", maxHeight: "60vh" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="ots-modal__header">
