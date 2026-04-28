@@ -12,6 +12,8 @@ import {
   setPrimaryEquipmentImage,
   deleteEquipmentImage,
 } from "../../../services/equipmentSupplierInventoryService";
+import { showAppConfirm } from "../../../utils/appDialog";
+import NiceModal from "../../common/NiceModal";
 import "./EquipmentCatalogPage.css";
 
 const emptyForm = {
@@ -46,7 +48,6 @@ export default function EquipmentCatalogPage() {
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -55,7 +56,25 @@ export default function EquipmentCatalogPage() {
   const [imageUploading, setImageUploading] = useState(false);
   const [images, setImages] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [formTab, setFormTab] = useState("core");
+  const [listPage, setListPage] = useState(1);
+  const [noticeModal, setNoticeModal] = useState({
+    open: false,
+    tone: "error",
+    title: "",
+    message: "",
+  });
   const fileInputRef = useRef(null);
+  const listLimit = 6;
+
+  const openNotice = (tone, title, message) => {
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
+  };
 
   const API_HOST = String(
     axios?.defaults?.baseURL ||
@@ -69,6 +88,14 @@ export default function EquipmentCatalogPage() {
     () => rows.filter((item) => String(item.status) === "active").length,
     [rows],
   );
+  const listTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(rows.length / listLimit)),
+    [rows],
+  );
+  const pagedRows = useMemo(() => {
+    const start = (listPage - 1) * listLimit;
+    return rows.slice(start, start + listLimit);
+  }, [rows, listPage]);
   const selectedRow = useMemo(
     () => rows.find((item) => Number(item.id) === Number(selectedId)) || null,
     [rows, selectedId],
@@ -130,12 +157,6 @@ export default function EquipmentCatalogPage() {
       selectedRowCategory?.name ||
       selectedRow?.categoryName ||
       "Chưa chọn danh mục";
-  const previewSupplierName = isCreateMode
-    ? selectedSupplier?.name || "Chưa chọn nhà cung cấp"
-    : selectedSupplier?.name ||
-      selectedRowSupplier?.name ||
-      selectedRow?.preferredSupplierName ||
-      "Chưa chọn nhà cung cấp";
   const previewStatus = isCreateMode
     ? form.status || "active"
     : form.status || selectedRow?.status || "active";
@@ -145,12 +166,6 @@ export default function EquipmentCatalogPage() {
     : form.description ||
       selectedRow?.description ||
       "Mô tả ngắn sẽ hiển thị ở đây để admin và owner dễ nhận diện thiết bị.";
-  const previewPrice = isCreateMode
-    ? form.price === "" ? null : form.price
-    : form.price !== "" && form.price !== null && form.price !== undefined
-      ? form.price
-      : selectedRow?.price;
-
   const loadRefs = async () => {
     const [categoryRes, supplierRes] = await Promise.all([
       getEquipmentCategories().catch(() => ({ data: [] })),
@@ -180,7 +195,6 @@ export default function EquipmentCatalogPage() {
 
   const loadRows = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await getEquipments({
         page: 1,
@@ -191,6 +205,7 @@ export default function EquipmentCatalogPage() {
       const data = res?.data?.data ?? res?.data ?? [];
       const normalized = Array.isArray(data) ? data : [];
       setRows(normalized);
+      setListPage(1);
       if (normalized.length && !selectedId) {
         setSelectedId(normalized[0].id);
       } else if (
@@ -200,7 +215,9 @@ export default function EquipmentCatalogPage() {
         setSelectedId(normalized[0]?.id || null);
       }
     } catch (e) {
-      setError(
+      openNotice(
+        "error",
+        "Tải dữ liệu thất bại",
         e?.response?.data?.message ||
           e.message ||
           "Tải danh mục thiết bị thất bại",
@@ -225,6 +242,10 @@ export default function EquipmentCatalogPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  useEffect(() => {
+    setListPage((prev) => Math.min(prev, listTotalPages));
+  }, [listTotalPages]);
+
   const clearImageState = () => {
     setImageFile(null);
     setImagePreview("");
@@ -234,6 +255,7 @@ export default function EquipmentCatalogPage() {
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setFormTab("core");
     clearImageState();
   };
 
@@ -245,16 +267,15 @@ export default function EquipmentCatalogPage() {
     }
     const okTypes = ["image/png", "image/jpeg", "image/webp"];
     if (!okTypes.includes(file.type)) {
-      setError("Chỉ hỗ trợ ảnh PNG, JPG hoặc WEBP.");
+      openNotice("warning", "Ảnh không hợp lệ", "Chỉ hỗ trợ ảnh PNG, JPG hoặc WEBP.");
       clearImageState();
       return false;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Ảnh tối đa 5MB.");
+      openNotice("warning", "Ảnh quá lớn", "Ảnh tối đa 5MB.");
       clearImageState();
       return false;
     }
-    setError("");
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     return true;
@@ -319,16 +340,26 @@ export default function EquipmentCatalogPage() {
   const handleRemoveImage = async () => {
     const targetId = editingId || selectedId;
     if (!targetId || !primaryImage?.id) return;
-    if (!window.confirm("Xóa ảnh thiết bị hiện tại?")) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xóa ảnh",
+      message: "Bạn có chắc chắn muốn xóa ảnh thiết bị hiện tại?",
+      confirmText: "Xóa ảnh",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     setImageUploading(true);
-    setError("");
     try {
       await deleteEquipmentImage(targetId, primaryImage.id);
       await loadImages(targetId);
       clearImageState();
       await loadRows();
+      openNotice("success", "Đã xóa ảnh", "Ảnh thiết bị đã được xóa thành công.");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message || "Xóa ảnh thất bại");
+      openNotice(
+        "error",
+        "Xóa ảnh thất bại",
+        e?.response?.data?.message || e.message || "Xóa ảnh thất bại",
+      );
     } finally {
       setImageUploading(false);
     }
@@ -368,8 +399,11 @@ export default function EquipmentCatalogPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!String(form.name || "").trim()) {
+      openNotice("warning", "Thiếu thông tin bắt buộc", "Tên thiết bị là bắt buộc.");
+      return;
+    }
     setSaving(true);
-    setError("");
     try {
       const payload = {
         name: form.name,
@@ -430,7 +464,9 @@ export default function EquipmentCatalogPage() {
         resetForm();
       }
     } catch (e2) {
-      setError(
+      openNotice(
+        "error",
+        "Lưu thiết bị thất bại",
         e2?.response?.data?.message ||
           e2?.response?.data?.error ||
           (Array.isArray(e2?.response?.data?.details) ? e2.response.data.details.join("\n") : "") ||
@@ -451,13 +487,22 @@ export default function EquipmentCatalogPage() {
   };
 
   const onDelete = async (row) => {
-    if (!window.confirm(`Xóa thiết bị ${row.name}?`)) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xóa thiết bị",
+      message: `Bạn có chắc chắn muốn xóa thiết bị "${row.name}"?`,
+      confirmText: "Xóa thiết bị",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     try {
       await deleteEquipment(row.id);
       if (editingId === row.id) resetForm();
       await loadRows();
+      openNotice("success", "Xóa thành công", `Đã xóa thiết bị "${row.name}".`);
     } catch (e) {
-      setError(
+      openNotice(
+        "error",
+        "Xóa thiết bị thất bại",
         e?.response?.data?.message || e.message || "Xóa thiết bị thất bại",
       );
     }
@@ -469,11 +514,6 @@ export default function EquipmentCatalogPage() {
         <div>
           <div className="eq-catalog-kicker">Thiết bị & combo</div>
           <h2>Thiết bị</h2>
-          <p>
-            Đây là catalog thiết bị gốc để admin quản lý. Module combo chỉ lấy
-            dữ liệu từ đây để ghép combo, không lấy tồn kho admin làm điều kiện
-            bán combo.
-          </p>
         </div>
         <div className="eq-catalog-heroStats">
           <div className="eq-catalog-statCard">
@@ -490,8 +530,6 @@ export default function EquipmentCatalogPage() {
           </div>
         </div>
       </section>
-
-      {error ? <div className="eq-catalog-alert">{error}</div> : null}
 
       <section className="eq-catalog-shell">
         <div className="eq-catalog-panel eq-catalog-panel--list">
@@ -528,7 +566,19 @@ export default function EquipmentCatalogPage() {
 
           <div className="eq-listCards">
             {loading ? (
-              <div className="eq-emptyCard">Đang tải dữ liệu thiết bị...</div>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={`skeleton-${idx}`} className="eq-listCard eq-listCard--skeleton">
+                  <div className="eq-listCard__media">
+                    <div className="eq-thumb eq-skeletonBlock" />
+                  </div>
+                  <div className="eq-listCard__content">
+                    <div className="eq-skeletonLine eq-skeletonLine--lg" />
+                    <div className="eq-skeletonLine eq-skeletonLine--md" />
+                    <div className="eq-skeletonLine" />
+                    <div className="eq-skeletonLine eq-skeletonLine--sm" />
+                  </div>
+                </div>
+              ))
             ) : null}
             {!loading && rows.length === 0 ? (
               <div className="eq-emptyCard">
@@ -536,7 +586,7 @@ export default function EquipmentCatalogPage() {
               </div>
             ) : null}
             {!loading &&
-              rows.map((row) => {
+              pagedRows.map((row) => {
                 const imageUrl = absUrl(
                   row.primaryImageUrl ||
                     row.thumbnail ||
@@ -579,10 +629,6 @@ export default function EquipmentCatalogPage() {
                           {statusLabel(row.status)}
                         </span>
                       </div>
-                      <div className="eq-listCard__sub">
-                        {row.preferredSupplierName || "Chưa gán nhà cung cấp"} ·{" "}
-                        {money(row.price)} đ
-                      </div>
                       <div className="eq-listCard__desc">
                         {row.description || "Thiết bị chưa có mô tả chi tiết."}
                       </div>
@@ -613,16 +659,35 @@ export default function EquipmentCatalogPage() {
                 );
               })}
           </div>
+          {!loading && rows.length > 0 ? (
+            <div className="eq-listPagination">
+              <button
+                type="button"
+                className="eq-btn"
+                onClick={() => setListPage((p) => Math.max(1, p - 1))}
+                disabled={listPage <= 1}
+              >
+                ← Trước
+              </button>
+              <span className="eq-listPagination__meta">
+                Trang {listPage}/{listTotalPages}
+              </span>
+              <button
+                type="button"
+                className="eq-btn"
+                onClick={() => setListPage((p) => Math.min(listTotalPages, p + 1))}
+                disabled={listPage >= listTotalPages}
+              >
+                Sau →
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="eq-catalog-panel eq-catalog-panel--editor">
           <div className="eq-catalog-panel__header">
             <div>
               <h3>{editingId ? "Cập nhật thiết bị" : "Tạo thiết bị mới"}</h3>
-              <p>
-                Chỉ giữ các trường trọng tâm để admin CRUD nhanh. Màn combo chỉ
-                lấy catalog này để build gói bán cho owner.
-              </p>
             </div>
             {editingId ? (
               <span className="eq-formTag">Đang sửa #{editingId}</span>
@@ -633,9 +698,33 @@ export default function EquipmentCatalogPage() {
 
           <div className="eq-editorBody">
             <form className="eq-form" onSubmit={handleSubmit}>
-              <div className="eq-formSection">
+              <div className="eq-formTabs">
+                <button
+                  type="button"
+                  className={`eq-formTab ${formTab === "core" ? "is-active" : ""}`}
+                  onClick={() => setFormTab("core")}
+                >
+                  Thông tin chính
+                </button>
+                <button
+                  type="button"
+                  className={`eq-formTab ${formTab === "content" ? "is-active" : ""}`}
+                  onClick={() => setFormTab("content")}
+                >
+                  Mô tả
+                </button>
+                <button
+                  type="button"
+                  className={`eq-formTab ${formTab === "guide" ? "is-active" : ""}`}
+                  onClick={() => setFormTab("guide")}
+                >
+                  Hướng dẫn tập
+                </button>
+              </div>
+
+              <div className={`eq-formSection eq-formSection--card ${formTab !== "core" ? "eq-formSection--hidden" : ""}`}>
                 <div className="eq-formSection__title">Thông tin trọng tâm</div>
-                <div className="eq-form__grid eq-form__grid--2col">
+                <div className="eq-form__grid eq-form__grid--1col">
                   <input
                     className="eq-input"
                     placeholder="Tên thiết bị *"
@@ -698,7 +787,7 @@ export default function EquipmentCatalogPage() {
                 </div>
               </div>
 
-              <div className="eq-formSection">
+              <div className={`eq-formSection ${formTab !== "core" ? "eq-formSection--hidden" : ""}`}>
                 <div className="eq-formSection__title">Ảnh thiết bị</div>
                 <div className="eq-uploadBox">
                   <label
@@ -719,8 +808,7 @@ export default function EquipmentCatalogPage() {
                       Kéo thả ảnh vào đây hoặc bấm để chọn
                     </div>
                     <div className="eq-uploadDrop__text">
-                      PNG, JPG hoặc WEBP · tối đa 5MB · upload lên Cloudinary và
-                      dùng đồng bộ cho catalog + combo
+                      PNG, JPG hoặc WEBP
                     </div>
                     <div className="eq-uploadActionsInline">
                       <button
@@ -816,7 +904,7 @@ export default function EquipmentCatalogPage() {
                 </div>
               </div>
 
-              <div className="eq-formSection">
+              <div className={`eq-formSection eq-formSection--card ${formTab !== "content" ? "eq-formSection--hidden" : ""}`}>
                 <div className="eq-formSection__title">Mô tả ngắn</div>
                 <textarea
                   className="eq-input eq-textarea"
@@ -828,7 +916,7 @@ export default function EquipmentCatalogPage() {
                 />
               </div>
 
-              <div className="eq-formSection">
+              <div className={`eq-formSection ${formTab !== "guide" ? "eq-formSection--hidden" : ""}`}>
                 <div className="eq-formSection__title">Hướng dẫn tập (QR)</div>
                 <textarea
                   className="eq-input eq-textarea"
@@ -902,7 +990,7 @@ export default function EquipmentCatalogPage() {
                   />
                 ) : (
                   <div className="eq-previewCard__image eq-previewCard__image--placeholder">
-                    {(previewName || "T").slice(0, 1)}
+                    Chưa có ảnh
                   </div>
                 )}
                 <div className="eq-previewCard__header">
@@ -917,17 +1005,6 @@ export default function EquipmentCatalogPage() {
                   >
                     {statusLabel(previewStatus)}
                   </span>
-                </div>
-                <div className="eq-previewCard__price">
-                  {previewPrice === null || previewPrice === ""
-                    ? "Chưa thiết lập giá"
-                    : `${money(previewPrice)} đ`}
-                </div>
-                <div className="eq-previewCard__line">
-                  Nhà cung cấp ưu tiên:{" "}
-                  <b>
-                    {previewSupplierName}
-                  </b>
                 </div>
                 <div className="eq-previewCard__line">
                   Danh mục:{" "}
@@ -948,6 +1025,28 @@ export default function EquipmentCatalogPage() {
           </div>
         </div>
       </section>
+
+      <NiceModal
+        open={Boolean(noticeModal.open)}
+        onClose={() =>
+          setNoticeModal({ open: false, tone: "error", title: "", message: "" })
+        }
+        title={noticeModal.title || "Thông báo"}
+        tone={noticeModal.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() =>
+              setNoticeModal({ open: false, tone: "error", title: "", message: "" })
+            }
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal.message}</p>
+      </NiceModal>
     </div>
   );
 }
