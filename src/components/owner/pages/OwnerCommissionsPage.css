@@ -271,6 +271,28 @@
   font-weight: 700;
 }
 
+.owner-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.owner-tab {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #eef2ff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.owner-tab.is-active {
+  background: rgba(184, 220, 0, 0.2);
+  border-color: rgba(184, 220, 0, 0.5);
+}
+
 .commissions-filters {
   display: flex;
   gap: 10px;
@@ -333,6 +355,17 @@
 .pagination-meta {
   color: rgba(238, 242, 255, 0.75);
   font-size: 12px;
+}
+
+.owner-open-booking-btn {
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(184, 220, 0, 0.45);
+  background: rgba(184, 220, 0, 0.16);
+  color: #eef2ff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .tx-user {

@@ -5,6 +5,9 @@ const API_URL = "/api/owner/commissions";
 export const ownerGetCommissions = (params = {}) =>
   axios.get(API_URL, { params });
 
+export const ownerGetPendingAttendanceWindow = (params = {}) =>
+  axios.get(`${API_URL}/pending-attendance-window`, { params });
+
 export const ownerExportCommissions = (params = {}) =>
   axios.get(`${API_URL}/export`, { params, responseType: "blob" });
 
