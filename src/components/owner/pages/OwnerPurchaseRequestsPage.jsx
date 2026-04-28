@@ -7,8 +7,8 @@ import {
 } from "../../../services/ownerPurchaseService";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 import "./OwnerPurchaseRequestsPage.css";
-import { showAppToast } from "../../../utils/appToast";
 import { useNavigate } from "react-router-dom";
+import NiceModal from "../../common/NiceModal";
 
 const money = (v) => Number(v || 0).toLocaleString("vi-VN");
 
@@ -21,8 +21,14 @@ export default function OwnerPurchaseRequestsPage() {
 
   const [gyms, setGyms] = useState([]);
   const [combos, setCombos] = useState([]);
+  const [comboPage, setComboPage] = useState(1);
+  const [comboPagination, setComboPagination] = useState({
+    page: 1,
+    limit: 5,
+    totalItems: 0,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState({
     comboId: "",
     gymId: "",
@@ -32,6 +38,10 @@ export default function OwnerPurchaseRequestsPage() {
     contactEmail: "",
   });
   const [expandedComboId, setExpandedComboId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [successModal, setSuccessModal] = useState(null);
+  const [noticeModal, setNoticeModal] = useState(null);
+  const [createdRequestId, setCreatedRequestId] = useState(null);
 
   const API_HOST = String(
     axios?.defaults?.baseURL ||
@@ -75,38 +85,57 @@ export default function OwnerPurchaseRequestsPage() {
     };
   };
 
-  const loadRefs = async () => {
+  const loadRefs = async (targetPage = comboPage) => {
     setLoading(true);
-    setError("");
-    const [gymRes, comboRes] = await Promise.all([
-      ownerGetMyGyms(),
-      ownerGetActiveCombos({ page: 1, limit: 100 }),
-    ]);
+    try {
+      const [gymRes, comboRes] = await Promise.all([
+        ownerGetMyGyms(),
+        ownerGetActiveCombos({ page: targetPage, limit: comboPagination.limit || 5 }),
+      ]);
 
-    const gymRows = gymRes?.data?.data || gymRes?.data || [];
-    const comboRows = comboRes?.data?.data || [];
+      const gymRows = gymRes?.data?.data || gymRes?.data || [];
+      const comboRows = comboRes?.data?.data || [];
+      const comboMeta = comboRes?.data?.meta || {};
 
-    setGyms(gymRows);
-    setCombos(comboRows);
-    setExpandedComboId((prev) => prev || comboRows?.[0]?.id || null);
+      setGyms(gymRows);
+      setCombos(comboRows);
+      const nextPage = Number(comboMeta.page || targetPage || 1);
+      setComboPagination({
+        page: nextPage,
+        limit: Number(comboMeta.limit || comboPagination.limit || 5),
+        totalItems: Number(comboMeta.totalItems || 0),
+        totalPages: Math.max(1, Number(comboMeta.totalPages || 1)),
+      });
+      setComboPage(nextPage);
+      setExpandedComboId((prev) => prev || comboRows?.[0]?.id || null);
 
-    setForm((prev) => ({
-      ...prev,
-      gymId: selectedGymId
-        ? String(selectedGymId)
-        : prev.gymId || String(gymRows?.[0]?.id || ""),
-      comboId: prev.comboId || String(comboRows?.[0]?.id || ""),
-    }));
-    setLoading(false);
+      setForm((prev) => ({
+        ...prev,
+        gymId: selectedGymId
+          ? String(selectedGymId)
+          : prev.gymId || String(gymRows?.[0]?.id || ""),
+        comboId: prev.comboId || String(comboRows?.[0]?.id || ""),
+      }));
+    } catch (e) {
+      setNoticeModal({
+        tone: "error",
+        title: "Không thể tải dữ liệu",
+        message: e?.response?.data?.message || e?.message || "Đã xảy ra lỗi khi tải dữ liệu trang.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadRefs();
+    setComboPage(1);
+    loadRefs(1);
   }, [selectedGymId]);
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
+    if (submitting) return;
+    setSubmitting(true);
 
     try {
       const res = await ownerCreatePurchaseRequest({
@@ -116,12 +145,6 @@ export default function OwnerPurchaseRequestsPage() {
         contactName: form.contactName,
         contactPhone: form.contactPhone,
         contactEmail: form.contactEmail,
-      });
-
-      showAppToast({
-        type: "success",
-        title: "Thành công",
-        message: "Đã gửi yêu cầu mua combo. Bạn có thể theo dõi tiến trình trong Lịch sử mua combo.",
       });
 
       setForm((prev) => ({
@@ -134,10 +157,24 @@ export default function OwnerPurchaseRequestsPage() {
       }));
 
       const createdId = res?.data?.data?.id || res?.data?.id || null;
-      const highlightQuery = createdId ? `?purchaseRequestId=${encodeURIComponent(createdId)}` : "";
-      navigate(`/owner/purchase-requests/history${highlightQuery}`);
+      setCreatedRequestId(createdId || null);
+      setSuccessModal({
+        title: "Gửi yêu cầu thành công",
+        message:
+          "Yêu cầu mua combo đã được gửi lên hệ thống. Bạn có thể theo dõi tiến trình và trạng thái thanh toán trong Lịch sử mua combo.",
+      });
     } catch (e2) {
-      setError(e2?.response?.data?.message || e2.message);
+      const message = e2?.response?.data?.message || e2?.message || "Không thể gửi yêu cầu.";
+      const isDuplicateActiveRequest =
+        String(message).toLowerCase().includes("đã có yêu cầu mua combo đang xử lý") ||
+        Number(e2?.response?.status) === 409;
+      setNoticeModal({
+        tone: isDuplicateActiveRequest ? "warning" : "error",
+        title: isDuplicateActiveRequest ? "Yêu cầu đang được xử lý" : "Gửi yêu cầu thất bại",
+        message,
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
   const renderEquipmentRows = (items = [], dense = false) => (
@@ -216,7 +253,7 @@ export default function OwnerPurchaseRequestsPage() {
         <div className="owner-combo-heroStats">
           <div className="owner-combo-statCard">
             <span>Combo đang bán</span>
-            <strong>{combos.length}</strong>
+            <strong>{comboPagination.totalItems || combos.length}</strong>
           </div>
 
           <div className="owner-combo-statCard">
@@ -230,8 +267,6 @@ export default function OwnerPurchaseRequestsPage() {
           </div>
         </div>
       </section>
-
-      {error ? <div className="owner-combo-alert">{error}</div> : null}
 
       <div className="owner-combo-layout">
         <section className="owner-combo-panel">
@@ -292,6 +327,9 @@ export default function OwnerPurchaseRequestsPage() {
                       <div className="owner-combo-card__summary">
                         <span>{pricing.itemTypes} loại thiết bị</span>
                         <span>{pricing.itemUnits} thiết bị tổng</span>
+                        <span className="owner-combo-chip owner-combo-chip--sales">
+                          Đã bán {Number(combo.soldCount || 0)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -332,6 +370,30 @@ export default function OwnerPurchaseRequestsPage() {
             {!combos.length ? (
               <div className="owner-combo-empty">Chưa có combo active.</div>
             ) : null}
+          </div>
+          <div className="owner-combo-pagination">
+            <button
+              type="button"
+              className="owner-combo-btn"
+              disabled={loading || comboPage <= 1}
+              onClick={() => loadRefs(Math.max(1, comboPage - 1))}
+            >
+              Trang trước
+            </button>
+            <span className="owner-combo-pagination__meta">
+              Trang {comboPagination.page || 1}/{Math.max(1, comboPagination.totalPages || 1)} · Tổng{" "}
+              {comboPagination.totalItems || 0} combo
+            </span>
+            <button
+              type="button"
+              className="owner-combo-btn"
+              disabled={loading || comboPage >= (comboPagination.totalPages || 1)}
+              onClick={() =>
+                loadRefs(Math.min(comboPagination.totalPages || 1, comboPage + 1))
+              }
+            >
+              Trang sau
+            </button>
           </div>
         </section>
 
@@ -451,12 +513,60 @@ export default function OwnerPurchaseRequestsPage() {
           <button
             className="owner-combo-btn owner-combo-btn--accent owner-combo-btn--full"
             type="submit"
-            disabled={loading}
+            disabled={loading || submitting}
           >
-            {loading ? "Đang xử lý..." : "Gửi yêu cầu mua combo"}
+            {loading || submitting ? "Đang gửi yêu cầu..." : "Gửi yêu cầu mua combo"}
           </button>
         </form>
       </div>
+
+      <NiceModal
+        open={Boolean(successModal)}
+        onClose={() => {
+          setSuccessModal(null);
+          const highlightQuery = createdRequestId
+            ? `?purchaseRequestId=${encodeURIComponent(createdRequestId)}`
+            : "";
+          navigate(`/owner/purchase-requests/history${highlightQuery}`);
+        }}
+        title={successModal?.title || "Thông báo"}
+        tone="success"
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => {
+              setSuccessModal(null);
+              const highlightQuery = createdRequestId
+                ? `?purchaseRequestId=${encodeURIComponent(createdRequestId)}`
+                : "";
+              navigate(`/owner/purchase-requests/history${highlightQuery}`);
+            }}
+          >
+            Xem lịch sử
+          </button>
+        }
+      >
+        <p>{successModal?.message}</p>
+      </NiceModal>
+
+      <NiceModal
+        open={Boolean(noticeModal)}
+        onClose={() => setNoticeModal(null)}
+        title={noticeModal?.title || "Thông báo"}
+        tone={noticeModal?.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setNoticeModal(null)}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal?.message}</p>
+      </NiceModal>
     </div>
   );
 }
