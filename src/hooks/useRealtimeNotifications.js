@@ -1,9 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { connectSocket } from "../services/socketClient";
 import { getCurrentUser } from "../utils/auth";
-import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from "../services/memberNotificationService";
-import { getOwnerNotifications, markAllOwnerNotificationsRead, markOwnerNotificationRead } from "../services/ownerNotificationService";
-import { getTrainerNotifications, markAllTrainerNotificationsRead, markTrainerNotificationRead } from "../services/trainerNotificationService";
+import {
+  getMyNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../services/memberNotificationService";
+import {
+  getOwnerNotifications,
+  markAllOwnerNotificationsRead,
+  markOwnerNotificationRead,
+} from "../services/ownerNotificationService";
+import {
+  getTrainerNotifications,
+  markAllTrainerNotificationsRead,
+  markTrainerNotificationRead,
+} from "../services/trainerNotificationService";
 import { getAccessToken } from "../utils/auth";
 
 const toPositiveInt = (value) => {
@@ -64,13 +76,19 @@ const resolveNotificationApi = () => {
 };
 
 export default function useRealtimeNotifications(options = {}) {
-  const { gymId = null, enabled = true } = options || {};
+  const { gymId = null, enabled = true, onNewNotification } = options || {};
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const onNewNotificationRef = useRef(onNewNotification);
   const token = getAccessToken();
   const user = getCurrentUser();
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
+
+  useEffect(() => {
+    onNewNotificationRef.current = onNewNotification;
+  }, [onNewNotification]);
 
   useEffect(() => {
     const api = resolveNotificationApi();
@@ -87,11 +105,23 @@ export default function useRealtimeNotifications(options = {}) {
 
     const boot = async () => {
       try {
-        const params = Number(groupId) === 2 && toPositiveInt(gymId) ? { gymId: toPositiveInt(gymId) } : {};
+        const params =
+          Number(groupId) === 2 && toPositiveInt(gymId)
+            ? { gymId: toPositiveInt(gymId) }
+            : {};
         const data = await api.fetcher(params);
         if (!mounted) return;
-        setItems((data?.items || []).filter((item) => shouldIncludeNotification(item, groupId, gymId)));
-        setUnreadCount(data?.unreadCount || 0);
+        setItems(
+          (data?.items || []).filter((item) =>
+            shouldIncludeNotification(item, groupId, gymId)
+          )
+        );
+        setUnreadCount(Number(data?.unreadCount || 0));
+      } catch (error) {
+        if (!mounted) return;
+        console.error("Failed to load notifications:", error);
+        setItems([]);
+        setUnreadCount(0);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -100,14 +130,28 @@ export default function useRealtimeNotifications(options = {}) {
     boot();
 
     const onNew = (payload) => {
-      if (!shouldIncludeNotification(payload, groupId, gymId)) return;
-      setItems((prev) => [payload, ...prev.filter((x) => Number(x.id) !== Number(payload.id))]);
-      setUnreadCount((prev) => prev + 1);
+      if (!payload || !shouldIncludeNotification(payload, groupId, gymId)) return;
+
+      setItems((prev) => [
+        payload,
+        ...prev.filter((x) => Number(x.id) !== Number(payload.id)),
+      ]);
+      if (!payload.isRead) {
+        setUnreadCount((prev) => prev + 1);
+      }
+
+      if (typeof onNewNotificationRef.current === "function") {
+        onNewNotificationRef.current(payload);
+      }
     };
+
     const onRead = ({ id }) => {
-      setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
+      setItems((prev) =>
+        prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
+      );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     };
+
     const onReadAll = () => {
       setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
       setUnreadCount(0);
@@ -123,36 +167,45 @@ export default function useRealtimeNotifications(options = {}) {
       socket.off("notification:read", onRead);
       socket.off("notification:read-all", onReadAll);
     };
-  }, [enabled, groupId, gymId]);
+  }, [enabled, groupId, gymId, token]);
 
   const api = resolveNotificationApi();
 
-  return useMemo(() => ({
-    items,
-    unreadCount,
-    loading,
-    markOne: async (id) => {
-      if (!api.markOne) return;
-      setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+  return useMemo(
+    () => ({
+      items,
+      unreadCount,
+      loading,
+      markOne: async (id) => {
+        if (!api.markOne) return;
 
-      try {
-        await api.markOne(id);
-      } catch (error) {
-        console.error("Failed to mark notification as read:", error);
-      }
-    },
-    markAll: async () => {
-      if (!api.markAll) return;
-      const params = Number(groupId) === 2 && toPositiveInt(gymId) ? { gymId: toPositiveInt(gymId) } : {};
-      setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
-      setUnreadCount(0);
+        setItems((prev) =>
+          prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
 
-      try {
-        await api.markAll(params);
-      } catch (error) {
-        console.error("Failed to mark all notifications as read:", error);
-      }
-    },
-  }), [api, groupId, gymId, items, unreadCount, loading]);
+        try {
+          await api.markOne(id);
+        } catch (error) {
+          console.error("Failed to mark notification as read:", error);
+        }
+      },
+      markAll: async () => {
+        if (!api.markAll) return;
+        const params =
+          Number(groupId) === 2 && toPositiveInt(gymId)
+            ? { gymId: toPositiveInt(gymId) }
+            : {};
+        setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
+        setUnreadCount(0);
+
+        try {
+          await api.markAll(params);
+        } catch (error) {
+          console.error("Failed to mark all notifications as read:", error);
+        }
+      },
+    }),
+    [api, groupId, gymId, items, unreadCount, loading]
+  );
 }
