@@ -274,6 +274,10 @@
 .eq-form__grid--2col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.eq-form__grid--1col {
+  grid-template-columns: 1fr;
+}
 .eq-form__actions {
   display: flex;
   gap: 10px;
@@ -519,4 +523,393 @@
 }
 .eq-previewCard__price {
   line-height: 1.1;
+}
+
+/* ===== 2026 redesign: cleaner, compact, professional ===== */
+.eq-catalog-page {
+  gap: 14px;
+}
+
+.eq-catalog-hero {
+  padding: 18px;
+  border-radius: 20px;
+  grid-template-columns: 1.15fr 0.85fr;
+  background:
+    radial-gradient(320px 120px at 12% 5%, rgba(245, 158, 11, 0.12), transparent 62%),
+    radial-gradient(240px 120px at 92% 12%, rgba(59, 130, 246, 0.12), transparent 60%),
+    rgba(11, 17, 28, 0.82);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.45);
+}
+
+.eq-catalog-kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.eq-catalog-hero h2 {
+  font-size: 32px;
+}
+
+.eq-catalog-hero p {
+  font-size: 13px;
+  max-width: 700px;
+}
+
+
+.eq-catalog-statCard {
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.eq-catalog-statCard span {
+  font-size: 11px;
+}
+
+.eq-catalog-statCard strong {
+  font-size: 24px;
+}
+
+.eq-catalog-shell {
+  gap: 14px;
+  grid-template-columns: 0.95fr 1.05fr;
+}
+
+.eq-catalog-panel {
+  border-radius: 18px;
+  background: rgba(10, 17, 28, 0.8);
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.35);
+}
+
+.eq-catalog-panel__header {
+  padding: 16px 16px 0;
+}
+
+.eq-catalog-panel__header h3 {
+  font-size: 30px;
+  line-height: 1.15;
+}
+
+.eq-catalog-panel__header p {
+  font-size: 12px;
+}
+
+.eq-catalog-filters {
+  grid-template-columns: minmax(0, 1fr) 200px 72px;
+  gap: 8px;
+}
+
+.eq-input {
+  min-height: 40px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.eq-textarea {
+  min-height: 96px;
+}
+
+.eq-btn {
+  min-height: 38px;
+  border-radius: 11px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.eq-listCards {
+  padding: 12px;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.eq-listCards::-webkit-scrollbar {
+  width: 8px;
+}
+
+.eq-listCards::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.eq-listCards::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+}
+
+.eq-listCard {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.eq-listCard__media,
+.eq-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+}
+
+.eq-listCard__content {
+  gap: 6px;
+}
+
+.eq-name {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.eq-meta,
+.eq-listCard__sub,
+.eq-listCard__desc,
+.eq-previewCard__line,
+.eq-previewCard__desc,
+.eq-previewNote,
+.eq-uploadDrop__text,
+.eq-uploadHint {
+  font-size: 12px;
+}
+
+.eq-actions {
+  gap: 8px;
+}
+
+.eq-actions .eq-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.eq-editorBody {
+  padding: 12px 16px 0;
+  gap: 10px;
+}
+
+.eq-form {
+  gap: 10px;
+}
+
+.eq-form__grid {
+  gap: 8px;
+}
+
+.eq-previewPanel {
+  width: 270px;
+  gap: 8px;
+}
+
+.eq-formSection__title,
+.eq-previewPanel__title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.eq-uploadBox {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.eq-uploadDrop {
+  min-height: 140px;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.eq-uploadDrop__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+.eq-uploadDrop__title {
+  font-size: 13px;
+}
+
+.eq-uploadPreview,
+.eq-previewCard__image {
+  border-radius: 12px;
+  height: 150px;
+}
+
+.eq-uploadPreviewCard,
+.eq-previewCard {
+  border-radius: 14px;
+}
+
+.eq-previewCard {
+  padding: 12px;
+  top: 8px;
+}
+
+.eq-previewCard__name {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.eq-previewCard__price {
+  font-size: 24px;
+  min-height: 34px;
+}
+
+.eq-previewNote {
+  border-radius: 12px;
+  padding: 10px;
+}
+
+@media (max-width: 1320px) {
+  .eq-catalog-hero,
+  .eq-catalog-shell,
+  .eq-editorBody {
+    grid-template-columns: 1fr;
+  }
+
+  .eq-previewPanel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .eq-catalog-heroStats,
+  .eq-form__grid--2col,
+  .eq-catalog-filters,
+  .eq-listCard,
+  .eq-uploadBox {
+    grid-template-columns: 1fr;
+  }
+
+  .eq-listCard__media,
+  .eq-thumb {
+    width: 100%;
+    height: 160px;
+  }
+}
+
+.eq-formTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.eq-formTab {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e5e7eb;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.eq-formTab.is-active {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+}
+
+.eq-formSection--hidden {
+  display: none;
+}
+
+.eq-formSection--card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.eq-listCard--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.eq-skeletonBlock,
+.eq-skeletonLine {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: eq-skeleton-loading 1.25s linear infinite;
+}
+
+.eq-skeletonBlock {
+  border-radius: 12px;
+}
+
+.eq-skeletonLine {
+  height: 10px;
+  border-radius: 999px;
+}
+
+.eq-skeletonLine--lg {
+  width: 72%;
+}
+
+.eq-skeletonLine--md {
+  width: 54%;
+}
+
+.eq-skeletonLine--sm {
+  width: 36%;
+}
+
+@keyframes eq-skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* override tabs + pagination alignment */
+.eq-formTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.eq-formTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.eq-listPagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 14px;
+}
+
+.eq-listPagination__meta {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 12px;
+  min-width: 88px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .eq-formTabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .eq-formTab {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 8px;
+  }
 }
