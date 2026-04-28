@@ -35,7 +35,7 @@ export default function AdminDashboard() {
     { label: "Nhà cung cấp", to: "/admin/suppliers", key: "suppliers" },
     { label: "Yêu cầu bán combo", to: "/admin/purchase-workflow", key: "purchase-workflow" },
     { section: "Thiết bị & Kỹ thuật" },
-    { label: "Tài sản thiết bị", to: "/admin/equipment-assets", key: "equipment-assets" },
+    { label: "Thiết bị (QR)", to: "/admin/equipment-assets", key: "equipment-assets" },
     { label: "Bảo trì thiết bị", to: "/admin/maintenance", key: "maintenance" },
   ], []);
 

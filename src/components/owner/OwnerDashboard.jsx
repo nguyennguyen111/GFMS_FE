@@ -135,7 +135,7 @@ export default function OwnerDashboard() {
       title: "Kho & Thiết bị",
       items: [
         { label: "Thiết bị", to: "/owner/equipment", key: "equipment",  },
-        { label: "Tài sản thiết bị (QR)", to: "/owner/equipment-assets", key: "equipment-assets",  },
+        { label: "Thiết bị (QR)", to: "/owner/equipment-assets", key: "equipment-assets",  },
         { label: "Kho thiết bị", to: "/owner/inventory", key: "inventory",  },
         { label: "Bảo trì", to: "/owner/maintenance", key: "maintenance",  },
       ],
