@@ -113,7 +113,11 @@ const getMembershipCardOverview = (membershipCard) => {
   const end = new Date(membershipCard.endDate);
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
-  const daysLeft = Math.ceil((end.getTime() - now.getTime()) / msPerDay);
+  const remainingMonths = Number(membershipCard?.remainingMonths || 0);
+  // Đồng bộ nghiệp vụ: 1 tháng = 30 ngày (tránh lệch 90/91 theo số ngày lịch thực tế).
+  const daysLeft = remainingMonths > 0
+    ? remainingMonths * 30
+    : Math.ceil((end.getTime() - now.getTime()) / msPerDay);
   const isActive = daysLeft >= 0;
 
   return {
