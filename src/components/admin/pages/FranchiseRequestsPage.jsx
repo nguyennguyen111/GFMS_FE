@@ -4,6 +4,7 @@ import { adminFranchiseApi } from "../../../services/adminFranchiseApi";
 import { franchiseSigningHref } from "../../../utils/franchiseSigning";
 import { FRANCHISE_CONTRACT_STATUS_LABEL as CONTRACT_LABEL } from "../../../utils/franchiseContractLabels";
 import useAdminRealtimeRefresh from "../../../hooks/useAdminRealtimeRefresh";
+import NiceModal from "../../common/NiceModal";
 import "./FranchiseRequestsPage.css";
 
 const STATUS_LABEL = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối" };
@@ -74,6 +75,7 @@ export default function FranchiseRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
+  const [noticeModal, setNoticeModal] = useState({ open: false, tone: "error", title: "", message: "" });
 
   const [actionMenuId, setActionMenuId] = useState(null);
   const [details, setDetails] = useState({ open: false, id: null });
@@ -91,6 +93,15 @@ export default function FranchiseRequestsPage() {
   const [modal, setModal] = useState({ open: false, type: "", id: null, text: "" });
   const [signModal, setSignModal] = useState({ open: false, id: null, signerName: "Admin" });
   const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", detail: "", confirmLabel: "Xác nhận" });
+  const openNotice = useCallback((tone, title, message) => {
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
+  }, []);
+
   const confirmResolverRef = useRef(null);
   const signPadRef = useRef(null);
 
@@ -118,11 +129,11 @@ export default function FranchiseRequestsPage() {
         totalPages: Number.isFinite(pages) && pages > 0 ? pages : 1,
       });
     } catch (e) {
-      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Tải dữ liệu thất bại");
+      openNotice("error", "Tải dữ liệu thất bại", e?.response?.data?.message || e?.response?.data?.error || e?.message);
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, status, contractStatus, q]);
+  }, [page, pageSize, status, contractStatus, q, openNotice]);
 
   useEffect(() => {
     if (qDebounceInit.current) {
@@ -223,7 +234,7 @@ export default function FranchiseRequestsPage() {
       await fn();
       await loadFranchises();
     } catch (e) {
-      setError(e?.response?.data?.message || e?.response?.data?.error || e?.message || "Thao tác thất bại");
+      openNotice("error", "Thao tác thất bại", e?.response?.data?.message || e?.response?.data?.error || e?.message);
     } finally {
       setBusyId(null);
     }
@@ -291,7 +302,7 @@ export default function FranchiseRequestsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e?.response?.data?.message || e?.message || "Tải xuống thất bại");
+      openNotice("error", "Tải xuống thất bại", e?.response?.data?.message || e?.message || "Không thể tải tài liệu.");
     }
   }
 
@@ -310,7 +321,7 @@ export default function FranchiseRequestsPage() {
     const id = signModal.id;
     const signatureDataUrl = signPadRef.current?.exportPngDataUrl?.();
     if (!signatureDataUrl) {
-      alert("Vui lòng ký tay chữ ký quản trị viên trước.");
+      openNotice("warning", "Thiếu chữ ký", "Vui lòng ký tay chữ ký quản trị viên trước.");
       return;
     }
 
@@ -999,6 +1010,24 @@ export default function FranchiseRequestsPage() {
           </div>
         </div>
       ) : null}
+
+      <NiceModal
+        open={Boolean(noticeModal.open)}
+        onClose={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+        title={noticeModal.title || "Thông báo"}
+        tone={noticeModal.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal.message}</p>
+      </NiceModal>
 
     </div>
   );

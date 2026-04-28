@@ -11,6 +11,7 @@ import {
   admCompleteMaintenance,
   admGetGyms,
 } from "../../../services/adminAdminCoreService";
+import NiceModal from "../../common/NiceModal";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
@@ -71,6 +72,17 @@ export default function MaintenancePage() {
   const [detail, setDetail] = useState(null);
 
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
+  const [noticeModal, setNoticeModal] = useState({ open: false, tone: "error", title: "", message: "" });
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const openNotice = (tone, title, message) => {
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
+  };
+
 
   // ✅ gyms dropdown
   const [gymLoading, setGymLoading] = useState(false);
@@ -109,7 +121,7 @@ export default function MaintenancePage() {
         }
       );
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Tải danh sách thất bại", e?.response?.data?.message || e?.message);
     } finally {
       setLoading(false);
     }
@@ -121,7 +133,7 @@ export default function MaintenancePage() {
       const res = await admGetMaintenanceDetail(id);
       setDetail(res.data);
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Tải chi tiết thất bại", e?.response?.data?.message || e?.message);
     } finally {
       setLoading(false);
     }
@@ -222,6 +234,8 @@ export default function MaintenancePage() {
 
   // ---------------- ACTIONS ----------------
   const doApprove = async () => {
+    if (actionSubmitting) return;
+    setActionSubmitting(true);
     try {
       const payload = { ...(modal.payload || {}) };
 
@@ -230,19 +244,19 @@ export default function MaintenancePage() {
       const targetAt = parseLocalDateTime(payload.targetCompletionDate);
 
       if (!scheduledAt) {
-        alert("Bạn chưa chọn ngày giờ hẹn kiểm tra hợp lệ");
+        openNotice("warning", "Thiếu dữ liệu", "Bạn chưa chọn ngày giờ hẹn kiểm tra hợp lệ.");
         return;
       }
       if (scheduledAt.getTime() < minTime) {
-        alert("Ngày giờ hẹn kiểm tra phải nằm trong tương lai.");
+        openNotice("warning", "Thời gian không hợp lệ", "Ngày giờ hẹn kiểm tra phải nằm trong tương lai.");
         return;
       }
       if (payload.targetCompletionDate && !targetAt) {
-        alert("Hạn hoàn tất dự kiến không hợp lệ.");
+        openNotice("warning", "Thời gian không hợp lệ", "Hạn hoàn tất dự kiến không hợp lệ.");
         return;
       }
       if (targetAt && targetAt.getTime() <= scheduledAt.getTime()) {
-        alert("Hạn hoàn tất dự kiến phải sau ngày giờ hẹn kiểm tra.");
+        openNotice("warning", "Thời gian không hợp lệ", "Hạn hoàn tất dự kiến phải sau ngày giờ hẹn kiểm tra.");
         return;
       }
 
@@ -250,16 +264,21 @@ export default function MaintenancePage() {
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
+      openNotice("success", "Duyệt thành công", "Yêu cầu bảo trì đã được duyệt.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Duyệt thất bại", e?.response?.data?.message || e?.message);
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
   const doReject = async () => {
+    if (actionSubmitting) return;
+    setActionSubmitting(true);
     try {
       const reason = modal?.payload?.reason;
       if (!reason || !String(reason).trim()) {
-        alert("Bạn chưa nhập lý do từ chối");
+        openNotice("warning", "Thiếu dữ liệu", "Bạn chưa nhập lý do từ chối.");
         return;
       }
 
@@ -268,30 +287,43 @@ export default function MaintenancePage() {
       setSelectedId(null);
       setDetail(null);
       await fetchList();
+      openNotice("success", "Đã từ chối", "Yêu cầu bảo trì đã được từ chối.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Từ chối thất bại", e?.response?.data?.message || e?.message);
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
   const doStart = async () => {
+    if (actionSubmitting) return;
+    setActionSubmitting(true);
     try {
       await admStartMaintenance(selectedId);
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
+      openNotice("success", "Đã bắt đầu", "Yêu cầu bảo trì đã chuyển sang trạng thái đang thực hiện.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Bắt đầu thất bại", e?.response?.data?.message || e?.message);
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
   const doComplete = async () => {
+    if (actionSubmitting) return;
+    setActionSubmitting(true);
     try {
       await admCompleteMaintenance(selectedId, {});
       closeModal();
       await fetchDetail(selectedId);
       await fetchList();
+      openNotice("success", "Hoàn tất thành công", "Yêu cầu bảo trì đã được hoàn tất.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Hoàn tất thất bại", e?.response?.data?.message || e?.message);
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
@@ -471,16 +503,16 @@ export default function MaintenancePage() {
               </div>
 
               <div className="ma-actions">
-                <button className="ma-btn" disabled={!canApprove} onClick={openApprove}>
+                <button className="ma-btn" disabled={!canApprove || actionSubmitting} onClick={openApprove}>
                   Duyệt
                 </button>
-                <button className="ma-btn" disabled={!canStart} onClick={openStart}>
+                <button className="ma-btn" disabled={!canStart || actionSubmitting} onClick={openStart}>
                   Bắt đầu
                 </button>
-                <button className="ma-btn" disabled={!canComplete} onClick={openComplete}>
+                <button className="ma-btn" disabled={!canComplete || actionSubmitting} onClick={openComplete}>
                   Hoàn tất
                 </button>
-                <button className="ma-btn ma-btn--danger" disabled={!canReject} onClick={openReject}>
+                <button className="ma-btn ma-btn--danger" disabled={!canReject || actionSubmitting} onClick={openReject}>
                   Từ chối
                 </button>
               </div>
@@ -499,7 +531,7 @@ export default function MaintenancePage() {
                 {modal.type === "start" && "Bắt đầu bảo trì"}
                 {modal.type === "complete" && "Hoàn tất bảo trì"}
               </div>
-              <button className="ma-btn ma-btn--ghost" onClick={closeModal}>
+              <button className="ma-btn ma-btn--ghost" onClick={closeModal} disabled={actionSubmitting}>
                 ✕
               </button>
             </div>
@@ -548,8 +580,8 @@ export default function MaintenancePage() {
                   />
                 </div>
                 <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--primary" onClick={doApprove}>
-                    Duyệt
+                  <button className="ma-btn ma-btn--primary" onClick={doApprove} disabled={actionSubmitting}>
+                    {actionSubmitting ? "Đang xử lý..." : "Duyệt"}
                   </button>
                 </div>
               </div>
@@ -558,8 +590,8 @@ export default function MaintenancePage() {
             {modal.type === "complete" && (
               <div className="ma-modal__body">
                 <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--primary" onClick={doComplete}>
-                    Hoàn tất
+                  <button className="ma-btn ma-btn--primary" onClick={doComplete} disabled={actionSubmitting}>
+                    {actionSubmitting ? "Đang xử lý..." : "Hoàn tất"}
                   </button>
                 </div>
               </div>
@@ -569,11 +601,11 @@ export default function MaintenancePage() {
               <div className="ma-modal__body">
                 <div>Bạn có chắc muốn bắt đầu bảo trì yêu cầu này?</div>
                 <div className="ma-modal__actions">
-                  <button className="ma-btn" onClick={closeModal}>
+                  <button className="ma-btn" onClick={closeModal} disabled={actionSubmitting}>
                     Hủy
                   </button>
-                  <button className="ma-btn ma-btn--primary" onClick={doStart}>
-                    Bắt đầu
+                  <button className="ma-btn ma-btn--primary" onClick={doStart} disabled={actionSubmitting}>
+                    {actionSubmitting ? "Đang xử lý..." : "Bắt đầu"}
                   </button>
                 </div>
               </div>
@@ -595,8 +627,8 @@ export default function MaintenancePage() {
                   />
                 </div>
                 <div className="ma-modal__actions">
-                  <button className="ma-btn ma-btn--danger" onClick={doReject}>
-                    Từ chối
+                  <button className="ma-btn ma-btn--danger" onClick={doReject} disabled={actionSubmitting}>
+                    {actionSubmitting ? "Đang xử lý..." : "Từ chối"}
                   </button>
                 </div>
               </div>
@@ -604,6 +636,24 @@ export default function MaintenancePage() {
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(noticeModal.open)}
+        onClose={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+        title={noticeModal.title || "Thông báo"}
+        tone={noticeModal.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal.message}</p>
+      </NiceModal>
     </div>
   );
 }

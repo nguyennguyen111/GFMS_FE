@@ -12,6 +12,8 @@ import {
   deleteGymApi,
   uploadGymImage
 } from "../../../services/adminService";
+import { showAppConfirm } from "../../../utils/appDialog";
+import NiceModal from "../../common/NiceModal";
 
 const DEFAULT_LIMIT = 10;
 const DEFAULT_HOURS = {
@@ -160,6 +162,16 @@ export default function GymsPage() {
   const [detail, setDetail] = useState(null);
   const [detailErr, setDetailErr] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
+  const [noticeModal, setNoticeModal] = useState({ open: false, tone: "error", title: "", message: "" });
+
+  const openNotice = (tone, title, message) => {
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
+  };
 
   const canSubmit = useMemo(() => {
     return Boolean(
@@ -351,46 +363,66 @@ export default function GymsPage() {
   };
 
   const handleSuspend = async (g) => {
-    const ok = window.confirm(`Tạm ngưng gym "${g.name}"?`);
-    if (!ok) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận tạm ngưng",
+      message: `Tạm ngưng gym "${g.name}"?`,
+      confirmText: "Xác nhận",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     setLoading(true);
     setErr("");
     try {
       await suspendGym(g.id);
       await fetchGyms();
+      openNotice("success", "Thành công", `Đã tạm ngưng gym "${g.name}".`);
     } catch (e) {
-      setErr(e?.response?.data?.EM || e.message || "Tạm ngưng thất bại");
+      openNotice("error", "Tạm ngưng thất bại", e?.response?.data?.EM || e?.message || "Tạm ngưng thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   const handleRestore = async (g) => {
-    const ok = window.confirm(`Khôi phục gym "${g.name}"?`);
-    if (!ok) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận khôi phục",
+      message: `Khôi phục gym "${g.name}"?`,
+      confirmText: "Khôi phục",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     setLoading(true);
     setErr("");
     try {
       await restoreGym(g.id);
       await fetchGyms();
+      openNotice("success", "Thành công", `Đã khôi phục gym "${g.name}".`);
     } catch (e) {
-      setErr(e?.response?.data?.EM || e.message || "Khôi phục thất bại");
+      openNotice("error", "Khôi phục thất bại", e?.response?.data?.EM || e?.message || "Khôi phục thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteGym = async (g) => {
-    const ok = window.confirm(`Bạn có chắc chắn muốn xóa phòng gym "${g.name}" (ID: ${g.id})?\nThao tác này không thể hoàn tác.`);
-    if (!ok) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xoá phòng gym",
+      message: `Bạn có chắc chắn muốn xóa phòng gym "${g.name}" (ID: ${g.id})?`,
+      description: "Thao tác này không thể hoàn tác.",
+      confirmText: "Xóa",
+      cancelText: "Quay lại",
+      tone: "danger",
+    });
+    if (!confirmResult.confirmed) return;
     setLoading(true);
     setErr("");
     try {
       await deleteGymApi(g.id);
       goList();
       await fetchGyms();
+      openNotice("success", "Xoá thành công", `Đã xoá phòng gym "${g.name}".`);
     } catch (e) {
-      setErr(e?.response?.data?.EM || e.message || "Xoá phòng gym thất bại");
+      openNotice("error", "Xoá thất bại", e?.response?.data?.EM || e?.message || "Xoá phòng gym thất bại");
     } finally {
       setLoading(false);
     }
@@ -561,10 +593,14 @@ export default function GymsPage() {
                       <div className="gp-sub">{g.address || "-"}</div>
                     </td>
                     <td>
-                      {g.owner?.username ? (
+                      {g.owner?.username || g.FranchiseRequest?.contactPerson ? (
                         <div className="gp-owner">
-                          <div className="gp-name">{g.owner.username}</div>
-                          <div className="gp-sub">{g.owner.email || g.owner.phone || "-"}</div>
+                          <div className="gp-name">
+                            {g.FranchiseRequest?.contactPerson || g.owner?.username || "-"}
+                          </div>
+                          <div className="gp-sub">
+                            {g.FranchiseRequest?.contactEmail || g.FranchiseRequest?.contactPhone || g.owner?.email || g.owner?.phone || "-"}
+                          </div>
                         </div>
                       ) : g.ownerId ? (
                         <div className="gp-sub">Chủ sở hữu #{g.ownerId}</div>
@@ -821,11 +857,17 @@ export default function GymsPage() {
                   </div>
                   <div className="gp-block">
                     <div className="gp-block__title">Chủ sở hữu</div>
-                    {detail.owner ? (
+                    {detail.owner || detail.FranchiseRequest ? (
                       <>
-                        <div className="gp-name">{detail.owner.username}</div>
-                        <div className="gp-sub">{detail.owner.email}</div>
-                        <div className="gp-sub">{detail.owner.phone}</div>
+                        <div className="gp-name">
+                          {detail.FranchiseRequest?.contactPerson || detail.owner?.username || "-"}
+                        </div>
+                        <div className="gp-sub">
+                          {detail.FranchiseRequest?.contactEmail || detail.owner?.email || "-"}
+                        </div>
+                        <div className="gp-sub">
+                          {detail.FranchiseRequest?.contactPhone || detail.owner?.phone || "-"}
+                        </div>
                       </>
                     ) : (
                       <div className="gp-sub">N/A</div>
@@ -910,6 +952,24 @@ export default function GymsPage() {
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(noticeModal.open)}
+        onClose={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+        title={noticeModal.title || "Thông báo"}
+        tone={noticeModal.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal.message}</p>
+      </NiceModal>
     </div>
   );
 }
