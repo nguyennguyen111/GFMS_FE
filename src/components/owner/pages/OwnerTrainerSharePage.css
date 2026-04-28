@@ -574,7 +574,7 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   box-shadow: 0 30px 90px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  max-width: 580px;
+  max-width: 650px;
   width: 100%;
   max-height: 70vh;
   overflow-y: auto;
