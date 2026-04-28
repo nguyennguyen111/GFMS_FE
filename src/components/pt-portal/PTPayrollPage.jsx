@@ -86,6 +86,13 @@ const statusLabel = {
 const PTPayrollPage = () => {
   const [commissions, setCommissions] = useState([]);
   const [periodItems, setPeriodItems] = useState([]);
+  const [commissionPage, setCommissionPage] = useState(1);
+  const [commissionPagination, setCommissionPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 15,
+    totalPages: 1,
+  });
   const [walletSummary, setWalletSummary] = useState({
     availableBalance: 0,
     totalWithdrawn: 0,
@@ -109,14 +116,32 @@ const PTPayrollPage = () => {
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState(null);
 
-  const loadCommissions = async () => {
+  const loadCommissions = async (page = commissionPage) => {
     try {
       setLoading(true);
-      const res = await getMyPTCommissions(filters);
+      const res = await getMyPTCommissions({
+        ...filters,
+        page,
+        limit: commissionPagination.limit || 15,
+      });
       setCommissions(Array.isArray(res.data) ? res.data : []);
+      const pg = res?.pagination || {};
+      setCommissionPagination({
+        total: Number(pg.total || 0),
+        page: Number(pg.page || page || 1),
+        limit: Number(pg.limit || commissionPagination.limit || 15),
+        totalPages: Math.max(1, Number(pg.totalPages || 1)),
+      });
+      setCommissionPage(Number(pg.page || page || 1));
     } catch (e) {
       console.error("Lỗi khi tải hoa hồng PT:", e);
       setCommissions([]);
+      setCommissionPagination((prev) => ({
+        ...prev,
+        total: 0,
+        page: 1,
+        totalPages: 1,
+      }));
     } finally {
       setLoading(false);
     }
@@ -156,12 +181,16 @@ const PTPayrollPage = () => {
   };
 
   useEffect(() => {
-    loadCommissions();
+    loadCommissions(commissionPage);
     loadPayrollPeriods();
     loadWalletSummary();
     loadWithdrawals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [commissionPage]);
+
+  useEffect(() => {
+    setCommissionPage(1);
+  }, [filters.status, filters.fromDate, filters.toDate]);
 
   useEffect(() => {
     const socket = connectSocket();
@@ -334,7 +363,7 @@ const PTPayrollPage = () => {
     <div className="ptp-wrap ptpay-wrap">
       <div className="ptp-head">
         <div>
-          <h2 className="ptp-title">Bảng lương & hoa hồng</h2>
+          <h2 className="ptp-title">Doanh thu theo buổi</h2>
         </div>
       </div>
 
@@ -556,11 +585,14 @@ const PTPayrollPage = () => {
           className="ptp-input"
           showPopperArrow={false}
         />
-        <button className="ptp-btn" onClick={loadCommissions}>Lọc</button>
+        <button className="ptp-btn" onClick={() => {
+          setCommissionPage(1);
+          loadCommissions(1);
+        }}>Lọc</button>
       </div>
 
       <div className="ptpay-section">
-        <div className="ptpay-section-title">Hoa hồng theo buổi</div>
+        <div className="ptpay-section-title">Doanh thu theo buổi</div>
         <div className="ptpay-table">
           <table>
             <thead>
@@ -569,7 +601,7 @@ const PTPayrollPage = () => {
                 <th>Phòng gym</th>
                 <th>Gói tập</th>
                 <th>Giá trị/buổi</th>
-                <th>Hoa hồng</th>
+                <th>Doanh thu</th>
                 <th>Trạng thái</th>
               </tr>
             </thead>
@@ -602,6 +634,29 @@ const PTPayrollPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="ptpay-pagination">
+          <button
+            className="ptpay-pagination-btn"
+            disabled={loading || commissionPage <= 1}
+            onClick={() => setCommissionPage((p) => Math.max(1, p - 1))}
+          >
+            Trang trước
+          </button>
+          <span className="ptpay-pagination-meta">
+            Trang {commissionPagination.page || 1}/{Math.max(1, commissionPagination.totalPages || 1)}
+            {" · "}
+            Tổng {commissionPagination.total || 0} dòng
+          </span>
+          <button
+            className="ptpay-pagination-btn"
+            disabled={loading || commissionPage >= (commissionPagination.totalPages || 1)}
+            onClick={() =>
+              setCommissionPage((p) => Math.min(commissionPagination.totalPages || 1, p + 1))
+            }
+          >
+            Trang sau
+          </button>
         </div>
       </div>
 
@@ -674,7 +729,7 @@ const PTPayrollPage = () => {
                       <th>Ngày buổi tập</th>
                       <th>Gói tập</th>
                       <th>Giá trị/buổi</th>
-                      <th>Hoa hồng</th>
+                      <th>Doanh thu</th>
                     </tr>
                   </thead>
                   <tbody>
