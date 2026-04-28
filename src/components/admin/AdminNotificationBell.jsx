@@ -55,11 +55,13 @@ export default function AdminNotificationBell() {
     navigate(href);
   };
 
+  const latestItems = Array.isArray(items) ? items.slice(0, 8) : [];
+
   return (
     <div className="ad-bell-wrap" ref={wrapRef}>
       <button
         type="button"
-        className="ad-bell-btn"
+        className={`ad-bell-btn ${open ? "is-open" : ""}`}
         aria-label="Thông báo"
         onClick={() => {
           setOpen((v) => !v);
@@ -73,11 +75,12 @@ export default function AdminNotificationBell() {
       {open ? (
         <div className="ad-bell-panel" role="dialog" aria-label="Thông báo quản trị">
           <div className="ad-bell-panel__head">
-            <div className="ad-bell-panel__title">Thông báo</div>
+            <div>
+              <div className="ad-bell-panel__eyebrow">Thông báo</div>
+              <div className="ad-bell-panel__title">Cập nhật gần đây</div>
+              <div className="ad-bell-panel__meta">{unreadCount} chưa đọc</div>
+            </div>
             <div className="ad-bell-panel__actions">
-              <button type="button" onClick={() => refresh()}>
-                Làm mới
-              </button>
               <button
                 type="button"
                 onClick={async () => {
@@ -89,16 +92,18 @@ export default function AdminNotificationBell() {
                 }}
                 disabled={unreadCount === 0}
               >
-                Đọc hết
+                Đọc tất cả
               </button>
             </div>
           </div>
           <div className="ad-bell-list">
-            {loading && items.length === 0 ? (
+            {loading && latestItems.length === 0 ? (
               <div className="ad-bell-empty">Đang tải…</div>
             ) : null}
-            {!loading && items.length === 0 ? <div className="ad-bell-empty">Không có thông báo.</div> : null}
-            {items.map((it) => (
+            {!loading && latestItems.length === 0 ? (
+              <div className="ad-bell-empty">Không có thông báo.</div>
+            ) : null}
+            {latestItems.map((it) => (
               <button
                 key={it.id}
                 type="button"
@@ -115,6 +120,18 @@ export default function AdminNotificationBell() {
                 <div className="ad-bell-item__msg">{it.message}</div>
               </button>
             ))}
+          </div>
+          <div className="ad-bell-panel__foot">
+            <button
+              type="button"
+              className="ad-bell-viewall"
+              onClick={() => {
+                setOpen(false);
+                navigate("/admin/notifications");
+              }}
+            >
+              Xem tất cả
+            </button>
           </div>
         </div>
       ) : null}

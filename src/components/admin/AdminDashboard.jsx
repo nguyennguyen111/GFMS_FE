@@ -16,6 +16,7 @@ import PurchaseWorkflowPage from "./pages/PurchaseWorkflowPage";
 import EquipmentAssetsPage from "./pages/EquipmentAssetsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import FranchiseRequestsPage from "./pages/FranchiseRequestsPage";
+import AdminNotificationsPage from "./pages/AdminNotificationsPage";
 import AdminNotificationBell from "./AdminNotificationBell";
 import AdminRequestApprovalPopup from "./AdminRequestApprovalPopup";
 
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
     { label: "Người dùng", to: "/admin/users", key: "users" },
     { label: "Phòng gym", to: "/admin/gyms", key: "gyms" },
     { label: "Yêu cầu nhượng quyền", to: "/admin/franchises", key: "franchises" },
+    { label: "Thông báo", to: "/admin/notifications", key: "notifications" },
     { section: "Thiết bị & Combo" },
     { label: "Thiết bị", to: "/admin/devices", key: "devices" },
     { label: "Combo thiết bị", to: "/admin/equipment", key: "equipment" },
@@ -105,6 +107,7 @@ export default function AdminDashboard() {
             <Route path="/import" element={<Navigate to="/admin/purchase-workflow" replace />} />
             <Route path="/export" element={<Navigate to="/admin/purchase-workflow" replace />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/notifications" element={<AdminNotificationsPage />} />
             <Route path="/reports" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/audit-logs" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="*" element={<div style={{ color: "#eef2ff" }}>Không tìm thấy trang quản trị</div>} />
