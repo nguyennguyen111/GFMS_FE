@@ -38,6 +38,13 @@ export default function OwnerPurchaseRequestHistoryPage() {
   const [error, setError] = useState("");
   const [payingId, setPayingId] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 1,
+  });
 
   const API_HOST = String(
     axios?.defaults?.baseURL ||
@@ -52,27 +59,37 @@ export default function OwnerPurchaseRequestHistoryPage() {
         : `${API_HOST}${value}`
       : "";
 
-  const loadRequests = useCallback(async () => {
+  const loadRequests = useCallback(async (targetPage = page) => {
     setLoading(true);
     setError("");
 
     try {
       const res = await ownerGetPurchaseRequests({
-        page: 1,
-        limit: 100,
+        page: targetPage,
+        limit: 10,
         gymId: selectedGymId || undefined,
       });
 
       setRequests(res?.data?.data || []);
+      const meta = res?.data?.meta || {};
+      const nextPage = Number(meta.page || targetPage || 1);
+      setPagination({
+        page: nextPage,
+        limit: Number(meta.limit || 10),
+        totalItems: Number(meta.totalItems || 0),
+        totalPages: Math.max(1, Number(meta.totalPages || 1)),
+      });
+      setPage(nextPage);
     } catch (e) {
       setError(e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
-  }, [selectedGymId]);
+  }, [selectedGymId, page]);
 
   useEffect(() => {
-    loadRequests();
+    setPage(1);
+    loadRequests(1);
   }, [selectedGymId, loadRequests]);
 
   useEffect(() => {
@@ -119,7 +136,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
         ["purchaserequest", "purchase_request"].includes(relatedType) ||
         ["purchase_request", "payment"].includes(notificationType)
       ) {
-        loadRequests();
+        loadRequests(page);
       }
     };
 
@@ -130,7 +147,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
       socket.off("notification:new", onPurchaseFlowChanged);
       socket.off("equipment:changed", onPurchaseFlowChanged);
     };
-  }, [loadRequests]);
+  }, [loadRequests, page]);
 
   useEffect(() => {
     if (!requests.length) return;
@@ -340,7 +357,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
             <button
               type="button"
               className="owner-combo-btn owner-combo-btn--accent"
-              onClick={loadRequests}
+              onClick={() => loadRequests(page)}
               disabled={loading}
             >
               {loading ? "Đang tải..." : "Làm mới"}
@@ -473,6 +490,28 @@ export default function OwnerPurchaseRequestHistoryPage() {
               Bạn chưa có yêu cầu mua combo nào.
             </div>
           ) : null}
+        </div>
+        <div className="owner-combo-pagination">
+          <button
+            type="button"
+            className="owner-combo-btn"
+            disabled={loading || page <= 1}
+            onClick={() => loadRequests(Math.max(1, page - 1))}
+          >
+            Trang trước
+          </button>
+          <span className="owner-combo-pagination__meta">
+            Trang {pagination.page || 1}/{Math.max(1, pagination.totalPages || 1)} · Tổng{" "}
+            {pagination.totalItems || 0} yêu cầu
+          </span>
+          <button
+            type="button"
+            className="owner-combo-btn"
+            disabled={loading || page >= (pagination.totalPages || 1)}
+            onClick={() => loadRequests(Math.min(pagination.totalPages || 1, page + 1))}
+          >
+            Trang sau
+          </button>
         </div>
       </section>
     </div>

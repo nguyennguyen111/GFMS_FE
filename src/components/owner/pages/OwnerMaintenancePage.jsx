@@ -11,6 +11,7 @@ import { ownerGetEquipments, ownerGetEquipmentDetail } from "../../../services/o
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
 import { showAppConfirm } from "../../../utils/appDialog";
+import NiceModal from "../../common/NiceModal";
 
 const statusOptions = [
   { value: "", label: "Tất cả" },
@@ -61,6 +62,14 @@ const getEtaText = (row) => {
   return `${dateText} · Quá hạn ${Math.abs(diffDays)} ngày`;
 };
 
+const setVietnameseValidity = (event, message) => {
+  event.target.setCustomValidity(message || "Vui lòng nhập thông tin bắt buộc.");
+};
+
+const clearVietnameseValidity = (event) => {
+  event.target.setCustomValidity("");
+};
+
 export default function OwnerMaintenancePage() {
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const [rows, setRows] = useState([]);
@@ -80,6 +89,16 @@ export default function OwnerMaintenancePage() {
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
 
   const [modal, setModal] = useState({ open: false, type: "", payload: {} });
+  const [noticeModal, setNoticeModal] = useState({ open: false, tone: "error", title: "", message: "" });
+
+  const openNotice = useCallback((tone, title, message) => {
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
+  }, []);
 
   // Fetch gyms for owner
   const fetchMyGyms = useCallback(async () => {
@@ -111,18 +130,18 @@ export default function OwnerMaintenancePage() {
         }
       );
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Tải dữ liệu thất bại", e?.response?.data?.message || e?.message);
     }
-  }, [filters, limit, page, selectedGymId]);
+  }, [filters, limit, page, selectedGymId, openNotice]);
 
   const fetchDetail = useCallback(async (id) => {
     try {
       const res = await ownerGetMaintenanceDetail(id);
       setDetail(res.data.data || res.data);
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Không thể xem chi tiết", e?.response?.data?.message || e?.message);
     }
-  }, []);
+  }, [openNotice]);
 
   useEffect(() => {
     fetchMyGyms();
@@ -223,8 +242,9 @@ export default function OwnerMaintenancePage() {
       setDetail(null);
       setPage(1);
       await fetchList();
+      openNotice("success", "Tạo yêu cầu thành công", "Yêu cầu bảo trì đã được gửi lên hệ thống.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Tạo yêu cầu thất bại", e?.response?.data?.message || e?.message);
     }
   };
 
@@ -241,8 +261,9 @@ export default function OwnerMaintenancePage() {
       setSelectedId(null);
       setDetail(null);
       await fetchList();
+      openNotice("success", "Đã hủy yêu cầu", "Yêu cầu bảo trì đã được hủy thành công.");
     } catch (e) {
-      alert(e?.response?.data?.message || e.message);
+      openNotice("error", "Hủy yêu cầu thất bại", e?.response?.data?.message || e?.message);
     }
   };
 
@@ -518,6 +539,8 @@ export default function OwnerMaintenancePage() {
                     required
                     className="oma-select"
                     disabled={Boolean(selectedGymId)}
+                    onInvalid={(e) => setVietnameseValidity(e, "Vui lòng chọn gym.")}
+                    onInput={clearVietnameseValidity}
                   >
                     {!selectedGymId && <option value="">-- Chọn gym --</option>}
                     {myGyms.map((g) => (
@@ -540,6 +563,8 @@ export default function OwnerMaintenancePage() {
                     }}
                     required
                     className="oma-select"
+                    onInvalid={(e) => setVietnameseValidity(e, "Vui lòng chọn thiết bị.")}
+                    onInput={clearVietnameseValidity}
                   >
                     <option value="">-- Chọn thiết bị --</option>
                     {equipmentList.map((eq) => (
@@ -612,6 +637,8 @@ export default function OwnerMaintenancePage() {
                     required
                     className="oma-textarea"
                     rows={4}
+                    onInvalid={(e) => setVietnameseValidity(e, "Vui lòng nhập mô tả vấn đề cần bảo trì.")}
+                    onInput={clearVietnameseValidity}
                   />
                 </div>
 
@@ -628,6 +655,24 @@ export default function OwnerMaintenancePage() {
           </div>
         </div>
       )}
+
+      <NiceModal
+        open={Boolean(noticeModal.open)}
+        onClose={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+        title={noticeModal.title || "Thông báo"}
+        tone={noticeModal.tone || "error"}
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        <p>{noticeModal.message}</p>
+      </NiceModal>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   Clock3,
   Dumbbell,
   MapPin,
+  MessageSquare,
   UserRound,
   X,
   Lock,
@@ -160,7 +161,7 @@ const buildDisplaySlots = (options) => {
   });
 };
 
-export default function BookingDetailModal({ booking, onClose, onUpdated }) {
+export default function BookingDetailModal({ booking, onClose, onUpdated, initialShowFeedback = false }) {
   const [mode, setMode] = useState("detail");
   const [weekday, setWeekday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -185,6 +186,13 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
       document.body.style.overflow = "";
     };
   }, [onClose]);
+
+  useEffect(() => {
+    if (!booking?.id || !initialShowFeedback) return;
+    if (String(booking?.ptMemberFeedback || "").trim()) {
+      setMode("feedback");
+    }
+  }, [booking?.id, initialShowFeedback, booking?.ptMemberFeedback]);
 
   useEffect(() => {
     if (mode !== "request" || !booking?.id) return;
@@ -245,6 +253,10 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
 
   const disp = useMemo(() => getMemberSessionDisplay(booking), [booking]);
   const rescheduleMeta = useMemo(() => getRescheduleMeta(booking), [booking]);
+  const ptFeedbackText = useMemo(
+    () => String(booking?.ptMemberFeedback || "").trim(),
+    [booking?.ptMemberFeedback]
+  );
 
   const isPastBooking = useMemo(() => {
     const bookingDate = String(booking?.bookingDate || "").slice(0, 10);
@@ -344,7 +356,9 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
   const modalContent = (
     <div className="bd-backdrop" onClick={onClose}>
       <div
-        className={`bd-modal ${mode === "request" ? "is-request-mode" : "is-detail-mode"}`}
+        className={`bd-modal ${
+          mode === "request" ? "is-request-mode" : mode === "feedback" ? "is-feedback-mode" : "is-detail-mode"
+        }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -352,14 +366,20 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
         <div className="bd-head">
           <div>
             <div className="bd-kicker">
-              {mode === "request" ? "Reschedule request" : "Booking detail"}
+              {mode === "request"
+                ? "Reschedule request"
+                : mode === "feedback"
+                ? "PT feedback"
+                : "Booking detail"}
             </div>
             <h3 className="bd-title">
-              {mode === "request" ? "Yêu cầu đổi lịch" : "Chi tiết buổi tập"}
+              {mode === "request" ? "Yêu cầu đổi lịch" : mode === "feedback" ? "Nhận xét từ PT" : "Chi tiết buổi tập"}
             </h3>
             <p className="bd-sub">
               {mode === "request"
                 ? "Chọn ngày và khung giờ phù hợp để gửi yêu cầu đổi lịch."
+                : mode === "feedback"
+                ? "Huấn luyện viên đã gửi nhận xét sau buổi tập này."
                 : "Xem nhanh thông tin lịch tập và gửi yêu cầu đổi lịch ngay trong ứng dụng."}
             </p>
           </div>
@@ -370,7 +390,27 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
         </div>
 
         <div className="bd-body">
-          {mode === "detail" ? (
+          {mode === "feedback" ? (
+            <div className="bd-feedbackPanel">
+              <div className="bd-feedbackMeta">
+                <span className="bd-feedbackMetaLabel">Buổi tập</span>
+                <span className="bd-feedbackMetaValue">
+                  {fmtDate(booking.bookingDate)} · {fmtTime(booking.startTime)} – {fmtTime(booking.endTime)}
+                </span>
+              </div>
+              <div className="bd-feedbackMeta">
+                <span className="bd-feedbackMetaLabel">PT</span>
+                <span className="bd-feedbackMetaValue">{booking?.Trainer?.User?.username || "PT"}</span>
+              </div>
+              <div className="bd-feedbackBox">
+                <div className="bd-feedbackBoxLabel">
+                  <MessageSquare size={16} />
+                  Nội dung nhận xét
+                </div>
+                <p className="bd-feedbackBoxText">{ptFeedbackText || "—"}</p>
+              </div>
+            </div>
+          ) : mode === "detail" ? (
             <>
               <div className="bd-top">
                 <div className={`bd-status ${disp.key}`}>{disp.label}</div>
@@ -442,6 +482,25 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
                   </span>
                   <b className="bd-value">{booking?.Package?.name || "—"}</b>
                 </div>
+
+                {ptFeedbackText ? (
+                  <button
+                    type="button"
+                    className="bd-feedbackCta"
+                    onClick={() => setMode("feedback")}
+                  >
+                    <span className="bd-feedbackCtaLeft">
+                      <MessageSquare size={18} />
+                      <span>
+                        <span className="bd-feedbackCtaTitle">Nhận xét từ PT</span>
+                        <span className="bd-feedbackCtaSub">Nhấn để xem chi tiết</span>
+                      </span>
+                    </span>
+                    <span className="bd-feedbackCtaChev" aria-hidden>
+                      ›
+                    </span>
+                  </button>
+                ) : null}
               </div>
             </>
           ) : (
@@ -563,8 +622,16 @@ export default function BookingDetailModal({ booking, onClose, onUpdated }) {
           )}
         </div>
 
-        <div className="bd-actions bd-actions--spread">
-          {mode === "detail" ? (
+        <div
+          className={`bd-actions ${
+            mode === "feedback" ? "bd-actions--feedback" : "bd-actions--spread"
+          }`}
+        >
+          {mode === "feedback" ? (
+            <button className="bd-btn bd-btn--ghost" onClick={() => setMode("detail")} type="button">
+              Quay lại chi tiết buổi tập
+            </button>
+          ) : mode === "detail" ? (
             <>
               <button className="bd-btn bd-btn--ghost" onClick={onClose} type="button">
                 Đóng

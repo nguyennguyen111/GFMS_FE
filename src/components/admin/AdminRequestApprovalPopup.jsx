@@ -82,7 +82,7 @@ export default function AdminRequestApprovalPopup() {
     const fallback = getRequestTone(item).href;
     const href = resolveAdminNotificationHref(item) || fallback || "/admin/dashboard";
     try { if (!item.isRead) await markOne(item.id); } catch { /* route first */ }
-    dismissOne(item.id);
+    requestItems.forEach((req) => dismissOne(req.id));
     setOpen(false);
     navigate(href);
   };

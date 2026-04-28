@@ -1,27 +1,35 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   BellRing,
   CalendarCheck,
   CreditCard,
   MessageCircle,
+  MessageSquare,
   RefreshCw,
   ShieldAlert,
   Star,
   Tag,
   Repeat,
   UserPlus,
+  X,
 } from "lucide-react";
 import useRealtimeNotifications from "../../hooks/useRealtimeNotifications";
 import { previewTextFromPayload } from "../../utils/chatPayload";
+import { resolveMemberNotificationPath } from "../../utils/memberNotificationRouting";
+import "./MemberHeaderNotifications.css";
 
 const iconMap = {
   booking_update: CalendarCheck,
+  booking: CalendarCheck,
   booking_reschedule: Repeat,
   package_purchase: CreditCard,
+  membership_card: CreditCard,
   payment: CreditCard,
+  transaction: CreditCard,
   trainer_request: UserPlus,
   chat: MessageCircle,
+  session_feedback: MessageSquare,
   review: Star,
   promo: Tag,
   security: ShieldAlert,
@@ -40,12 +48,48 @@ function fmtRelative(value) {
   });
 }
 
-export default function MemberHeaderNotifications({ onNavigate }) {
-  const { items, unreadCount, loading, markOne, markAll } =
-    useRealtimeNotifications({ enabled: true });
+function getNotificationIcon(item) {
+  const type = String(item?.notificationType || item?.type || "").toLowerCase();
+  return iconMap[type] || BellRing;
+}
 
+export default function MemberHeaderNotifications({ onNavigate }) {
   const [open, setOpen] = useState(false);
+  const [toastItem, setToastItem] = useState(null);
   const wrapRef = useRef(null);
+  const toastTimerRef = useRef(null);
+
+  const closeToast = useCallback(() => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    setToastItem(null);
+  }, []);
+
+  const showRealtimeToast = useCallback(
+    (payload) => {
+      if (!payload?.id) return;
+      if (open) return;
+
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+
+      setToastItem(payload);
+      toastTimerRef.current = window.setTimeout(() => {
+        setToastItem(null);
+        toastTimerRef.current = null;
+      }, 5000);
+    },
+    [open]
+  );
+
+  const { items, unreadCount, loading, markOne, markAll } =
+    useRealtimeNotifications({
+      enabled: true,
+      onNewNotification: showRealtimeToast,
+    });
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -55,7 +99,10 @@ export default function MemberHeaderNotifications({ onNavigate }) {
     };
 
     const handleEscape = (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        closeToast();
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -65,30 +112,27 @@ export default function MemberHeaderNotifications({ onNavigate }) {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
+  }, [closeToast]);
+
+  useEffect(() => {
+    if (open) closeToast();
+  }, [open, closeToast]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
   }, []);
 
   const latestItems = useMemo(() => {
     return Array.isArray(items) ? items.slice(0, 8) : [];
   }, [items]);
 
-  const resolveNotificationPath = (item) => {
-    const type = String(item?.notificationType || "").toLowerCase();
-
-    if (type === "chat") return "/member/messages";
-    if (["booking_update", "booking", "booking_reschedule"].includes(type)) {
-      return "/member/bookings";
-    }
-    if (["package_purchase", "transaction", "payment"].includes(type)) {
-      return "/member/my-packages";
-    }
-    if (type === "review") return "/member/reviews";
-    if (type === "trainer_request") return "/member/profile";
-    if (type === "promo") return "/member/my-packages";
-
-    return "/member/notifications";
-  };
-
   const handleOpenItem = async (item) => {
+    if (!item) return;
+
+    closeToast();
+
     if (!item?.isRead) {
       try {
         await markOne(item.id);
@@ -96,7 +140,7 @@ export default function MemberHeaderNotifications({ onNavigate }) {
     }
 
     setOpen(false);
-    onNavigate(resolveNotificationPath(item));
+    onNavigate(resolveMemberNotificationPath(item));
   };
 
   const handleMarkAll = async () => {
@@ -104,6 +148,11 @@ export default function MemberHeaderNotifications({ onNavigate }) {
       await markAll();
     } catch {}
   };
+
+  const ToastIcon = toastItem ? getNotificationIcon(toastItem) : BellRing;
+  const toastMessage = toastItem
+    ? previewTextFromPayload(toastItem.message) || toastItem.message || ""
+    : "";
 
   return (
     <div className="header-notification-wrap" ref={wrapRef}>
@@ -118,6 +167,53 @@ export default function MemberHeaderNotifications({ onNavigate }) {
         <Bell size={18} />
         {unreadCount > 0 ? <span className="header-noti-dot" /> : null}
       </button>
+
+      {!open && toastItem ? (
+        <button
+          type="button"
+          className="header-notification-toast"
+          onClick={() => handleOpenItem(toastItem)}
+        >
+          <div className="header-notification-toast__icon">
+            <ToastIcon size={18} />
+          </div>
+
+          <div className="header-notification-toast__content">
+            <div className="header-notification-toast__label">Thông báo mới</div>
+            <div className="header-notification-toast__titleRow">
+              <h4 className="header-notification-toast__title">
+                {toastItem.title || "Thông báo"}
+              </h4>
+              <span className="header-notification-toast__time">
+                {fmtRelative(toastItem.createdAt || toastItem.ts)}
+              </span>
+            </div>
+            <p className="header-notification-toast__message">{toastMessage}</p>
+            <span className="header-notification-toast__hint">Nhấn để mở chi tiết</span>
+          </div>
+
+          <span
+            role="button"
+            tabIndex={0}
+            className="header-notification-toast__close"
+            aria-label="Đóng thông báo"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              closeToast();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                closeToast();
+              }
+            }}
+          >
+            <X size={15} />
+          </span>
+        </button>
+      ) : null}
 
       {open && (
         <div className="header-notification-dropdown" role="menu">
@@ -154,7 +250,7 @@ export default function MemberHeaderNotifications({ onNavigate }) {
 
             {!loading &&
               latestItems.map((item) => {
-                const Icon = iconMap[item.notificationType] || BellRing;
+                const Icon = getNotificationIcon(item);
                 const message =
                   previewTextFromPayload(item.message) || item.message || "";
 
@@ -174,7 +270,7 @@ export default function MemberHeaderNotifications({ onNavigate }) {
                     <div className="header-notification-item__content">
                       <div className="header-notification-item__top">
                         <h4 className="header-notification-item__title">
-                          {item.title}
+                          {item.title || "Thông báo"}
                         </h4>
                         <span className="header-notification-item__time">
                           {fmtRelative(item.createdAt || item.ts)}
@@ -200,6 +296,7 @@ export default function MemberHeaderNotifications({ onNavigate }) {
               className="header-notification-dropdown__viewall"
               onClick={() => {
                 setOpen(false);
+                closeToast();
                 onNavigate("/member/notifications");
               }}
             >

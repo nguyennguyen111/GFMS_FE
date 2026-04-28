@@ -1,7 +1,7 @@
 .owner-combo-page {
   color: #eef2ff;
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .owner-combo-hero,
@@ -17,8 +17,8 @@
 .owner-combo-hero {
   display: grid;
   grid-template-columns: 1.15fr .85fr;
-  gap: 18px;
-  padding: 24px;
+  gap: 14px;
+  padding: 18px;
 }
 
 .owner-combo-kicker {
@@ -36,7 +36,7 @@
 }
 
 .owner-combo-hero h2 {
-  font-size: 34px;
+  font-size: 30px;
 }
 
 .owner-combo-hero p,
@@ -55,7 +55,7 @@
 .owner-combo-statCard {
   display: grid;
   gap: 8px;
-  padding: 16px;
+  padding: 12px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,.08);
   background: rgba(255,255,255,.04);
@@ -67,7 +67,7 @@
 }
 
 .owner-combo-statCard strong {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .owner-combo-statCard--accent {
@@ -96,14 +96,14 @@
 .owner-combo-layout {
   display: grid;
   grid-template-columns: 1.08fr .92fr;
-  gap: 18px;
+  gap: 14px;
   align-items: start;
 }
 
 .owner-combo-panel {
-  padding: 20px;
+  padding: 16px;
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .owner-combo-panel__header {
@@ -120,8 +120,8 @@
 .owner-combo-card,
 .owner-combo-historyCard {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
+  padding: 14px;
   border-radius: 20px;
   border: 1px solid rgba(255,255,255,.08);
   background: linear-gradient(180deg, rgba(12,18,28,.86), rgba(18,24,37,.78));
@@ -146,24 +146,26 @@
 
 .owner-combo-card__title,
 .owner-combo-historyCard__code {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 .owner-combo-card__meta,
 .owner-combo-historyCard__meta {
   color: rgba(238,242,255,.66);
+  font-size: 12px;
 }
 
 .owner-combo-card__price,
 .owner-combo-historyCard__topRight strong {
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 800;
   color: #ffd49d;
 }
 
 .owner-combo-card__desc {
   color: rgba(238,242,255,.8);
+  font-size: 12px;
 }
 
 .owner-combo-card__summary {
@@ -174,16 +176,23 @@
 
 .owner-combo-card__summary span,
 .owner-combo-chip {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.06);
   color: rgba(238,242,255,.86);
+  font-size: 12px;
+}
+
+.owner-combo-chip--sales {
+  border-color: rgba(214,255,0,.32);
+  background: rgba(214,255,0,.1);
+  color: rgba(214,255,0,.95);
 }
 
 .owner-combo-btn {
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 12px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.05);
@@ -212,24 +221,80 @@
 
 .owner-combo-input {
   width: 100%;
-  min-height: 46px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
+  min-height: 42px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(9, 15, 28, 0.92), rgba(13, 22, 36, 0.9));
   color: #eef2ff;
   box-sizing: border-box;
+  font-size: 13px;
+  line-height: 1.3;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.owner-combo-input::placeholder {
+  color: rgba(238, 242, 255, 0.48);
+}
+
+.owner-combo-input:focus {
+  outline: none;
+  border-color: rgba(214, 255, 0, 0.55);
+  box-shadow: 0 0 0 3px rgba(214, 255, 0, 0.12);
+  background: linear-gradient(180deg, rgba(11, 19, 34, 0.98), rgba(16, 27, 43, 0.95));
+}
+
+select.owner-combo-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+  background-image:
+    linear-gradient(180deg, rgba(9, 15, 28, 0.92), rgba(13, 22, 36, 0.9)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23d6ff00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: 0 0, right 12px center;
+  background-size: 100% 100%, 14px 14px;
+}
+
+select.owner-combo-input option {
+  background: #0f1729;
+  color: #eef2ff;
+}
+
+select.owner-combo-input option:checked {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+textarea.owner-combo-input {
+  padding-top: 10px;
+}
+
+.owner-combo-formGrid {
+  position: relative;
+}
+
+.owner-combo-formGrid::before {
+  content: "Thông tin gửi yêu cầu";
+  grid-column: 1 / -1;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(214, 255, 0, 0.78);
+  margin-bottom: 2px;
 }
 
 .owner-combo-input--textarea {
-  min-height: 110px;
+  min-height: 96px;
   resize: vertical;
 }
 
 .owner-combo-pricing,
 .owner-combo-selectedPreview,
 .owner-combo-infoBlock {
-  padding: 16px;
+  padding: 12px;
   border-radius: 18px;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.06);
@@ -250,6 +315,7 @@
 .owner-combo-selectedPreview__title {
   font-weight: 700;
   margin-bottom: 10px;
+  font-size: 13px;
 }
 
 .owner-combo-chipList {
@@ -349,15 +415,15 @@
 .owner-combo-card__hero,
 .owner-combo-historyCard__hero {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 
 .owner-combo-card__content,
 .owner-combo-historyCard__main {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .owner-combo-card__media,
@@ -375,7 +441,7 @@
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  font-size: 42px;
+  font-size: 24px;
   font-weight: 800;
   color: #ffd49d;
   background: linear-gradient(180deg, rgba(255,138,0,.18), rgba(255,255,255,.04));
@@ -393,18 +459,18 @@
 
 .owner-combo-selectedPreview__hero {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 82px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   margin-bottom: 12px;
 }
 
 .owner-combo-selectedPreview__media {
-  width: 92px;
-  height: 92px;
+  width: 82px;
+  height: 82px;
   display: grid;
   place-items: center;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   color: #ffd49d;
 }
@@ -420,9 +486,9 @@
 
 .owner-combo-equipmentRow {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px;
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,.06);
   background: rgba(255,255,255,.035);
@@ -433,7 +499,7 @@
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   color: #ffd49d;
 }
@@ -441,7 +507,7 @@
 .owner-combo-equipmentRow__body,
 .owner-combo-equipmentRow__meta {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .owner-combo-equipmentRow__top {
@@ -457,7 +523,7 @@
   grid-auto-columns: max-content;
   gap: 8px;
   color: rgba(238,242,255,.64);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .owner-combo-equipmentRow__meta span {
@@ -468,7 +534,22 @@
 
 .owner-combo-equipmentRow__desc {
   color: rgba(238,242,255,.78);
-  line-height: 1.5;
+  line-height: 1.4;
+  font-size: 11px;
+}
+
+.owner-combo-pagination {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.owner-combo-pagination__meta {
+  font-size: 12px;
+  color: rgba(238, 242, 255, 0.75);
 }
 
 @media (max-width: 1100px) {

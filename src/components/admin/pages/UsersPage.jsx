@@ -84,7 +84,7 @@ export default function UsersPage() {
   const [sortOrder, setSortOrder] = useState("desc");
 
   // ✅ NEW: filter theo status
-  const [statusFilter, setStatusFilter] = useState("active"); // active | inactive | all
+  const [statusFilter, setStatusFilter] = useState("all"); // active | inactive | suspended | all
 
   const [groups, setGroups] = useState([]);
 
@@ -401,9 +401,9 @@ export default function UsersPage() {
         </div>
 
         <div className="up-footer">
-          <div className="up-meta">
-            Tổng: <b>{meta.totalItems}</b> • Trang <b>{meta.page}</b>/<b>{meta.totalPages}</b>
-          </div>
+            <div className="up-meta">
+              Tổng theo bộ lọc: <b>{meta.totalItems}</b> • Trang <b>{meta.page}</b>/<b>{meta.totalPages}</b>
+            </div>
 
           <div className="up-pagi">
             <button className="up-btn up-btn--ghost" onClick={() => gotoPage(meta.page - 1)} disabled={meta.page <= 1}>

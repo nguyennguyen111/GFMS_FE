@@ -657,7 +657,7 @@ export default function OwnerFranchiseRequestsPage() {
       {showDetailModal && (
         <div className="ofr-modal">
           <div className="ofr-modal__backdrop" onClick={handleCloseDetail} />
-          <div className="ofr-modal__content ofr-modal__content--detail">
+          <div className="ofr-modal__content ofr-modal__content--detail" style={{ maxWidth: "500px", maxHeight: "75vh" }}>
             <div className="ofr-modal__header">
               <h2>Chi tiết yêu cầu nhượng quyền</h2>
               <button className="ofr-modal__close" onClick={handleCloseDetail}>

@@ -1,12 +1,13 @@
 import axios from "../setup/axios";
 
 const API = "/api/owner/equipment";
+const OWNER_EQUIPMENT_TIMEOUT_MS = 30000;
 
 export const ownerGetEquipments = (params = {}) =>
-  axios.get(API, { params });
+  axios.get(API, { params, timeout: OWNER_EQUIPMENT_TIMEOUT_MS });
 
 export const ownerGetEquipmentDetail = (id, params = {}) =>
-  axios.get(`${API}/${id}`, { params });
+  axios.get(`${API}/${id}`, { params, timeout: OWNER_EQUIPMENT_TIMEOUT_MS });
 
 export const ownerMarkEquipmentUnitInUse = (equipmentId, unitId) =>
   axios.patch(`${API}/${equipmentId}/units/${unitId}/mark-in-use`);
