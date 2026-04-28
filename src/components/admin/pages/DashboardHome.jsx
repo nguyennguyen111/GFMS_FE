@@ -229,7 +229,7 @@ export default function DashboardHome() {
 
         <section className="dh-panel dh-panel--assets">
           <div className="dh-panel__head dh-panel__head--stack">
-            <div className="dh-panel__title">Tài sản thiết bị (QR)</div>
+            <div className="dh-panel__title">Thiết bị (QR)</div>
             <div className="dh-panel__hint">Tóm tắt vòng đời tài sản để admin nhìn nhanh chất lượng vận hành</div>
           </div>
 
@@ -258,7 +258,7 @@ export default function DashboardHome() {
 
           <div className="dh-panel__actions">
             <button className="dh-btn dh-btn--ghost" onClick={() => navigate("/admin/equipment-assets")}>
-              Mở tài sản thiết bị
+              Mở thiết bị (QR)
             </button>
           </div>
         </section>
