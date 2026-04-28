@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "../../../setup/axios";
 import adminPurchaseWorkflowService from "../../../services/adminPurchaseWorkflowService";
 import { getEquipments, getSuppliers } from "../../../services/equipmentSupplierInventoryService";
+import { showAppConfirm } from "../../../utils/appDialog";
 import "./EquipmentPage.css";
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN");
+const statusLabel = (value) => (value === "inactive" ? "Ngừng hoạt động" : "Đang hoạt động");
 
 const emptyItem = { equipmentId: "", quantity: 1, note: "" };
 const emptyForm = {
@@ -29,10 +31,19 @@ export default function EquipmentPage() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [equipmentQuery, setEquipmentQuery] = useState("");
-  const [error, setError] = useState("");
+  const [comboPage, setComboPage] = useState(1);
+  const [equipmentPage, setEquipmentPage] = useState(1);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [noticeModal, setNoticeModal] = useState({
+    open: false,
+    tone: "error",
+    title: "",
+    message: "",
+  });
+  const COMBO_PAGE_SIZE = 6;
+  const EQUIPMENT_PAGE_SIZE = 6;
 
   const API_HOST = String(axios?.defaults?.baseURL || process.env.REACT_APP_API_BASE || "http://localhost:8080").replace(/\/+$/, "");
   const absUrl = (u) => (u ? ((String(u).startsWith("http") || String(u).startsWith("data:")) ? u : `${API_HOST}${u}`) : "");
@@ -59,16 +70,32 @@ export default function EquipmentPage() {
 
 
   const comboThumbnailUrl = useMemo(() => absUrl(form.thumbnail), [form.thumbnail]);
+  const comboTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(rows.length / COMBO_PAGE_SIZE)),
+    [rows],
+  );
+  const pagedRows = useMemo(() => {
+    const start = (comboPage - 1) * COMBO_PAGE_SIZE;
+    return rows.slice(start, start + COMBO_PAGE_SIZE);
+  }, [rows, comboPage]);
+
+  const openNotice = (tone, title, message) =>
+    setNoticeModal({
+      open: true,
+      tone: tone || "error",
+      title: title || "Thông báo",
+      message: message || "Đã xảy ra lỗi.",
+    });
 
   const uploadThumbnailFile = async (file) => {
     if (!file) return;
     const isValidType = ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(file.type);
     if (!isValidType) {
-      setError("Thumbnail chỉ hỗ trợ PNG, JPG, JPEG hoặc WEBP.");
+      openNotice("warning", "Ảnh không hợp lệ", "Ảnh bìa chỉ hỗ trợ PNG, JPG, JPEG hoặc WEBP.");
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError("Thumbnail không được vượt quá 8MB.");
+      openNotice("warning", "Ảnh quá lớn", "Ảnh bìa không được vượt quá 8MB.");
       return;
     }
 
@@ -76,15 +103,15 @@ export default function EquipmentPage() {
     data.append("file", file);
     data.append("kind", "image");
     setUploadingThumbnail(true);
-    setError("");
     try {
       const res = await axios.post("/api/upload/chat-asset", data, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 30000,
       });
       const uploadedUrl = res?.data?.url || "";
       setForm((prev) => ({ ...prev, thumbnail: uploadedUrl }));
     } catch (e) {
-      setError(e?.response?.data?.error || e?.response?.data?.message || e.message);
+      openNotice("error", "Upload thất bại", e?.response?.data?.error || e?.response?.data?.message || e.message);
     } finally {
       setUploadingThumbnail(false);
     }
@@ -107,6 +134,14 @@ export default function EquipmentPage() {
       return haystack.includes(keyword);
     });
   }, [equipments, equipmentQuery]);
+  const equipmentTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredEquipments.length / EQUIPMENT_PAGE_SIZE)),
+    [filteredEquipments],
+  );
+  const pagedEquipments = useMemo(() => {
+    const start = (equipmentPage - 1) * EQUIPMENT_PAGE_SIZE;
+    return filteredEquipments.slice(start, start + EQUIPMENT_PAGE_SIZE);
+  }, [filteredEquipments, equipmentPage]);
 
   const loadRefs = async () => {
     const [eqRes, supplierRes] = await Promise.all([
@@ -119,12 +154,12 @@ export default function EquipmentPage() {
 
   const loadRows = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await adminPurchaseWorkflowService.getEquipmentCombos({ q: query, page: 1, limit: 100 });
       setRows(res?.data?.data || []);
+      setComboPage(1);
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      openNotice("error", "Tải combo thất bại", e?.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }
@@ -134,6 +169,18 @@ export default function EquipmentPage() {
     loadRefs();
     loadRows();
   }, []);
+
+  useEffect(() => {
+    setComboPage((prev) => Math.min(prev, comboTotalPages));
+  }, [comboTotalPages]);
+
+  useEffect(() => {
+    setEquipmentPage(1);
+  }, [equipmentQuery]);
+
+  useEffect(() => {
+    setEquipmentPage((prev) => Math.min(prev, equipmentTotalPages));
+  }, [equipmentTotalPages]);
 
   const resetForm = () => {
     setForm({ ...emptyForm, items: [{ ...emptyItem }] });
@@ -179,8 +226,11 @@ export default function EquipmentPage() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!String(form.name || "").trim()) {
+      openNotice("warning", "Thiếu thông tin", "Tên combo là bắt buộc.");
+      return;
+    }
     setSaving(true);
-    setError("");
     try {
       const payload = {
         ...form,
@@ -202,8 +252,9 @@ export default function EquipmentPage() {
       }
       resetForm();
       loadRows();
+      openNotice("success", "Thành công", editingId ? "Đã cập nhật combo." : "Đã tạo combo mới.");
     } catch (e2) {
-      setError(e2?.response?.data?.message || e2.message);
+      openNotice("error", "Lưu combo thất bại", e2?.response?.data?.message || e2.message);
     } finally {
       setSaving(false);
     }
@@ -232,13 +283,20 @@ export default function EquipmentPage() {
   };
 
   const onDelete = async (row) => {
-    if (!window.confirm(`Xóa combo ${row.name}?`)) return;
+    const confirmResult = await showAppConfirm({
+      title: "Xác nhận xóa combo",
+      message: `Bạn có chắc muốn xóa combo "${row.name}"?`,
+      confirmText: "Xóa combo",
+      cancelText: "Quay lại",
+    });
+    if (!confirmResult.confirmed) return;
     try {
       await adminPurchaseWorkflowService.deleteEquipmentCombo(row.id);
       loadRows();
       if (editingId === row.id) resetForm();
+      openNotice("success", "Đã xóa", `Đã xóa combo "${row.name}".`);
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      openNotice("error", "Xóa thất bại", e?.response?.data?.message || e.message);
     }
   };
 
@@ -246,8 +304,9 @@ export default function EquipmentPage() {
     try {
       await adminPurchaseWorkflowService.toggleEquipmentComboSelling(row.id, { isSelling: !row.isSelling });
       loadRows();
+      openNotice("success", "Cập nhật thành công", row.isSelling ? "Đã tắt bán combo." : "Đã mở bán combo.");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      openNotice("error", "Cập nhật thất bại", e?.response?.data?.message || e.message);
     }
   };
 
@@ -257,10 +316,6 @@ export default function EquipmentPage() {
         <div>
           <div className="combo-admin-kicker">Thiết bị & combo</div>
           <h2>Combo thiết bị</h2>
-          <p>
-            Giữ nguyên danh mục thiết bị hiện có, sau đó admin chọn các thiết bị đó để setup combo bán cho owner.
-            Owner sẽ mua theo combo nhưng vẫn xem rõ bên trong có những thiết bị nào.
-          </p>
         </div>
         <div className="combo-admin-heroStats">
           <div className="combo-admin-statCard">
@@ -277,8 +332,6 @@ export default function EquipmentPage() {
           </div>
         </div>
       </div>
-
-      {error ? <div className="combo-admin-alert">{error}</div> : null}
 
       <div className="combo-admin-toolbar">
         <button type="button" className="combo-btn" onClick={() => navigate("/admin/devices")}>Mở trang thiết bị</button>
@@ -301,10 +354,10 @@ export default function EquipmentPage() {
           </div>
 
           <div className="combo-equipment-grid">
-            {filteredEquipments.map((equipment) => {
+            {pagedEquipments.map((equipment) => {
               const imageUrl = absUrl(equipment.primaryImageUrl || equipment.thumbnail || equipment.imageUrl || equipment.image || "");
               const categoryName = equipment?.category?.name || equipment?.categoryName || "Chưa phân loại";
-              const supplierName = equipment?.preferredSupplierName || equipment?.supplier?.name || "Chưa gán supplier";
+              const supplierName = equipment?.preferredSupplierName || equipment?.supplier?.name || "Chưa gán nhà cung cấp";
               return (
                 <div key={equipment.id} className="combo-equipment-card">
                   <div className="combo-equipment-card__media">
@@ -321,7 +374,7 @@ export default function EquipmentPage() {
                         {equipment.code || `EQ-${equipment.id}`} · {categoryName}
                       </div>
                     </div>
-                    <div className="combo-tag">Catalog gốc</div>
+                    <div className="combo-tag">Danh mục gốc</div>
                   </div>
                   <div className="combo-equipment-card__desc">{equipment.description || "Chưa có mô tả thiết bị."}</div>
                   <div className="combo-equipment-card__footer">
@@ -335,13 +388,35 @@ export default function EquipmentPage() {
             })}
             {!filteredEquipments.length ? <div className="combo-empty">Không tìm thấy thiết bị phù hợp.</div> : null}
           </div>
+          {filteredEquipments.length > 0 ? (
+            <div className="combo-listPagination">
+              <button
+                type="button"
+                className="combo-btn combo-btn--ghost"
+                onClick={() => setEquipmentPage((p) => Math.max(1, p - 1))}
+                disabled={equipmentPage <= 1}
+              >
+                ← Trước
+              </button>
+              <span className="combo-listPagination__meta">
+                Trang {equipmentPage}/{equipmentTotalPages}
+              </span>
+              <button
+                type="button"
+                className="combo-btn combo-btn--ghost"
+                onClick={() => setEquipmentPage((p) => Math.min(equipmentTotalPages, p + 1))}
+                disabled={equipmentPage >= equipmentTotalPages}
+              >
+                Sau →
+              </button>
+            </div>
+          ) : null}
         </section>
 
         <section className="combo-panel combo-panel--editor">
           <div className="combo-panel__header">
             <div>
               <h3>{editingId ? "Cập nhật combo" : "Tạo combo từ danh mục thiết bị"}</h3>
-              <p>Thiết bị gốc được CRUD ở trang Thiết bị. Ở đây admin chỉ chọn thiết bị để build combo và tự set giá bán ở cấp combo.</p>
             </div>
           </div>
 
@@ -349,16 +424,16 @@ export default function EquipmentPage() {
             <div className="combo-form__grid combo-form__grid--2col">
               <input className="combo-input" placeholder="Tên combo" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               <input className="combo-input" placeholder="Mã combo" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
-              <input className="combo-input" placeholder="Giá combo" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <input className="combo-input" placeholder="Giá bán combo" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
               <select className="combo-input" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}>
-                <option value="">Chọn supplier</option>
+                <option value="">Chọn nhà cung cấp</option>
                 {suppliers.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                 ))}
               </select>
               <select className="combo-input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Ngừng hoạt động</option>
               </select>
               <div className="combo-thumbnailField">
                 <div
@@ -378,21 +453,21 @@ export default function EquipmentPage() {
                     onChange={handleThumbnailInputChange}
                   />
                   <div className="combo-thumbnailDropzone__content">
-                    <strong>{uploadingThumbnail ? "Đang upload thumbnail..." : "Kéo & thả ảnh combo vào đây"}</strong>
-                    <span>hoặc bấm để chọn ảnh cover. Hỗ trợ PNG / JPG / WEBP tối đa 8MB.</span>
+                    <strong>{uploadingThumbnail ? "Đang tải ảnh lên..." : "Kéo thả ảnh combo vào đây"}</strong>
+                    <span>Hoặc bấm để chọn ảnh bìa. Hỗ trợ PNG / JPG / WEBP, tối đa 8MB.</span>
                   </div>
                   <label htmlFor="combo-thumbnail-upload" className="combo-btn combo-btn--ghost">
                     {form.thumbnail ? "Thay ảnh" : "Chọn ảnh"}
                   </label>
                 </div>
-                <input className="combo-input" placeholder="Hoặc dán Thumbnail URL" value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} />
+                <input className="combo-input" placeholder="Hoặc dán URL ảnh bìa" value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} />
                 {comboThumbnailUrl ? (
                   <div className="combo-thumbnailPreview">
                     <div className="combo-thumbnailPreview__media">
-                      <img src={comboThumbnailUrl} alt={form.name || "combo thumbnail"} />
+                      <img src={comboThumbnailUrl} alt={form.name || "ảnh bìa combo"} />
                     </div>
                     <div className="combo-thumbnailPreview__text">
-                      <strong>Thumbnail hiện tại</strong>
+                      <strong>Ảnh bìa hiện tại</strong>
                       <span>Ảnh sẽ được crop gọn theo khung vuông để không bị phình khi preview và khi owner xem combo.</span>
                       <span>{form.thumbnail}</span>
                     </div>
@@ -417,10 +492,10 @@ export default function EquipmentPage() {
               <div className="combo-selectedBlock__head">
                 <div>
                   <h4>Thiết bị trong combo</h4>
-                  <p>Show rõ từng thiết bị để admin cấu hình và owner nhìn thấy đầy đủ.</p>
+                  <p>Hiển thị rõ từng thiết bị để admin cấu hình và owner theo dõi đầy đủ.</p>
                 </div>
                 <div className="combo-selectedBlock__stats">
-                  <span>{totalItems} item</span>
+                  <span>{totalItems} thiết bị</span>
                   <span>Giá bán được set ở cấp combo, không lấy từ từng thiết bị lẻ</span>
                 </div>
               </div>
@@ -448,7 +523,7 @@ export default function EquipmentPage() {
                         </div>
                       </div>
                       <input className="combo-input" type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, { quantity: e.target.value })} />
-                      <input className="combo-input" placeholder="Ghi chú item" value={item.note} onChange={(e) => updateItem(index, { note: e.target.value })} />
+                      <input className="combo-input" placeholder="Ghi chú thiết bị" value={item.note} onChange={(e) => updateItem(index, { note: e.target.value })} />
                       <button type="button" className="combo-btn combo-btn--ghost" onClick={() => removeItem(index)}>Xóa</button>
                     </div>
                   );
@@ -464,13 +539,13 @@ export default function EquipmentPage() {
 
             <div className="combo-previewCard">
               <div className="combo-previewCard__cover">
-                {comboThumbnailUrl ? <img src={comboThumbnailUrl} alt={form.name || "combo"} /> : <div>{form.name || "Preview combo"}</div>}
+                {comboThumbnailUrl ? <img src={comboThumbnailUrl} alt={form.name || "combo"} /> : <div>{form.name || "Xem trước combo"}</div>}
               </div>
               <div className="combo-previewCard__body">
                 <div className="combo-previewCard__titleRow">
                   <div>
                     <div className="combo-previewCard__title">{form.name || "Tên combo sẽ hiển thị ở đây"}</div>
-                    <div className="combo-previewCard__meta">{form.code || "Mã combo"} · {selectedSupplier?.name || "Chưa chọn supplier"}</div>
+                    <div className="combo-previewCard__meta">{form.code || "Mã combo"} · {selectedSupplier?.name || "Chưa chọn nhà cung cấp"}</div>
                   </div>
                   <div className="combo-previewCard__price">{money(form.price)}đ</div>
                 </div>
@@ -482,7 +557,7 @@ export default function EquipmentPage() {
                       <div key={`${item.equipmentId}-${index}`} className="combo-previewItems__row">
                         <div>
                           <strong>{equipment?.name || `Thiết bị #${item.equipmentId}`}</strong>
-                          <span>{equipment?.code || "Không có mã"}</span>
+                          <span>{equipment?.code || "Chưa có mã"}</span>
                         </div>
                         <div>x {item.quantity}</div>
                       </div>
@@ -517,7 +592,7 @@ export default function EquipmentPage() {
 
         {loading ? <div className="combo-empty">Đang tải combo...</div> : null}
         <div className="combo-listGrid">
-          {rows.map((row) => (
+          {pagedRows.map((row) => (
             <article key={row.id} className="combo-card">
               <div className="combo-card__top">
                 <div className="combo-card__identity">
@@ -527,7 +602,7 @@ export default function EquipmentPage() {
                   <div>
                     <div className="combo-card__name">{row.name}</div>
                     <div className="combo-card__meta">
-                      {row.code} · {row.supplier?.name || "Chưa gán supplier"} · {row.status}
+                      {row.code} · {row.supplier?.name || "Chưa gán nhà cung cấp"} · {statusLabel(row.status)}
                     </div>
                   </div>
                 </div>
@@ -567,7 +642,65 @@ export default function EquipmentPage() {
           ))}
           {!rows.length && !loading ? <div className="combo-empty">Chưa có combo nào.</div> : null}
         </div>
+        {!loading && rows.length > 0 ? (
+          <div className="combo-listPagination">
+            <button
+              type="button"
+              className="combo-btn combo-btn--ghost"
+              onClick={() => setComboPage((p) => Math.max(1, p - 1))}
+              disabled={comboPage <= 1}
+            >
+              ← Trước
+            </button>
+            <span className="combo-listPagination__meta">
+              Trang {comboPage}/{comboTotalPages}
+            </span>
+            <button
+              type="button"
+              className="combo-btn combo-btn--ghost"
+              onClick={() => setComboPage((p) => Math.min(comboTotalPages, p + 1))}
+              disabled={comboPage >= comboTotalPages}
+            >
+              Sau →
+            </button>
+          </div>
+        ) : null}
       </section>
+
+      {noticeModal.open ? (
+        <div
+          className="combo-notice-overlay"
+          role="presentation"
+          onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+        >
+          <div
+            className={`combo-notice-card is-${noticeModal.tone || "error"}`}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="combo-notice-close"
+              onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+              aria-label="Đóng"
+            >
+              ×
+            </button>
+            <div className="combo-notice-title">{noticeModal.title || "Thông báo"}</div>
+            <div className="combo-notice-message">{noticeModal.message}</div>
+            <div className="combo-notice-actions">
+              <button
+                type="button"
+                className="combo-btn combo-btn--accent"
+                onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+              >
+                Đã hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
