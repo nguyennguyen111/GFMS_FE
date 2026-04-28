@@ -32,6 +32,10 @@
   display: grid;
   grid-template-columns: 1.2fr .55fr .5fr auto;
   gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
 }
 .oea-input {
   width: 100%;
@@ -136,6 +140,27 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.oea-groupCodes {
+  display: grid;
+  gap: 8px;
+}
+
+.oea-groupCodeRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+
+.oea-groupCode {
+  font-weight: 800;
+  font-size: 13px;
 }
 
 .oea-badge {

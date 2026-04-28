@@ -27,6 +27,7 @@ export default function OwnerEquipmentAssetsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
+  const [expandedGroups, setExpandedGroups] = useState({});
   const [selected, setSelected] = useState(null);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
@@ -42,16 +43,44 @@ export default function OwnerEquipmentAssetsPage() {
     return Math.max(1, Math.ceil(t / l) || 1);
   }, [meta.total, meta.limit, limit]);
 
+  const groupedRows = useMemo(() => {
+    const map = new Map();
+    rows.forEach((row) => {
+      const key = String(row.equipmentName || "Không rõ thiết bị").trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          equipmentName: row.equipmentName || "Không rõ thiết bị",
+          gymName: row.gymName || "-",
+          imageUrl: row.imageUrl || "",
+          items: [],
+        });
+      }
+      map.get(key).items.push(row);
+    });
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        items: group.items.sort((a, b) => String(a.assetCode || "").localeCompare(String(b.assetCode || ""))),
+      }))
+      .sort((a, b) => a.equipmentName.localeCompare(b.equipmentName));
+  }, [rows]);
+
+  const pagedGroups = useMemo(() => {
+    const start = (page - 1) * limit;
+    return groupedRows.slice(start, start + limit);
+  }, [groupedRows, page, limit]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await equipmentAssetService.ownerList({ q, status, page, limit, gymId: selectedGymId || undefined });
+      const res = await equipmentAssetService.ownerList({ q, status, page: 1, limit: 1000, gymId: selectedGymId || undefined });
       setRows(res?.data?.data || []);
       setMeta({
-        page: Number(res?.data?.meta?.page || page || 1),
-        limit: Number(res?.data?.meta?.limit || limit || 20),
-        total: Number(res?.data?.meta?.total || 0),
+        page: Number(page || 1),
+        limit: Number(limit || 20),
+        total: Number(res?.data?.meta?.total || (res?.data?.data || []).length || 0),
       });
     } catch (e) {
       setError(e?.response?.data?.message || e.message);
@@ -67,6 +96,14 @@ export default function OwnerEquipmentAssetsPage() {
   useEffect(() => {
     setPage(1);
   }, [q, status, selectedGymId]);
+
+  useEffect(() => {
+    setMeta((prev) => ({ ...prev, total: groupedRows.length }));
+    setPage((prev) => {
+      const nextTotalPages = Math.max(1, Math.ceil(groupedRows.length / Math.max(1, limit)));
+      return Math.min(prev, nextTotalPages);
+    });
+  }, [groupedRows, limit]);
 
   const openDetail = async (id) => {
     setError("");
@@ -126,13 +163,13 @@ export default function OwnerEquipmentAssetsPage() {
       <section className="oea-hero">
         <div>
           <div className="oea-kicker">Thiết bị thực tế</div>
-          <h2>Thiết bị của tôi (QR)</h2>
-          <p>{selectedGymId ? `Chỉ hiển thị tài sản thuộc chi nhánh ${selectedGymName || `#${selectedGymId}`}.` : "Đang hiển thị toàn bộ chi nhánh. Chọn một chi nhánh trên header để lọc đúng gym."}</p>
+          <h2>Thiết bị (QR)</h2>
+          <p>{selectedGymId ? `Chỉ hiển thị thiết bị thuộc chi nhánh ${selectedGymName || `#${selectedGymId}`}.` : "Đang hiển thị toàn bộ chi nhánh. Chọn một chi nhánh trên header để lọc đúng gym."}</p>
         </div>
       </section>
 
       <section className="oea-toolbar">
-        <input className="oea-input" placeholder="Tìm theo mã asset / tên thiết bị..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="oea-input" placeholder="Tìm theo mã thiết bị / tên thiết bị..." value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="oea-input" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="all">Tất cả trạng thái</option>
           <option value="active">active</option>
@@ -152,30 +189,52 @@ export default function OwnerEquipmentAssetsPage() {
       {loading ? <div className="oea-empty">Đang tải dữ liệu...</div> : null}
 
       <section className="oea-list">
-        {rows.map((row) => {
-          const img = absUrl(row.imageUrl);
+        {pagedGroups.map((group) => {
+          const img = absUrl(group.imageUrl);
+          const isExpanded = Boolean(expandedGroups[group.key]);
           return (
-            <article key={row.id} className="oea-card">
+            <article key={group.key} className="oea-card">
               <div className="oea-card__media">
-                {img ? <img src={img} alt={row.equipmentName || row.assetCode} /> : <span>{String(row.equipmentName || "E").slice(0, 1).toUpperCase()}</span>}
+                {img ? <img src={img} alt={group.equipmentName} /> : <span>{String(group.equipmentName || "E").slice(0, 1).toUpperCase()}</span>}
               </div>
               <div className="oea-card__body">
                 <div className="oea-top">
                   <div>
-                    <div className="oea-code">{row.assetCode}</div>
-                    <div className="oea-meta">{row.equipmentName || "-"}</div>
-                    <div className="oea-subMeta">{row.gymName || "-"}</div>
+                    <div className="oea-code">{group.equipmentName || "-"}</div>
+                    <div className="oea-subMeta">{group.gymName || "-"}</div>
                   </div>
-                  <span className={statusClass(row.status)}>{statusLabel(row.status)}</span>
+                  <span className="oea-badge">{group.items.length} mã thiết bị</span>
                 </div>
                 <div className="oea-actions">
-                  <button className="oea-btn oea-btn--accent" onClick={() => openDetail(row.id)}>Xem QR</button>
+                  <button
+                    className="oea-btn oea-btn--ghost"
+                    onClick={() =>
+                      setExpandedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))
+                    }
+                  >
+                    {isExpanded ? "Thu gọn mã" : "Xem toàn bộ mã"}
+                  </button>
                 </div>
+                {isExpanded ? (
+                  <div className="oea-groupCodes">
+                    {group.items.map((item) => (
+                      <div key={item.id} className="oea-groupCodeRow">
+                        <div>
+                          <div className="oea-groupCode">{item.assetCode || `#${item.id}`}</div>
+                          <div className="oea-subMeta">{statusLabel(item.status)}</div>
+                        </div>
+                        <button className="oea-btn oea-btn--accent" onClick={() => openDetail(item.id)}>
+                          Xem QR
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </article>
           );
         })}
-        {!rows.length && !loading ? <div className="oea-empty">Chưa có thiết bị nào.</div> : null}
+        {!pagedGroups.length && !loading ? <div className="oea-empty">Chưa có thiết bị nào.</div> : null}
       </section>
 
       <section className="oea-pagination">

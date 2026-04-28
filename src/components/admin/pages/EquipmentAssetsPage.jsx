@@ -26,6 +26,7 @@ export default function EquipmentAssetsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const [selected, setSelected] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
@@ -39,6 +40,35 @@ export default function EquipmentAssetsPage() {
     return Math.max(1, Math.ceil(t / l) || 1);
   }, [meta.total, meta.limit, limit]);
 
+  const groupedRows = useMemo(() => {
+    const map = new Map();
+    rows.forEach((row) => {
+      const key = String(row.equipmentName || "Không rõ thiết bị").trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          equipmentName: row.equipmentName || "Không rõ thiết bị",
+          gymName: row.gymName || "-",
+          owner: row.owner,
+          imageUrl: row.imageUrl || "",
+          items: [],
+        });
+      }
+      map.get(key).items.push(row);
+    });
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        items: group.items.sort((a, b) => String(a.assetCode || "").localeCompare(String(b.assetCode || ""))),
+      }))
+      .sort((a, b) => a.equipmentName.localeCompare(b.equipmentName));
+  }, [rows]);
+
+  const pagedGroups = useMemo(() => {
+    const start = (page - 1) * limit;
+    return groupedRows.slice(start, start + limit);
+  }, [groupedRows, page, limit]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const nextMissing = ["1", "true", "yes", "y", "on"].includes(String(params.get("missingQr") || "").toLowerCase());
@@ -50,14 +80,14 @@ export default function EquipmentAssetsPage() {
     setError("");
     try {
       const [listRes, sumRes] = await Promise.all([
-        equipmentAssetService.adminList({ q, status, page, limit, missingQr: missingQr ? 1 : undefined }),
+        equipmentAssetService.adminList({ q, status, page: 1, limit: 1000, missingQr: missingQr ? 1 : undefined }),
         equipmentAssetService.adminSummary({}),
       ]);
       setRows(listRes?.data?.data || []);
       setMeta({
-        page: Number(listRes?.data?.meta?.page || page || 1),
-        limit: Number(listRes?.data?.meta?.limit || limit || 20),
-        total: Number(listRes?.data?.meta?.total || 0),
+        page: Number(page || 1),
+        limit: Number(limit || 20),
+        total: Number(listRes?.data?.meta?.total || (listRes?.data?.data || []).length || 0),
       });
       setSummary(sumRes?.data?.data || summary);
     } catch (e) {
@@ -74,6 +104,14 @@ export default function EquipmentAssetsPage() {
   useEffect(() => {
     setPage(1);
   }, [q, status, missingQr]);
+
+  useEffect(() => {
+    setMeta((prev) => ({ ...prev, total: groupedRows.length }));
+    setPage((prev) => {
+      const nextTotalPages = Math.max(1, Math.ceil(groupedRows.length / Math.max(1, limit)));
+      return Math.min(prev, nextTotalPages);
+    });
+  }, [groupedRows, limit]);
 
   const openDetail = async (id) => {
     setQrLoading(true);
@@ -124,8 +162,7 @@ export default function EquipmentAssetsPage() {
       <section className="ea-hero">
         <div>
           <div className="ea-kicker">Thiết bị & QR</div>
-          <h2>Tài sản thiết bị</h2>
-          <p>Quản lý vòng đời thiết bị thực tế (mỗi thiết bị có mã riêng + QR public để quét).</p>
+          <h2>Thiết bị</h2>
         </div>
         <div className="ea-stats">
           <div className="ea-stat"><span>Tổng thiết bị</span><strong>{summary.total || 0}</strong></div>
@@ -161,35 +198,54 @@ export default function EquipmentAssetsPage() {
       {loading ? <div className="ea-empty">Đang tải dữ liệu...</div> : null}
 
       <section className="ea-list">
-        {rows.map((row) => {
-          const img = absUrl(row.imageUrl);
+        {pagedGroups.map((group) => {
+          const img = absUrl(group.imageUrl);
+          const isExpanded = Boolean(expandedGroups[group.key]);
           return (
-            <article key={row.id} className="ea-card">
+            <article key={group.key} className="ea-card">
               <div className="ea-card__media">
-                {img ? <img src={img} alt={row.equipmentName || row.assetCode} /> : <span>{String(row.equipmentName || "E").slice(0, 1).toUpperCase()}</span>}
+                {img ? <img src={img} alt={group.equipmentName} /> : <span>{String(group.equipmentName || "E").slice(0, 1).toUpperCase()}</span>}
               </div>
               <div className="ea-card__body">
                 <div className="ea-card__top">
                   <div>
-                    <div className="ea-code">{row.assetCode}</div>
-                    <div className="ea-meta">{row.equipmentName || "-"} · {row.gymName || "-"}</div>
-                    <div className="ea-subMeta">Owner: {row.owner?.username || row.owner?.email || "-"}</div>
+                    <div className="ea-code">{group.equipmentName}</div>
+                    <div className="ea-meta">{group.gymName || "-"}</div>
+                    <div className="ea-subMeta">Owner: {group.owner?.username || group.owner?.email || "-"}</div>
                   </div>
                   <div className="ea-card__right">
-                    <span className={statusClass(row.status)}>{statusLabel(row.status)}</span>
-                    <span className={`ea-chip ${row.publicToken ? "" : "is-warn"}`}>{row.publicToken ? "Có QR" : `Chưa có QR (${summary.noQr || 0})`}</span>
+                    <span className="ea-chip">{group.items.length} mã thiết bị</span>
+                    <button
+                      className="ea-btn ea-btn--ghost"
+                      onClick={() =>
+                        setExpandedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))
+                      }
+                    >
+                      {isExpanded ? "Thu gọn mã" : "Xem toàn bộ mã"}
+                    </button>
                   </div>
                 </div>
 
-                <div className="ea-actions">
-                  <button className="ea-btn ea-btn--ghost" onClick={() => openDetail(row.id)}>Xem chi tiết</button>
-                  <button className="ea-btn ea-btn--accent" onClick={() => openDetail(row.id)}>QR</button>
-                </div>
+                {isExpanded ? (
+                  <div className="ea-groupCodes">
+                    {group.items.map((item) => (
+                      <div key={item.id} className="ea-groupCodeRow">
+                        <div>
+                          <div className="ea-groupCode">{item.assetCode || `#${item.id}`}</div>
+                          <div className="ea-subMeta">{statusLabel(item.status)}</div>
+                        </div>
+                        <button className="ea-btn ea-btn--accent" onClick={() => openDetail(item.id)}>
+                          Xem QR
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </article>
           );
         })}
-        {!rows.length && !loading ? <div className="ea-empty">Chưa có asset nào.</div> : null}
+        {!pagedGroups.length && !loading ? <div className="ea-empty">Chưa có asset nào.</div> : null}
       </section>
 
       <section className="ea-pagination">
