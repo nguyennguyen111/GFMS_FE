@@ -123,12 +123,34 @@
 .purchase-admin-btn--ghost {
   background: transparent;
 }
+.purchase-admin-btn--danger {
+  border-color: rgba(248, 113, 113, .4);
+  background: rgba(220, 38, 38, .16);
+  color: #fecaca;
+}
+.purchase-admin-btn--ship {
+  border-color: rgba(96, 165, 250, .45);
+  background: rgba(37, 99, 235, .16);
+  color: #bfdbfe;
+}
+.purchase-admin-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 .purchase-admin-alert,
 .purchase-admin-empty,
 .purchase-admin-note,
 .purchase-admin-rejectReason {
   padding: 12px 14px;
   border-radius: 14px;
+}
+.purchase-admin-processing {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(250, 204, 21, .35);
+  background: rgba(250, 204, 21, .12);
+  color: #fde68a;
+  font-size: 13px;
 }
 .purchase-admin-alert {
   border: 1px solid rgba(255,107,107,.32);

@@ -316,6 +316,17 @@ textarea.owner-combo-input {
   font-weight: 700;
   margin-bottom: 10px;
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.owner-combo-btn--previewToggle {
+  min-height: 32px;
+  font-size: 12px;
+  padding: 0 10px;
 }
 
 .owner-combo-chipList {

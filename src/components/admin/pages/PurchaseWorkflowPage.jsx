@@ -32,6 +32,8 @@ export default function PurchaseWorkflowPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [rejectMap, setRejectMap] = useState({});
+  const [expandedEquipmentMap, setExpandedEquipmentMap] = useState({});
+  const [actionState, setActionState] = useState({ id: null, type: "" });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(4);
 
@@ -156,11 +158,14 @@ export default function PurchaseWorkflowPage() {
     });
     if (!confirmed.confirmed) return;
     try {
+      setActionState({ id, type: "approve" });
       await adminPurchaseWorkflowService.approvePurchaseRequest(id);
-      loadRows();
+      await loadRows();
       openNotice("success", "Duyệt thành công", "Yêu cầu mua combo đã được duyệt.");
     } catch (e) {
       openNotice("error", "Duyệt thất bại", e?.response?.data?.message || e.message);
+    } finally {
+      setActionState({ id: null, type: "" });
     }
   };
 
@@ -173,12 +178,15 @@ export default function PurchaseWorkflowPage() {
     });
     if (!confirmed.confirmed) return;
     try {
+      setActionState({ id, type: "reject" });
       await adminPurchaseWorkflowService.rejectPurchaseRequest(id, { rejectionReason: rejectMap[id] || "Admin từ chối yêu cầu mua combo" });
       setRejectMap((prev) => ({ ...prev, [id]: "" }));
-      loadRows();
+      await loadRows();
       openNotice("success", "Đã từ chối", "Yêu cầu mua combo đã được từ chối.");
     } catch (e) {
       openNotice("error", "Từ chối thất bại", e?.response?.data?.message || e.message);
+    } finally {
+      setActionState({ id: null, type: "" });
     }
   };
 
@@ -191,11 +199,14 @@ export default function PurchaseWorkflowPage() {
     });
     if (!confirmed.confirmed) return;
     try {
+      setActionState({ id, type: "ship" });
       await adminPurchaseWorkflowService.confirmPurchaseRequestPaymentAndShip(id);
-      loadRows();
+      await loadRows();
       openNotice("success", "Đã cập nhật", "Đơn đã chuyển sang trạng thái đang bàn giao.");
     } catch (e) {
       openNotice("error", "Cập nhật thất bại", e?.response?.data?.message || e.message);
+    } finally {
+      setActionState({ id: null, type: "" });
     }
   };
 
@@ -244,12 +255,22 @@ export default function PurchaseWorkflowPage() {
           Tìm
         </button>
       </section>
+      {actionState.id ? (
+        <div className="purchase-admin-processing">
+          Đang xử lý thao tác, vui lòng chờ...
+        </div>
+      ) : null}
 
       {loading ? <div className="purchase-admin-empty">Đang tải yêu cầu...</div> : null}
 
       <div className="purchase-admin-list">
         {rows.map((row) => {
           const thumbnailUrl = absUrl(row.combo?.thumbnail);
+          const equipmentExpanded = Boolean(expandedEquipmentMap[row.id]);
+          const rowActionType = actionState.id === row.id ? actionState.type : "";
+          const rowBusy = Boolean(rowActionType);
+          const canApproveReject = row.status === "submitted";
+          const canShip = row.status === "paid_waiting_admin_confirm";
           return (
             <article id={`admin-purchase-request-${row.id}`} key={row.id} className="purchase-admin-card">
               <div className="purchase-admin-card__hero">
@@ -302,53 +323,89 @@ export default function PurchaseWorkflowPage() {
                 <b>Lý do:</b> {row.note || "Không có ghi chú từ owner."}
               </div>
 
-              <div className="purchase-admin-equipmentList">
-                {(row.combo?.items || []).map((item, index) => {
-                  const equipment = item.equipment || {};
-                  const imageUrl = absUrl(equipment.primaryImageUrl || equipment?.images?.[0]?.url || "");
-                  return (
-                    <div key={item.id || `${item.equipmentId}-${index}`} className="purchase-admin-equipmentRow">
-                      <div className="purchase-admin-equipmentRow__media">
-                        {imageUrl ? <img src={imageUrl} alt={equipment.name || `Thiết bị ${index + 1}`} /> : <span>{(equipment.name || "T").slice(0, 1).toUpperCase()}</span>}
-                      </div>
-                      <div className="purchase-admin-equipmentRow__body">
-                        <div className="purchase-admin-equipmentRow__top">
-                          <strong>{equipment.name || `#${item.equipmentId}`}</strong>
-                          <span>x {item.quantity}</span>
-                        </div>
-                        <div className="purchase-admin-equipmentRow__meta">
-                          <span>{equipment.code || "-"}</span>
-                          {equipment.category?.name ? <span>{equipment.category.name}</span> : null}
-                          {equipment.supplier?.name ? <span>{equipment.supplier.name}</span> : null}
-                        </div>
-                        <div className="purchase-admin-equipmentRow__desc">{equipment.description || item.note || "Thiết bị snapshot theo combo tại thời điểm request."}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {!row.combo?.items?.length ? <div className="purchase-admin-empty">Combo này chưa có item hiển thị.</div> : null}
-              </div>
-
               <div className="purchase-admin-actions">
-                <button className="purchase-admin-btn purchase-admin-btn--accent" disabled={row.status !== "submitted"} onClick={() => approve(row.id)}>
-                  Duyệt request
+                <button
+                  type="button"
+                  className="purchase-admin-btn purchase-admin-btn--ghost"
+                  disabled={rowBusy}
+                  onClick={() =>
+                    setExpandedEquipmentMap((prev) => ({
+                      ...prev,
+                      [row.id]: !prev[row.id],
+                    }))
+                  }
+                >
+                  {equipmentExpanded ? "Ẩn danh sách thiết bị" : "Xem danh sách thiết bị"}
                 </button>
-                <div className="purchase-admin-rejectBox">
-                  <input
-                    className="purchase-admin-input"
-                    placeholder="Lý do từ chối"
-                    value={rejectMap[row.id] || ""}
-                    onChange={(e) => setRejectMap((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                  />
-                  <button className="purchase-admin-btn purchase-admin-btn--ghost" disabled={row.status !== "submitted"} onClick={() => reject(row.id)}>
-                    Từ chối
+
+                {canApproveReject ? (
+                  <>
+                    <button
+                      className="purchase-admin-btn purchase-admin-btn--accent"
+                      disabled={rowBusy}
+                      onClick={() => approve(row.id)}
+                    >
+                      {rowActionType === "approve" ? "Đang xử lý..." : "Duyệt yêu cầu"}
+                    </button>
+                    <div className="purchase-admin-rejectBox">
+                      <input
+                        className="purchase-admin-input"
+                        placeholder="Lý do từ chối"
+                        value={rejectMap[row.id] || ""}
+                        disabled={rowBusy}
+                        onChange={(e) => setRejectMap((prev) => ({ ...prev, [row.id]: e.target.value }))}
+                      />
+                      <button
+                        className="purchase-admin-btn purchase-admin-btn--danger"
+                        disabled={rowBusy}
+                        onClick={() => reject(row.id)}
+                      >
+                        {rowActionType === "reject" ? "Đang xử lý..." : "Từ chối"}
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+
+                {canShip ? (
+                  <button
+                    className="purchase-admin-btn purchase-admin-btn--ship"
+                    disabled={rowBusy}
+                    onClick={() => ship(row.id)}
+                  >
+                    {rowActionType === "ship" ? "Đang xử lý..." : "Xác nhận bàn giao"}
                   </button>
-                </div>
-                <button className="purchase-admin-btn" disabled={row.status !== "paid_waiting_admin_confirm"} onClick={() => ship(row.id)}>
-                  Xác nhận bàn giao
-                </button>
+                ) : null}
                 {row.status === "rejected" ? <div className="purchase-admin-rejectReason">Lý do: {row.rejectReason || row.adminRejectionNote || "-"}</div> : null}
               </div>
+
+              {equipmentExpanded ? (
+                <div className="purchase-admin-equipmentList">
+                  {(row.combo?.items || []).map((item, index) => {
+                    const equipment = item.equipment || {};
+                    const imageUrl = absUrl(equipment.primaryImageUrl || equipment?.images?.[0]?.url || "");
+                    return (
+                      <div key={item.id || `${item.equipmentId}-${index}`} className="purchase-admin-equipmentRow">
+                        <div className="purchase-admin-equipmentRow__media">
+                          {imageUrl ? <img src={imageUrl} alt={equipment.name || `Thiết bị ${index + 1}`} /> : <span>{(equipment.name || "T").slice(0, 1).toUpperCase()}</span>}
+                        </div>
+                        <div className="purchase-admin-equipmentRow__body">
+                          <div className="purchase-admin-equipmentRow__top">
+                            <strong>{equipment.name || `#${item.equipmentId}`}</strong>
+                            <span>x {item.quantity}</span>
+                          </div>
+                          <div className="purchase-admin-equipmentRow__meta">
+                            <span>{equipment.code || "-"}</span>
+                            {equipment.category?.name ? <span>{equipment.category.name}</span> : null}
+                            {equipment.supplier?.name ? <span>{equipment.supplier.name}</span> : null}
+                          </div>
+                          <div className="purchase-admin-equipmentRow__desc">{equipment.description || item.note || "Thiết bị snapshot theo combo tại thời điểm request."}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!row.combo?.items?.length ? <div className="purchase-admin-empty">Combo này chưa có item hiển thị.</div> : null}
+                </div>
+              ) : null}
             </article>
           );
         })}
