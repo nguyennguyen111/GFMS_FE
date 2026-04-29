@@ -112,9 +112,14 @@ export default function PTAttendanceModal({
   const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
   const ptAckAt = booking?.sharePayment?.sharePaymentPtAcknowledgedAt;
   const interactionDisabled = loading || actionPending;
-  const hasAttendanceReminder =
+  const hasReminderMarker =
     String(booking?.notes || "").includes("[ATTENDANCE_PT_REMINDER]") ||
     String(booking?.notes || "").includes("[ATTENDANCE_OWNER_REMINDER]");
+  const isReminderAllowedStatus =
+    bookingStatus !== "no_show" &&
+    bookingStatus !== "completed" &&
+    bookingStatus !== "cancelled";
+  const hasAttendanceReminder = hasReminderMarker && isReminderAllowedStatus;
   const reminderActive =
     hasAttendanceReminder && currentStatus !== "present" && currentStatus !== "absent";
   const [nowMs, setNowMs] = useState(() => Date.now());
