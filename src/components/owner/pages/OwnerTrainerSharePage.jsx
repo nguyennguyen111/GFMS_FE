@@ -120,6 +120,7 @@ const DEFAULT_SHARE_TYPE = "temporary";
 const DEFAULT_COMMISSION_SPLIT = 0.7;
 const TRAINER_AVAILABILITY_PAGE_SIZE = 4;
 const MEMBER_SCHEDULE_PAGE_SIZE = 10;
+const OWNER_BOOKINGS_LOAD_TIMEOUT_MS = 12000;
 
 function StatusBadge({ status }) {
   const info = STATUS_LABELS[status] || { label: status, color: "secondary" };
@@ -529,6 +530,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   const [memberDailyBookings, setMemberDailyBookings] = useState([]);
   const [loadingMemberDailyBookings, setLoadingMemberDailyBookings] =
     useState(false);
+  const [loadingBookingsSnapshot, setLoadingBookingsSnapshot] = useState(false);
   const [trainerAvailabilityPage, setTrainerAvailabilityPage] = useState(1);
   const [memberSchedulePage, setMemberSchedulePage] = useState(1);
   const [memberBookingDetailOpen, setMemberBookingDetailOpen] = useState(false);
@@ -693,19 +695,12 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   const visibleTrainerAvailability = trainerAvailability;
   const trainerAvailabilityTotalPages = Math.max(
     1,
-    Math.ceil(
-      (visibleTrainerAvailability?.length || 0) /
-        TRAINER_AVAILABILITY_PAGE_SIZE,
-    ),
+    Math.ceil((availabilityTrainers?.length || 0) / TRAINER_AVAILABILITY_PAGE_SIZE),
   );
-  const paginatedTrainerAvailability = React.useMemo(() => {
-    const start =
-      (trainerAvailabilityPage - 1) * TRAINER_AVAILABILITY_PAGE_SIZE;
-    return (visibleTrainerAvailability || []).slice(
-      start,
-      start + TRAINER_AVAILABILITY_PAGE_SIZE,
-    );
-  }, [trainerAvailabilityPage, visibleTrainerAvailability]);
+  const paginatedTrainerAvailability = React.useMemo(
+    () => visibleTrainerAvailability || [],
+    [visibleTrainerAvailability],
+  );
 
   const memberScheduleTotalPages = Math.max(
     1,
@@ -1345,7 +1340,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     loadingEligibleTrainers,
   ]);
 
-  const loadTrainerAvailability = useCallback(async () => {
+  const loadTrainerAvailability = useCallback(
+    async ({ silent = false, managed = false } = {}) => {
     if (!isBookingsPage || activeTab !== "bookings") return;
     if (!availabilityFilters.date) {
       setTrainerAvailability([]);
@@ -1358,10 +1354,20 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
-    setLoadingAvailability(true);
+    if (!managed && (!silent || trainerAvailability.length === 0)) {
+      setLoadingAvailability(true);
+    }
     try {
+      const startIndex =
+        Math.max(1, trainerAvailabilityPage) * TRAINER_AVAILABILITY_PAGE_SIZE -
+        TRAINER_AVAILABILITY_PAGE_SIZE;
+      const pageTrainers = availabilityTrainers.slice(
+        startIndex,
+        startIndex + TRAINER_AVAILABILITY_PAGE_SIZE,
+      );
+
       const results = await Promise.all(
-        availabilityTrainers.map(async (trainer) => {
+        pageTrainers.map(async (trainer) => {
           const scheduleResponse = await ownerBookingService.getTrainerSchedule(
             trainer.id,
             availabilityFilters.date,
@@ -1423,16 +1429,18 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           "Không thể tải lịch rảnh của huấn luyện viên",
       );
     } finally {
-      setLoadingAvailability(false);
+      if (!managed) setLoadingAvailability(false);
     }
   }, [
     activeTab,
     availabilityFilters.date,
     availabilityTrainers,
     isBookingsPage,
+    trainerAvailabilityPage,
+    trainerAvailability.length,
   ]);
 
-  const loadMemberDailySchedule = useCallback(async () => {
+  const loadMemberDailySchedule = useCallback(async ({ silent = false, managed = false } = {}) => {
     if (!isBookingsPage || activeTab !== "bookings") return;
     if (!availabilityFilters.date) {
       setMemberDailyBookings([]);
@@ -1445,7 +1453,9 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       return;
     }
 
-    setLoadingMemberDailyBookings(true);
+    if (!managed && (!silent || memberDailyBookings.length === 0)) {
+      setLoadingMemberDailyBookings(true);
+    }
     try {
       const bookingPromise = ownerBookingService.getMyBookings({
         gymId: scopedGymId,
@@ -1457,7 +1467,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error("Hết thời gian tải lịch tập hội viên")),
-          12000,
+          OWNER_BOOKINGS_LOAD_TIMEOUT_MS,
         ),
       );
       const response = await Promise.race([bookingPromise, timeoutPromise]);
@@ -1479,15 +1489,40 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
         err?.response?.data?.message || "Không thể tải lịch tập hội viên",
       );
     } finally {
-      setLoadingMemberDailyBookings(false);
+      if (!managed) setLoadingMemberDailyBookings(false);
     }
   }, [
     activeTab,
     availabilityFilters.date,
     availabilityFilters.gymId,
     isBookingsPage,
+    memberDailyBookings.length,
     selectedGymId,
   ]);
+
+  const loadBookingsSnapshot = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!isBookingsPage || activeTab !== "bookings") return;
+      if (!silent) {
+        setLoadingBookingsSnapshot(true);
+        setLoadingAvailability(true);
+        setLoadingMemberDailyBookings(true);
+      }
+      try {
+        await Promise.all([
+          loadTrainerAvailability({ silent, managed: true }),
+          loadMemberDailySchedule({ silent, managed: true }),
+        ]);
+      } finally {
+        if (!silent) {
+          setLoadingBookingsSnapshot(false);
+          setLoadingAvailability(false);
+          setLoadingMemberDailyBookings(false);
+        }
+      }
+    },
+    [activeTab, isBookingsPage, loadMemberDailySchedule, loadTrainerAvailability],
+  );
 
   const openMemberBookingDetail = useCallback(async (bookingId) => {
     const id = Number(bookingId);
@@ -1850,20 +1885,22 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   ]);
 
   const refreshTrainerShareData = useCallback(async () => {
+    if (isBookingsPage && activeTab === "bookings") {
+      await loadBookingsSnapshot({ silent: true });
+      return;
+    }
+
     const tasks = [
       loadShares(currentPage),
       loadReceivedShares(receivedCurrentPage),
     ];
-
-    if (isBookingsPage && activeTab === "bookings") {
-      tasks.push(loadTrainerAvailability(), loadMemberDailySchedule());
-    }
 
     await Promise.all(tasks);
   }, [
     activeTab,
     currentPage,
     isBookingsPage,
+    loadBookingsSnapshot,
     loadMemberDailySchedule,
     loadReceivedShares,
     loadShares,
@@ -1875,7 +1912,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     enabled:
       activeTab === "shares" || activeTab === "received" || isBookingsPage,
     onRefresh: refreshTrainerShareData,
-    events: ["notification:new", "trainer_share:changed", "booking:status-changed"],
+    events:
+      isBookingsPage && activeTab === "bookings"
+        ? ["booking:status-changed"]
+        : ["notification:new", "trainer_share:changed", "booking:status-changed"],
     notificationTypes: ["trainer_share", "booking_update"],
   });
 
@@ -1903,12 +1943,12 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     } else if (activeTab === "received") {
       loadReceivedShares();
     } else if (activeTab === "bookings") {
-      loadTrainerAvailability();
-      loadMemberDailySchedule();
+      loadBookingsSnapshot();
     }
   }, [
     activeTab,
     currentPage,
+    loadBookingsSnapshot,
     loadMemberDailySchedule,
     loadReceivedShares,
     loadShares,
@@ -2727,8 +2767,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 <button
                   className="ots-btn ots-btn--secondary"
                   onClick={() => {
-                    loadTrainerAvailability();
-                    loadMemberDailySchedule();
+                    loadBookingsSnapshot();
                   }}
                 >
                   Xem lịch 
@@ -2744,13 +2783,10 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                   ? ` • ${formatDate(availabilityFilters.date)}`
                   : ""}
               </span>
-              <span>
-                {visibleTrainerAvailability.length} huấn luyện viên trong danh
-                sách
-              </span>
+              <span>{availabilityTrainers.length} huấn luyện viên trong danh sách</span>
             </div>
 
-            {loadingAvailability ? (
+            {loadingBookingsSnapshot ? (
               <div className="ots-loading">
                 Đang tải lịch rảnh của huấn luyện viên...
               </div>
@@ -2964,7 +3000,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
               </div>
             </div>
 
-            {loadingMemberDailyBookings ? (
+            {loadingBookingsSnapshot ? (
               <div className="ots-loading">Đang tải lịch tập hội viên...</div>
             ) : memberDailyBookings.length === 0 ? (
               <div className="ots-empty ots-empty--compact">
@@ -3163,7 +3199,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                         </>,
                       )}
                       {row("Gói / dịch vụ", b.Package?.name || "—")}
-                      {row("Loại buổi", sessionTypeLabelVi(b.sessionType))}
                       {row(
                         "Trạng thái buổi",
                         <div className="ots-booking-detail__statusBlock">
@@ -3194,16 +3229,6 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                       {b.sessionNotes
                         ? row("Ghi chú buổi tập", b.sessionNotes)
                         : null}
-                      {b.notes ? (
-                        <div className="ots-booking-detail__notes-block">
-                          <div className="ots-booking-detail__label">
-                            Ghi chú hệ thống / nội bộ
-                          </div>
-                          <pre className="ots-booking-detail__notes-pre">
-                            {String(b.notes)}
-                          </pre>
-                        </div>
-                      ) : null}
                     </div>
                   );
                 })()

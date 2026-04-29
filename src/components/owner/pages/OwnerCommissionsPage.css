@@ -368,6 +368,16 @@
   font-weight: 700;
 }
 
+.owner-open-booking-btn--danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(220, 38, 38, 0.2);
+}
+
+.owner-open-booking-btn--danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .tx-user {
   display: flex;
   flex-direction: column;
@@ -497,4 +507,20 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.owner-pending-modal-footer {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.owner-pending-attendance-note {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.2);
+  color: #fecaca;
+  font-size: 12px;
+  line-height: 1.45;
 }

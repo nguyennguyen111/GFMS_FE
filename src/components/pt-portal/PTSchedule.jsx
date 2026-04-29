@@ -837,6 +837,9 @@ const PTSchedule = () => {
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       const isBusyRequested = Boolean(booking?.busyRequested);
+                      const hasAttendanceReminder =
+                        String(booking?.notes || "").includes("[ATTENDANCE_PT_REMINDER]") ||
+                        String(booking?.notes || "").includes("[ATTENDANCE_OWNER_REMINDER]");
                       const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
                       // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true, KHÔNG phụ thuộc sessionType
                       const isSubstitute = !isBusyRequested && (booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]"));
@@ -846,6 +849,7 @@ const PTSchedule = () => {
                         else if (isSubstitute) statusClass = "is-substitute";
                         else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
+                        else if (hasAttendanceReminder) statusClass = "is-reminder";
                         else statusClass = "is-pending";
                       }
 
@@ -885,6 +889,8 @@ const PTSchedule = () => {
                                   "⚠ Đã báo bận"
                                 ) : isSubstitute ? (
                                   <span style={{ color: "#008cff" }}>Lịch dạy thay</span>
+                                ) : hasAttendanceReminder ? (
+                                  "🔴 Cần điểm danh"
                                 ) : attendanceStatus === "present" ? (
                                   "✓ Có mặt"
                                 ) : attendanceStatus === "absent" ? (
