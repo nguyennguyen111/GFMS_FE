@@ -17,6 +17,7 @@ const money = (v) => Number(v || 0).toLocaleString("vi-VN");
 const statusLabel = (status) =>
   ({
     submitted: "Chờ admin duyệt",
+    approved_waiting_deposit: "Đã duyệt, chờ đặt cọc",
     approved_waiting_payment: "Chờ thanh toán",
     paid_waiting_admin_confirm: "Đã thanh toán, chờ admin bàn giao",
     shipping: "Đang giao combo",
@@ -41,7 +42,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 5,
     totalItems: 0,
     totalPages: 1,
   });
@@ -88,14 +89,14 @@ export default function OwnerPurchaseRequestHistoryPage() {
     });
   };
 
-  const loadRequests = useCallback(async (targetPage = page) => {
+  const loadRequests = useCallback(async (targetPage = 1) => {
     setLoading(true);
     setError("");
 
     try {
       const res = await ownerGetPurchaseRequests({
         page: targetPage,
-        limit: 10,
+        limit: 5,
         gymId: selectedGymId || undefined,
       });
 
@@ -104,7 +105,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
       const nextPage = Number(meta.page || targetPage || 1);
       setPagination({
         page: nextPage,
-        limit: Number(meta.limit || 10),
+        limit: Number(meta.limit || 5),
         totalItems: Number(meta.totalItems || 0),
         totalPages: Math.max(1, Number(meta.totalPages || 1)),
       });
@@ -114,7 +115,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedGymId, page]);
+  }, [selectedGymId]);
 
   useEffect(() => {
     setPage(1);
@@ -228,7 +229,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
     try {
       openProcessing("Đang xác nhận đã nhận combo...");
       await ownerConfirmReceivePurchaseRequest(requestId);
-      await loadRequests();
+      await loadRequests(page);
       openNotice("success", "Thành công", "Đã xác nhận nhận combo. Hệ thống đã ghi nhận hoàn tất giao dịch mua combo.");
     } catch (e) {
       const msg = e?.response?.data?.message || e.message;
@@ -360,6 +361,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
             <span>Đang xử lý</span>
             <strong>
               {Number(requestCountByStatus.get("submitted") || 0) +
+                Number(requestCountByStatus.get("approved_waiting_deposit") || 0) +
                 Number(requestCountByStatus.get("approved_waiting_payment") || 0) +
                 Number(requestCountByStatus.get("paid_waiting_admin_confirm") || 0) +
                 Number(requestCountByStatus.get("shipping") || 0)}
