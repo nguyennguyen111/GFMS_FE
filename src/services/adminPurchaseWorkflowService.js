@@ -14,8 +14,10 @@ const adminPurchaseWorkflowService = {
   getEquipmentSalesTransactions: (params) => axios.get("/api/admin/inventory/purchase-transactions", withTimeout({ params })),
   getPurchaseRequestDetail: (id) => axios.get(`/api/admin/inventory/purchase-requests/${id}`, withTimeout()),
   rejectPurchaseRequest: (id, body) => axios.patch(`/api/admin/inventory/purchase-requests/${id}/reject`, body, withTimeout()),
-  approvePurchaseRequest: (id) => axios.patch(`/api/admin/inventory/purchase-requests/${id}/approve`, null, withTimeout()),
-  confirmPurchaseRequestPaymentAndShip: (id) => axios.patch(`/api/admin/inventory/purchase-requests/${id}/confirm-payment-and-ship`, null, withTimeout()),
+  // bodyParser.json() ở BE dùng strict mode, gửi `null` sẽ bị reject ("not valid JSON").
+  // Dùng `{}` để payload luôn là JSON object hợp lệ cho các PATCH không cần dữ liệu chi tiết.
+  approvePurchaseRequest: (id) => axios.patch(`/api/admin/inventory/purchase-requests/${id}/approve`, {}, withTimeout()),
+  confirmPurchaseRequestPaymentAndShip: (id) => axios.patch(`/api/admin/inventory/purchase-requests/${id}/confirm-payment-and-ship`, {}, withTimeout()),
 
   getQuotations: (params) => axios.get("/api/admin/inventory/quotations", withTimeout({ params })),
   getQuotationDetail: (id) => axios.get(`/api/admin/inventory/quotations/${id}`, withTimeout()),
