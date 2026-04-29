@@ -121,6 +121,11 @@
     -webkit-overflow-scrolling: touch;
 }
 
+.ptAttModal__card--reminder {
+    border-color: rgba(239, 68, 68, 0.75);
+    box-shadow: 0 14px 40px rgba(120, 16, 16, 0.45);
+}
+
 .ptAttModal__head {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 20px;
@@ -293,6 +298,30 @@
 .ptAttModal__err {
     background: rgba(255, 77, 77, 0.1); color: #ff4d4d;
     padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px;
+}
+
+.ptAttModal__reminderAlert {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(248, 113, 113, 0.65);
+    background: linear-gradient(180deg, rgba(127, 29, 29, 0.5), rgba(69, 10, 10, 0.58));
+}
+
+.ptAttModal__reminderAlertTitle {
+    color: #fecaca;
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.ptAttModal__reminderAlertText {
+    color: #fee2e2;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 600;
 }
 
 .btn-edit {

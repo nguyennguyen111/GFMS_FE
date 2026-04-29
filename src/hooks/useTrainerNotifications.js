@@ -16,6 +16,13 @@ export default function useTrainerNotifications() {
   const user = getCurrentUser();
   const token = getAccessToken();
   const gid = Number(user?.groupId ?? user?.group_id ?? 0);
+  const reloadFromServer = async () => {
+    const data = await getTrainerNotifications();
+    const raw = data?.items || [];
+    const filtered = raw.filter(isTrainerRelevantNotification);
+    setItems(filtered);
+    setUnreadCount(filtered.filter((x) => !x.isRead).length);
+  };
 
   useEffect(() => {
     if (!token || gid !== 3) {
@@ -49,10 +56,18 @@ export default function useTrainerNotifications() {
       setUnreadCount((prev) => prev + 1);
     };
     const onRead = ({ id }) => {
-      setItems((prev) =>
-        prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setItems((prev) => {
+        let shouldDecrease = false;
+        const next = prev.map((x) => {
+          if (Number(x.id) !== Number(id)) return x;
+          if (!x.isRead) shouldDecrease = true;
+          return { ...x, isRead: true };
+        });
+        if (shouldDecrease) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+        return next;
+      });
     };
     const onReadAll = () => {
       setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
@@ -78,15 +93,11 @@ export default function useTrainerNotifications() {
       loading,
       markOne: async (id) => {
         await markTrainerNotificationRead(id);
-        setItems((prev) =>
-          prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        await reloadFromServer();
       },
       markAll: async () => {
         await markAllTrainerNotificationsRead();
-        setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
-        setUnreadCount(0);
+        await reloadFromServer();
       },
     }),
     [items, unreadCount, loading]

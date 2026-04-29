@@ -146,10 +146,18 @@ export default function useRealtimeNotifications(options = {}) {
     };
 
     const onRead = ({ id }) => {
-      setItems((prev) =>
-        prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setItems((prev) => {
+        let shouldDecrease = false;
+        const next = prev.map((x) => {
+          if (Number(x.id) !== Number(id)) return x;
+          if (!x.isRead) shouldDecrease = true;
+          return { ...x, isRead: true };
+        });
+        if (shouldDecrease) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+        return next;
+      });
     };
 
     const onReadAll = () => {
@@ -170,6 +178,20 @@ export default function useRealtimeNotifications(options = {}) {
   }, [enabled, groupId, gymId, token]);
 
   const api = resolveNotificationApi();
+  const reloadFromServer = async () => {
+    if (!api.fetcher) return;
+    const params =
+      Number(groupId) === 2 && toPositiveInt(gymId)
+        ? { gymId: toPositiveInt(gymId) }
+        : {};
+    const data = await api.fetcher(params);
+    setItems(
+      (data?.items || []).filter((item) =>
+        shouldIncludeNotification(item, groupId, gymId)
+      )
+    );
+    setUnreadCount(Number(data?.unreadCount || 0));
+  };
 
   return useMemo(
     () => ({
@@ -178,7 +200,6 @@ export default function useRealtimeNotifications(options = {}) {
       loading,
       markOne: async (id) => {
         if (!api.markOne) return;
-
         setItems((prev) =>
           prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x))
         );
@@ -186,8 +207,12 @@ export default function useRealtimeNotifications(options = {}) {
 
         try {
           await api.markOne(id);
+          await reloadFromServer();
         } catch (error) {
           console.error("Failed to mark notification as read:", error);
+          try {
+            await reloadFromServer();
+          } catch {}
         }
       },
       markAll: async () => {
@@ -201,8 +226,12 @@ export default function useRealtimeNotifications(options = {}) {
 
         try {
           await api.markAll(params);
+          await reloadFromServer();
         } catch (error) {
           console.error("Failed to mark all notifications as read:", error);
+          try {
+            await reloadFromServer();
+          } catch {}
         }
       },
     }),

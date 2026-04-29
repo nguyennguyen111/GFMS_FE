@@ -8,6 +8,9 @@ export const ownerGetCommissions = (params = {}) =>
 export const ownerGetPendingAttendanceWindow = (params = {}) =>
   axios.get(`${API_URL}/pending-attendance-window`, { params });
 
+export const ownerRemindPendingAttendance = (bookingId) =>
+  axios.post(`${API_URL}/${bookingId}/remind-attendance`);
+
 export const ownerExportCommissions = (params = {}) =>
   axios.get(`${API_URL}/export`, { params, responseType: "blob" });
 

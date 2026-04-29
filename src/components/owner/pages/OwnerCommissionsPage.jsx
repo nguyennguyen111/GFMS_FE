@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ownerGetCommissions,
   ownerGetPendingAttendanceWindow,
+  ownerRemindPendingAttendance,
   ownerPreviewClosePayrollPeriod,
   ownerPreviewPayByTrainer,
   ownerClosePayrollPeriod,
@@ -43,6 +44,13 @@ const formatTimeRange = (startTime, endTime) => {
   if (!start && !end) return "N/A";
   if (start && end) return `${start} - ${end}`;
   return start || end;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString("vi-VN");
 };
 
 const OwnerCommissionsPage = () => {
@@ -103,6 +111,9 @@ const OwnerCommissionsPage = () => {
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState(null);
   const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [selectedPendingAttendance, setSelectedPendingAttendance] = useState(null);
+  const [showPendingAttendanceModal, setShowPendingAttendanceModal] = useState(false);
+  const [pendingRemindBusy, setPendingRemindBusy] = useState(false);
 
   const [dialog, setDialog] = useState(null);
   const [dialogBusy, setDialogBusy] = useState(false);
@@ -555,6 +566,38 @@ const OwnerCommissionsPage = () => {
     setSelectedCommission(null);
   };
 
+  const handleOpenPendingAttendance = (row) => {
+    setSelectedPendingAttendance(row);
+    setShowPendingAttendanceModal(true);
+  };
+
+  const handleClosePendingAttendanceModal = () => {
+    if (pendingRemindBusy) return;
+    setShowPendingAttendanceModal(false);
+    setSelectedPendingAttendance(null);
+  };
+
+  const handleManualRemindTrainer = async () => {
+    const bookingId = selectedPendingAttendance?.bookingId;
+    if (!bookingId || pendingRemindBusy) return;
+    setPendingRemindBusy(true);
+    try {
+      await ownerRemindPendingAttendance(bookingId);
+      showAlert("success", "Đã gửi nhắc PT", "PT đã nhận thông báo nhắc điểm danh thủ công từ chủ phòng.");
+      await loadPendingAttendance(pendingPage);
+      setShowPendingAttendanceModal(false);
+      setSelectedPendingAttendance(null);
+    } catch (error) {
+      showAlert(
+        "error",
+        "Không gửi được nhắc nhở",
+        error?.response?.data?.message || "Đã có lỗi khi gửi thông báo nhắc PT."
+      );
+    } finally {
+      setPendingRemindBusy(false);
+    }
+  };
+
   return (
     <div className="owner-commissions-page">
       <div className="page-header">
@@ -767,7 +810,7 @@ const OwnerCommissionsPage = () => {
                     <td>
                       <button
                         className="owner-open-booking-btn"
-                        onClick={() => navigate(`/owner/trainer-bookings?bookingId=${encodeURIComponent(row.bookingId)}`)}
+                        onClick={() => handleOpenPendingAttendance(row)}
                       >
                         Mở chi tiết buổi
                       </button>
@@ -1077,6 +1120,51 @@ const OwnerCommissionsPage = () => {
             </div>
             <div className="tx-modal-footer">
               <button className="pagination-btn" onClick={handleCloseCommissionModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPendingAttendanceModal && selectedPendingAttendance && (
+        <div className="tx-modal" onClick={handleClosePendingAttendanceModal}>
+          <div className="tx-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="tx-modal-header">
+              <h2>Chi tiết buổi chờ PT điểm danh</h2>
+              <button className="tx-modal-close" onClick={handleClosePendingAttendanceModal} disabled={pendingRemindBusy}>×</button>
+            </div>
+            <div className="tx-modal-body">
+              <div className="period-summary">
+                <div><strong>Ngày buổi tập:</strong> {formatDate(selectedPendingAttendance.bookingDate)}</div>
+                <div><strong>Giờ dạy:</strong> {formatTimeRange(selectedPendingAttendance.startTime, selectedPendingAttendance.endTime)}</div>
+                <div><strong>Huấn luyện viên:</strong> {selectedPendingAttendance.trainerName || "N/A"}</div>
+                <div><strong>Email PT:</strong> {selectedPendingAttendance.trainerEmail || "N/A"}</div>
+                <div><strong>Học viên:</strong> {selectedPendingAttendance.memberName || "N/A"}</div>
+                <div><strong>Email học viên:</strong> {selectedPendingAttendance.memberEmail || "N/A"}</div>
+                <div><strong>Phòng gym:</strong> {selectedPendingAttendance.gymName || "N/A"}</div>
+                <div><strong>Hạn cuối điểm danh:</strong> {formatDateTime(selectedPendingAttendance.attendanceDeadline)}</div>
+              </div>
+              <div className="owner-pending-attendance-note">
+                Nhắc thủ công chỉ hỗ trợ thêm cho chủ phòng. Luồng nhắc tự động khi quá giờ vẫn hoạt động bình thường.
+              </div>
+            </div>
+            <div className="tx-modal-footer owner-pending-modal-footer">
+              <button
+                className="pagination-btn"
+                onClick={() => navigate(`/owner/trainer-bookings?bookingId=${encodeURIComponent(selectedPendingAttendance.bookingId)}`)}
+                disabled={pendingRemindBusy}
+              >
+                Tới trang booking
+              </button>
+              <button className="pagination-btn" onClick={handleClosePendingAttendanceModal} disabled={pendingRemindBusy}>
+                Đóng
+              </button>
+              <button
+                className="owner-open-booking-btn owner-open-booking-btn--danger"
+                onClick={handleManualRemindTrainer}
+                disabled={pendingRemindBusy}
+              >
+                {pendingRemindBusy ? "Đang gửi..." : "Thông báo cho PT"}
+              </button>
             </div>
           </div>
         </div>

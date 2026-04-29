@@ -65,6 +65,15 @@ import FAQPage from "./components/pages/support/FAQPage";
 import SignContractPage from "./components/public/SignContractPage";
 import EquipmentScanPage from "./components/public/EquipmentScanPage";
 
+const resolveHomeByGroupId = (groupId) => {
+  const gid = Number(groupId || 0);
+  if (gid === 1) return "/admin/dashboard";
+  if (gid === 2) return "/owner/overview";
+  if (gid === 3) return "/pt/dashboard";
+  if (gid === 4) return "/member/bookings";
+  return "/";
+};
+
 /* ================= ADMIN GUARD (FIX) ================= */
 const AdminGuard = ({ children }) => {
   try {
@@ -72,7 +81,9 @@ const AdminGuard = ({ children }) => {
     const user = getCurrentUser();
     if (!user || !token) return <Navigate to="/login" replace />;
     const groupId = Number(user?.groupId ?? user?.group_id);
-    if (groupId !== 1) return <Navigate to="/" replace />;
+    if (groupId !== 1) {
+      return <Navigate to={resolveHomeByGroupId(groupId)} replace />;
+    }
     return children;
   } catch {
     return <Navigate to="/login" replace />;
@@ -85,7 +96,9 @@ const RoleGuard = ({ allowedGroupIds = [], children }) => {
   const groupId = Number(user?.groupId ?? user?.group_id ?? 0);
 
   if (!user || !token || !groupId) return <Navigate to="/login" replace />;
-  if (!allowedGroupIds.includes(groupId)) return <Navigate to="/" replace />;
+  if (!allowedGroupIds.includes(groupId)) {
+    return <Navigate to={resolveHomeByGroupId(groupId)} replace />;
+  }
 
   return children;
 };

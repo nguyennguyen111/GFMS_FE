@@ -28,6 +28,34 @@ const fmtDT = (v) => {
   return d.toLocaleString();
 };
 
+const ATTENDANCE_EDIT_GRACE_HOURS = 24;
+
+const computeAttendanceDeadline = (booking) => {
+  if (!booking?.bookingDate) return null;
+  const dateOnly = String(booking.bookingDate).slice(0, 10);
+  if (!dateOnly) return null;
+  let end = String(booking?.endTime || "23:59:59");
+  if (end.length === 5) end = `${end}:00`;
+  const endAt = new Date(`${dateOnly}T${end}`);
+  if (Number.isNaN(endAt.getTime())) return null;
+  return new Date(endAt.getTime() + ATTENDANCE_EDIT_GRACE_HOURS * 60 * 60 * 1000);
+};
+
+const formatRemainingTime = (deadline, nowMs) => {
+  if (!deadline) return null;
+  const diffMs = deadline.getTime() - nowMs;
+  if (diffMs <= 0) {
+    return "Đã quá hạn điểm danh. Hệ thống sẽ xử lý theo quy định.";
+  }
+  const totalMinutes = Math.ceil(diffMs / (60 * 1000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) {
+    return `Cần điểm danh trong vòng ${minutes} phút vì bạn quên điểm danh.`;
+  }
+  return `Cần điểm danh trong vòng ${hours} giờ ${minutes} phút vì bạn quên điểm danh.`;
+};
+
 const pickMemberLabel = (booking) => {
   const memberName = booking?.Member?.User?.username || booking?.Member?.fullName || booking?.Member?.name;
   return memberName || (booking?.memberId ? `Học viên #${booking.memberId}` : "—");
@@ -75,8 +103,6 @@ export default function PTAttendanceModal({
     setCompleteFeedbackError("");
   }, [open, booking?.id, booking?.sharePayment?.sharePaymentDisputeNote]);
 
-  if (!open) return null;
-
   const ta = booking?.trainerAttendance || null;
   const currentStatus = (ta?.status || booking?.status || "").toLowerCase();
   const bookingStatus = String(booking?.status || "").toLowerCase();
@@ -86,6 +112,23 @@ export default function PTAttendanceModal({
   const isSharedSession = String(booking?.sessionType || booking?.type || "").toLowerCase() === "trainer_share";
   const ptAckAt = booking?.sharePayment?.sharePaymentPtAcknowledgedAt;
   const interactionDisabled = loading || actionPending;
+  const hasAttendanceReminder =
+    String(booking?.notes || "").includes("[ATTENDANCE_PT_REMINDER]") ||
+    String(booking?.notes || "").includes("[ATTENDANCE_OWNER_REMINDER]");
+  const reminderActive =
+    hasAttendanceReminder && currentStatus !== "present" && currentStatus !== "absent";
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const attendanceDeadline = reminderActive ? computeAttendanceDeadline(booking) : null;
+  const reminderMessage = reminderActive ? formatRemainingTime(attendanceDeadline, nowMs) : null;
+
+  useEffect(() => {
+    if (!reminderActive) return undefined;
+    setNowMs(Date.now());
+    const timer = setInterval(() => setNowMs(Date.now()), 60 * 1000);
+    return () => clearInterval(timer);
+  }, [reminderActive, booking?.id]);
+
+  if (!open) return null;
 
   const handleAction = async (type) => {
     if (interactionDisabled) return;
@@ -105,7 +148,7 @@ export default function PTAttendanceModal({
   return (
     <div className="ptAttModal__backdrop" onMouseDown={onClose}>
       <div
-        className={`ptAttModal__card${completeFeedbackOpen ? " ptAttModal__card--feedbackActive" : ""}`}
+        className={`ptAttModal__card${completeFeedbackOpen ? " ptAttModal__card--feedbackActive" : ""}${reminderActive ? " ptAttModal__card--reminder" : ""}`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div
@@ -130,6 +173,12 @@ export default function PTAttendanceModal({
           <div className="ptAttModal__empty">Slot này chưa có học viên.</div>
         ) : (
           <>
+            {reminderActive && reminderMessage ? (
+              <div className="ptAttModal__reminderAlert" role="alert">
+                <div className="ptAttModal__reminderAlertTitle">🔴 Cần điểm danh gấp</div>
+                <div className="ptAttModal__reminderAlertText">{reminderMessage}</div>
+              </div>
+            ) : null}
             <div className="ptAttModal__grid">
               <div className="ptAttModal__row">
                 <span className="k">Học viên</span>

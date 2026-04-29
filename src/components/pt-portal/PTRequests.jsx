@@ -420,7 +420,7 @@ export default function PTRequests() {
       {/* LIST */}
       <div className="ptr-card" style={{ marginBottom: 14 }}>
         <p className="ptr-subtitle">
-          Mượn huấn luyện viên — khung giờ mở &amp; yêu cầu gán cho bạn
+          Mượn huấn luyện viên 
         </p>
         <div className="ptr-divider" />
         <div className="ptr-tablewrap">
