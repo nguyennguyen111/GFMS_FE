@@ -483,6 +483,30 @@ select.purchase-admin-input option {
   font-weight: 700;
 }
 
+.purchase-admin-noticeMessage {
+  margin: 0;
+  text-align: center;
+}
+
+.purchase-admin-noticeFooter {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.purchase-admin-page .nice-modal {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.purchase-admin-page .nice-modal__title,
+.purchase-admin-page .nice-modal__body {
+  text-align: center;
+}
+
+.purchase-admin-page .nice-modal__footer {
+  justify-content: center;
+}
+
 @media (max-width: 900px) {
   .purchase-admin-card__hero {
     grid-template-columns: 1fr;
