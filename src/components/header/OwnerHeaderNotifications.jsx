@@ -91,7 +91,7 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
   const [open, setOpen] = useState(false);
   const { selectedGymId } = useSelectedGym();
   const notifications = useRealtimeNotifications({ gymId: selectedGymId });
-  const unreadPreviewItems = notifications.items.filter((item) => !item.isRead).slice(0, 5);
+  const latestPreviewItems = notifications.items.slice(0, 8);
   const unreadBadgeText =
     notifications.unreadCount > 99 ? "99+" : String(notifications.unreadCount || 0);
 
@@ -151,7 +151,6 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
                 onClick={async () => {
                   try {
                     await notifications.markAll();
-                    setOpen(false);
                   } catch {}
                 }}
               >
@@ -164,13 +163,13 @@ export default function OwnerHeaderNotifications({ onNavigate }) {
           <div className="ohn-panel__list">
             {notifications.loading ? (
               <div className="ohn-panel__empty">Đang tải thông báo...</div>
-            ) : unreadPreviewItems.length === 0 ? (
+            ) : latestPreviewItems.length === 0 ? (
               <div className="ohn-panel__empty">
                 <BellRing size={18} />
-                <span>Không còn thông báo chưa đọc.</span>
+                <span>Hiện chưa có thông báo nào.</span>
               </div>
             ) : (
-              unreadPreviewItems.map((item) => {
+              latestPreviewItems.map((item) => {
                 const visual = getNotificationVisual(item);
                 const NotificationIcon = visual.Icon;
 

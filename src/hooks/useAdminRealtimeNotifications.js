@@ -11,6 +11,11 @@ export default function useAdminRealtimeNotifications() {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const reloadFromServer = async () => {
+    const data = await getAdminNotifications();
+    setItems(data?.items || []);
+    setUnreadCount(data?.unreadCount || 0);
+  };
 
   useEffect(() => {
     const token = getAccessToken();
@@ -44,8 +49,18 @@ export default function useAdminRealtimeNotifications() {
       setUnreadCount((prev) => prev + 1);
     };
     const onRead = ({ id }) => {
-      setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setItems((prev) => {
+        let shouldDecrease = false;
+        const next = prev.map((x) => {
+          if (Number(x.id) !== Number(id)) return x;
+          if (!x.isRead) shouldDecrease = true;
+          return { ...x, isRead: true };
+        });
+        if (shouldDecrease) {
+          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+        return next;
+      });
     };
     const onReadAll = () => {
       setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
@@ -79,18 +94,14 @@ export default function useAdminRealtimeNotifications() {
       loading,
       markOne: async (id) => {
         await markAdminNotificationRead(id);
-        setItems((prev) => prev.map((x) => (Number(x.id) === Number(id) ? { ...x, isRead: true } : x)));
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        await reloadFromServer();
       },
       markAll: async () => {
         await markAllAdminNotificationsRead();
-        setItems((prev) => prev.map((x) => ({ ...x, isRead: true })));
-        setUnreadCount(0);
+        await reloadFromServer();
       },
       refresh: async () => {
-        const data = await getAdminNotifications();
-        setItems(data?.items || []);
-        setUnreadCount(data?.unreadCount || 0);
+        await reloadFromServer();
       },
     }),
     [items, unreadCount, loading]
