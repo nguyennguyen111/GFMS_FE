@@ -836,10 +836,16 @@ const PTSchedule = () => {
 
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
+                      const bookingStatus = String(booking?.status || "").toLowerCase();
                       const isBusyRequested = Boolean(booking?.busyRequested);
-                      const hasAttendanceReminder =
+                      const hasReminderMarker =
                         String(booking?.notes || "").includes("[ATTENDANCE_PT_REMINDER]") ||
                         String(booking?.notes || "").includes("[ATTENDANCE_OWNER_REMINDER]");
+                      const hasAttendanceReminder =
+                        hasReminderMarker &&
+                        bookingStatus !== "no_show" &&
+                        bookingStatus !== "completed" &&
+                        bookingStatus !== "cancelled";
                       const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
                       // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true, KHÔNG phụ thuộc sessionType
                       const isSubstitute = !isBusyRequested && (booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]"));

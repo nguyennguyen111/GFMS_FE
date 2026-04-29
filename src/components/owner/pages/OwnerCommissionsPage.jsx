@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ownerGetCommissions,
   ownerGetPendingAttendanceWindow,
@@ -54,7 +53,6 @@ const formatDateTime = (value) => {
 };
 
 const OwnerCommissionsPage = () => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("commissions");
   const { selectedGymId, selectedGymName } = useSelectedGym();
   const [gyms, setGyms] = useState([]);
@@ -1144,17 +1142,10 @@ const OwnerCommissionsPage = () => {
                 <div><strong>Hạn cuối điểm danh:</strong> {formatDateTime(selectedPendingAttendance.attendanceDeadline)}</div>
               </div>
               <div className="owner-pending-attendance-note">
-                Nhắc thủ công chỉ hỗ trợ thêm cho chủ phòng. Luồng nhắc tự động khi quá giờ vẫn hoạt động bình thường.
+                Cần thông báo gấp cho PT.
               </div>
             </div>
             <div className="tx-modal-footer owner-pending-modal-footer">
-              <button
-                className="pagination-btn"
-                onClick={() => navigate(`/owner/trainer-bookings?bookingId=${encodeURIComponent(selectedPendingAttendance.bookingId)}`)}
-                disabled={pendingRemindBusy}
-              >
-                Tới trang booking
-              </button>
               <button className="pagination-btn" onClick={handleClosePendingAttendanceModal} disabled={pendingRemindBusy}>
                 Đóng
               </button>
