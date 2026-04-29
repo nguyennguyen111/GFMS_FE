@@ -38,6 +38,7 @@ export default function OwnerPurchaseRequestsPage() {
     contactEmail: "",
   });
   const [expandedComboId, setExpandedComboId] = useState(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successModal, setSuccessModal] = useState(null);
   const [noticeModal, setNoticeModal] = useState(null);
@@ -482,7 +483,14 @@ export default function OwnerPurchaseRequestsPage() {
           {selectedCombo ? (
             <div className="owner-combo-selectedPreview">
               <div className="owner-combo-selectedPreview__title">
-                Preview dữ liệu owner sẽ gửi sang admin
+                <span>Preview dữ liệu owner sẽ gửi sang admin</span>
+                <button
+                  type="button"
+                  className="owner-combo-btn owner-combo-btn--previewToggle"
+                  onClick={() => setPreviewExpanded((prev) => !prev)}
+                >
+                  {previewExpanded ? "Ẩn danh sách thiết bị" : "Xem danh sách thiết bị"}
+                </button>
               </div>
 
               <div className="owner-combo-selectedPreview__hero">
@@ -506,7 +514,7 @@ export default function OwnerPurchaseRequestsPage() {
                 </div>
               </div>
 
-              {renderEquipmentRows(selectedCombo.items || [], true)}
+              {previewExpanded ? renderEquipmentRows(selectedCombo.items || [], true) : null}
             </div>
           ) : null}
 

@@ -5,6 +5,7 @@ import {
   ownerGetProcurementPayments,
 } from "../../../services/ownerPurchaseService";
 import { confirmPayosPayment } from "../../../services/paymentService";
+import NiceModal from "../../common/NiceModal";
 import "../OwnerDashboard.css";
 import useOwnerRealtimeRefresh from "../../../hooks/useOwnerRealtimeRefresh";
 import useSelectedGym from "../../../hooks/useSelectedGym";
@@ -222,28 +223,75 @@ export default function OwnerProcurementPaymentsPage() {
         </div>
       )}
 
-      {showModal && detail && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Chi tiết thanh toán</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-grid">
-                <div className="detail-row"><span className="detail-label">Mã giao dịch</span><span className="detail-value">{detail.transactionCode || `TX-${detail.id}`}</span></div>
-                  <div className="detail-row"><span className="detail-label">Yêu cầu mua</span><span className="detail-value">{detail.metadata?.purchaseRequestCode || `PR-${detail.metadata?.purchaseRequestId || "-"}`}</span></div>
-                  <div className="detail-row"><span className="detail-label">Gym</span><span className="detail-value">{detail.Gym?.name || "-"}</span></div>
-                <div className="detail-row"><span className="detail-label">Giai đoạn</span><span className="detail-value">{phaseLabel[detail.paymentPhase] || detail.paymentPhase || "-"}</span></div>
-                <div className="detail-row"><span className="detail-label">Số tiền</span><span className="detail-value">{money(detail.amount)}</span></div>
-                <div className="detail-row"><span className="detail-label">Phương thức</span><span className="detail-value">{detail.paymentMethod || "-"}</span></div>
-                <div className="detail-row"><span className="detail-label">Trạng thái</span><span className="detail-value">{statusLabel[detail.paymentStatus] || detail.paymentStatus || "-"}</span></div>
-                <div className="detail-row detail-row--full"><span className="detail-label">Mô tả</span><span className="detail-value">{detail.description || "-"}</span></div>
+      <NiceModal
+        open={Boolean(showModal && detail)}
+        onClose={() => setShowModal(false)}
+        title="Chi tiết thanh toán"
+        tone="info"
+        footer={
+          <button
+            type="button"
+            className="nice-modal__btn nice-modal__btn--primary"
+            onClick={() => setShowModal(false)}
+          >
+            Đã hiểu
+          </button>
+        }
+      >
+        {detail ? (
+          <div style={paymentDetailModalCard}>
+              <div style={detailSummaryWrap}>
+                <div style={detailSummaryCard}>
+                  <span style={detailSummaryLabel}>Mã giao dịch</span>
+                  <strong style={detailSummaryValue}>{detail.transactionCode || `TX-${detail.id}`}</strong>
+                </div>
+                <div style={detailSummaryCard}>
+                  <span style={detailSummaryLabel}>Số tiền</span>
+                  <strong style={detailSummaryValue}>{money(detail.amount)}</strong>
+                </div>
+                <div style={detailSummaryCard}>
+                  <span style={detailSummaryLabel}>Trạng thái</span>
+                  <span style={statusBadge(detail.paymentStatus)}>
+                    {statusLabel[detail.paymentStatus] || detail.paymentStatus || "-"}
+                  </span>
+                </div>
               </div>
-            </div>
+
+              <div style={detailTableWrap}>
+                <table style={detailTable}>
+                  <tbody>
+                    <tr>
+                      <td style={detailCellLabel}>Mã yêu cầu</td>
+                      <td style={detailCellValue}>{detail.metadata?.purchaseRequestCode || `PR-${detail.metadata?.purchaseRequestId || "-"}`}</td>
+                    </tr>
+                    <tr>
+                      <td style={detailCellLabel}>Gym</td>
+                      <td style={detailCellValue}>{detail.Gym?.name || "-"}</td>
+                    </tr>
+                    <tr>
+                      <td style={detailCellLabel}>Giai đoạn</td>
+                      <td style={detailCellValue}>{phaseLabel[detail.paymentPhase] || detail.paymentPhase || "-"}</td>
+                    </tr>
+                    <tr>
+                      <td style={detailCellLabel}>Phương thức</td>
+                      <td style={detailCellValue}>{String(detail.paymentMethod || "-").toUpperCase()}</td>
+                    </tr>
+                    <tr>
+                      <td style={detailCellLabel}>Ngày giao dịch</td>
+                      <td style={detailCellValue}>
+                        {detail.transactionDate ? new Date(detail.transactionDate).toLocaleString("vi-VN") : "-"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={detailCellLabel}>Mô tả</td>
+                      <td style={detailCellValue}>{detail.description || "-"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
           </div>
-        </div>
-      )}
+        ) : null}
+      </NiceModal>
     </div>
   );
 }
@@ -259,6 +307,56 @@ const summaryCard = { border: "1px solid rgba(255,255,255,0.12)", borderRadius: 
 const summaryLabel = { fontSize: 12, color: "#94a3b8", marginBottom: 6 };
 const summaryValue = { fontSize: 22, fontWeight: 700, color: "#f8fafc" };
 const payButton = { background: "linear-gradient(135deg,#65a30d,#84cc16)", color: "#0f172a", border: "none", fontWeight: 700 };
+const paymentDetailModalCard = {
+  width: "100%",
+  maxWidth: "100%",
+  borderRadius: 16,
+};
+const detailSummaryWrap = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10,
+  marginBottom: 12,
+};
+const detailSummaryCard = {
+  flex: "1 1 180px",
+  minWidth: 0,
+  border: "1px solid rgba(148,163,184,0.28)",
+  borderRadius: 12,
+  padding: "10px 12px",
+  background: "rgba(15,23,42,0.45)",
+  display: "grid",
+  gap: 6,
+};
+const detailSummaryLabel = { fontSize: 12, color: "#94a3b8" };
+const detailSummaryValue = { fontSize: 15, color: "#f8fafc" };
+const detailTableWrap = {
+  border: "1px solid rgba(148,163,184,0.25)",
+  borderRadius: 12,
+  overflow: "hidden",
+  background: "rgba(15,23,42,0.35)",
+};
+const detailTable = { width: "100%", borderCollapse: "collapse" };
+const detailCellLabel = {
+  width: "34%",
+  minWidth: 120,
+  padding: "11px 12px",
+  borderBottom: "1px solid rgba(148,163,184,0.2)",
+  color: "#94a3b8",
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: ".04em",
+  verticalAlign: "top",
+};
+const detailCellValue = {
+  padding: "11px 12px",
+  borderBottom: "1px solid rgba(148,163,184,0.2)",
+  color: "#e2e8f0",
+  fontSize: 14,
+  lineHeight: 1.45,
+  wordBreak: "break-word",
+};
 const statusBadge = (type) => ({
   padding: "4px 10px",
   borderRadius: 999,

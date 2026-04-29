@@ -10,7 +10,7 @@ import {
   ownerGetPurchaseRequests,
 } from "../../../services/ownerPurchaseService";
 import { confirmPayosPayment } from "../../../services/paymentService";
-import { showAppToast } from "../../../utils/appToast";
+import NiceModal from "../../common/NiceModal";
 
 const money = (v) => Number(v || 0).toLocaleString("vi-VN");
 
@@ -45,6 +45,15 @@ export default function OwnerPurchaseRequestHistoryPage() {
     totalItems: 0,
     totalPages: 1,
   });
+  const [expandedEquipmentMap, setExpandedEquipmentMap] = useState({});
+  const [actionModal, setActionModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+    tone: "info",
+    busy: false,
+  });
+  const [confirmingReceivedId, setConfirmingReceivedId] = useState(null);
 
   const API_HOST = String(
     axios?.defaults?.baseURL ||
@@ -58,6 +67,26 @@ export default function OwnerPurchaseRequestHistoryPage() {
         ? String(value)
         : `${API_HOST}${value}`
       : "";
+
+  const openNotice = (tone, title, message) => {
+    setActionModal({
+      open: true,
+      tone: tone || "info",
+      title: title || "Thông báo",
+      message: message || "",
+      busy: false,
+    });
+  };
+
+  const openProcessing = (message) => {
+    setActionModal({
+      open: true,
+      tone: "info",
+      title: "Đang xử lý",
+      message: message || "Hệ thống đang xử lý, vui lòng chờ...",
+      busy: true,
+    });
+  };
 
   const loadRequests = useCallback(async (targetPage = page) => {
     setLoading(true);
@@ -98,16 +127,17 @@ export default function OwnerPurchaseRequestHistoryPage() {
     const orderCode = params.get("orderCode");
 
     if (payos === "success" && orderCode) {
+      openProcessing("Đang xác nhận thanh toán PayOS...");
       confirmPayosPayment(orderCode)
         .then(() => {
-          showAppToast({
-            type: "success",
-            title: "Thanh toán thành công",
-            message: "Hệ thống đã ghi nhận thanh toán. Dữ liệu sẽ được cập nhật ngay.",
-          });
+          openNotice("success", "Thanh toán thành công", "Hệ thống đã ghi nhận thanh toán. Dữ liệu sẽ được cập nhật ngay.");
           loadRequests();
         })
-        .catch((e) => setError(e?.response?.data?.message || e.message));
+        .catch((e) => {
+          const msg = e?.response?.data?.message || e.message;
+          setError(msg);
+          openNotice("error", "Xác nhận thanh toán thất bại", msg);
+        });
     }
   }, [loadRequests]);
 
@@ -170,34 +200,42 @@ export default function OwnerPurchaseRequestHistoryPage() {
   }, [requests]);
 
   const payFull = async (requestId) => {
+    if (payingId === requestId) return;
     setPayingId(requestId);
     setError("");
 
     try {
+      openProcessing("Đang tạo link thanh toán PayOS...");
       const res = await ownerCreatePurchaseRequestPayOSLink(requestId, {
         phase: "full",
       });
       const url = res?.data?.data?.checkoutUrl || res?.data?.checkoutUrl;
       if (url) window.location.href = url;
+      else openNotice("error", "Không tạo được link", "Hệ thống không trả về link thanh toán.");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      const msg = e?.response?.data?.message || e.message;
+      setError(msg);
+      openNotice("error", "Thanh toán thất bại", msg);
     } finally {
       setPayingId(null);
     }
   };
 
   const confirmReceived = async (requestId) => {
+    if (confirmingReceivedId === requestId) return;
+    setConfirmingReceivedId(requestId);
     setError("");
     try {
+      openProcessing("Đang xác nhận đã nhận combo...");
       await ownerConfirmReceivePurchaseRequest(requestId);
-      showAppToast({
-        type: "success",
-        title: "Thành công",
-        message: "Đã xác nhận nhận combo. Hệ thống đã ghi nhận hoàn tất giao dịch mua combo.",
-      });
-      loadRequests();
+      await loadRequests();
+      openNotice("success", "Thành công", "Đã xác nhận nhận combo. Hệ thống đã ghi nhận hoàn tất giao dịch mua combo.");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      const msg = e?.response?.data?.message || e.message;
+      setError(msg);
+      openNotice("error", "Xác nhận thất bại", msg);
+    } finally {
+      setConfirmingReceivedId(null);
     }
   };
 
@@ -213,21 +251,21 @@ export default function OwnerPurchaseRequestHistoryPage() {
   };
 
   const onExportExcel = async () => {
+    if (exporting) return;
     setExporting(true);
     setError("");
     try {
+      openProcessing("Đang xuất file Excel...");
       const res = await ownerExportPurchaseRequestsExcel({
         gymId: selectedGymId || undefined,
       });
       const blob = res?.data instanceof Blob ? res.data : new Blob([res?.data]);
       downloadBlob(blob, `lich-su-mua-combo-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      showAppToast({
-        type: "success",
-        title: "Xuất Excel thành công",
-        message: "File Excel lịch sử mua combo đã được tải xuống.",
-      });
+      openNotice("success", "Xuất Excel thành công", "File Excel lịch sử mua combo đã được tải xuống.");
     } catch (e) {
-      setError(e?.response?.data?.message || e.message);
+      const msg = e?.response?.data?.message || e.message;
+      setError(msg);
+      openNotice("error", "Xuất Excel thất bại", msg);
     } finally {
       setExporting(false);
     }
@@ -373,6 +411,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
           {requests.map((request) => {
             const combo = request.combo || {};
             const thumbnailUrl = absUrl(combo.thumbnail);
+            const equipmentExpanded = Boolean(expandedEquipmentMap[request.id]);
 
             return (
               <article
@@ -450,9 +489,20 @@ export default function OwnerPurchaseRequestHistoryPage() {
                   </div>
                 </div>
 
-                {renderEquipmentRows(combo.items || [])}
-
                 <div className="owner-combo-historyCard__actions">
+                  <button
+                    type="button"
+                    className="owner-combo-btn owner-combo-btn--previewToggle"
+                    onClick={() =>
+                      setExpandedEquipmentMap((prev) => ({
+                        ...prev,
+                        [request.id]: !prev[request.id],
+                      }))
+                    }
+                  >
+                    {equipmentExpanded ? "Ẩn danh sách thiết bị" : "Xem danh sách thiết bị"}
+                  </button>
+
                   {request.status === "approved_waiting_payment" ? (
                     <button
                       className="owner-combo-btn owner-combo-btn--accent"
@@ -466,9 +516,10 @@ export default function OwnerPurchaseRequestHistoryPage() {
                   {request.status === "shipping" ? (
                     <button
                       className="owner-combo-btn owner-combo-btn--accent"
+                      disabled={confirmingReceivedId === request.id}
                       onClick={() => confirmReceived(request.id)}
                     >
-                      Xác nhận đã nhận combo
+                      {confirmingReceivedId === request.id ? "Đang xử lý..." : "Xác nhận đã nhận combo"}
                     </button>
                   ) : null}
 
@@ -481,6 +532,8 @@ export default function OwnerPurchaseRequestHistoryPage() {
                     </div>
                   ) : null}
                 </div>
+
+                {equipmentExpanded ? renderEquipmentRows(combo.items || []) : null}
               </article>
             );
           })}
@@ -514,6 +567,29 @@ export default function OwnerPurchaseRequestHistoryPage() {
           </button>
         </div>
       </section>
+
+      <NiceModal
+        open={Boolean(actionModal.open)}
+        onClose={() => {
+          if (actionModal.busy) return;
+          setActionModal({ open: false, title: "", message: "", tone: "info", busy: false });
+        }}
+        title={actionModal.title || "Thông báo"}
+        tone={actionModal.tone || "info"}
+        footer={
+          actionModal.busy ? null : (
+            <button
+              type="button"
+              className="nice-modal__btn nice-modal__btn--primary"
+              onClick={() => setActionModal({ open: false, title: "", message: "", tone: "info", busy: false })}
+            >
+              Đã hiểu
+            </button>
+          )
+        }
+      >
+        <p>{actionModal.message}</p>
+      </NiceModal>
     </div>
   );
 }
