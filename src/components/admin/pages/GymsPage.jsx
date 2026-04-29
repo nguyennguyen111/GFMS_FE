@@ -575,16 +575,15 @@ export default function GymsPage() {
                   <th onClick={() => toggleSort("name")} className="is-sort">Phòng gym {headerSortIcon("name")}</th>
                   <th>Chủ sở hữu</th>
                   <th onClick={() => toggleSort("status")} className="is-sort">Trạng thái {headerSortIcon("status")}</th>
-                  <th>Liên hệ</th>
                   <th onClick={() => toggleSort("createdAt")} className="is-sort">Ngày tạo {headerSortIcon("createdAt")}</th>
                   <th className="col-actions">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="up-td-center">Đang tải...</td></tr>
+                  <tr><td colSpan={6} className="up-td-center">Đang tải...</td></tr>
                 ) : paginated.length === 0 ? (
-                  <tr><td colSpan={7} className="up-td-center">Không có dữ liệu</td></tr>
+                  <tr><td colSpan={6} className="up-td-center">Không có dữ liệu</td></tr>
                 ) : paginated.map((g) => (
                   <tr key={g.id}>
                     <td>{g.id}</td>
@@ -610,10 +609,6 @@ export default function GymsPage() {
                     </td>
                     <td>
                       <span className={`up-status is-${g.status}`}>{GYM_STATUS_VI[g.status] || g.status || "-"}</span>
-                    </td>
-                    <td>
-                      <div className="gp-sub">{g.phone || "-"}</div>
-                      <div className="gp-sub">{g.email || "-"}</div>
                     </td>
                     <td>{g.createdAt ? new Date(g.createdAt).toLocaleString() : "-"}</td>
                     <td className="col-actions">
