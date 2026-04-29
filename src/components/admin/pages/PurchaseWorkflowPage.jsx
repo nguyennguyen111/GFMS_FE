@@ -491,16 +491,18 @@ export default function PurchaseWorkflowPage() {
         title={noticeModal.title || "Thông báo"}
         tone={noticeModal.tone || "error"}
         footer={
-          <button
-            type="button"
-            className="nice-modal__btn nice-modal__btn--primary"
-            onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
-          >
-            Đã hiểu
-          </button>
+          <div className="purchase-admin-noticeFooter">
+            <button
+              type="button"
+              className="nice-modal__btn nice-modal__btn--primary"
+              onClick={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
+            >
+              Đã hiểu
+            </button>
+          </div>
         }
       >
-        <p>{noticeModal.message}</p>
+        <p className="purchase-admin-noticeMessage">{noticeModal.message}</p>
       </NiceModal>
     </div>
   );
