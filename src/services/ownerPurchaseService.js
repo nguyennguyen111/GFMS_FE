@@ -3,6 +3,7 @@ import axios from "../setup/axios";
 const API = "/api/owner/purchases";
 const OWNER_PURCHASE_LIST_TIMEOUT_MS = 15000;
 const OWNER_PURCHASE_ACTION_TIMEOUT_MS = 20000;
+const OWNER_PURCHASE_CREATE_REQUEST_TIMEOUT_MS = 60000;
 const OWNER_PURCHASE_EXPORT_TIMEOUT_MS = 30000;
 const OWNER_PURCHASE_CONFIRM_RECEIVE_TIMEOUT_MS = 10000;
 
@@ -32,7 +33,11 @@ export const ownerGetReceiptDetail = (id) =>
 export const ownerPreviewPurchaseStock = (params) =>
   axios.get(`${API}/purchase-requests/stock-preview`, withTimeout(OWNER_PURCHASE_LIST_TIMEOUT_MS, { params }));
 export const ownerCreatePurchaseRequest = (payload) =>
-  axios.post(`${API}/purchase-requests`, payload, withTimeout(OWNER_PURCHASE_ACTION_TIMEOUT_MS));
+  axios.post(
+    `${API}/purchase-requests`,
+    payload,
+    withTimeout(OWNER_PURCHASE_CREATE_REQUEST_TIMEOUT_MS)
+  );
 export const ownerGetPurchaseRequests = (params = {}) =>
   axios.get(`${API}/purchase-requests`, withTimeout(OWNER_PURCHASE_LIST_TIMEOUT_MS, { params }));
 export const ownerGetPurchaseRequestDetail = (id) =>
