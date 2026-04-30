@@ -495,7 +495,19 @@ select.purchase-admin-input option {
 }
 
 .purchase-admin-page .nice-modal {
-  width: min(440px, calc(100vw - 32px));
+  width: min(460px, calc(100vw - 28px));
+  max-width: 460px;
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  box-sizing: border-box;
+  margin: 0 auto;
+  border-radius: 18px;
+}
+
+.purchase-admin-page .nice-modal-overlay {
+  padding: 14px !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .purchase-admin-page .nice-modal__title,
@@ -503,8 +515,42 @@ select.purchase-admin-input option {
   text-align: center;
 }
 
+.purchase-admin-page .nice-modal__body {
+  word-break: break-word;
+}
+
 .purchase-admin-page .nice-modal__footer {
+  width: 100%;
   justify-content: center;
+}
+
+.purchase-admin-page .nice-modal__close {
+  top: 10px;
+  right: 10px;
+}
+
+@media (max-width: 640px) {
+  .purchase-admin-page .nice-modal-overlay {
+    padding: 10px !important;
+  }
+
+  .purchase-admin-page .nice-modal {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+    padding: 18px 16px 14px;
+    border-radius: 16px;
+  }
+
+  .purchase-admin-page .nice-modal__title {
+    margin-right: 30px;
+    font-size: 17px;
+  }
+
+  .purchase-admin-page .nice-modal__btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 900px) {
