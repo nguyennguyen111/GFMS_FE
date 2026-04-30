@@ -165,13 +165,23 @@ export default function OwnerPurchaseRequestsPage() {
           "Yêu cầu mua combo đã được gửi lên hệ thống. Bạn có thể theo dõi tiến trình và trạng thái thanh toán trong Lịch sử mua combo.",
       });
     } catch (e2) {
-      const message = e2?.response?.data?.message || e2?.message || "Không thể gửi yêu cầu.";
+      const rawMessage =
+        e2?.response?.data?.message || e2?.message || "Không thể gửi yêu cầu.";
+      const isTimeout =
+        String(e2?.code || "").toUpperCase() === "ECONNABORTED" ||
+        /timeout/i.test(String(rawMessage));
+      const message = isTimeout
+        ? "Yêu cầu đang được xử lý, vui lòng đợi thêm và kiểm tra lại ở Lịch sử mua combo."
+        : rawMessage;
       const isDuplicateActiveRequest =
-        String(message).toLowerCase().includes("đã có yêu cầu mua combo đang xử lý") ||
+        String(rawMessage).toLowerCase().includes("đã có yêu cầu mua combo đang xử lý") ||
         Number(e2?.response?.status) === 409;
       setNoticeModal({
-        tone: isDuplicateActiveRequest ? "warning" : "error",
-        title: isDuplicateActiveRequest ? "Yêu cầu đang được xử lý" : "Gửi yêu cầu thất bại",
+        tone: isDuplicateActiveRequest || isTimeout ? "warning" : "error",
+        title:
+          isDuplicateActiveRequest || isTimeout
+            ? "Yêu cầu đang được xử lý"
+            : "Gửi yêu cầu thất bại",
         message,
       });
     } finally {
