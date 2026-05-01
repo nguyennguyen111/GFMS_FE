@@ -1,8 +1,11 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import "./NiceModal.css";
 
 /**
  * Modal overlay — dark glass style, matches PT / Owner portals.
+ * Renders via portal to document.body so position:fixed is not trapped by
+ * transformed ancestors (e.g. admin .ad-content:hover { transform }).
  */
 export default function NiceModal({
   open,
@@ -15,6 +18,8 @@ export default function NiceModal({
   wide = false,
   closeOnOverlay = true,
   showCloseButton = true,
+  overlayClassName = "",
+  panelClassName = "",
 }) {
   useEffect(() => {
     if (!open) return;
@@ -30,15 +35,18 @@ export default function NiceModal({
   const toneClass =
     tone === "success" ? "nice-modal--success" : tone === "danger" ? "nice-modal--danger" : tone === "info" ? "nice-modal--info" : "";
 
-  return (
+  const overlayClass = ["nice-modal-overlay", overlayClassName].filter(Boolean).join(" ");
+  const panelClass = ["nice-modal", wide ? "nice-modal--wide" : "", toneClass, panelClassName].filter(Boolean).join(" ");
+
+  const tree = (
     <div
-      className="nice-modal-overlay"
+      className={overlayClass}
       style={{ zIndex }}
       role="presentation"
       onClick={closeOnOverlay ? onClose : undefined}
     >
       <div
-        className={`nice-modal ${wide ? "nice-modal--wide" : ""} ${toneClass}`.trim()}
+        className={panelClass}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "nice-modal-title" : undefined}
@@ -60,4 +68,9 @@ export default function NiceModal({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(tree, document.body);
+  }
+  return tree;
 }

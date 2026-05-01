@@ -494,7 +494,14 @@ select.purchase-admin-input option {
   justify-content: center;
 }
 
-.purchase-admin-page .nice-modal {
+/* Class on overlay (modal is portaled to body; must not rely on .purchase-admin-page ancestor) */
+.purchase-admin-nice-root.nice-modal-overlay {
+  padding: 14px !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.purchase-admin-nice-root .nice-modal {
   width: min(460px, calc(100vw - 28px));
   max-width: 460px;
   max-height: calc(100vh - 28px);
@@ -504,37 +511,31 @@ select.purchase-admin-input option {
   border-radius: 18px;
 }
 
-.purchase-admin-page .nice-modal-overlay {
-  padding: 14px !important;
-  align-items: center;
-  justify-content: center;
-}
-
-.purchase-admin-page .nice-modal__title,
-.purchase-admin-page .nice-modal__body {
+.purchase-admin-nice-root .nice-modal__title,
+.purchase-admin-nice-root .nice-modal__body {
   text-align: center;
 }
 
-.purchase-admin-page .nice-modal__body {
+.purchase-admin-nice-root .nice-modal__body {
   word-break: break-word;
 }
 
-.purchase-admin-page .nice-modal__footer {
+.purchase-admin-nice-root .nice-modal__footer {
   width: 100%;
   justify-content: center;
 }
 
-.purchase-admin-page .nice-modal__close {
+.purchase-admin-nice-root .nice-modal__close {
   top: 10px;
   right: 10px;
 }
 
 @media (max-width: 640px) {
-  .purchase-admin-page .nice-modal-overlay {
+  .purchase-admin-nice-root.nice-modal-overlay {
     padding: 10px !important;
   }
 
-  .purchase-admin-page .nice-modal {
+  .purchase-admin-nice-root .nice-modal {
     width: calc(100vw - 20px);
     max-width: calc(100vw - 20px);
     max-height: calc(100vh - 20px);
@@ -542,12 +543,12 @@ select.purchase-admin-input option {
     border-radius: 16px;
   }
 
-  .purchase-admin-page .nice-modal__title {
+  .purchase-admin-nice-root .nice-modal__title {
     margin-right: 30px;
     font-size: 17px;
   }
 
-  .purchase-admin-page .nice-modal__btn {
+  .purchase-admin-nice-root .nice-modal__btn {
     width: 100%;
     justify-content: center;
   }

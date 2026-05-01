@@ -539,6 +539,7 @@ export default function OwnerPurchaseRequestsPage() {
       </div>
 
       <NiceModal
+        overlayClassName="owner-combo-nice-root"
         open={Boolean(successModal)}
         onClose={() => {
           setSuccessModal(null);
@@ -569,6 +570,7 @@ export default function OwnerPurchaseRequestsPage() {
       </NiceModal>
 
       <NiceModal
+        overlayClassName="owner-combo-nice-root"
         open={Boolean(noticeModal)}
         onClose={() => setNoticeModal(null)}
         title={noticeModal?.title || "Thông báo"}
