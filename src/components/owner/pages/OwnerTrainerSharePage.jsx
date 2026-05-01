@@ -143,15 +143,16 @@ function Field({ label, required, hint, children }) {
 }
 
 function getOccupiedBlockLabel(block) {
-  if (block?.busyRequested) {
-    return "Huấn luyện viên báo bận khung giờ này";
-  }
+  // Ưu tiên check trainer_share trước để hiển thị đúng khi PT đang dạy thay ngoài chi nhánh
   if (block.type === "trainer_share") {
     const targetGymName =
       block.toGymName || block.shareToGymName || block.toGym?.name || null;
     return targetGymName
       ? `Mượn sang ${targetGymName}`
       : "Đang mượn sang gym khác";
+  }
+  if (block?.busyRequested) {
+    return "Huấn luyện viên báo bận khung giờ này";
   }
 
   if (block.memberName) {

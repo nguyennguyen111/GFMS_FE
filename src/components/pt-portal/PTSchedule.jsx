@@ -248,7 +248,14 @@ const PTSchedule = () => {
         );
         if (!booking) return;
         bookedSlots += 1;
-        if (booking.busyRequested) busySlots += 1;
+        const notes = String(booking?.notes || "");
+        const isSubstitute =
+          booking?.isSubstitute === true ||
+          notes.includes("[PT_SUBSTITUTE]") ||
+          /thay\s*pt\s*#/i.test(notes) ||
+          /gán\s*pt\s*thế/i.test(notes);
+        const isBusyRequested = !isSubstitute && Boolean(booking?.busyRequested);
+        if (isBusyRequested) busySlots += 1;
         if (booking.memberId) clients.add(booking.memberId);
       });
     });
@@ -837,7 +844,17 @@ const PTSchedule = () => {
                       let statusClass = "";
                       const attendanceStatus = String(booking?.trainerAttendance?.status || "").toLowerCase();
                       const bookingStatus = String(booking?.status || "").toLowerCase();
-                      const isBusyRequested = Boolean(booking?.busyRequested);
+                      // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true,
+                      // tách bạch với "báo bận" để không bị hiển thị sai ưu tiên.
+                      const notes = String(booking?.notes || "");
+                      const isSubstitute =
+                        booking?.isSubstitute === true ||
+                        notes.includes("[PT_SUBSTITUTE]") ||
+                        /thay\s*pt\s*#/i.test(notes) ||
+                        /gán\s*pt\s*thế/i.test(notes);
+
+                      // busyRequested: chỉ coi là "báo bận" khi không phải lịch dạy thay
+                      const isBusyRequested = !isSubstitute && Boolean(booking?.busyRequested);
                       const hasReminderMarker =
                         String(booking?.notes || "").includes("[ATTENDANCE_PT_REMINDER]") ||
                         String(booking?.notes || "").includes("[ATTENDANCE_OWNER_REMINDER]");
@@ -847,12 +864,10 @@ const PTSchedule = () => {
                         bookingStatus !== "completed" &&
                         bookingStatus !== "cancelled";
                       const isSharedSession = Boolean(booking?.sharePayment) || String(booking?.sessionType || "").toLowerCase() === "trainer_share" || String(booking?.type || "").toLowerCase() === "trainer_share";
-                      // isSubstitute: chỉ khi có marker [PT_SUBSTITUTE] rõ ràng hoặc booking.isSubstitute=true, KHÔNG phụ thuộc sessionType
-                      const isSubstitute = !isBusyRequested && (booking?.isSubstitute === true || String(booking?.notes || "").includes("[PT_SUBSTITUTE]"));
                       if (booking) {
                         if (isSharedSession) statusClass = "is-shared";
-                        else if (isBusyRequested) statusClass = "is-busy-requested";
                         else if (isSubstitute) statusClass = "is-substitute";
+                        else if (isBusyRequested) statusClass = "is-busy-requested";
                         else if (attendanceStatus === "present") statusClass = "is-present";
                         else if (attendanceStatus === "absent") statusClass = "is-absent";
                         else if (hasAttendanceReminder) statusClass = "is-reminder";
@@ -891,10 +906,10 @@ const PTSchedule = () => {
                                   ) : (
                                     <span style={{ color: "#a855f7" }}>↔ Mượn ngoài CN</span>
                                   )
-                                ) : isBusyRequested ? (
-                                  "⚠ Đã báo bận"
                                 ) : isSubstitute ? (
                                   <span style={{ color: "#008cff" }}>Lịch dạy thay</span>
+                                ) : isBusyRequested ? (
+                                  "⚠ Đã báo bận"
                                 ) : hasAttendanceReminder ? (
                                   "🔴 Cần điểm danh"
                                 ) : attendanceStatus === "present" ? (
