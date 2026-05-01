@@ -139,10 +139,29 @@ export default function MemberBookingsCalendarPage() {
   const weekEndISO = toISO(weekDays[6]);
 
   const weekBookings = useMemo(() => {
-    return bookings.filter((b) => {
+    const filtered = bookings.filter((b) => {
       const key = String(b?.bookingDate || "").slice(0, 10);
       return key >= weekStartISO && key <= weekEndISO;
     });
+
+    // Deduplicate accidental duplicate slots by date/time/trainer/package.
+    // Keep the newest record so UI only renders one session card per slot.
+    const bySlot = new Map();
+    filtered.forEach((b) => {
+      const slotKey = [
+        String(b?.bookingDate || "").slice(0, 10),
+        String(b?.startTime || "").slice(0, 5),
+        String(b?.endTime || "").slice(0, 5),
+        Number(b?.trainerId || b?.Trainer?.id || 0),
+        Number(b?.packageActivationId || 0),
+      ].join("|");
+      const prev = bySlot.get(slotKey);
+      if (!prev || Number(b?.id || 0) > Number(prev?.id || 0)) {
+        bySlot.set(slotKey, b);
+      }
+    });
+
+    return Array.from(bySlot.values());
   }, [bookings, weekStartISO, weekEndISO]);
 
   const grouped = useMemo(() => {

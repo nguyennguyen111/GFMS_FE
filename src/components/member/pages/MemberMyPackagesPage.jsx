@@ -9,7 +9,7 @@ import {
   Search,
   Ticket,
 } from "lucide-react";
-import { memberGetMyPackages } from "../../../services/memberPackageService";
+import { memberGetMyPackages, memberRetryPendingPayment } from "../../../services/memberPackageService";
 import "./MemberMyPackagesPage.css";
 
 const fmtMoney = (v) => {
@@ -69,7 +69,13 @@ export default function MemberMyPackagesPage() {
   const mappedRows = useMemo(() => {
     return rows.map((x) => {
       const isPending = String(x.id).startsWith("pending-");
-      const status = isPending ? "pending" : normalizeStatus(x.status);
+      const pendingPaymentStatus = String(x.Transaction?.paymentStatus || "").toLowerCase();
+      const status =
+        isPending && (pendingPaymentStatus === "cancelled" || pendingPaymentStatus === "failed")
+          ? "retry"
+          : isPending
+            ? "pending"
+            : normalizeStatus(x.status);
       const sessionsRemaining = Number(x.sessionsRemaining ?? x.sessionsLeft ?? 0);
       const reviewEligible = Boolean(x.reviewEligible || (status === "archived" && !isPending));
       const totalSessions = Number(x.totalSessions ?? x.Package?.sessions ?? 0);
@@ -110,7 +116,7 @@ export default function MemberMyPackagesPage() {
   }, [mappedRows, keyword, filter]);
 
   const activeRows = useMemo(
-    () => filteredRows.filter((x) => x.__status === "active" || x.__status === "pending"),
+    () => filteredRows.filter((x) => x.__status === "active" || x.__status === "pending" || x.__status === "retry"),
     [filteredRows]
   );
 
@@ -136,6 +142,29 @@ export default function MemberMyPackagesPage() {
     const sessionsRemaining = x.__sessionsRemaining;
     const totalSessions = x.__totalSessions;
 
+    const handlePendingPayment = (e) => {
+      e.stopPropagation();
+      const run = async () => {
+        const txId = Number(x.Transaction?.id || 0);
+        if (!txId) {
+          if (x.Package?.id) navigate(`/marketplace/packages/${x.Package.id}`);
+          return;
+        }
+        try {
+          const res = await memberRetryPendingPayment(txId);
+          const checkoutUrl = String(res?.data?.data?.checkoutUrl || "").trim();
+          if (checkoutUrl) {
+            window.location.assign(checkoutUrl);
+            return;
+          }
+          if (x.Package?.id) navigate(`/marketplace/packages/${x.Package.id}`);
+        } catch {
+          if (x.Package?.id) navigate(`/marketplace/packages/${x.Package.id}`);
+        }
+      };
+      run();
+    };
+
     return (
       <div
         key={x.id}
@@ -157,6 +186,8 @@ export default function MemberMyPackagesPage() {
                 ? "Subscription"
                 : status === "pending"
                   ? "Payment Pending"
+                  : status === "retry"
+                    ? "Payment Retry"
                   : "Package History"}
             </div>
 
@@ -169,6 +200,8 @@ export default function MemberMyPackagesPage() {
               ? "ACTIVE"
               : status === "pending"
                 ? "PENDING"
+                : status === "retry"
+                  ? "RETRY"
                 : "USED UP"}
           </span>
         </div>
@@ -194,7 +227,15 @@ export default function MemberMyPackagesPage() {
 
         <div className="mp3-foot">
           {isPending ? (
-            <div className="mp3-pendingNote">Đang chờ hoàn tất thanh toán</div>
+            <div className="mp3-footActions">
+              <div className="mp3-pendingNote">
+                {status === "retry" ? "Thanh toán đã hủy/thất bại" : "Đang chờ hoàn tất thanh toán"}
+              </div>
+              <button type="button" className="mp3-detailBtn" onClick={handlePendingPayment}>
+                <span>{status === "retry" ? "Thanh toán lại" : "Tiếp tục thanh toán"}</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
           ) : (
             <div className="mp3-footActions">
               {x.__reviewEligible ? (

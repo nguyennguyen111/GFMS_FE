@@ -14,5 +14,8 @@ export const memberGetMyPackages = () =>
 export const memberGetMyPackageDetail = (activationId) =>
   axios.get(`/api/member/my-packages/${activationId}`);
 
+export const memberRetryPendingPayment = (transactionId) =>
+  axios.post(`/api/member/my-packages/transactions/${transactionId}/retry-payment`);
+
 export const memberGetActivationMaterials = (activationId) =>
   axios.get(`/api/member/my-packages/${activationId}/materials`);
