@@ -1,6 +1,6 @@
 import axios from "../setup/axios";
 const ADMIN_PURCHASE_LIST_TIMEOUT_MS = 15000;
-const ADMIN_PURCHASE_ACTION_TIMEOUT_MS = 20000;
+const ADMIN_PURCHASE_ACTION_TIMEOUT_MS = 60000;
 const withListTimeout = (config = {}) => ({ timeout: ADMIN_PURCHASE_LIST_TIMEOUT_MS, ...config });
 const withActionTimeout = (config = {}) => ({ timeout: ADMIN_PURCHASE_ACTION_TIMEOUT_MS, ...config });
 

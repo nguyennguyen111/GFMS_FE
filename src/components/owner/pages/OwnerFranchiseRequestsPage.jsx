@@ -426,7 +426,6 @@ export default function OwnerFranchiseRequestsPage() {
                 <th>Tên doanh nghiệp</th>
                 <th>Địa điểm</th>
                 <th>Người liên hệ</th>
-                <th>Số vốn dự kiến</th>
                 <th>Trạng thái</th>
                 <th>Hợp đồng</th>
                 <th>Ngày tạo</th>
@@ -448,7 +447,6 @@ export default function OwnerFranchiseRequestsPage() {
                     <br />
                     <small>{req.contactPhone}</small>
                   </td>
-                  <td>{formatCurrency(req.investmentAmount)}</td>
                   <td>
                     <StatusBadge status={req.status} />
                   </td>
