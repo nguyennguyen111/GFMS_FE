@@ -12,6 +12,17 @@ import "./OwnerMembershipCardPlansPage.css";
 
 const emptyForm = { name: "", months: "1", price: "", imageUrl: "", description: "" };
 
+const formatMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("vi-VN");
+};
+
+const toNumberFromMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return Number(digits || 0);
+};
+
 export default function OwnerMembershipCardPlansPage() {
   const { selectedGymId, selectedGym, setSelectedGym } = useSelectedGym();
   const [items, setItems] = useState([]);
@@ -105,7 +116,7 @@ export default function OwnerMembershipCardPlansPage() {
     setForm({
       name: row.name || "",
       months: String(row.months || "1"),
-      price: String(row.price || ""),
+      price: formatMoneyInput(row.price || ""),
       imageUrl: row.imageUrl || "",
       description: row.description || "",
     });
@@ -125,7 +136,7 @@ export default function OwnerMembershipCardPlansPage() {
       gymId: Number(selectedGymId),
       name: form.name.trim(),
       months: Number(form.months || 0),
-      price: Number(form.price || 0),
+      price: toNumberFromMoneyInput(form.price),
       imageUrl: form.imageUrl || null,
       description: form.description?.trim() || null,
     };
@@ -347,10 +358,13 @@ export default function OwnerMembershipCardPlansPage() {
                 <label>Giá tiền</label>
                 <input
                   className="omcp-input"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="VD: 300000"
                   value={form.price}
-                  onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, price: formatMoneyInput(e.target.value) }))
+                  }
                 />
               </div>
               <div className="omcp-field">

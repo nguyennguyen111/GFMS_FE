@@ -208,12 +208,12 @@
 }
 
 .omcp-modal {
-  width: min(860px, 96vw);
-  border-radius: 16px;
+  width: min(760px, 94vw);
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 14, 28, 0.98));
   box-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
-  padding: 14px;
+  padding: 12px;
 }
 
 .omcp-modalHead {
@@ -221,18 +221,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .omcp-modalGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .omcp-field {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .omcp-field label {
@@ -247,21 +247,21 @@
 .omcp-uploadRow {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .omcp-preview {
-  margin-top: 8px;
-  width: 220px;
+  margin-top: 6px;
+  width: 180px;
   max-width: 100%;
-  height: 130px;
+  height: 110px;
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .omcp-modalActions {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
