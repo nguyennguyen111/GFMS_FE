@@ -571,6 +571,7 @@ export default function OwnerPurchaseRequestHistoryPage() {
       </section>
 
       <NiceModal
+        overlayClassName="owner-combo-nice-root"
         open={Boolean(actionModal.open)}
         onClose={() => {
           if (actionModal.busy) return;
