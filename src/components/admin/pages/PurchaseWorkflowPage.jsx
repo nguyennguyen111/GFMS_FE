@@ -486,6 +486,7 @@ export default function PurchaseWorkflowPage() {
       </section>
 
       <NiceModal
+        overlayClassName="purchase-admin-nice-root"
         open={Boolean(noticeModal.open)}
         onClose={() => setNoticeModal({ open: false, tone: "error", title: "", message: "" })}
         title={noticeModal.title || "Thông báo"}
