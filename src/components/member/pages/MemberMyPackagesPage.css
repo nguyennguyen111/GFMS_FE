@@ -254,6 +254,10 @@
   transform: none;
 }
 
+.mp3-card.retry {
+  opacity: 0.9;
+}
+
 .mp3-cardTop {
   display: flex;
   justify-content: space-between;
@@ -306,6 +310,11 @@
   color: #ffc76f;
 }
 
+.mp3-badge.retry {
+  background: rgba(255, 107, 107, 0.12);
+  color: #ff8c8c;
+}
+
 .mp3-badge.archived {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.68);
@@ -353,6 +362,10 @@
 
 .mp3-progressBar.pending {
   background: linear-gradient(90deg, #ffb84d 0%, #ffd089 100%);
+}
+
+.mp3-progressBar.retry {
+  background: linear-gradient(90deg, #ff6b6b 0%, #ff9b9b 100%);
 }
 
 .mp3-progressBar.archived {
