@@ -588,3 +588,41 @@ textarea.owner-combo-input {
     height: 180px;
   }
 }
+
+/* Keep notice/success popup centered and stable on this page */
+.owner-combo-page .nice-modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.owner-combo-page .nice-modal {
+  width: min(460px, calc(100vw - 32px));
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+.owner-combo-page .nice-modal__title,
+.owner-combo-page .nice-modal__body {
+  text-align: center;
+}
+
+.owner-combo-page .nice-modal__body {
+  word-break: break-word;
+}
+
+.owner-combo-page .nice-modal__footer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.owner-combo-page .nice-modal__footer .nice-modal__btn {
+  min-width: 130px;
+}
