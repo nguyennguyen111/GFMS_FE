@@ -307,17 +307,21 @@ export const replyPTReview = async (reviewId, reply) => {
 
 
 
-export const getMyPTRescheduleRequests = async () => {
-  const res = await cachedGet(`${BASE}/me/reschedule-requests`);
+export const getMyPTRescheduleRequests = async (options = {}) => {
+  const res = await cachedGet(`${BASE}/me/reschedule-requests`, {
+    force: options.force === true,
+  });
   return res.data;
 };
 
 export const approvePTRescheduleRequest = async (id, payload = {}) => {
   const res = await axios.patch(`${BASE}/reschedule-requests/${id}/approve`, payload, ptConfig());
+  invalidatePTServiceCache("/me/reschedule-requests");
   return res.data;
 };
 
 export const rejectPTRescheduleRequest = async (id, payload = {}) => {
   const res = await axios.patch(`${BASE}/reschedule-requests/${id}/reject`, payload, ptConfig());
+  invalidatePTServiceCache("/me/reschedule-requests");
   return res.data;
 };

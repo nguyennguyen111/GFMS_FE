@@ -65,6 +65,17 @@ function formatVnd(amount) {
   return `${n.toLocaleString("vi-VN")} đ`;
 }
 
+function formatMoneyInput(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("vi-VN");
+}
+
+function toNumberFromMoneyInput(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return Number(digits || 0);
+}
+
 function parseTrainerShareProofUrls(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.filter(Boolean);
@@ -1727,7 +1738,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       setSavingDetailPrice(true);
       setError("");
       const res = await ownerUpdateTrainerShareSessionPrice(selectedShare.id, {
-        sessionPrice: detailSessionPriceInput,
+        sessionPrice: toNumberFromMoneyInput(detailSessionPriceInput),
       });
       setSuccess("Đã cập nhật giá buổi.");
       const updated = res?.data?.data;
@@ -1816,7 +1827,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
     }
     setDetailSessionPriceInput(
       selectedShare.sessionPrice != null && selectedShare.sessionPrice !== ""
-        ? String(selectedShare.sessionPrice)
+        ? formatMoneyInput(String(selectedShare.sessionPrice))
         : "",
     );
   }, [selectedShare, selectedShare?.id, selectedShare?.sessionPrice]);
@@ -1994,7 +2005,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       multipleDates: [],
       sessionPrice:
         share.sessionPrice != null && share.sessionPrice !== ""
-          ? String(share.sessionPrice)
+          ? formatMoneyInput(String(share.sessionPrice))
           : "",
     });
     setShowModal(true);
@@ -2096,7 +2107,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           notes: form.notes || "",
           shareType: DEFAULT_SHARE_TYPE,
           commissionSplit: DEFAULT_COMMISSION_SPLIT,
-          sessionPrice: Number(String(form.sessionPrice || "").replace(/,/g, "")),
+          sessionPrice: toNumberFromMoneyInput(form.sessionPrice),
         };
 
         sharePayload.startDate = form.startDate;
@@ -2117,7 +2128,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
           shareType: DEFAULT_SHARE_TYPE,
           commissionSplit: DEFAULT_COMMISSION_SPLIT,
           borrowSpecialization: String(effectiveBorrowSpecialization || "").trim(),
-          sessionPrice: Number(String(form.sessionPrice || "").replace(/,/g, "")),
+          sessionPrice: toNumberFromMoneyInput(form.sessionPrice),
         };
         await ownerCreateTrainerShare(sharePayload);
         setSuccess("Tạo yêu cầu chia sẻ huấn luyện viên thành công!");
@@ -3585,14 +3596,15 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                 hint="Giá một buổi PT dạy tại chi nhánh bạn. Bên cho mượn sẽ gửi tên ngân hàng và STK để bạn chuyển sau khi buổi hoàn thành."
               >
                 <input
-                  type="number"
-                  step={1000}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   className="ots-input"
                   value={form.sessionPrice}
                   onChange={(e) =>
-                    setForm({ ...form, sessionPrice: e.target.value })
+                    setForm({ ...form, sessionPrice: formatMoneyInput(e.target.value) })
                   }
-                  placeholder="Ví dụ: 500000"
+                  placeholder="Ví dụ: 500.000"
                 />
               </Field>
 
@@ -4415,13 +4427,14 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                             }}
                           >
                             <input
-                              type="number"
-                              min={1}
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="off"
                               className="ots-input"
                               style={{ maxWidth: "220px" }}
                               value={detailSessionPriceInput}
                               onChange={(e) =>
-                                setDetailSessionPriceInput(e.target.value)
+                                setDetailSessionPriceInput(formatMoneyInput(e.target.value))
                               }
                             />
                             <button

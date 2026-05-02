@@ -348,9 +348,7 @@ const PTClients = ({ trainerId = "me" }) => {
   useEffect(() => {
     const socket = connectSocket();
     let t = null;
-    const onNoti = (payload) => {
-      const type = String(payload?.notificationType || "").toLowerCase();
-      if (type !== "booking_update" && type !== "booking") return;
+    const bumpBookings = () => {
       if (t) clearTimeout(t);
       t = setTimeout(() => {
         invalidatePTServiceCache("/bookings");
@@ -361,10 +359,27 @@ const PTClients = ({ trainerId = "me" }) => {
           .finally(() => setLoading(false));
       }, 250);
     };
+
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (
+        type !== "booking_update" &&
+        type !== "booking" &&
+        type !== "booking_reschedule" &&
+        type !== "trainer_share"
+      )
+        return;
+      bumpBookings();
+    };
+
+    const onTrainerShareChanged = () => bumpBookings();
+
     socket.on("notification:new", onNoti);
+    socket.on("trainer_share:changed", onTrainerShareChanged);
     return () => {
       if (t) clearTimeout(t);
       socket.off("notification:new", onNoti);
+      socket.off("trainer_share:changed", onTrainerShareChanged);
     };
   }, [trainerId]);
 

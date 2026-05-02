@@ -8,6 +8,9 @@ import { resolveTrainerNotificationPath } from "../../utils/ptNotificationRoutin
 
 const iconMap = {
   booking_update: CalendarCheck,
+  booking: CalendarCheck,
+  booking_reschedule: CalendarCheck,
+  trainer_share: RefreshCw,
   withdrawal: CreditCard,
   chat: MessageCircle,
   request_update: RefreshCw,
@@ -18,6 +21,9 @@ const iconMap = {
 
 const categoryMap = {
   booking_update: "Lịch & buổi tập",
+  booking: "Lịch & buổi tập",
+  booking_reschedule: "Lịch & buổi tập",
+  trainer_share: "Mượn / chia sẻ PT",
   withdrawal: "Tài chính & rút tiền",
   chat: "Tin nhắn",
   request_update: "Yêu cầu & phê duyệt",

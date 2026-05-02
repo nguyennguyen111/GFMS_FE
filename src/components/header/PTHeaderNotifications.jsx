@@ -15,6 +15,8 @@ import { resolveTrainerNotificationPath } from "../../utils/ptNotificationRoutin
 const iconMap = {
   booking_update: CalendarCheck,
   booking: CalendarCheck,
+  booking_reschedule: CalendarCheck,
+  trainer_share: RefreshCw,
   withdrawal: CreditCard,
   payment: CreditCard,
   chat: MessageCircle,

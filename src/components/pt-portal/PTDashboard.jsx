@@ -200,7 +200,19 @@ const PTDashboard = () => {
     const onNoti = (payload) => {
       const type = String(payload?.notificationType || "").toLowerCase();
       // Các loại này tác động trực tiếp dashboard KPIs / mini-week.
-      if (!["booking_update", "booking", "review", "feedback", "withdrawal", "request_update"].includes(type)) return;
+      if (
+        ![
+          "booking_update",
+          "booking",
+          "booking_reschedule",
+          "trainer_share",
+          "review",
+          "feedback",
+          "withdrawal",
+          "request_update",
+        ].includes(type)
+      )
+        return;
       if (t) clearTimeout(t);
       t = setTimeout(() => loadDashboard({ silent: true }), 350);
     };
