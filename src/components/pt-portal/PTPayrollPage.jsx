@@ -94,6 +94,9 @@ const statusLabel = {
   paid: "Đã chi trả",
 };
 
+const isOwnerRetainedCommission = (commission) =>
+  Number(commission?.commissionAmount || 0) <= 0;
+
 const PTPayrollPage = () => {
   const [commissions, setCommissions] = useState([]);
   const [periodItems, setPeriodItems] = useState([]);
@@ -624,26 +627,31 @@ const PTPayrollPage = () => {
               {loading ? (
                 <tr><td colSpan="6" className="ptpay-empty">Đang tải dữ liệu...</td></tr>
               ) : commissions.length > 0 ? (
-                commissions.map((c) => (
-                  <tr key={c.id}>
-                    <td>{formatDate(c.sessionDate)}</td>
-                    <td>{c.Gym?.name || "—"}</td>
-                    <td>{c.PackageActivation?.Package?.name || "—"}</td>
-                    <td className="ptpay-money">{formatMoney(c.sessionValue)}</td>
-                    <td className="ptpay-money">{formatMoney(c.commissionAmount)}</td>
-                    <td>
-                      <span
-                        className={`ptpay-badge ${
-                          (c.status || "pending") === "pending"
-                            ? "ptpay-badge-pending"
-                            : "ptpay-badge-paid"
-                        }`}
-                      >
-                        {statusLabel[c.status] || c.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                commissions.map((c) => {
+                  const ownerRetained = isOwnerRetainedCommission(c);
+                  return (
+                    <tr key={c.id}>
+                      <td>{formatDate(c.sessionDate)}</td>
+                      <td>{c.Gym?.name || "—"}</td>
+                      <td>{c.PackageActivation?.Package?.name || "—"}</td>
+                      <td className="ptpay-money">{formatMoney(c.sessionValue)}</td>
+                      <td className="ptpay-money">{formatMoney(c.commissionAmount)}</td>
+                      <td>
+                        <span
+                          className={`ptpay-badge ${
+                            ownerRetained
+                              ? "ptpay-badge-owner-retained"
+                              : (c.status || "pending") === "pending"
+                                ? "ptpay-badge-pending"
+                                : "ptpay-badge-paid"
+                          }`}
+                        >
+                          {ownerRetained ? "Chủ phòng gym thu tiền" : (statusLabel[c.status] || c.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr><td colSpan="6" className="ptpay-empty">Không có dữ liệu</td></tr>
               )}
