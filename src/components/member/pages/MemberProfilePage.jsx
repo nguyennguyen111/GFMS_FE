@@ -68,6 +68,7 @@ const normalizeUser = (u = {}) => ({
   gym: u?.gym || null,
   currentPackage: u?.currentPackage || null,
   membershipCard: u?.membershipCard || null,
+  membershipCards: Array.isArray(u?.membershipCards) ? u.membershipCards : [],
   latestMetric: u?.latestMetric || null,
 });
 
@@ -497,10 +498,12 @@ export default function MemberProfilePage() {
     };
   }, [latestMetric, form, user]);
 
-  const membershipCardOverview = useMemo(
-    () => getMembershipCardOverview(user?.membershipCard || null),
-    [user?.membershipCard]
-  );
+  const membershipCardsForUi = useMemo(() => {
+    const list = user?.membershipCards;
+    if (Array.isArray(list) && list.length > 0) return list;
+    if (user?.membershipCard) return [user.membershipCard];
+    return [];
+  }, [user?.membershipCards, user?.membershipCard]);
 
   const handlePickAvatar = async (file) => {
     if (!file) return;
@@ -959,43 +962,114 @@ export default function MemberProfilePage() {
               </div>
             </section>
 
-            <section className={`mprof-membershipCard ${membershipCardOverview.isActive ? "is-active" : "is-inactive"}`}>
-              <div className="mprof-membershipHead">
-                <label className="mprof-cardLabel">THẺ THÀNH VIÊN</label>
-                <span className={`mprof-membershipBadge ${membershipCardOverview.isActive ? "active" : "inactive"}`}>
-                  {membershipCardOverview.statusText}
-                </span>
-              </div>
-              <div className="mprof-membershipBody">
-                <div className="mprof-membershipMain">
-                  <div className="mprof-membershipPlan">
-                    {(Number(user?.membershipCard?.remainingMonths || 0) > 0 || user?.membershipCard?.planMonths)
-                      ? `GÓI ${
-                          Number(user?.membershipCard?.remainingMonths || 0) > 0
-                            ? Number(user.membershipCard.remainingMonths)
-                            : Number(user?.membershipCard?.planMonths || 0)
-                        } THÁNG`
-                      : "CHƯA KÍCH HOẠT"}
-                  </div>
-                  <div className="mprof-membershipHint">{membershipCardOverview.detailText}</div>
-                </div>
-                <div className="mprof-membershipMeta">
-                  <div>
-                    <span>HẾT HẠN</span>
-                    <b>{membershipCardOverview.endDateText}</b>
-                  </div>
-                  <div>
-                    <span>THỜI HẠN CÒN LẠI</span>
-                    <b>{membershipCardOverview.daysLeftText}</b>
-                  </div>
-                </div>
-              </div>
-              <div className="mprof-membershipActions">
-                <button className="mprof-btn primary" onClick={() => navigate("/member/membership-cards")}>
-                  {membershipCardOverview.hasCard ? "GIA HẠN THẺ NGAY" : "MUA THẺ THÀNH VIÊN"}
-                </button>
-              </div>
-            </section>
+            <div className="mprof-membershipCardsWrap">
+              {membershipCardsForUi.length === 0 ? (
+                (() => {
+                  const overview = getMembershipCardOverview(null);
+                  return (
+                    <section
+                      className={`mprof-membershipCard ${overview.isActive ? "is-active" : "is-inactive"}`}
+                    >
+                      <div className="mprof-membershipHead">
+                        <label className="mprof-cardLabel">THẺ THÀNH VIÊN</label>
+                        <span
+                          className={`mprof-membershipBadge ${overview.isActive ? "active" : "inactive"}`}
+                        >
+                          {overview.statusText}
+                        </span>
+                      </div>
+                      <div className="mprof-membershipBody">
+                        <div className="mprof-membershipMain">
+                          <div className="mprof-membershipPlan">CHƯA KÍCH HOẠT</div>
+                          <div className="mprof-membershipHint">{overview.detailText}</div>
+                        </div>
+                        <div className="mprof-membershipMeta">
+                          <div>
+                            <span>HẾT HẠN</span>
+                            <b>{overview.endDateText}</b>
+                          </div>
+                          <div>
+                            <span>THỜI HẠN CÒN LẠI</span>
+                            <b>{overview.daysLeftText}</b>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mprof-membershipActions">
+                        <button
+                          className="mprof-btn primary"
+                          onClick={() => navigate("/member/membership-cards")}
+                        >
+                          MUA THẺ THÀNH VIÊN
+                        </button>
+                      </div>
+                    </section>
+                  );
+                })()
+              ) : (
+                membershipCardsForUi.map((card) => {
+                  const overview = getMembershipCardOverview(card);
+                  const monthsLabel =
+                    Number(card?.remainingMonths || 0) > 0 || card?.planMonths
+                      ? Number(card?.remainingMonths || 0) > 0
+                        ? Number(card.remainingMonths)
+                        : Number(card?.planMonths || 0)
+                      : 0;
+                  const gymName = card?.gym?.name || (card?.gymId ? `Phòng gym #${card.gymId}` : "—");
+                  const renewPath =
+                    card?.gymId > 0
+                      ? `/member/membership-cards?gymId=${encodeURIComponent(card.gymId)}`
+                      : "/member/membership-cards";
+                  return (
+                    <section
+                      key={card.id}
+                      className={`mprof-membershipCard ${overview.isActive ? "is-active" : "is-inactive"}`}
+                    >
+                      <div className="mprof-membershipHead">
+                        <label className="mprof-cardLabel">THẺ THÀNH VIÊN</label>
+                        <span
+                          className={`mprof-membershipBadge ${overview.isActive ? "active" : "inactive"}`}
+                        >
+                          {overview.statusText}
+                        </span>
+                      </div>
+                      <div className="mprof-membershipBody">
+                        <div className="mprof-membershipMain">
+                          <div className="mprof-membershipPlan">
+                            {monthsLabel > 0 ? `GÓI ${monthsLabel} THÁNG` : "CHƯA KÍCH HOẠT"}
+                          </div>
+                          <div className="mprof-membershipHint">{overview.detailText}</div>
+                          <div className="mprof-membershipGym">
+                            <span className="mprof-membershipGym-label">Phòng gym áp dụng</span>
+                            <b className="mprof-membershipGym-name">{gymName}</b>
+                            {card?.gym?.address ? (
+                              <div className="mprof-membershipGym-address">{card.gym.address}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="mprof-membershipMeta">
+                          <div>
+                            <span>HẾT HẠN</span>
+                            <b>{overview.endDateText}</b>
+                          </div>
+                          <div>
+                            <span>THỜI HẠN CÒN LẠI</span>
+                            <b>{overview.daysLeftText}</b>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mprof-membershipActions">
+                        <button
+                          className="mprof-btn primary"
+                          onClick={() => navigate(renewPath)}
+                        >
+                          {overview.hasCard ? "GIA HẠN THẺ NGAY" : "MUA THẺ THÀNH VIÊN"}
+                        </button>
+                      </div>
+                    </section>
+                  );
+                })
+              )}
+            </div>
 
             <section className="mprof-activityCard">
               <div className="mprof-activityHead">
@@ -1036,13 +1110,21 @@ export default function MemberProfilePage() {
                 <Info
                   label="THẺ THÀNH VIÊN"
                   value={
-                    user?.membershipCard
-                      ? `${
-                          Number(user?.membershipCard?.remainingMonths || 0) > 0
-                            ? Number(user.membershipCard.remainingMonths)
-                            : Number(user?.membershipCard?.planMonths || 0)
-                        } THÁNG (HẾT HẠN ${formatDate(user.membershipCard.endDate)})`
-                      : "CHƯA ĐĂNG KÝ"
+                    membershipCardsForUi.length === 0
+                      ? "CHƯA ĐĂNG KÝ"
+                      : membershipCardsForUi.length === 1
+                        ? (() => {
+                            const c = membershipCardsForUi[0];
+                            const mo =
+                              Number(c?.remainingMonths || 0) > 0
+                                ? Number(c.remainingMonths)
+                                : Number(c?.planMonths || 0);
+                            const gym = c?.gym?.name || (c?.gymId ? `#${c.gymId}` : "");
+                            return `${mo} THÁNG — ${formatDate(c.endDate)}${gym ? ` @ ${gym}` : ""}`;
+                          })()
+                        : `${membershipCardsForUi.length} thẻ đang hiệu lực tại ${membershipCardsForUi
+                            .map((c) => c?.gym?.name || `gym ${c?.gymId || "?"}`)
+                            .join(", ")}`
                   }
                 />
               </div>
