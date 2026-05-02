@@ -124,7 +124,25 @@
 
 .mprof-card-main { grid-column: span 8; min-height: 520px; }
 .mprof-statusCard { grid-column: span 4; min-height: 520px; }
-.mprof-membershipCard,.mprof-activityCard,.mprof-systemCard { grid-column: span 4; min-height: 360px; }
+.mprof-membershipCardsWrap,
+.mprof-membershipCard,
+.mprof-activityCard,
+.mprof-systemCard {
+  grid-column: span 4;
+  min-height: 360px;
+}
+
+.mprof-membershipCardsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: auto;
+}
+
+.mprof-membershipCardsWrap .mprof-membershipCard {
+  min-height: 320px;
+  grid-column: auto;
+}
 
 .mprof-statusCard {
   padding: 22px;
@@ -187,6 +205,36 @@
 .mprof-membershipBody { display: grid; gap: 14px; flex: 1; }
 .mprof-membershipPlan { font-family: "Be Vietnam Pro",sans-serif; font-size: clamp(26px,2.5vw,36px); font-weight: 900; letter-spacing: -.03em; line-height: .98; color: #fff; text-transform: uppercase; }
 .mprof-membershipHint { color: #e8e8e8; font-size: 13px; line-height: 1.55; }
+.mprof-membershipGym {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(214, 255, 0, 0.14);
+  background: rgba(15, 15, 15, 0.55);
+}
+.mprof-membershipCard.is-inactive .mprof-membershipGym {
+  border-color: rgba(255, 121, 121, 0.22);
+}
+.mprof-membershipGym-label {
+  display: block;
+  color: #9ba1a9;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.mprof-membershipGym-name {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.mprof-membershipGym-address {
+  margin-top: 6px;
+  color: #c9cdd4;
+  font-size: 13px;
+  line-height: 1.45;
+}
 .mprof-membershipMeta { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .mprof-membershipMeta div { border: 1px solid #333; border-radius: 12px; background: rgba(15,15,15,.72); padding: 12px; min-height: 62px; display: flex; flex-direction: column; justify-content: center; }
 .mprof-membershipMeta span { display: block; color: #9ba1a9; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
@@ -288,7 +336,7 @@
 @media (max-width: 1180px) {
   .mprof-hero { grid-template-columns: 96px 1fr; }
   .mprof-heroActions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
-  .mprof-card-main,.mprof-statusCard,.mprof-membershipCard,.mprof-activityCard,.mprof-systemCard { grid-column: span 12; min-height: auto; }
+  .mprof-card-main,.mprof-statusCard,.mprof-membershipCardsWrap,.mprof-membershipCard,.mprof-activityCard,.mprof-systemCard { grid-column: span 12; min-height: auto; }
   .mprof-statusCard { min-height: 360px; }
   .mprof-metricsGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .bmi-layout { grid-template-columns: 1fr; }
