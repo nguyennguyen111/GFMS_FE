@@ -11,6 +11,17 @@ import "./PTWalletPage.css";
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
+const formatMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("vi-VN");
+};
+
+const toNumberFromMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return Number(digits || 0);
+};
+
 const formatDateTime = (value) => {
   if (!value) return "—";
   const date = new Date(value);
@@ -82,7 +93,7 @@ const PTWalletPage = () => {
   }, []);
 
   const handleSubmit = async () => {
-    const amount = Number(form.amount || 0);
+    const amount = toNumberFromMoneyInput(form.amount);
     if (!amount || Number.isNaN(amount) || amount <= 0) {
       setAlertModal({ title: "Thiếu thông tin", message: "Vui lòng nhập số tiền hợp lệ", tone: "info" });
       return;
@@ -215,10 +226,12 @@ const PTWalletPage = () => {
                 <label>Số tiền muốn rút</label>
                 <input
                   className="ptp-input"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  placeholder="VD: 500000"
+                  onChange={(e) => setForm({ ...form, amount: formatMoneyInput(e.target.value) })}
+                  placeholder="VD: 500.000"
                 />
               </div>
               <div className="ptp-row">

@@ -87,6 +87,14 @@ const formatDateTime = (v) => {
   }
 };
 
+/** sessionPrice từ API có thể là string — cần Number trước toLocaleString mới có dấu chấm hàng nghìn */
+const formatSessionPriceVnd = (value) => {
+  if (value === undefined || value === null || value === "") return "—";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return `${n.toLocaleString("vi-VN")} đ`;
+};
+
 const todayISO = () => {
   const d = new Date();
   const y = d.getFullYear();
@@ -260,8 +268,9 @@ export default function PTRequests() {
   useEffect(() => {
     const socket = connectSocket();
     const onNewNotification = (payload) => {
-      if (String(payload?.notificationType || "").toLowerCase() !== "request_update") return;
-      fetchRequests();
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (type === "request_update") fetchRequests();
+      if (type === "trainer_share") fetchShareRequests();
     };
     const onTrainerShareChanged = () => {
       fetchShareRequests();
@@ -460,7 +469,7 @@ export default function PTRequests() {
                     <td>{s.fromGym?.name || `Gym #${s.fromGymId}`}</td>
                     <td>{s.toGym?.name || `Gym #${s.toGymId}`}</td>
                     <td>{s.startDate ? new Date(s.startDate).toLocaleDateString("vi-VN") : "—"} {s.startTime && s.endTime ? `(${String(s.startTime).slice(0, 5)}-${String(s.endTime).slice(0, 5)})` : ""}</td>
-                    <td>{s.sessionPrice != null ? s.sessionPrice.toLocaleString("vi-VN") + " đ" : "—"}</td>
+                    <td>{formatSessionPriceVnd(s.sessionPrice)}</td>
                     <td>{statusLabel}</td>
                     <td title={s.notes || ""}>{s.notes || "-"}</td>
                     <td>

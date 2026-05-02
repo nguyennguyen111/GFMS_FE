@@ -315,19 +315,33 @@ const PTSchedule = () => {
     const socket = connectSocket();
     const debounceRef = { t: null };
 
-    const onNoti = (payload) => {
-      const type = String(payload?.notificationType || "").toLowerCase();
-      if (type !== "booking_update" && type !== "booking") return;
+    const bumpAttendance = () => {
       if (debounceRef.t) clearTimeout(debounceRef.t);
       debounceRef.t = setTimeout(() => {
         refreshVisibleAttendance({ force: true });
       }, 250);
     };
 
+    const onNoti = (payload) => {
+      const type = String(payload?.notificationType || "").toLowerCase();
+      if (
+        type !== "booking_update" &&
+        type !== "booking" &&
+        type !== "booking_reschedule" &&
+        type !== "trainer_share"
+      )
+        return;
+      bumpAttendance();
+    };
+
+    const onTrainerShareChanged = () => bumpAttendance();
+
     socket.on("notification:new", onNoti);
+    socket.on("trainer_share:changed", onTrainerShareChanged);
     return () => {
       if (debounceRef.t) clearTimeout(debounceRef.t);
       socket.off("notification:new", onNoti);
+      socket.off("trainer_share:changed", onTrainerShareChanged);
     };
   }, [weekDays, activeTab]);
 
