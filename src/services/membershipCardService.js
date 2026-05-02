@@ -8,5 +8,9 @@ export const memberGetMembershipCardPlans = (params) =>
 export const memberGetCurrentMembershipCard = (params) =>
   axios.get(`${API_PREFIX}/me`, { params: params || {} });
 
+/** Lịch sử thanh toán mua thẻ thành viên (gộp vào lịch sử thanh toán profile). */
+export const memberGetMembershipCardPurchaseHistory = () =>
+  axios.get(`${API_PREFIX}/history`);
+
 export const memberPurchaseMembershipCard = (payload) =>
   axios.post(`${API_PREFIX}/purchase`, payload || {});

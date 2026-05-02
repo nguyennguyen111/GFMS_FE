@@ -6,6 +6,7 @@ import {
   memberPurchaseMembershipCard,
 } from "../../../services/membershipCardService";
 import { mpGetGymDetail, mpGetGyms } from "../../../services/marketplaceService";
+import { formatMembershipCurrentCardSummary } from "../../../utils/membershipCardDisplay";
 import "./MemberMembershipCardPage.css";
 
 const fmtVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -141,11 +142,8 @@ export default function MemberMembershipCardPage() {
 
         {currentCard ? (
           <div className="mmc-current-card">
-            <strong>Thời hạn còn lại:</strong>{" "}
-            {(Number(currentCard.remainingMonths || 0) > 0
-              ? Number(currentCard.remainingMonths)
-              : Number(currentCard.planMonths || 0))} tháng - hết hạn{" "}
-            {new Date(currentCard.endDate).toLocaleDateString("vi-VN")}
+            {formatMembershipCurrentCardSummary(currentCard.endDate) ||
+              `Hết hạn ${new Date(currentCard.endDate).toLocaleDateString("vi-VN")}`}
           </div>
         ) : (
           <div className="mmc-current-empty">Bạn chưa có thẻ đang hoạt động.</div>
