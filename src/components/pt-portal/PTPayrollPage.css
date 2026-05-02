@@ -129,6 +129,12 @@
   color: rgba(0, 255, 170, 0.95);
 }
 
+.ptpay-badge-owner-retained {
+  background: rgba(255, 80, 100, 0.16);
+  border: 1px solid rgba(255, 80, 100, 0.5);
+  color: rgba(255, 120, 140, 0.98);
+}
+
 .ptpay-badge-withdraw-pending {
   border-color: rgba(214, 255, 0, 0.55);
   background: rgba(214, 255, 0, 0.12);
