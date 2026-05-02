@@ -11,8 +11,13 @@ import {
 } from "../../../services/memberProfileService";
 import { memberGetMyPackages } from "../../../services/memberPackageService";
 import { mpGetGyms } from "../../../services/marketplaceService";
+import { memberGetMembershipCardPurchaseHistory } from "../../../services/membershipCardService";
 import { uploadGymImage } from "../../../services/uploadService";
 import { showAppToast } from "../../../utils/appToast";
+import {
+  getMembershipDaysLeft,
+  getMembershipPlanHeadline,
+} from "../../../utils/membershipCardDisplay";
 import { getAuthProvider } from "../../../services/authSession";
 import {
   TRAINER_SPECIALIZATION_OPTIONS,
@@ -108,18 +113,38 @@ const getMembershipCardOverview = (membershipCard) => {
       detailText: "Bạn chưa kích hoạt thẻ thành viên. Hãy mua thẻ để đặt lịch và tập tại gym.",
       daysLeftText: "0 ngày",
       endDateText: "—",
+      daysLeft: 0,
     };
   }
 
   const end = new Date(membershipCard.endDate);
-  const now = new Date();
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const remainingMonths = Number(membershipCard?.remainingMonths || 0);
-  // Đồng bộ nghiệp vụ: 1 tháng = 30 ngày (tránh lệch 90/91 theo số ngày lịch thực tế).
-  const daysLeft = remainingMonths > 0
-    ? remainingMonths * 30
-    : Math.ceil((end.getTime() - now.getTime()) / msPerDay);
-  const isActive = daysLeft >= 0;
+  if (Number.isNaN(end.getTime())) {
+    return {
+      hasCard: true,
+      isActive: false,
+      statusText: "Thẻ đã hết hạn",
+      detailText: "Thẻ đã hết hạn, vui lòng gia hạn để tiếp tục đặt lịch và sử dụng dịch vụ.",
+      daysLeftText: "Đã hết hạn",
+      endDateText: formatDate(membershipCard.endDate),
+      daysLeft: 0,
+    };
+  }
+
+  const rawDays = getMembershipDaysLeft(membershipCard.endDate);
+  if (rawDays === null) {
+    return {
+      hasCard: true,
+      isActive: false,
+      statusText: "Thẻ đã hết hạn",
+      detailText: "Thẻ đã hết hạn, vui lòng gia hạn để tiếp tục đặt lịch và sử dụng dịch vụ.",
+      daysLeftText: "Đã hết hạn",
+      endDateText: formatDate(membershipCard.endDate),
+      daysLeft: 0,
+    };
+  }
+
+  const isActive = rawDays >= 0;
+  const daysLeft = Math.max(0, rawDays);
 
   return {
     hasCard: true,
@@ -130,6 +155,7 @@ const getMembershipCardOverview = (membershipCard) => {
       : "Thẻ đã hết hạn, vui lòng gia hạn để tiếp tục đặt lịch và sử dụng dịch vụ.",
     daysLeftText: isActive ? `${daysLeft} ngày` : "Đã hết hạn",
     endDateText: formatDate(membershipCard.endDate),
+    daysLeft,
   };
 };
 
@@ -323,15 +349,24 @@ export default function MemberProfilePage() {
 
   const loadPaymentHistory = async () => {
     try {
-      const res = await memberGetMyPackages();
-      const raw = res?.data?.data;
+      const [pkgRes, mcRes] = await Promise.all([
+        memberGetMyPackages(),
+        memberGetMembershipCardPurchaseHistory().catch(() => ({ data: { data: [] } })),
+      ]);
+      const raw = pkgRes?.data?.data;
       const list = Array.isArray(raw) ? raw : [];
-      const sorted = [...list].sort((a, b) => {
-        const aTime = new Date(a?.Transaction?.transactionDate || a?.updatedAt || a?.createdAt || a?.activationDate || 0).getTime();
-        const bTime = new Date(b?.Transaction?.transactionDate || b?.updatedAt || b?.createdAt || b?.activationDate || 0).getTime();
-        return bTime - aTime;
-      });
-      setPaymentHistory(sorted);
+      const mcRaw = mcRes?.data?.data;
+      const mcList = Array.isArray(mcRaw) ? mcRaw : [];
+      const paymentTime = (item) =>
+        new Date(
+          item?.Transaction?.transactionDate ||
+            item?.updatedAt ||
+            item?.createdAt ||
+            item?.activationDate ||
+            0
+        ).getTime();
+      const merged = [...list, ...mcList].sort((a, b) => paymentTime(b) - paymentTime(a));
+      setPaymentHistory(merged);
     } catch (_e) {
       setPaymentHistory([]);
     }
@@ -950,8 +985,12 @@ export default function MemberProfilePage() {
                 {paymentHistory.length ? paymentHistory.map((item) => (
                   <div className="mprof-paymentItem" key={item.id}>
                     <div>
-                      <div className="mprof-paymentName">{item?.Package?.name || 'Gói tập'}</div>
-                      <div className="mprof-paymentMeta">{formatDate(item?.Transaction?.transactionDate || item?.activationDate)} • {String(item?.Transaction?.paymentMethod || '—').toUpperCase()} • {String(item?.Transaction?.transactionCode || item?.Transaction?.id || item?.id || '—').toUpperCase()}</div>
+                      <div className="mprof-paymentName">
+                        {item?.kind === "membership_card"
+                          ? item?.label || "Thẻ thành viên"
+                          : item?.Package?.name || "Gói tập"}
+                      </div>
+                      <div className="mprof-paymentMeta">{formatDate(item?.Transaction?.transactionDate || item?.activationDate || item?.createdAt)} • {String(item?.Transaction?.paymentMethod || '—').toUpperCase()} • {String(item?.Transaction?.transactionCode || item?.Transaction?.id || item?.id || '—').toUpperCase()}</div>
                     </div>
                     <div className="mprof-paymentRight">
                       <strong>{Number(item?.Transaction?.amount || 0).toLocaleString('vi-VN')}đ</strong>
@@ -1008,12 +1047,7 @@ export default function MemberProfilePage() {
               ) : (
                 membershipCardsForUi.map((card) => {
                   const overview = getMembershipCardOverview(card);
-                  const monthsLabel =
-                    Number(card?.remainingMonths || 0) > 0 || card?.planMonths
-                      ? Number(card?.remainingMonths || 0) > 0
-                        ? Number(card.remainingMonths)
-                        : Number(card?.planMonths || 0)
-                      : 0;
+                  const planHeadline = getMembershipPlanHeadline(overview.daysLeft, overview.isActive);
                   const gymName = card?.gym?.name || (card?.gymId ? `Phòng gym #${card.gymId}` : "—");
                   const renewPath =
                     card?.gymId > 0
@@ -1035,7 +1069,7 @@ export default function MemberProfilePage() {
                       <div className="mprof-membershipBody">
                         <div className="mprof-membershipMain">
                           <div className="mprof-membershipPlan">
-                            {monthsLabel > 0 ? `GÓI ${monthsLabel} THÁNG` : "CHƯA KÍCH HOẠT"}
+                            {overview.hasCard && card?.endDate ? planHeadline : "CHƯA KÍCH HOẠT"}
                           </div>
                           <div className="mprof-membershipHint">{overview.detailText}</div>
                           <div className="mprof-membershipGym">
@@ -1115,12 +1149,13 @@ export default function MemberProfilePage() {
                       : membershipCardsForUi.length === 1
                         ? (() => {
                             const c = membershipCardsForUi[0];
-                            const mo =
-                              Number(c?.remainingMonths || 0) > 0
-                                ? Number(c.remainingMonths)
-                                : Number(c?.planMonths || 0);
+                            const ov = getMembershipCardOverview(c);
                             const gym = c?.gym?.name || (c?.gymId ? `#${c.gymId}` : "");
-                            return `${mo} THÁNG — ${formatDate(c.endDate)}${gym ? ` @ ${gym}` : ""}`;
+                            if (ov.daysLeft > 0) {
+                              const approx = Math.max(1, Math.round(ov.daysLeft / 30));
+                              return `${approx} tháng • ${ov.daysLeft} ngày — ${formatDate(c.endDate)}${gym ? ` @ ${gym}` : ""}`;
+                            }
+                            return `${formatDate(c.endDate)}${gym ? ` @ ${gym}` : ""}`;
                           })()
                         : `${membershipCardsForUi.length} thẻ đang hiệu lực tại ${membershipCardsForUi
                             .map((c) => c?.gym?.name || `gym ${c?.gymId || "?"}`)
