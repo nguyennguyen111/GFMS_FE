@@ -26,7 +26,11 @@ export function resolveTrainerNotificationPath(item) {
     return "/pt/requests";
   }
 
+  if (type === "booking_reschedule") return "/pt/reschedule-requests";
+
   if (type === "booking_update" || type === "booking") return schedulePath();
+
+  if (type === "trainer_share") return "/pt/requests";
 
   return "/pt/notifications";
 }

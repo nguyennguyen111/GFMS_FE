@@ -19,6 +19,17 @@ const formatMoney = (value) => {
   return `${num.toLocaleString("vi-VN")}đ`;
 };
 
+const formatMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("vi-VN");
+};
+
+const toNumberFromMoneyInput = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return Number(digits || 0);
+};
+
 const formatDate = (value) => {
   if (!value) return "—";
   const date = new Date(value);
@@ -225,7 +236,8 @@ const PTPayrollPage = () => {
 
   const fillWithdrawAll = () => {
     if (availableBalance <= 0) return;
-    setWithdrawForm((f) => ({ ...f, amount: String(Math.floor(availableBalance)) }));
+    const n = Math.floor(availableBalance);
+    setWithdrawForm((f) => ({ ...f, amount: n.toLocaleString("vi-VN") }));
   };
 
   const openWithdrawModal = () => {
@@ -247,7 +259,7 @@ const PTPayrollPage = () => {
   }, [withdrawSubmitting]);
 
   const handleRequestWithdrawal = async () => {
-    const amount = Number(withdrawForm.amount || 0);
+    const amount = toNumberFromMoneyInput(withdrawForm.amount);
     if (!amount || Number.isNaN(amount) || amount <= 0) {
       setFeedbackModal({
         title: "Thiếu thông tin",
@@ -527,11 +539,14 @@ const PTPayrollPage = () => {
                 <span className="ptw-field-label">Số tiền muốn rút (VND)</span>
                 <input
                   className="ptw-input"
-                  type="number"
-                  min={1}
-                  placeholder=""
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="VD: 200.000"
                   value={withdrawForm.amount}
-                  onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
+                  onChange={(e) =>
+                    setWithdrawForm({ ...withdrawForm, amount: formatMoneyInput(e.target.value) })
+                  }
                   disabled={withdrawSubmitting}
                 />
               </label>

@@ -74,15 +74,31 @@ export default function useTrainerNotifications() {
       setUnreadCount(0);
     };
 
+    /** Một số bước mượn PT chỉ emit trainer_share:changed — refetch để chuông khớp DB. */
+    const onTrainerShareChanged = async () => {
+      try {
+        const data = await getTrainerNotifications();
+        if (!mounted) return;
+        const raw = data?.items || [];
+        const filtered = raw.filter(isTrainerRelevantNotification);
+        setItems(filtered);
+        setUnreadCount(filtered.filter((x) => !x.isRead).length);
+      } catch {
+        /* ignore */
+      }
+    };
+
     socket.on("notification:new", onNew);
     socket.on("notification:read", onRead);
     socket.on("notification:read-all", onReadAll);
+    socket.on("trainer_share:changed", onTrainerShareChanged);
 
     return () => {
       mounted = false;
       socket.off("notification:new", onNew);
       socket.off("notification:read", onRead);
       socket.off("notification:read-all", onReadAll);
+      socket.off("trainer_share:changed", onTrainerShareChanged);
     };
   }, [token, gid]);
 

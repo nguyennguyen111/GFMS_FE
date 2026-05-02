@@ -75,10 +75,10 @@ export default function PTRescheduleRequestsPage() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const loadRescheduleRequests = useCallback(async () => {
+  const loadRescheduleRequests = useCallback(async (opts = {}) => {
     try {
       setLoading(true);
-      const res = await getMyPTRescheduleRequests();
+      const res = await getMyPTRescheduleRequests({ force: opts.force === true });
       setRescheduleRequests(Array.isArray(res?.data) ? res.data : []);
     } catch (error) {
       console.error("Load PT reschedule requests failed:", error);
@@ -100,7 +100,7 @@ export default function PTRescheduleRequestsPage() {
       const type = String(payload?.notificationType || "").toLowerCase();
       if (type !== "booking_reschedule") return;
       if (t) clearTimeout(t);
-      t = setTimeout(() => loadRescheduleRequests(), 250);
+      t = setTimeout(() => loadRescheduleRequests({ force: true }), 250);
     };
     socket.on("notification:new", onNoti);
     return () => {
@@ -132,7 +132,7 @@ export default function PTRescheduleRequestsPage() {
       setSubmittingId(requestId);
       await approvePTRescheduleRequest(requestId, {});
       showToast("success", "Đã chấp nhận yêu cầu đổi lịch.");
-      await loadRescheduleRequests();
+      await loadRescheduleRequests({ force: true });
     } catch (e) {
       showToast(
         "error",
@@ -170,7 +170,7 @@ export default function PTRescheduleRequestsPage() {
       });
       closeRejectModal();
       showToast("success", "Đã từ chối yêu cầu đổi lịch.");
-      await loadRescheduleRequests();
+      await loadRescheduleRequests({ force: true });
     } catch (e) {
       showToast(
         "error",
