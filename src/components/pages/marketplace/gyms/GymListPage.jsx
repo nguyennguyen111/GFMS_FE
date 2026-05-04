@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Dumbbell,
   Phone,
-  Clock3,
   SlidersHorizontal,
   Building2,
 } from "lucide-react";
@@ -122,16 +121,21 @@ export default function GymListPage() {
     }));
   }, [allGyms]);
 
+  const visibleGyms = useMemo(
+    () => normalizedGyms.filter((g) => g._status !== "suspended"),
+    [normalizedGyms]
+  );
+
   const areas = useMemo(() => {
     const set = new Set();
-    normalizedGyms.forEach((g) => set.add(g._area));
+    visibleGyms.forEach((g) => set.add(g._area));
     return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [normalizedGyms]);
+  }, [visibleGyms]);
 
   const filteredSorted = useMemo(() => {
     const text = q.trim().toLowerCase();
 
-    const list = normalizedGyms.filter((g) => {
+    const list = visibleGyms.filter((g) => {
       const matchText =
         !text ||
         `${g.name || ""} ${g.address || ""} ${g.description || ""} ${g.phone || ""}`
@@ -174,7 +178,7 @@ export default function GymListPage() {
     }
 
     return list;
-  }, [normalizedGyms, q, status, area, sortKey]);
+  }, [visibleGyms, q, status, area, sortKey]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE));
 
@@ -187,9 +191,8 @@ export default function GymListPage() {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const totalCount = normalizedGyms.length;
-  const activeCount = normalizedGyms.filter((g) => g._status === "active").length;
-  const suspendedCount = normalizedGyms.filter((g) => g._status === "suspended").length;
+  const totalCount = visibleGyms.length;
+  const activeCount = visibleGyms.filter((g) => g._status === "active").length;
 
   return (
     <div className="market-page market-page--gym">
@@ -212,8 +215,8 @@ export default function GymListPage() {
                 <strong>{activeCount}</strong>
               </div>
               <div className="market-stat-card">
-                <span className="market-stat-card__label">Tạm khóa</span>
-                <strong>{suspendedCount}</strong>
+                <span className="market-stat-card__label">Tạm offline</span>
+                <strong>{visibleGyms.filter((g) => g._status === "inactive").length}</strong>
               </div>
               <div className="market-stat-card">
                 <span className="market-stat-card__label">Kết quả phù hợp</span>
@@ -259,7 +262,6 @@ export default function GymListPage() {
                     <option value="all">Tất cả trạng thái</option>
                     <option value="active">Đang hoạt động</option>
                     <option value="inactive">Tạm offline</option>
-                    <option value="suspended">Tạm khóa</option>
                   </select>
                 </div>
 
@@ -293,7 +295,7 @@ export default function GymListPage() {
             </div>
 
             <div className="market-chips">
-              {["all", "active", "inactive", "suspended"].map((s) => (
+              {["all", "active", "inactive"].map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -304,9 +306,7 @@ export default function GymListPage() {
                     ? "Tất cả"
                     : s === "active"
                     ? "Đang hoạt động"
-                    : s === "inactive"
-                    ? "Tạm offline"
-                    : "Tạm khóa"}
+                    : "Tạm offline"}
                 </button>
               ))}
             </div>

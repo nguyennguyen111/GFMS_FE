@@ -30,6 +30,27 @@ const formatMoney = (value) => {
   return `${num.toLocaleString("vi-VN")}đ`;
 };
 
+const resolveOwnerSessionRevenue = (commissionRow) => {
+  const directOwnerValue = commissionRow?.ownerRevenue ?? commissionRow?.ownerAmount ?? commissionRow?.ownerShare;
+  if (directOwnerValue != null && directOwnerValue !== "") {
+    return Number(directOwnerValue || 0);
+  }
+
+  const payee = String(commissionRow?.payee || "").toLowerCase();
+  const sessionValue = Number(commissionRow?.sessionValue || 0);
+  const trainerRevenue = Number(commissionRow?.commissionAmount || 0);
+
+  if (payee === "owner") return sessionValue;
+  return Math.max(0, sessionValue - trainerRevenue);
+};
+
+const resolveCommissionNote = (commissionRow, isOwnerRetention) => {
+  const rawNote = String(commissionRow?.retentionReason || "").trim();
+  if (rawNote) return rawNote;
+  if (isOwnerRetention) return "Giữ lại toàn bộ doanh thu cho chủ phòng gym.";
+  return "Phân chia doanh thu buổi tập giữa PT và chủ phòng gym.";
+};
+
 const formatDate = (value) => {
   if (!value) return "N/A";
   const date = new Date(value);
@@ -687,7 +708,7 @@ const OwnerCommissionsPage = () => {
               <th>Phòng gym</th>
               <th>Gói tập</th>
               <th>Giá trị/buổi</th>
-              <th>Hoa hồng Huấn luyện viên</th>
+              <th>Doanh thu huấn luyện viên</th>
               <th>Doanh thu chủ (buổi)</th>
               <th>Ghi chú</th>
               <th>Trạng thái</th>
@@ -717,9 +738,9 @@ const OwnerCommissionsPage = () => {
                     {isOwnerRetention ? "—" : formatMoney(c.commissionAmount)}
                   </td>
                   <td className="tx-amount">
-                    {isOwnerRetention ? formatMoney(c.sessionValue) : "—"}
+                    {formatMoney(resolveOwnerSessionRevenue(c))}
                   </td>
-                  <td className="tx-note-cell">{c.retentionReason || (isOwnerRetention ? "" : "—")}</td>
+                  <td className="tx-note-cell">{resolveCommissionNote(c, isOwnerRetention)}</td>
                   <td>
                     {isOwnerRetention ? (
                       <span className="tx-badge tx-badge-owner">Doanh thu chủ</span>

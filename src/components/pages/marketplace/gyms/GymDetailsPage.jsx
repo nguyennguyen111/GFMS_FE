@@ -115,7 +115,7 @@ export default function GymDetailsPage() {
       </div>
     );
 
-  if (!gym)
+  if (!gym || status === "suspended")
     return (
       <div className="gd-page">
         <div className="gd-container">
