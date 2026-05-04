@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
   Package as PackageIcon,
   Dumbbell,
   MapPin,
@@ -69,7 +68,7 @@ export default function PackageDetailsPage() {
             </h1>
 
             <div className="pkd-sub">
-              {pkg.sessions} buổi • {pkg.durationDays} ngày • {pkg.type || "basic"}
+              {pkg.sessions} buổi • {pkg.type || "basic"}
             </div>
 
             <div className="pkd-sub" style={{ marginTop: 6 }}>
@@ -82,9 +81,6 @@ export default function PackageDetailsPage() {
               </span>
               <span className="pkd-pill">
                 Buổi tập <b>{pkg.sessions}</b>
-              </span>
-              <span className="pkd-pill">
-                Thời hạn <b>{pkg.durationDays} ngày</b>
               </span>
             </div>
           </div>
@@ -142,22 +138,6 @@ export default function PackageDetailsPage() {
                   </span>
                   <span className="pkd-specLabel">Số buổi</span>
                   <b>{pkg.sessions}</b>
-                </div>
-
-                <div className="pkd-spec">
-                  <span className="pkd-specIcon">
-                    <CalendarDays size={16} />
-                  </span>
-                  <span className="pkd-specLabel">Thời hạn</span>
-                  <b>{pkg.durationDays} ngày</b>
-                </div>
-
-                <div className="pkd-spec">
-                  <span className="pkd-specIcon">
-                    <PackageIcon size={16} />
-                  </span>
-                  <span className="pkd-specLabel">Tối đa / tuần</span>
-                  <b>{pkg.maxSessionsPerWeek || "—"}</b>
                 </div>
 
                 <div className="pkd-spec">

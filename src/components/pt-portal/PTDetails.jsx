@@ -5,13 +5,6 @@ import { specializationToVietnamese } from "../../utils/specializationI18n";
 import { setTrainerId, clearTrainerId } from "./ptStorage";
 import "./PTDetails.css";
 
-const formatMoney = (v) => {
-  if (v == null || v === "") return "—";
-  const n = Number(v);
-  if (Number.isNaN(n)) return String(v);
-  return n.toLocaleString("vi-VN");
-};
-
 const readCoverCache = (ptId) => {
   try {
     return JSON.parse(localStorage.getItem(`pt_cover_${ptId}`) || "null");
@@ -213,12 +206,6 @@ const PTDetails = () => {
                     </div>
                   </div>
 
-                  <div className="pt-stat">
-                    <div className="pt-stat__label">Giá theo giờ</div>
-                    <div className="pt-stat__value">
-                      {formatMoney(pt.hourlyRate)} đ
-                    </div>
-                  </div>
                 </div>
 
                 <div className="pt-chip-wrap">
@@ -270,11 +257,6 @@ const PTDetails = () => {
                   <div className="pt-row">
                     <div className="pt-label">Kinh nghiệm (năm)</div>
                     <div className="pt-value">{pt.experienceYears ?? "—"}</div>
-                  </div>
-
-                  <div className="pt-row">
-                    <div className="pt-label">Giá theo giờ</div>
-                    <div className="pt-value">{formatMoney(pt.hourlyRate)}</div>
                   </div>
 
                   <div className="pt-row">

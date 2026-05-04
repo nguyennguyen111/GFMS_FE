@@ -878,17 +878,6 @@ const PTDashboard = () => {
             <div className="mh-card__desc">{stats.reviews} đánh giá</div>
           </div>
 
-          <div className="mh-card">
-            <div className="mh-card__head">
-              <div>
-                <div className="mh-card__title">Hoa hồng &amp; lương</div>
-              </div>
-            </div>
-            <Link className="mh-btn mh-btn--primary ptd-payrollFull" to="/pt/payroll">
-              Mở Payroll
-            </Link>
-          </div>
-
           <div className="mh-card ptd-userFooter">
             <div className="ptd-userFooterName">{displayName}</div>
             <div className="ptd-userFooterEmail">{email}</div>
