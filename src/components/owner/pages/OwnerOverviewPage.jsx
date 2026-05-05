@@ -153,7 +153,6 @@ export default function OwnerOverviewPage() {
     newMembersToday: [],
     upcomingBookings: [],
     todayBookingsDetails: [],
-    expiringMembers: [],
     activeMembers: [],
     lowStock: [],
     bestSellingPackages: [],
@@ -181,7 +180,6 @@ export default function OwnerOverviewPage() {
         newMembersToday: result.newMembersToday ?? [],
         upcomingBookings: result.upcomingBookings ?? [],
         todayBookingsDetails: result.todayBookingsDetails ?? [],
-        expiringMembers: result.expiringMembers ?? [],
         activeMembers: result.activeMembers ?? [],
         lowStock: result.lowStock ?? [],
         bestSellingPackages: result.bestSellingPackages ?? [],
@@ -338,13 +336,6 @@ export default function OwnerOverviewPage() {
       key: "totalMembers",
     },
     {
-      title: "Hội viên sắp hết hạn",
-      value: data.expiringMembers.length,
-      hint: "Hết hạn trong 7 ngày tới",
-      icon: "⏰",
-      key: "expiringMembers",
-    },
-    {
       title: "Tổng doanh thu",
       value: loading ? "…" : formatRevenue(data.totalRevenue),
       hint: "Doanh thu owner (PT + thẻ thành viên)",
@@ -354,7 +345,6 @@ export default function OwnerOverviewPage() {
   ];
 
   const upcomingPreview = data.upcomingBookings.slice(0, PREVIEW_LIMIT);
-  const expiringPreview = data.expiringMembers.slice(0, PREVIEW_LIMIT);
   const newMembersPreview = data.newMembersToday.slice(0, PREVIEW_LIMIT);
   const bestSellingPreview = [...data.bestSellingPackages]
     .sort((a, b) => Number(b.soldCount || 0) - Number(a.soldCount || 0))
@@ -372,13 +362,6 @@ export default function OwnerOverviewPage() {
         empty: "Không có booking sắp tới",
       };
     }
-    if (viewAllType === "expiring") {
-      return {
-        title: "Tất cả hội viên sắp hết hạn",
-        items: data.expiringMembers,
-        empty: "Không có hội viên sắp hết hạn",
-      };
-    }
     if (viewAllType === "newMembers") {
       return {
         title: "Tất cả hội viên mới hôm nay",
@@ -394,7 +377,6 @@ export default function OwnerOverviewPage() {
   const statDetailConfig = useMemo(() => {
     if (statDetailType === "todayBookings") return { title: "Chi tiết booking hôm nay", empty: "Hôm nay chưa có booking nào." };
     if (statDetailType === "totalMembers") return { title: "Chi tiết hội viên đang hoạt động", empty: "Chưa có hội viên đang hoạt động." };
-    if (statDetailType === "expiringMembers") return { title: "Chi tiết hội viên sắp hết hạn", empty: "Không có hội viên sắp hết hạn." };
     if (statDetailType === "totalRevenue") return { title: "Chi tiết tổng doanh thu owner", empty: "" };
     return null;
   }, [statDetailType]);
@@ -499,9 +481,8 @@ export default function OwnerOverviewPage() {
         )}
       </Panel>
 
-      {/* ── Row 1 ── */}
-      <div className="ov-grid2">
-        {/* Booking sắp tới */}
+      {/* ── Booking sắp tới ── */}
+      <div className="ov-grid2" style={{ gridTemplateColumns: "1fr" }}>
         <Panel
           title="Booking sắp tới"
           right={
@@ -535,46 +516,6 @@ export default function OwnerOverviewPage() {
                     }}
                   >
                     {b.status === "confirmed" ? "Đã duyệt" : "Chờ"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        {/* Hội viên sắp hết hạn */}
-        <Panel
-          title="Hội viên sắp hết hạn gói"
-          right={
-            data.expiringMembers.length > PREVIEW_LIMIT ? (
-              <button className="ov-linkBtn" onClick={() => setViewAllType("expiring")}>
-                Xem tất cả
-              </button>
-            ) : null
-          }
-        >
-          {loading ? (
-            <div className="ov-empty">Đang tải…</div>
-          ) : data.expiringMembers.length === 0 ? (
-            <div className="ov-empty">Không có hội viên sắp hết hạn</div>
-          ) : (
-            <div className="ov-list">
-              {expiringPreview.map((m) => (
-                <div className="ov-row" key={m.id}>
-                  <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>
-                    {m.daysLeft}d
-                  </div>
-                  <div className="ov-rowMain">
-                    <div className="ov-rowTitle">{m.memberName}</div>
-                    <div className="ov-rowSub">
-                      {m.packageName}
-                      {m.sessionsRemaining != null
-                        ? ` • còn ${m.sessionsRemaining} buổi`
-                        : ""}
-                    </div>
-                  </div>
-                  <span className="ov-miniBtn">
-                    HSD: {formatDate(m.packageExpiryDate)}
                   </span>
                 </div>
               ))}
@@ -678,30 +619,6 @@ export default function OwnerOverviewPage() {
                     </div>
                   ))}
 
-                  {viewAllType === "expiring" && viewAllConfig.items.map((m) => (
-                    <div className="ov-row" key={`modal-exp-${m.id}`}>
-                      <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>
-                        {m.daysLeft}d
-                      </div>
-                      <div className="ov-rowMain">
-                        <div className="ov-rowTitle">{m.memberName}</div>
-                        <div className="ov-rowSub">
-                          {m.packageName}
-                          {m.sessionsRemaining != null ? ` • còn ${m.sessionsRemaining} buổi` : ""}
-                        </div>
-                      </div>
-                      <button
-                        className="ov-miniBtn"
-                        onClick={() => {
-                          closeViewAll();
-                          navigate("/owner/members");
-                        }}
-                      >
-                        Chi tiết
-                      </button>
-                    </div>
-                  ))}
-
                   {viewAllType === "newMembers" && viewAllConfig.items.map((m) => (
                     <div className="ov-row" key={`modal-new-${m.id}`}>
                       <div className="ov-badge" style={{ background: "rgba(34,197,94,.15)", borderColor: "rgba(34,197,94,.3)", color: "rgba(34,197,94,1)", fontSize: 11 }}>
@@ -772,28 +689,6 @@ export default function OwnerOverviewPage() {
                           <div style={{ fontSize: 12, color: "rgba(255,255,255,.78)" }}>{m.phone || "—"}</div>
                           <div style={{ fontSize: 11, color: "rgba(255,255,255,.48)" }}>{m.email || ""}</div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-
-              {statDetailType === "expiringMembers" && (
-                data.expiringMembers.length === 0 ? (
-                  <div className="ov-empty">{statDetailConfig.empty}</div>
-                ) : (
-                  <div className="ov-list">
-                    {data.expiringMembers.map((m) => (
-                      <div className="ov-row" key={`expiring-member-${m.id}`}>
-                        <div className={`ov-badge ${m.daysLeft <= 3 ? "danger" : "warn"}`}>{m.daysLeft}d</div>
-                        <div className="ov-rowMain">
-                          <div className="ov-rowTitle">{m.memberName}</div>
-                          <div className="ov-rowSub">
-                            {m.packageName}
-                            {m.sessionsRemaining != null ? ` • còn ${m.sessionsRemaining} buổi` : ""}
-                          </div>
-                        </div>
-                        <span className="ov-miniBtn">HSD: {formatDate(m.packageExpiryDate)}</span>
                       </div>
                     ))}
                   </div>
