@@ -554,6 +554,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   const [eligibleTrainers, setEligibleTrainers] = useState([]);
   const [loadingEligibleTrainers, setLoadingEligibleTrainers] = useState(false);
   const [busyRequestIdToApprove, setBusyRequestIdToApprove] = useState(null);
+  const [submittingShare, setSubmittingShare] = useState(false);
 
   useEffect(() => {
     const scopedGymId = selectedGymId ? String(selectedGymId) : "";
@@ -630,6 +631,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
 
   // Wrapper để đóng modal và clear busyRequestIdToApprove
   const closeModal = () => {
+    if (submittingShare) return;
     setBusyRequestIdToApprove(null);
     setShowModal(false);
   };
@@ -2014,6 +2016,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingShare) return;
     setError("");
     setSuccess("");
 
@@ -2095,6 +2098,7 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       }
     }
 
+    setSubmittingShare(true);
     try {
       if (!form.startDate) {
         setError("Vui lòng chọn ngày mượn huấn luyện viên");
@@ -2150,6 +2154,8 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
       loadShares();
     } catch (err) {
       setError(err.response?.data?.message || "Có lỗi xảy ra");
+    } finally {
+      setSubmittingShare(false);
     }
   };
 
@@ -3790,15 +3796,22 @@ export default function OwnerTrainerSharePage({ pageMode = "shares" }) {
                   type="button"
                   className="ots-btn ots-btn--secondary"
                   onClick={closeModal}
+                  disabled={submittingShare}
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   className="ots-btn ots-btn--primary"
-                  disabled={Boolean(leadTimeError)}
+                  disabled={Boolean(leadTimeError) || submittingShare}
                 >
-                  {editing ? "Cập nhật" : "Tạo mới"}
+                  {submittingShare
+                    ? editing
+                      ? "Đang cập nhật..."
+                      : "Đang tạo..."
+                    : editing
+                      ? "Cập nhật"
+                      : "Tạo mới"}
                 </button>
               </div>
             </form>
